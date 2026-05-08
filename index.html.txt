@@ -1,0 +1,2268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+<title>Betta — A 10-Gallon Life</title>
+<style>
+  :root {
+    --water-top: #0a3a4a;
+    --water-mid: #0d5b6e;
+    --water-bot: #062a36;
+    --glass: rgba(180, 230, 240, 0.08);
+    --hud-bg: rgba(8, 22, 30, 0.78);
+    --hud-border: rgba(140, 220, 240, 0.18);
+    --accent: #ff5e3a;
+    --accent-2: #6ee0ff;
+    --text: #e8f6fb;
+    --muted: #8fb6c4;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    width: 100%; height: 100%;
+    background: #03161e;
+    color: var(--text);
+    font-family: 'Georgia', 'Times New Roman', serif;
+    overflow: hidden;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+  #game-wrap {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  canvas {
+    display: block;
+    background: linear-gradient(to bottom, var(--water-top) 0%, var(--water-mid) 50%, var(--water-bot) 100%);
+    box-shadow:
+      inset 0 0 80px rgba(0, 0, 0, 0.6),
+      inset 0 0 0 4px rgba(180, 220, 235, 0.12),
+      0 30px 80px rgba(0, 0, 0, 0.5);
+    image-rendering: auto;
+  }
+  #hud {
+    position: fixed;
+    top: 14px;
+    left: 14px;
+    background: var(--hud-bg);
+    border: 1px solid var(--hud-border);
+    border-radius: 10px;
+    padding: 10px 14px;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    line-height: 1.6;
+    min-width: 180px;
+    pointer-events: none;
+  }
+  #hud .title {
+    font-family: 'Georgia', serif;
+    font-style: italic;
+    font-size: 14px;
+    letter-spacing: 1px;
+    color: var(--accent-2);
+    margin-bottom: 6px;
+    border-bottom: 1px dashed var(--hud-border);
+    padding-bottom: 4px;
+  }
+  .stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+  }
+  .stat-label { color: var(--muted); }
+  .bar {
+    width: 90px; height: 6px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .bar-fill {
+    height: 100%;
+    transition: width 0.3s ease;
+  }
+  .bar-fill.hunger { background: linear-gradient(90deg, #ff8c5a, #ffd05a); }
+  .bar-fill.health { background: linear-gradient(90deg, #ff3a5a, #ff8c5a); }
+  .bar-fill.happy  { background: linear-gradient(90deg, #6ee0ff, #b0ffec); }
+
+  #event-log {
+    position: fixed;
+    bottom: 80px;
+    left: 14px;
+    right: 14px;
+    max-width: 380px;
+    pointer-events: none;
+  }
+  .event-msg {
+    background: rgba(8, 22, 30, 0.82);
+    border-left: 3px solid var(--accent-2);
+    color: var(--text);
+    font-style: italic;
+    font-size: 13px;
+    padding: 6px 12px;
+    margin-top: 6px;
+    border-radius: 0 6px 6px 0;
+    opacity: 0;
+    transform: translateX(-12px);
+    animation: msgIn 0.4s ease forwards, msgOut 0.6s ease 4.4s forwards;
+  }
+  .event-msg.warn  { border-left-color: var(--accent); }
+  .event-msg.good  { border-left-color: #6effa0; }
+  @keyframes msgIn  { to { opacity: 1; transform: translateX(0); } }
+  @keyframes msgOut { to { opacity: 0; transform: translateX(-12px); } }
+
+  #controls-help {
+    position: fixed;
+    top: 14px;
+    right: 14px;
+    background: var(--hud-bg);
+    border: 1px solid var(--hud-border);
+    border-radius: 10px;
+    padding: 10px 14px;
+    backdrop-filter: blur(8px);
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    line-height: 1.7;
+    color: var(--muted);
+    text-align: right;
+  }
+  #controls-help kbd {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 3px;
+    padding: 1px 5px;
+    color: var(--text);
+    font-family: inherit;
+  }
+
+  /* Mobile touch controls */
+  #touch-pad {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    width: 130px;
+    height: 130px;
+    border-radius: 50%;
+    background: rgba(8, 22, 30, 0.5);
+    border: 2px solid var(--hud-border);
+    backdrop-filter: blur(6px);
+    display: none;
+    touch-action: none;
+  }
+  #touch-stick {
+    position: absolute;
+    width: 56px; height: 56px;
+    border-radius: 50%;
+    background: rgba(110, 224, 255, 0.5);
+    border: 2px solid rgba(255,255,255,0.4);
+    left: 50%; top: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+  }
+  #touch-actions {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    display: none;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .touch-btn {
+    width: 70px; height: 70px;
+    border-radius: 50%;
+    background: rgba(8, 22, 30, 0.7);
+    border: 2px solid var(--hud-border);
+    color: var(--text);
+    font-family: 'Georgia', serif;
+    font-size: 11px;
+    text-align: center;
+    backdrop-filter: blur(6px);
+    cursor: pointer;
+  }
+  .touch-btn:active { background: rgba(110, 224, 255, 0.3); }
+
+  @media (hover: none) and (pointer: coarse) {
+    #touch-pad, #touch-actions { display: flex; }
+    #controls-help { display: none; }
+  }
+
+  #title-card {
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(ellipse at center, rgba(13, 91, 110, 0.95), rgba(3, 22, 30, 0.98));
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    cursor: pointer;
+    transition: opacity 0.8s ease;
+  }
+  #title-card.hidden {
+    opacity: 0;
+    pointer-events: none;
+  }
+  #title-card h1 {
+    font-family: 'Georgia', serif;
+    font-style: italic;
+    font-size: clamp(48px, 9vw, 92px);
+    font-weight: normal;
+    letter-spacing: 4px;
+    color: var(--accent);
+    text-shadow: 0 4px 30px rgba(255, 94, 58, 0.4);
+    margin-bottom: 8px;
+  }
+  #title-card .sub {
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    letter-spacing: 6px;
+    color: var(--accent-2);
+    text-transform: uppercase;
+    margin-bottom: 40px;
+  }
+  #title-card .keys {
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 2;
+    text-align: center;
+  }
+  #title-card .keys kbd {
+    background: rgba(110, 224, 255, 0.1);
+    border: 1px solid rgba(110, 224, 255, 0.3);
+    border-radius: 3px;
+    padding: 2px 8px;
+    color: var(--text);
+    font-family: inherit;
+    margin: 0 2px;
+  }
+  #title-card .start-prompt {
+    margin-top: 50px;
+    font-style: italic;
+    font-size: 14px;
+    color: var(--accent);
+    animation: pulse 1.6s ease-in-out infinite;
+  }
+  @keyframes pulse { 50% { opacity: 0.4; } }
+
+  /* ---- Customizer ---- */
+  #customizer {
+    margin-top: 32px;
+    background: rgba(8, 22, 30, 0.55);
+    border: 1px solid rgba(110, 224, 255, 0.2);
+    border-radius: 14px;
+    padding: 22px 26px;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    width: min(440px, 90vw);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+  }
+  #customizer .row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+  #customizer label {
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    min-width: 60px;
+  }
+  #name-input {
+    flex: 1;
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(110, 224, 255, 0.25);
+    border-radius: 6px;
+    padding: 10px 14px;
+    color: var(--text);
+    font-family: 'Georgia', serif;
+    font-style: italic;
+    font-size: 18px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  #name-input:focus { border-color: var(--accent-2); }
+  #name-input::placeholder { color: rgba(180, 220, 235, 0.35); font-style: italic; }
+
+  #color-presets {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 8px;
+    margin-top: 4px;
+  }
+
+  /* Section header inside customizer */
+  #customizer .section-label {
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--accent-2);
+    margin-bottom: 8px;
+    padding-bottom: 4px;
+    border-bottom: 1px dashed rgba(110, 224, 255, 0.18);
+  }
+
+  /* Snail-specific overrides */
+  #snail-presets {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 8px;
+    margin-top: 4px;
+  }
+  #custom-snail-row {
+    display: none;
+    gap: 10px;
+    align-items: center;
+    margin-top: 10px;
+    padding-top: 12px;
+    border-top: 1px dashed rgba(110, 224, 255, 0.15);
+  }
+  #custom-snail-row.visible { display: flex; }
+  #custom-snail-row .color-input-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    flex: 1;
+  }
+  #custom-snail-row .color-input-group small {
+    font-family: 'Courier New', monospace;
+    font-size: 9px;
+    letter-spacing: 1px;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+  #custom-snail-row input[type=color] {
+    width: 100%;
+    height: 36px;
+    border: 1px solid rgba(110, 224, 255, 0.25);
+    border-radius: 6px;
+    background: rgba(0,0,0,0.3);
+    cursor: pointer;
+    padding: 2px;
+  }
+
+  #snail-preview {
+    display: block;
+    margin: 8px auto 14px;
+    background: linear-gradient(to bottom, rgba(13, 91, 110, 0.3) 0%, rgba(60, 45, 25, 0.5) 80%);
+    border: 1px solid rgba(110, 224, 255, 0.15);
+    border-radius: 8px;
+  }
+  .color-swatch {
+    aspect-ratio: 1;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: transform 0.15s, border-color 0.15s;
+    position: relative;
+    overflow: hidden;
+  }
+  .color-swatch::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: inherit;
+    box-shadow: inset 0 -6px 10px rgba(0,0,0,0.3), inset 0 4px 6px rgba(255,255,255,0.2);
+  }
+  .color-swatch:hover { transform: scale(1.1); }
+  .color-swatch.selected {
+    border-color: var(--accent-2);
+    transform: scale(1.08);
+    box-shadow: 0 0 14px rgba(110, 224, 255, 0.5);
+  }
+  .color-swatch.custom {
+    background: conic-gradient(from 0deg, #ff5e3a, #ffd05a, #6eff90, #6ee0ff, #c060ff, #ff5e3a) !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-family: 'Courier New', monospace;
+    font-size: 18px;
+    font-weight: bold;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.6);
+  }
+  .color-swatch.custom::after { display: none; }
+
+  #preview-canvas {
+    display: block;
+    margin: 8px auto 14px;
+    background: linear-gradient(to bottom, rgba(13, 91, 110, 0.4), rgba(6, 42, 54, 0.6));
+    border: 1px solid rgba(110, 224, 255, 0.15);
+    border-radius: 8px;
+  }
+
+  #custom-color-row {
+    display: none;
+    gap: 10px;
+    align-items: center;
+    margin-top: 10px;
+    padding-top: 12px;
+    border-top: 1px dashed rgba(110, 224, 255, 0.15);
+  }
+  #custom-color-row.visible { display: flex; }
+  #custom-color-row .color-input-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    flex: 1;
+  }
+  #custom-color-row .color-input-group small {
+    font-family: 'Courier New', monospace;
+    font-size: 9px;
+    letter-spacing: 1px;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+  #custom-color-row input[type=color] {
+    width: 100%;
+    height: 36px;
+    border: 1px solid rgba(110, 224, 255, 0.25);
+    border-radius: 6px;
+    background: rgba(0,0,0,0.3);
+    cursor: pointer;
+    padding: 2px;
+  }
+
+  #start-btn {
+    margin-top: 22px;
+    width: 100%;
+    background: linear-gradient(135deg, var(--accent), #ff8c5a);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 14px;
+    font-family: 'Georgia', serif;
+    font-style: italic;
+    font-size: 18px;
+    letter-spacing: 2px;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+    box-shadow: 0 6px 20px rgba(255, 94, 58, 0.3);
+  }
+  #start-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 28px rgba(255, 94, 58, 0.45);
+  }
+  #start-btn:active { transform: translateY(0); }
+
+  /* Mid-game customize button */
+  #customize-btn {
+    position: fixed;
+    top: 14px;
+    left: 210px;
+    background: var(--hud-bg);
+    border: 1px solid var(--hud-border);
+    border-radius: 10px;
+    padding: 8px 12px;
+    color: var(--text);
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    letter-spacing: 1px;
+    cursor: pointer;
+    backdrop-filter: blur(8px);
+    transition: background 0.2s;
+  }
+  #customize-btn:hover { background: rgba(110, 224, 255, 0.15); }
+  #customize-btn.hidden { display: none; }
+
+  /* Fish name floater */
+  #fish-name-float {
+    position: fixed;
+    pointer-events: none;
+    font-family: 'Georgia', serif;
+    font-style: italic;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.85);
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8), 0 0 8px rgba(0, 0, 0, 0.5);
+    transform: translate(-50%, -100%);
+    transition: opacity 0.3s;
+    white-space: nowrap;
+    z-index: 5;
+  }
+
+  @media (hover: none) and (pointer: coarse) {
+    #customize-btn { left: auto; right: 14px; top: auto; bottom: 110px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="game-wrap">
+  <canvas id="game" width="960" height="640"></canvas>
+</div>
+
+<div id="hud">
+  <div class="title">10-Gallon Life</div>
+  <div class="stat-row"><span class="stat-label">Hunger</span><div class="bar"><div class="bar-fill hunger" id="bar-hunger" style="width: 40%"></div></div></div>
+  <div class="stat-row"><span class="stat-label">Health</span><div class="bar"><div class="bar-fill health" id="bar-health" style="width: 100%"></div></div></div>
+  <div class="stat-row"><span class="stat-label">Mood</span><div class="bar"><div class="bar-fill happy" id="bar-happy" style="width: 70%"></div></div></div>
+  <div class="stat-row" style="margin-top:6px;"><span class="stat-label">Pellets eaten</span><span id="stat-eaten" style="color:var(--accent-2);">0</span></div>
+</div>
+
+<div id="controls-help">
+  <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> / <kbd>↑↓←→</kbd> swim<br/>
+  <kbd>Space</kbd> dart / chase<br/>
+  <kbd>F</kbd> drop a pellet<br/>
+  <kbd>G</kbd> flare gills<br/>
+  <kbd>R</kbd> reset
+</div>
+
+<div id="event-log"></div>
+
+<!-- Mobile -->
+<div id="touch-pad"><div id="touch-stick"></div></div>
+<div id="touch-actions">
+  <div class="touch-btn" id="btn-dart">DART</div>
+  <div class="touch-btn" id="btn-feed">FEED</div>
+  <div class="touch-btn" id="btn-flare">FLARE</div>
+</div>
+
+<div id="title-card">
+  <h1>Betta</h1>
+  <div class="sub">A 10-Gallon Life</div>
+
+  <div id="customizer">
+    <div class="row">
+      <label for="name-input">Name</label>
+      <input id="name-input" type="text" maxlength="18" placeholder="give your fish a name…" />
+    </div>
+
+    <div class="section-label">Your Betta</div>
+    <canvas id="preview-canvas" width="220" height="100"></canvas>
+    <div id="color-presets"></div>
+    <div id="custom-color-row">
+      <div class="color-input-group">
+        <small>Body</small>
+        <input type="color" id="custom-body" value="#c8233a" />
+      </div>
+      <div class="color-input-group">
+        <small>Accent</small>
+        <input type="color" id="custom-accent" value="#ff5e3a" />
+      </div>
+      <div class="color-input-group">
+        <small>Fins</small>
+        <input type="color" id="custom-fin" value="#7a0f1f" />
+      </div>
+    </div>
+
+    <div class="section-label" style="margin-top: 18px;">Mystery Snail</div>
+    <canvas id="snail-preview" width="220" height="80"></canvas>
+    <div id="snail-presets"></div>
+    <div id="custom-snail-row">
+      <div class="color-input-group">
+        <small>Shell</small>
+        <input type="color" id="custom-shell" value="#e8a820" />
+      </div>
+      <div class="color-input-group">
+        <small>Band</small>
+        <input type="color" id="custom-band" value="#5a3a04" />
+      </div>
+      <div class="color-input-group">
+        <small>Foot</small>
+        <input type="color" id="custom-foot" value="#f8e088" />
+      </div>
+    </div>
+
+    <button id="start-btn">Begin</button>
+  </div>
+
+  <div class="keys" style="margin-top: 24px;">
+    <kbd>WASD</kbd> swim · <kbd>Space</kbd> dart · <kbd>F</kbd> feed · <kbd>G</kbd> flare
+  </div>
+</div>
+
+<button id="customize-btn" class="hidden">⚙ Customize</button>
+<div id="fish-name-float" style="opacity:0;"></div>
+
+<script>
+// ============================================================
+//  BETTA SIM — single-file Canvas2D life simulator
+//  Physics-driven betta with flowing fins, AI tankmates,
+//  food, hazards, and the occasional weird event.
+// ============================================================
+
+(() => {
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const titleCard = document.getElementById('title-card');
+  const eventLog = document.getElementById('event-log');
+
+  // ---- Responsive sizing ----
+  function resize() {
+    const wrap = document.getElementById('game-wrap');
+    const maxW = wrap.clientWidth;
+    const maxH = wrap.clientHeight;
+    const ratio = 3/2;
+    let w = maxW, h = maxW / ratio;
+    if (h > maxH) { h = maxH; w = h * ratio; }
+    canvas.style.width  = Math.floor(w) + 'px';
+    canvas.style.height = Math.floor(h) + 'px';
+    // Internal res stays fixed for consistent physics
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  const W = canvas.width;
+  const H = canvas.height;
+
+  // ============================================================
+  //  WORLD CONSTANTS
+  // ============================================================
+  const GRAVITY = 0.012;        // very light — water is buoyant
+  const WATER_DRAG = 0.94;
+  const TANK_PAD = 12;          // glass walls
+  const SUBSTRATE_Y = H - 70;   // where gravel begins
+  const WATER_LINE_Y = 30;      // top of water
+
+  // ============================================================
+  //  UTILS
+  // ============================================================
+  const rand = (a, b) => a + Math.random() * (b - a);
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const dist2 = (a, b) => (a.x - b.x) ** 2 + (a.y - b.y) ** 2;
+  const dist  = (a, b) => Math.sqrt(dist2(a, b));
+
+  function showMsg(text, kind = '') {
+    const div = document.createElement('div');
+    div.className = 'event-msg ' + kind;
+    div.textContent = text;
+    eventLog.appendChild(div);
+    setTimeout(() => div.remove(), 5200);
+  }
+
+  // ============================================================
+  //  INPUT
+  // ============================================================
+  const keys = {};
+  const input = { x: 0, y: 0, dart: false, feed: false, flare: false };
+  let started = false;
+
+  function startGame() {
+    if (started) return;
+    started = true;
+    titleCard.classList.add('hidden');
+    document.getElementById('customize-btn').classList.remove('hidden');
+    setTimeout(() => showMsg(`${betta.name} settles into the tank.`, 'good'), 500);
+  }
+
+  window.addEventListener('keydown', e => {
+    // Don't capture keys while typing in the name field
+    if (document.activeElement && document.activeElement.tagName === 'INPUT') return;
+    if (!started) return; // wait for explicit Begin click
+    keys[e.key.toLowerCase()] = true;
+    if (e.key === ' ') e.preventDefault();
+    if (e.key.toLowerCase() === 'f') dropPellet();
+    if (e.key.toLowerCase() === 'g') triggerFlare();
+    if (e.key.toLowerCase() === 'r') resetWorld();
+  });
+  window.addEventListener('keyup', e => {
+    if (document.activeElement && document.activeElement.tagName === 'INPUT') return;
+    keys[e.key.toLowerCase()] = false;
+  });
+
+  function pollKeys() {
+    let x = 0, y = 0;
+    if (keys['a'] || keys['arrowleft'])  x -= 1;
+    if (keys['d'] || keys['arrowright']) x += 1;
+    if (keys['w'] || keys['arrowup'])    y -= 1;
+    if (keys['s'] || keys['arrowdown'])  y += 1;
+    input.x = x; input.y = y;
+    input.dart = !!keys[' '];
+  }
+
+  // ---- Touch joystick ----
+  const pad = document.getElementById('touch-pad');
+  const stick = document.getElementById('touch-stick');
+  let padActive = false, padId = null, padCenter = {x:0,y:0};
+
+  pad.addEventListener('touchstart', e => {
+    if (!started) return;
+    const t = e.changedTouches[0];
+    padActive = true; padId = t.identifier;
+    const r = pad.getBoundingClientRect();
+    padCenter = { x: r.left + r.width/2, y: r.top + r.height/2 };
+    e.preventDefault();
+  }, {passive:false});
+
+  pad.addEventListener('touchmove', e => {
+    if (!padActive) return;
+    for (const t of e.changedTouches) {
+      if (t.identifier !== padId) continue;
+      const dx = t.clientX - padCenter.x;
+      const dy = t.clientY - padCenter.y;
+      const max = 50;
+      const d = Math.min(max, Math.hypot(dx, dy));
+      const ang = Math.atan2(dy, dx);
+      stick.style.left = (50 + Math.cos(ang) * d / pad.clientWidth * 100) + '%';
+      stick.style.top  = (50 + Math.sin(ang) * d / pad.clientHeight * 100) + '%';
+      input.x = clamp(dx / max, -1, 1);
+      input.y = clamp(dy / max, -1, 1);
+    }
+    e.preventDefault();
+  }, {passive:false});
+
+  function endPad(e) {
+    padActive = false; padId = null;
+    stick.style.left = '50%'; stick.style.top = '50%';
+    input.x = 0; input.y = 0;
+  }
+  pad.addEventListener('touchend', endPad);
+  pad.addEventListener('touchcancel', endPad);
+
+  document.getElementById('btn-dart').addEventListener('touchstart',  e => { if(!started) return; input.dart = true; e.preventDefault(); }, {passive:false});
+  document.getElementById('btn-dart').addEventListener('touchend',    e => { input.dart = false; });
+  document.getElementById('btn-feed').addEventListener('touchstart',  e => { if(!started) return; dropPellet(); e.preventDefault(); }, {passive:false});
+  document.getElementById('btn-flare').addEventListener('touchstart', e => { if(!started) return; triggerFlare(); e.preventDefault(); }, {passive:false});
+
+  // ============================================================
+  //  CUSTOMIZER — name + color presets + custom color
+  // ============================================================
+  // Each preset describes the betta's full color scheme.
+  // highlight is a lightened version of body (used for the head bulge).
+  const COLOR_PRESETS = [
+    { name: 'Crimson',    body: '#c8233a', accent: '#ff5e3a', fin: '#7a0f1f', highlight: '#ffb39a' },
+    { name: 'Royal Blue', body: '#1e4fcc', accent: '#4a7fff', fin: '#0f1f7a', highlight: '#a8c4ff' },
+    { name: 'Galaxy',     body: '#5e2a9e', accent: '#9b6dff', fin: '#2a0f5c', highlight: '#d4b8ff' },
+    { name: 'Koi',        body: '#f5f5f0', accent: '#ff8030', fin: '#c04020', highlight: '#fffaf0' },
+    { name: 'Emerald',    body: '#1a7a4a', accent: '#3ab87a', fin: '#0a4a2a', highlight: '#9be0bc' },
+    { name: 'Midnight',   body: '#1a1a2a', accent: '#4060a0', fin: '#0a0a14', highlight: '#7090c4' },
+    { name: 'Sunset',     body: '#e85a3a', accent: '#ffb050', fin: '#a02818', highlight: '#ffd0a0' },
+    { name: 'Mint',       body: '#a0e8c8', accent: '#60d0a0', fin: '#5ca888', highlight: '#d8f4e4' },
+    { name: 'Lavender',   body: '#b48cd8', accent: '#d8b4ff', fin: '#7a4ca0', highlight: '#e8d4ff' },
+    { name: 'Gold',       body: '#d4a020', accent: '#ffe060', fin: '#8a6010', highlight: '#fff0a0' },
+    { name: 'Pearl',      body: '#e8d8e8', accent: '#ffd4f0', fin: '#a890a8', highlight: '#fff4f8' },
+  ];
+
+  // Lighten a hex color toward white by amount (0..1)
+  function lighten(hex, amt) {
+    const r = parseInt(hex.slice(1,3), 16);
+    const g = parseInt(hex.slice(3,5), 16);
+    const b = parseInt(hex.slice(5,7), 16);
+    const lr = Math.round(r + (255 - r) * amt);
+    const lg = Math.round(g + (255 - g) * amt);
+    const lb = Math.round(b + (255 - b) * amt);
+    return '#' + [lr,lg,lb].map(v => v.toString(16).padStart(2,'0')).join('');
+  }
+
+  // ---- Mystery snail color presets ----
+  // Each has shell colors (light/mid/deep), an optional contrast band stripe,
+  // and foot (body) colors that match the variety.
+  const SNAIL_PRESETS = [
+    { name: 'Gold',      shellLight: '#ffe580', shell: '#e8a820', shellDeep: '#8a5a08', band: '#5a3a04', foot: '#f8e088', footDeep: '#a07820' },
+    { name: 'Blue',      shellLight: '#a8d0ff', shell: '#3a6cd8', shellDeep: '#1a3580', band: '#0a1a4a', foot: '#3a4068', footDeep: '#1a2040' },
+    { name: 'Ivory',     shellLight: '#fffaf0', shell: '#e8d8b8', shellDeep: '#a89878', band: null,      foot: '#f8eed8', footDeep: '#b0a080' },
+    { name: 'Magenta',   shellLight: '#ffc0e0', shell: '#d840a0', shellDeep: '#7a1860', band: '#400830', foot: '#f0a0c8', footDeep: '#90306a' },
+    { name: 'Jade',      shellLight: '#a8e8c0', shell: '#3aa872', shellDeep: '#10583a', band: '#082818', foot: '#90c8a8', footDeep: '#3a684a' },
+    { name: 'Black',     shellLight: '#5a5a64', shell: '#1a1a22', shellDeep: '#000000', band: null,      foot: '#444450', footDeep: '#1a1a22' },
+    { name: 'Purple',    shellLight: '#d8b8ff', shell: '#8040c8', shellDeep: '#3a1870', band: '#1a0838', foot: '#a888c8', footDeep: '#503078' },
+    { name: 'Tangerine', shellLight: '#ffd0a0', shell: '#ff8030', shellDeep: '#a83810', band: '#5a1a04', foot: '#f8c098', footDeep: '#a05028' },
+  ];
+
+  let pendingColor = { ...COLOR_PRESETS[0] };
+  let pendingSnailColor = { ...SNAIL_PRESETS[0] };
+  let defaultSnailColor = { ...SNAIL_PRESETS[0] };  // remembers user's choice for future spawns
+  let pendingName = '';
+
+  // Build preset swatches
+  const presetsEl = document.getElementById('color-presets');
+  COLOR_PRESETS.forEach((preset, i) => {
+    const sw = document.createElement('div');
+    sw.className = 'color-swatch' + (i === 0 ? ' selected' : '');
+    sw.style.background = `linear-gradient(135deg, ${preset.accent}, ${preset.body} 50%, ${preset.fin})`;
+    sw.title = preset.name;
+    sw.dataset.idx = i;
+    sw.addEventListener('click', () => selectPreset(i));
+    presetsEl.appendChild(sw);
+  });
+  // Custom swatch
+  const customSw = document.createElement('div');
+  customSw.className = 'color-swatch custom';
+  customSw.title = 'Custom';
+  customSw.textContent = '✎';
+  customSw.addEventListener('click', () => selectCustom());
+  presetsEl.appendChild(customSw);
+
+  function selectPreset(i) {
+    document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('selected'));
+    presetsEl.children[i].classList.add('selected');
+    document.getElementById('custom-color-row').classList.remove('visible');
+    pendingColor = { ...COLOR_PRESETS[i] };
+    drawPreview();
+  }
+
+  function selectCustom() {
+    document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('selected'));
+    customSw.classList.add('selected');
+    document.getElementById('custom-color-row').classList.add('visible');
+    updateCustomColor();
+  }
+
+  function updateCustomColor() {
+    const body = document.getElementById('custom-body').value;
+    const accent = document.getElementById('custom-accent').value;
+    const fin = document.getElementById('custom-fin').value;
+    pendingColor = { body, accent, fin, highlight: lighten(body, 0.5) };
+    drawPreview();
+  }
+
+  ['custom-body','custom-accent','custom-fin'].forEach(id => {
+    document.getElementById(id).addEventListener('input', updateCustomColor);
+  });
+
+  // Preview canvas — shows a small betta with the chosen colors
+  const previewCanvas = document.getElementById('preview-canvas');
+  const pctx = previewCanvas.getContext('2d');
+  let previewT = 0;
+
+  function drawPreview() {
+    const w = previewCanvas.width, h = previewCanvas.height;
+    pctx.clearRect(0, 0, w, h);
+    // soft water gradient
+    const g = pctx.createLinearGradient(0, 0, 0, h);
+    g.addColorStop(0, 'rgba(13, 91, 110, 0.3)');
+    g.addColorStop(1, 'rgba(6, 42, 54, 0.5)');
+    pctx.fillStyle = g;
+    pctx.fillRect(0, 0, w, h);
+
+    // Draw the betta scaled up (1.4x) using the same drawing routine.
+    pctx.save();
+    pctx.translate(w/2, h/2);
+    pctx.scale(1.4, 1.4);
+    drawBettaWithColor(pctx, pendingColor, previewT, 0.3);
+    pctx.restore();
+
+    // name label
+    if (pendingName) {
+      pctx.fillStyle = 'rgba(232, 246, 251, 0.85)';
+      pctx.font = 'italic 13px Georgia, serif';
+      pctx.textAlign = 'center';
+      pctx.fillText(pendingName, w/2, h - 8);
+    }
+  }
+
+  function previewLoop() {
+    previewT += 0.05;
+    drawPreview();
+    drawSnailPreview();
+    if (!started) requestAnimationFrame(previewLoop);
+  }
+  requestAnimationFrame(previewLoop);
+
+  // ============================================================
+  //  SNAIL CUSTOMIZER
+  // ============================================================
+  const snailPresetsEl = document.getElementById('snail-presets');
+  SNAIL_PRESETS.forEach((preset, i) => {
+    const sw = document.createElement('div');
+    sw.className = 'color-swatch' + (i === 0 ? ' selected' : '');
+    // Use shell colors for the swatch background
+    const bandStop = preset.band ? `, ${preset.band} 50%` : '';
+    sw.style.background = `linear-gradient(135deg, ${preset.shellLight}, ${preset.shell}${bandStop}, ${preset.shellDeep})`;
+    sw.title = preset.name;
+    sw.dataset.idx = i;
+    sw.addEventListener('click', () => selectSnailPreset(i));
+    snailPresetsEl.appendChild(sw);
+  });
+  // Custom snail swatch
+  const customSnailSw = document.createElement('div');
+  customSnailSw.className = 'color-swatch custom';
+  customSnailSw.title = 'Custom';
+  customSnailSw.textContent = '✎';
+  customSnailSw.addEventListener('click', () => selectCustomSnail());
+  snailPresetsEl.appendChild(customSnailSw);
+
+  function selectSnailPreset(i) {
+    snailPresetsEl.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('selected'));
+    snailPresetsEl.children[i].classList.add('selected');
+    document.getElementById('custom-snail-row').classList.remove('visible');
+    pendingSnailColor = { ...SNAIL_PRESETS[i] };
+    drawSnailPreview();
+  }
+
+  function selectCustomSnail() {
+    snailPresetsEl.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('selected'));
+    customSnailSw.classList.add('selected');
+    document.getElementById('custom-snail-row').classList.add('visible');
+    updateCustomSnailColor();
+  }
+
+  function updateCustomSnailColor() {
+    const shell = document.getElementById('custom-shell').value;
+    const band  = document.getElementById('custom-band').value;
+    const foot  = document.getElementById('custom-foot').value;
+    pendingSnailColor = {
+      shellLight: lighten(shell, 0.5),
+      shell: shell,
+      shellDeep: darken(shell, 0.5),
+      band: band,
+      foot: foot,
+      footDeep: darken(foot, 0.4),
+    };
+    drawSnailPreview();
+  }
+
+  ['custom-shell','custom-band','custom-foot'].forEach(id => {
+    document.getElementById(id).addEventListener('input', updateCustomSnailColor);
+  });
+
+  // Snail preview canvas
+  const snailPreviewCanvas = document.getElementById('snail-preview');
+  const sctx = snailPreviewCanvas.getContext('2d');
+
+  function drawSnailPreview() {
+    const w = snailPreviewCanvas.width, h = snailPreviewCanvas.height;
+    sctx.clearRect(0, 0, w, h);
+    // gravel-floor gradient
+    const g = sctx.createLinearGradient(0, 0, 0, h);
+    g.addColorStop(0, 'rgba(13, 91, 110, 0.3)');
+    g.addColorStop(0.7, 'rgba(40, 30, 20, 0.4)');
+    g.addColorStop(1, 'rgba(60, 45, 25, 0.6)');
+    sctx.fillStyle = g;
+    sctx.fillRect(0, 0, w, h);
+    // a few gravel pebbles for context
+    sctx.fillStyle = 'rgba(80, 60, 40, 0.7)';
+    for (let i = 0; i < 12; i++) {
+      const px = (i * 19 + 7) % w;
+      const py = h - 6 + Math.sin(i * 1.3) * 3;
+      sctx.beginPath();
+      sctx.arc(px, py, 2 + (i % 3), 0, Math.PI * 2);
+      sctx.fill();
+    }
+    // Draw the snail in the middle, scaled up
+    sctx.save();
+    sctx.translate(w / 2, h / 2 + 8);
+    sctx.scale(1.6, 1.6);
+    drawMysterySnail(sctx, pendingSnailColor, previewT * 4, previewT, 1);
+    sctx.restore();
+  }
+
+  // Name input
+  const nameInput = document.getElementById('name-input');
+  // Suggest a fun random name
+  const RANDOM_NAMES = ['Mr. Splashy', 'Bubbles', 'Captain Fin', 'Sir Reginald', 'Noodle',
+                        'Glub', 'Sushi', 'Finstein', 'Aquaman', 'Sashimi', 'Marbles',
+                        'Pickle', 'Disco', 'Houdini', 'Beethoven', 'Tidewalker'];
+  nameInput.placeholder = RANDOM_NAMES[Math.floor(Math.random() * RANDOM_NAMES.length)] + '…';
+  nameInput.addEventListener('input', () => {
+    pendingName = nameInput.value.trim();
+    drawPreview();
+  });
+  nameInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      document.getElementById('start-btn').click();
+    }
+  });
+
+  // Begin button
+  document.getElementById('start-btn').addEventListener('click', () => {
+    const name = nameInput.value.trim() || nameInput.placeholder.replace('…', '');
+    betta.name = name;
+    betta.color = { ...pendingColor };
+    document.getElementById('hud').querySelector('.title').textContent = name;
+    // Apply chosen snail color to all snails currently in tank
+    for (const m of mates) {
+      if (m.kind === 'snail') m.color = { ...pendingSnailColor };
+    }
+    // Remember it as the default for future spawns (e.g., on resetWorld)
+    defaultSnailColor = { ...pendingSnailColor };
+    startGame();
+  });
+
+  // ---- Mid-game customize button (re-opens panel) ----
+  const customizeBtn = document.getElementById('customize-btn');
+  customizeBtn.addEventListener('click', () => {
+    // Pre-fill BETTA values
+    nameInput.value = betta.name;
+    pendingName = betta.name;
+    pendingColor = { ...betta.color };
+    let matched = false;
+    COLOR_PRESETS.forEach((p, i) => {
+      if (p.body === betta.color.body && p.accent === betta.color.accent && p.fin === betta.color.fin) {
+        selectPreset(i); matched = true;
+      }
+    });
+    if (!matched) {
+      document.getElementById('custom-body').value = betta.color.body;
+      document.getElementById('custom-accent').value = betta.color.accent;
+      document.getElementById('custom-fin').value = betta.color.fin;
+      selectCustom();
+    }
+
+    // Pre-fill SNAIL values from the first snail in the tank (or default)
+    const currentSnail = mates.find(m => m.kind === 'snail');
+    const snailColor = currentSnail ? currentSnail.color : defaultSnailColor;
+    pendingSnailColor = { ...snailColor };
+    let snailMatched = false;
+    SNAIL_PRESETS.forEach((p, i) => {
+      if (p.shell === snailColor.shell && p.foot === snailColor.foot) {
+        selectSnailPreset(i); snailMatched = true;
+      }
+    });
+    if (!snailMatched) {
+      document.getElementById('custom-shell').value = snailColor.shell;
+      document.getElementById('custom-band').value  = snailColor.band || '#5a3a04';
+      document.getElementById('custom-foot').value  = snailColor.foot;
+      selectCustomSnail();
+    }
+
+    titleCard.classList.remove('hidden');
+    started = false;  // pause
+    customizeBtn.classList.add('hidden');
+    document.getElementById('start-btn').textContent = 'Save & Resume';
+    requestAnimationFrame(previewLoop);
+  });
+
+  // ---- Floating name above the fish ----
+  const nameFloat = document.getElementById('fish-name-float');
+  function updateNameFloat() {
+    if (!started) { nameFloat.style.opacity = '0'; return; }
+    // Convert betta canvas coords to screen coords
+    const rect = canvas.getBoundingClientRect();
+    const sx = rect.left + (betta.x / W) * rect.width;
+    const sy = rect.top + (betta.y / H) * rect.height - 26;
+    nameFloat.style.left = sx + 'px';
+    nameFloat.style.top  = sy + 'px';
+    nameFloat.textContent = betta.name;
+    nameFloat.style.opacity = '0.85';
+  }
+
+  // ============================================================
+  //  PARTICLES (bubbles, sparkles, ripples)
+  // ============================================================
+  const particles = [];
+  function spawnBubble(x, y, big = false) {
+    particles.push({
+      kind: 'bubble',
+      x, y,
+      vx: rand(-0.2, 0.2),
+      vy: rand(-1.5, -0.6),
+      r: big ? rand(3, 6) : rand(1, 3),
+      life: 1, decay: rand(0.003, 0.008),
+      wobble: rand(0, Math.PI*2),
+    });
+  }
+  function spawnSparkle(x, y, color = '#ffd76a') {
+    for (let i = 0; i < 8; i++) {
+      particles.push({
+        kind: 'sparkle',
+        x, y,
+        vx: rand(-2, 2), vy: rand(-2, 2),
+        r: rand(1, 2.5), life: 1, decay: 0.02,
+        color
+      });
+    }
+  }
+  function spawnRipple(x, y) {
+    particles.push({ kind: 'ripple', x, y, r: 4, life: 1, decay: 0.025 });
+  }
+
+  // ============================================================
+  //  FOOD (pellets) — drift down, get eaten, decay if uneaten
+  // ============================================================
+  const food = [];
+  let pelletsEaten = 0;
+  let totalPelletsDropped = 0;
+
+  function dropPellet(x = null) {
+    if (food.length > 14) {
+      showMsg('Tank is overfed — water clouding...', 'warn');
+      pollutionSpike();
+      return;
+    }
+    const px = x !== null ? x : rand(W*0.2, W*0.8);
+    food.push({
+      x: px, y: WATER_LINE_Y + 4,
+      vx: rand(-0.3, 0.3), vy: 0,
+      r: rand(2.8, 3.6),
+      age: 0, eaten: false,
+      hue: rand(20, 38),
+    });
+    spawnRipple(px, WATER_LINE_Y);
+    for (let i = 0; i < 3; i++) spawnBubble(px + rand(-6,6), WATER_LINE_Y + 6);
+    totalPelletsDropped++;
+  }
+
+  // ============================================================
+  //  THE BETTA — that's you
+  // ============================================================
+  const betta = {
+    x: W * 0.5, y: H * 0.5,
+    vx: 0, vy: 0,
+    angle: 0,             // rendered facing
+    targetAngle: 0,
+    facing: 1,            // -1 left, 1 right
+    speed: 0,
+    finPhase: 0,
+    flareT: 0,            // 0..1 how flared the gills are
+    name: 'Mr. Splashy',
+    color: { body: '#c8233a', accent: '#ff5e3a', fin: '#7a0f1f', highlight: '#ffb39a' },
+    hunger: 0.4,          // 0 full → 1 starving
+    health: 1,
+    happy: 0.7,
+    age: 0,
+    dartCooldown: 0,
+    iridescence: 0,
+  };
+
+  function triggerFlare() {
+    betta.flareT = Math.min(1, betta.flareT + 0.6);
+    betta.happy = clamp(betta.happy + 0.04, 0, 1);
+    showMsg('You flare your gills magnificently.', 'good');
+  }
+
+  // ============================================================
+  //  TANKMATES
+  //  - Neon tetra (peaceful, schools, skittish)
+  //  - Tiger barb (nippy, occasionally chases you)
+  //  - Snail (chills on glass, eats algae)
+  // ============================================================
+  const mates = [];
+
+  function makeTetra(x, y) {
+    return {
+      kind: 'tetra',
+      x, y, vx: rand(-1, 1), vy: rand(-0.3, 0.3),
+      angle: 0, finPhase: rand(0, 6),
+      color: '#3a8cff', stripe: '#ff4060', size: 8,
+      panic: 0,
+    };
+  }
+  function makeBarb(x, y) {
+    return {
+      kind: 'barb',
+      x, y, vx: rand(-1.2, 1.2), vy: rand(-0.4, 0.4),
+      angle: 0, finPhase: rand(0, 6),
+      color: '#e8a230', stripe: '#1a1a1a', size: 12,
+      aggro: 0, target: null, cooldown: 0,
+    };
+  }
+  function makeSnail(x, color) {
+    return {
+      kind: 'snail',
+      x, y: SUBSTRATE_Y - 8,
+      vx: (Math.random() < 0.5 ? -1 : 1) * 0.15,
+      progress: 0,
+      dir: Math.random() < 0.5 ? -1 : 1,
+      antennaPhase: rand(0, Math.PI * 2),
+      footPhase: rand(0, Math.PI * 2),
+      color: color || { ...SNAIL_PRESETS[0] },
+      shellState: 'normal',
+      shellTimer: rand(20, 50),
+      shellProgress: 0,
+      shellAnchorX: 0,
+      exploreDir: 1,
+    };
+  }
+
+  // ============================================================
+  //  HAZARDS
+  //  - Filter intake on right wall (suction near it)
+  //  - Heater on left wall (visual + warmth zone)
+  //  - Pollution if overfed
+  // ============================================================
+  const filter = {
+    x: W - TANK_PAD - 28,
+    y: WATER_LINE_Y + 80,
+    w: 22, h: 90,
+    suction: 0.18,
+    range: 110,
+  };
+  const heater = {
+    x: TANK_PAD + 12,
+    y: WATER_LINE_Y + 60,
+    w: 8, h: 180,
+    on: true,
+    glow: 0,
+  };
+
+  let pollution = 0;        // 0 clean → 1 ammonia hell
+  let pollutionTarget = 0;
+  function pollutionSpike() {
+    pollutionTarget = Math.min(1, pollutionTarget + 0.35);
+  }
+
+  // ============================================================
+  //  DECOR — gravel bed, plants, driftwood
+  // ============================================================
+  const gravel = [];
+  for (let i = 0; i < 380; i++) {
+    gravel.push({
+      x: rand(TANK_PAD, W - TANK_PAD),
+      y: SUBSTRATE_Y + rand(0, 60),
+      r: rand(2, 5),
+      shade: rand(0.3, 0.7),
+    });
+  }
+  const plants = [];
+  function spawnPlant(x, h, sway, color) {
+    plants.push({ x, baseY: SUBSTRATE_Y + 4, h, sway, color, phase: rand(0, Math.PI*2) });
+  }
+  spawnPlant(120, 220, 1.0, '#1d8a4a');
+  spawnPlant(150, 180, 0.7, '#2aa45c');
+  spawnPlant(195, 250, 1.2, '#1d8a4a');
+  spawnPlant(W - 200, 260, 1.1, '#0f6f3e');
+  spawnPlant(W - 165, 200, 0.9, '#2aa45c');
+  spawnPlant(W * 0.5 - 30, 150, 0.8, '#2aa45c');
+  spawnPlant(W * 0.5 + 30, 170, 1.0, '#1d8a4a');
+
+  const driftwood = { x: W * 0.32, y: SUBSTRATE_Y - 18 };
+
+  // ============================================================
+  //  AMBIENT BUBBLE STREAM (from filter outflow)
+  // ============================================================
+  let bubbleTimer = 0;
+
+  // ============================================================
+  //  EVENT TICKER — occasional weirdness
+  // ============================================================
+  let nextEventAt = 18 + Math.random() * 25; // seconds
+  const weirdEvents = [
+    {
+      msg: 'A child taps the glass. The whole world rings.',
+      run: () => {
+        // shake + scare everyone
+        screenShake = 14;
+        mates.forEach(m => { if (m.kind !== 'snail') { m.vx += rand(-4,4); m.vy += rand(-2,2); m.panic = 1; } });
+        betta.happy = clamp(betta.happy - 0.15, 0, 1);
+      }
+    },
+    {
+      msg: 'Light flickers — is that algae or just vibes?',
+      run: () => { lightFlicker = 1.2; }
+    },
+    {
+      msg: 'A drifting flake. Dinner from above.',
+      run: () => { for (let i = 0; i < 3; i++) dropPellet(); }
+    },
+    {
+      msg: 'You catch your reflection. Who is THAT handsome fish?',
+      run: () => { triggerFlare(); betta.iridescence = 1; }
+    },
+    {
+      msg: 'The barb is in a mood today.',
+      run: () => { mates.forEach(m => { if (m.kind === 'barb') m.aggro = 1; }); }
+    },
+    {
+      msg: 'A bubble the size of your face. You boop it.',
+      run: () => {
+        for (let i = 0; i < 12; i++) spawnBubble(betta.x + rand(-30,30), betta.y + rand(-20,20), true);
+        betta.happy = clamp(betta.happy + 0.08, 0, 1);
+      }
+    },
+    {
+      msg: 'Water change time! Fresh, cool, and a little disorienting.',
+      run: () => {
+        pollutionTarget = 0; pollution = Math.max(0, pollution - 0.6);
+        currentSwirl = 1.5;
+      }
+    },
+  ];
+
+  let screenShake = 0;
+  let lightFlicker = 0;
+  let currentSwirl = 0; // simulates a brief water current
+
+  // ============================================================
+  //  SETUP
+  // ============================================================
+  function resetWorld() {
+    food.length = 0;
+    particles.length = 0;
+    mates.length = 0;
+    pollution = 0; pollutionTarget = 0;
+    pelletsEaten = 0; totalPelletsDropped = 0;
+    betta.x = W * 0.5; betta.y = H * 0.5;
+    betta.vx = 0; betta.vy = 0;
+    betta.hunger = 0.4; betta.health = 1; betta.happy = 0.7;
+    betta.flareT = 0; betta.iridescence = 0;
+    // tankmates
+    for (let i = 0; i < 5; i++) mates.push(makeTetra(rand(W*0.3, W*0.7), rand(H*0.3, H*0.6)));
+    mates.push(makeBarb(W * 0.7, H * 0.5));
+    mates.push(makeBarb(W * 0.3, H * 0.6));
+    mates.push(makeSnail(rand(W*0.2, W*0.45), { ...defaultSnailColor }));
+    mates.push(makeSnail(rand(W*0.55, W*0.8), { ...defaultSnailColor }));
+    showMsg('A fresh tank. New beginnings.', 'good');
+  }
+  resetWorld();
+
+  // ============================================================
+  //  PHYSICS / AI UPDATE
+  // ============================================================
+  let last = performance.now();
+  function update(dt) {
+    if (!started) return;
+
+    pollKeys();
+
+    // ---- Time-based stat drift ----
+    betta.age += dt;
+    betta.hunger = clamp(betta.hunger + dt * 0.012, 0, 1);
+    if (betta.hunger > 0.85) betta.health = clamp(betta.health - dt * 0.04, 0, 1);
+    if (pollution > 0.5)     betta.health = clamp(betta.health - dt * 0.03 * pollution, 0, 1);
+    betta.happy = clamp(betta.happy - dt * 0.005 + (betta.hunger < 0.3 ? dt * 0.01 : 0), 0, 1);
+    if (betta.health < 0.4) betta.happy = clamp(betta.happy - dt * 0.02, 0, 1);
+    betta.flareT = Math.max(0, betta.flareT - dt * 0.4);
+    betta.iridescence = Math.max(0, betta.iridescence - dt * 0.5);
+
+    // pollution dynamics
+    pollutionTarget = Math.max(0, pollutionTarget - dt * 0.015);
+    pollution += (pollutionTarget - pollution) * dt * 0.6;
+
+    // current swirl decay
+    currentSwirl = Math.max(0, currentSwirl - dt * 0.4);
+    screenShake *= Math.pow(0.001, dt);
+    lightFlicker = Math.max(0, lightFlicker - dt * 0.6);
+
+    // ---- Random weird events ----
+    nextEventAt -= dt;
+    if (nextEventAt <= 0) {
+      const ev = weirdEvents[Math.floor(Math.random() * weirdEvents.length)];
+      showMsg(ev.msg);
+      ev.run();
+      nextEventAt = 22 + Math.random() * 30;
+    }
+
+    // ---- BETTA control ----
+    const accelBase = 0.12;
+    const dartMult = (input.dart && betta.dartCooldown <= 0) ? 2.6 : 1;
+    if (input.dart && betta.dartCooldown <= 0 && (input.x || input.y)) {
+      betta.dartCooldown = 0.5;
+      for (let i = 0; i < 6; i++) spawnBubble(betta.x + rand(-8,8), betta.y + rand(-6,6));
+    }
+    betta.dartCooldown = Math.max(0, betta.dartCooldown - dt);
+
+    betta.vx += input.x * accelBase * dartMult;
+    betta.vy += input.y * accelBase * dartMult;
+
+    // gentle buoyancy — slight upward drift, gravity below mid
+    betta.vy += GRAVITY * (betta.y > H * 0.55 ? -1 : 0.6);
+
+    // current swirl (water change effect)
+    if (currentSwirl > 0) {
+      betta.vx += Math.sin(betta.age * 3) * currentSwirl * 0.05;
+      betta.vy += Math.cos(betta.age * 2.5) * currentSwirl * 0.04;
+    }
+
+    // filter suction
+    const dxF = filter.x + filter.w/2 - betta.x;
+    const dyF = filter.y + filter.h/2 - betta.y;
+    const dF = Math.hypot(dxF, dyF);
+    if (dF < filter.range) {
+      const pull = (1 - dF / filter.range) * filter.suction;
+      betta.vx += (dxF / (dF || 1)) * pull;
+      betta.vy += (dyF / (dF || 1)) * pull;
+      if (dF < 30) {
+        betta.health = clamp(betta.health - dt * 0.4, 0, 1);
+        betta.happy = clamp(betta.happy - dt * 0.5, 0, 1);
+        if (Math.random() < dt * 4) showMsg('The filter intake! Swim away!', 'warn');
+      }
+    }
+
+    // drag
+    betta.vx *= Math.pow(WATER_DRAG, dt * 60);
+    betta.vy *= Math.pow(WATER_DRAG, dt * 60);
+
+    // integrate
+    betta.x += betta.vx * dt * 60;
+    betta.y += betta.vy * dt * 60;
+
+    // tank walls
+    if (betta.x < TANK_PAD + 20) { betta.x = TANK_PAD + 20; betta.vx *= -0.3; }
+    if (betta.x > W - TANK_PAD - 20) { betta.x = W - TANK_PAD - 20; betta.vx *= -0.3; }
+    if (betta.y < WATER_LINE_Y + 14) { betta.y = WATER_LINE_Y + 14; betta.vy *= -0.3; }
+    if (betta.y > SUBSTRATE_Y - 16) { betta.y = SUBSTRATE_Y - 16; betta.vy *= -0.3; }
+
+    betta.speed = Math.hypot(betta.vx, betta.vy);
+    if (betta.speed > 0.05) {
+      betta.targetAngle = Math.atan2(betta.vy, betta.vx);
+      betta.facing = Math.cos(betta.targetAngle) >= 0 ? 1 : -1;
+    }
+    // ease angle
+    let angDiff = ((betta.targetAngle - betta.angle + Math.PI) % (Math.PI*2)) - Math.PI;
+    betta.angle += angDiff * Math.min(1, dt * 8);
+    betta.finPhase += dt * (4 + betta.speed * 6);
+
+    // ---- FOOD update ----
+    for (let i = food.length - 1; i >= 0; i--) {
+      const p = food[i];
+      p.age += dt;
+      p.vy += 0.04 * dt * 60;     // sinks slowly
+      p.vy *= 0.96; p.vx *= 0.97;
+      p.x += p.vx * dt * 60;
+      p.y += p.vy * dt * 60;
+
+      if (p.y > SUBSTRATE_Y - 4) { p.y = SUBSTRATE_Y - 4; p.vy = 0; p.vx *= 0.8; }
+      if (p.x < TANK_PAD + 4) { p.x = TANK_PAD + 4; p.vx *= -0.5; }
+      if (p.x > W - TANK_PAD - 4) { p.x = W - TANK_PAD - 4; p.vx *= -0.5; }
+
+      // betta eats
+      if (dist(p, betta) < 16) {
+        p.eaten = true;
+        pelletsEaten++;
+        betta.hunger = clamp(betta.hunger - 0.18, 0, 1);
+        betta.happy  = clamp(betta.happy + 0.05, 0, 1);
+        spawnSparkle(p.x, p.y);
+        food.splice(i, 1);
+        document.getElementById('stat-eaten').textContent = pelletsEaten;
+        continue;
+      }
+      // tetras nibble
+      for (const m of mates) {
+        if (m.kind === 'tetra' && dist(p, m) < 10 && Math.random() < 0.5) {
+          food.splice(i, 1);
+          spawnSparkle(p.x, p.y, '#9fd6ff');
+          break;
+        }
+      }
+      // decay
+      if (p.age > 30) { food.splice(i, 1); pollutionTarget += 0.04; }
+    }
+
+    // ---- TANKMATES ----
+    for (const m of mates) {
+      if (m.kind === 'snail') {
+        m.progress += dt * 0.05;
+        m.antennaPhase += dt * 1.2;
+        m.footPhase += dt * 4;
+
+        if (m.shellState === 'normal') {
+          m.x += m.dir * dt * 8;
+          if (m.x < TANK_PAD + 14) { m.x = TANK_PAD + 14; m.dir = 1; }
+          if (m.x > W - TANK_PAD - 14) { m.x = W - TANK_PAD - 14; m.dir = -1; }
+          if (Math.random() < dt * 0.08) m.dir *= -1;
+          m.shellTimer -= dt;
+          if (m.shellTimer <= 0) {
+            m.shellState = 'emerging';
+            m.shellAnchorX = m.x;
+            m.shellProgress = 0;
+            m.exploreDir = m.dir;
+          }
+        } else if (m.shellState === 'emerging') {
+          m.shellProgress = Math.min(1, m.shellProgress + dt * 0.5);
+          m.x = m.shellAnchorX + m.exploreDir * m.shellProgress * 28;
+          if (m.shellProgress >= 1) {
+            m.shellState = 'exploring';
+            m.shellTimer = rand(5, 12);
+            m.dir = m.exploreDir;
+          }
+        } else if (m.shellState === 'exploring') {
+          m.antennaPhase += dt * 1.5;
+          m.x += m.dir * dt * 14;
+          const maxDist = 55;
+          const distFromShell = m.x - m.shellAnchorX;
+          if (Math.abs(distFromShell) > maxDist) {
+            m.dir *= -1;
+            m.x = m.shellAnchorX + Math.sign(distFromShell) * maxDist;
+          }
+          if (m.x < TANK_PAD + 14) { m.x = TANK_PAD + 14; m.dir = 1; }
+          if (m.x > W - TANK_PAD - 14) { m.x = W - TANK_PAD - 14; m.dir = -1; }
+          if (Math.random() < dt * 0.12) m.dir *= -1;
+          m.shellTimer -= dt;
+          if (m.shellTimer <= 0) {
+            m.shellState = 'returning';
+          }
+        } else if (m.shellState === 'returning') {
+          const toShell = m.shellAnchorX - m.x;
+          m.dir = Math.sign(toShell) || 1;
+          if (Math.abs(toShell) < 2) {
+            m.x = m.shellAnchorX;
+            m.shellProgress = Math.max(0, m.shellProgress - dt * 0.6);
+            if (m.shellProgress <= 0) {
+              m.shellState = 'normal';
+              m.shellTimer = rand(20, 50);
+              m.shellProgress = 0;
+            }
+          } else {
+            m.x += m.dir * dt * 18;
+            if (Math.sign(m.shellAnchorX - m.x) !== Math.sign(toShell)) {
+              m.x = m.shellAnchorX;
+            }
+          }
+        }
+        continue;
+      }
+
+      // group/flock for tetras
+      if (m.kind === 'tetra') {
+        let cx = 0, cy = 0, n = 0, sx = 0, sy = 0;
+        for (const o of mates) {
+          if (o === m || o.kind !== 'tetra') continue;
+          const d = dist(m, o);
+          if (d < 80) { cx += o.x; cy += o.y; n++; sx += o.vx; sy += o.vy; }
+          if (d < 22) { m.vx -= (o.x - m.x) * 0.02; m.vy -= (o.y - m.y) * 0.02; }
+        }
+        if (n > 0) {
+          m.vx += ((cx/n - m.x)) * 0.0008;
+          m.vy += ((cy/n - m.y)) * 0.0008;
+          m.vx += (sx/n - m.vx) * 0.05;
+          m.vy += (sy/n - m.vy) * 0.05;
+        }
+        // skittish from betta when darting
+        const dB = dist(m, betta);
+        if (input.dart && dB < 90) {
+          m.vx += (m.x - betta.x) / dB * 0.6;
+          m.vy += (m.y - betta.y) / dB * 0.6;
+          m.panic = 1;
+        }
+        m.panic = Math.max(0, m.panic - dt * 0.5);
+        // wander
+        m.vx += rand(-0.05, 0.05);
+        m.vy += rand(-0.04, 0.04);
+      }
+
+      // barbs are nippy
+      if (m.kind === 'barb') {
+        m.cooldown = Math.max(0, m.cooldown - dt);
+        const dB = dist(m, betta);
+        const wantsToNip = m.aggro > 0 || (betta.health < 0.6 && dB < 200);
+        if (wantsToNip && m.cooldown <= 0 && dB < 180) {
+          // chase betta
+          m.vx += (betta.x - m.x) / (dB || 1) * 0.18;
+          m.vy += (betta.y - m.y) / (dB || 1) * 0.18;
+          if (dB < 18) {
+            betta.health = clamp(betta.health - 0.06, 0, 1);
+            betta.happy = clamp(betta.happy - 0.08, 0, 1);
+            betta.vx += (betta.x - m.x) / (dB || 1) * 4;
+            betta.vy += (betta.y - m.y) / (dB || 1) * 4;
+            m.cooldown = 2 + Math.random() * 2;
+            m.aggro = Math.max(0, m.aggro - 0.4);
+            spawnSparkle(betta.x, betta.y, '#ff4060');
+            showMsg('The barb nipped your fins!', 'warn');
+          }
+        } else {
+          // flee if you flare
+          if (betta.flareT > 0.4 && dB < 120) {
+            m.vx += (m.x - betta.x) / (dB || 1) * 0.3;
+            m.vy += (m.y - betta.y) / (dB || 1) * 0.3;
+          }
+          m.vx += rand(-0.06, 0.06);
+          m.vy += rand(-0.05, 0.05);
+        }
+        m.aggro = Math.max(0, m.aggro - dt * 0.05);
+      }
+
+      // shared physics
+      m.vx *= Math.pow(WATER_DRAG, dt * 60);
+      m.vy *= Math.pow(WATER_DRAG, dt * 60);
+      // cap speed
+      const sp = Math.hypot(m.vx, m.vy);
+      const maxSp = m.kind === 'tetra' ? (m.panic > 0.3 ? 4 : 1.6) : 2.4;
+      if (sp > maxSp) { m.vx *= maxSp/sp; m.vy *= maxSp/sp; }
+
+      m.x += m.vx * dt * 60;
+      m.y += m.vy * dt * 60;
+      // walls
+      if (m.x < TANK_PAD + 12) { m.x = TANK_PAD + 12; m.vx *= -0.5; }
+      if (m.x > W - TANK_PAD - 12) { m.x = W - TANK_PAD - 12; m.vx *= -0.5; }
+      if (m.y < WATER_LINE_Y + 12) { m.y = WATER_LINE_Y + 12; m.vy *= -0.5; }
+      if (m.y > SUBSTRATE_Y - 14) { m.y = SUBSTRATE_Y - 14; m.vy *= -0.5; }
+
+      m.angle = Math.atan2(m.vy, m.vx);
+      m.finPhase += dt * 6;
+    }
+
+    // ---- Particles ----
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+      p.life -= p.decay * dt * 60;
+      if (p.life <= 0) { particles.splice(i, 1); continue; }
+      if (p.kind === 'bubble') {
+        p.wobble += dt * 4;
+        p.x += Math.sin(p.wobble) * 0.3 + p.vx;
+        p.y += p.vy;
+        p.vy *= 0.998;
+        if (p.y < WATER_LINE_Y + 4) { particles.splice(i, 1); continue; }
+      } else if (p.kind === 'sparkle') {
+        p.x += p.vx; p.y += p.vy; p.vx *= 0.9; p.vy *= 0.9;
+      } else if (p.kind === 'ripple') {
+        p.r += dt * 60;
+      }
+    }
+
+    // ---- Filter ambient bubbles ----
+    bubbleTimer -= dt;
+    if (bubbleTimer <= 0) {
+      spawnBubble(filter.x + filter.w/2 + rand(-3,3), filter.y + filter.h - 4);
+      bubbleTimer = 0.15 + Math.random() * 0.2;
+    }
+
+    // ---- HUD ----
+    document.getElementById('bar-hunger').style.width = Math.round((1 - betta.hunger) * 100) + '%';
+    document.getElementById('bar-health').style.width = Math.round(betta.health * 100) + '%';
+    document.getElementById('bar-happy').style.width  = Math.round(betta.happy * 100) + '%';
+
+    // death / revival
+    if (betta.health <= 0) {
+      showMsg('Your betta has gone to the great tank in the sky.', 'warn');
+      setTimeout(resetWorld, 2000);
+      betta.health = 0.001;
+    }
+  }
+
+  // ============================================================
+  //  RENDERING
+  // ============================================================
+  function draw() {
+    ctx.save();
+    if (screenShake > 0.3) {
+      ctx.translate(rand(-screenShake, screenShake), rand(-screenShake, screenShake));
+    }
+
+    // ---- Water gradient (already on canvas bg, but tint with pollution) ----
+    ctx.clearRect(0, 0, W, H);
+    const grad = ctx.createLinearGradient(0, WATER_LINE_Y, 0, H);
+    const pollH = pollution;
+    grad.addColorStop(0,   `rgb(${10 + pollH*30}, ${58 - pollH*15}, ${74 - pollH*10})`);
+    grad.addColorStop(0.5, `rgb(${13 + pollH*40}, ${91 - pollH*30}, ${110 - pollH*30})`);
+    grad.addColorStop(1,   `rgb(${6 + pollH*25}, ${42 - pollH*15}, ${54 - pollH*15})`);
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, H);
+
+    // light rays from above
+    const flick = 1 + Math.sin(performance.now() * 0.001) * 0.05 + (lightFlicker > 0 ? Math.sin(performance.now() * 0.05) * 0.3 : 0);
+    ctx.save();
+    ctx.globalAlpha = 0.12 * flick;
+    ctx.fillStyle = '#bdf2ff';
+    for (let i = 0; i < 5; i++) {
+      const x = (W / 5) * i + Math.sin(performance.now()*0.0005 + i) * 30;
+      ctx.beginPath();
+      ctx.moveTo(x - 30, WATER_LINE_Y);
+      ctx.lineTo(x + 30, WATER_LINE_Y);
+      ctx.lineTo(x + 80, H);
+      ctx.lineTo(x - 80, H);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.restore();
+
+    // water surface
+    ctx.save();
+    const surfaceY = WATER_LINE_Y;
+    ctx.strokeStyle = 'rgba(180, 230, 240, 0.4)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    for (let x = 0; x <= W; x += 8) {
+      const y = surfaceY + Math.sin(x * 0.04 + performance.now() * 0.002) * 2.5;
+      if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+    // top water shimmer
+    ctx.fillStyle = 'rgba(180, 230, 240, 0.08)';
+    ctx.fillRect(0, 0, W, surfaceY);
+    ctx.restore();
+
+    // ---- Background plants ----
+    for (const pl of plants) drawPlant(pl);
+
+    // ---- Driftwood ----
+    drawDriftwood(driftwood.x, driftwood.y);
+
+    // ---- Gravel ----
+    for (const g of gravel) {
+      ctx.fillStyle = `rgba(${60 + g.shade*60}, ${50 + g.shade*40}, ${40 + g.shade*30}, 1)`;
+      ctx.beginPath();
+      ctx.arc(g.x, g.y, g.r, 0, Math.PI*2);
+      ctx.fill();
+    }
+
+    // ---- Heater ----
+    drawHeater();
+
+    // ---- Filter intake ----
+    drawFilter();
+
+    // ---- Food ----
+    for (const p of food) {
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.fillStyle = `hsl(${p.hue}, 65%, 45%)`;
+      ctx.beginPath(); ctx.arc(0, 0, p.r, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = `hsl(${p.hue}, 75%, 65%)`;
+      ctx.beginPath(); ctx.arc(-p.r*0.3, -p.r*0.3, p.r*0.4, 0, Math.PI*2); ctx.fill();
+      ctx.restore();
+    }
+
+    // ---- Tankmates (snails behind, then fish) ----
+    for (const m of mates) if (m.kind === 'snail') drawSnail(m);
+    for (const m of mates) if (m.kind === 'tetra') drawTetra(m);
+    for (const m of mates) if (m.kind === 'barb')  drawBarb(m);
+
+    // ---- The betta ----
+    drawBetta(betta);
+
+    // ---- Particles ----
+    for (const p of particles) {
+      if (p.kind === 'bubble') {
+        ctx.save();
+        ctx.globalAlpha = p.life * 0.7;
+        ctx.strokeStyle = 'rgba(220, 245, 255, 0.9)';
+        ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2); ctx.stroke();
+        ctx.fillStyle = 'rgba(220, 245, 255, 0.18)';
+        ctx.fill();
+        ctx.restore();
+      } else if (p.kind === 'sparkle') {
+        ctx.save();
+        ctx.globalAlpha = p.life;
+        ctx.fillStyle = p.color || '#ffd76a';
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2); ctx.fill();
+        ctx.restore();
+      } else if (p.kind === 'ripple') {
+        ctx.save();
+        ctx.globalAlpha = p.life * 0.5;
+        ctx.strokeStyle = 'rgba(220, 245, 255, 0.8)';
+        ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.ellipse(p.x, p.y, p.r * 2, p.r * 0.6, 0, 0, Math.PI*2); ctx.stroke();
+        ctx.restore();
+      }
+    }
+
+    // ---- Pollution overlay ----
+    if (pollution > 0.1) {
+      ctx.fillStyle = `rgba(120, 140, 60, ${pollution * 0.18})`;
+      ctx.fillRect(0, WATER_LINE_Y, W, H - WATER_LINE_Y);
+    }
+
+    // ---- Glass reflection on top edges ----
+    ctx.save();
+    ctx.strokeStyle = 'rgba(180, 230, 240, 0.18)';
+    ctx.lineWidth = 4;
+    ctx.strokeRect(TANK_PAD/2, TANK_PAD/2, W - TANK_PAD, H - TANK_PAD);
+    ctx.restore();
+
+    // top vignette
+    const vg = ctx.createLinearGradient(0, 0, 0, 80);
+    vg.addColorStop(0, 'rgba(0,0,0,0.4)');
+    vg.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = vg;
+    ctx.fillRect(0, 0, W, 80);
+
+    ctx.restore();
+  }
+
+  // ============================================================
+  //  DRAWING — fish, plants, etc.
+  // ============================================================
+  // Helper: hex to rgba string with alpha
+  function hexToRgba(hex, a) {
+    const r = parseInt(hex.slice(1,3), 16);
+    const g = parseInt(hex.slice(3,5), 16);
+    const b = parseInt(hex.slice(5,7), 16);
+    return `rgba(${r}, ${g}, ${b}, ${a})`;
+  }
+
+  // Darken hex color
+  function darken(hex, amt) {
+    const r = parseInt(hex.slice(1,3), 16);
+    const g = parseInt(hex.slice(3,5), 16);
+    const b = parseInt(hex.slice(5,7), 16);
+    return '#' + [r,g,b].map(v => Math.max(0, Math.round(v * (1 - amt))).toString(16).padStart(2,'0')).join('');
+  }
+
+  // Generic betta-drawing routine; works on any 2D context.
+  // state: { finPhase, flareT, iridescence }  — defaults provided.
+  function drawBettaWithColor(c, color, finPhase = 0, flareT = 0, iridescence = 0) {
+    const finWag = Math.sin(finPhase) * 0.4;
+    const tailWag = Math.sin(finPhase * 0.8) * 0.5;
+    const fin = color.fin;
+    const finRgba = hexToRgba(fin, 0.1);
+    const accentRgba = hexToRgba(color.accent, 0.4);
+    const bodyDeep = darken(color.body, 0.4);
+
+    // ---- Tail (caudal fin) — long, flowy ----
+    const tailLen = 38;
+    const tailSpread = 22 + flareT * 8;
+    c.save();
+    c.translate(-14, 0);
+    c.rotate(tailWag);
+    const tg = c.createLinearGradient(0, 0, -tailLen, 0);
+    tg.addColorStop(0, fin);
+    tg.addColorStop(1, finRgba);
+    c.fillStyle = tg;
+    c.beginPath();
+    c.moveTo(0, 0);
+    c.bezierCurveTo(-12, -tailSpread*0.4, -tailLen*0.7, -tailSpread, -tailLen, -tailSpread*0.3);
+    c.bezierCurveTo(-tailLen*1.05, -tailSpread*0.1 + Math.sin(finPhase*1.5)*3, -tailLen*1.05, tailSpread*0.1 + Math.sin(finPhase*1.5+1)*3, -tailLen, tailSpread*0.3);
+    c.bezierCurveTo(-tailLen*0.7, tailSpread, -12, tailSpread*0.4, 0, 0);
+    c.fill();
+    c.strokeStyle = accentRgba;
+    c.lineWidth = 0.8;
+    for (let i = -3; i <= 3; i++) {
+      c.beginPath();
+      c.moveTo(0, 0);
+      c.quadraticCurveTo(-tailLen*0.5, i * tailSpread*0.15, -tailLen*0.95, i * tailSpread*0.3);
+      c.stroke();
+    }
+    c.restore();
+
+    // ---- Dorsal fin ----
+    c.save();
+    c.fillStyle = fin;
+    c.beginPath();
+    c.moveTo(-2, -10);
+    c.bezierCurveTo(-4, -22 - flareT*4, -12, -24 - flareT*5, -16, -10);
+    c.bezierCurveTo(-14, -14, -10, -14, -2, -10);
+    c.fill();
+    c.strokeStyle = accentRgba;
+    c.lineWidth = 0.8;
+    for (let i = 0; i < 5; i++) {
+      const t = i / 4;
+      c.beginPath();
+      c.moveTo(-2 - t*14, -10);
+      c.lineTo(-4 - t*10, -18 - flareT*3);
+      c.stroke();
+    }
+    c.restore();
+
+    // ---- Anal fin ----
+    c.save();
+    c.fillStyle = fin;
+    c.beginPath();
+    c.moveTo(-4, 8);
+    c.bezierCurveTo(-8, 22, -18, 24, -22, 8);
+    c.bezierCurveTo(-18, 12, -8, 12, -4, 8);
+    c.fill();
+    c.restore();
+
+    // ---- Body ----
+    const bodyGrad = c.createLinearGradient(0, -10, 0, 10);
+    bodyGrad.addColorStop(0, color.accent);
+    bodyGrad.addColorStop(0.5, color.body);
+    bodyGrad.addColorStop(1, bodyDeep);
+    c.fillStyle = bodyGrad;
+    c.beginPath();
+    c.ellipse(0, 0, 22, 10, 0, 0, Math.PI*2);
+    c.fill();
+
+    // iridescent shimmer
+    if (iridescence > 0) {
+      c.save();
+      c.globalAlpha = iridescence * 0.5;
+      const ig = c.createLinearGradient(-22, 0, 22, 0);
+      ig.addColorStop(0, 'rgba(255, 100, 200, 0)');
+      ig.addColorStop(0.5, 'rgba(180, 220, 255, 0.6)');
+      ig.addColorStop(1, 'rgba(255, 200, 100, 0)');
+      c.fillStyle = ig;
+      c.beginPath();
+      c.ellipse(0, 0, 22, 10, 0, 0, Math.PI*2);
+      c.fill();
+      c.restore();
+    }
+
+    // scale hints
+    c.strokeStyle = hexToRgba(color.highlight, 0.18);
+    c.lineWidth = 0.6;
+    for (let i = -2; i <= 2; i++) {
+      c.beginPath();
+      c.arc(i * 5, 0, 8, -Math.PI/2.5, Math.PI/2.5);
+      c.stroke();
+    }
+
+    // ---- Pectoral fin ----
+    c.save();
+    c.translate(6, 4);
+    c.rotate(finWag * 0.8);
+    c.fillStyle = hexToRgba(color.highlight, 0.6);
+    c.beginPath();
+    c.ellipse(0, 4, 4, 7, 0.3, 0, Math.PI*2);
+    c.fill();
+    c.restore();
+
+    // ---- Gill flare ----
+    if (flareT > 0.05) {
+      c.save();
+      c.translate(10, 0);
+      c.fillStyle = hexToRgba(bodyDeep, flareT * 0.7);
+      c.beginPath();
+      c.moveTo(0, -2);
+      c.lineTo(-3 - flareT*4, -5 - flareT*4);
+      c.lineTo(-3 - flareT*4, 5 + flareT*4);
+      c.lineTo(0, 2);
+      c.fill();
+      c.restore();
+    }
+
+    // ---- Head/eye ----
+    c.fillStyle = color.highlight;
+    c.beginPath(); c.ellipse(14, 0, 8, 8, 0, 0, Math.PI*2); c.fill();
+    c.fillStyle = color.body;
+    c.beginPath(); c.ellipse(13, 1, 7, 7, 0, 0, Math.PI*2); c.fill();
+    c.fillStyle = '#fff';
+    c.beginPath(); c.arc(15, -1, 2.4, 0, Math.PI*2); c.fill();
+    c.fillStyle = '#000';
+    c.beginPath(); c.arc(15.6, -1, 1.4, 0, Math.PI*2); c.fill();
+    c.fillStyle = 'rgba(255,255,255,0.8)';
+    c.beginPath(); c.arc(16, -1.4, 0.5, 0, Math.PI*2); c.fill();
+
+    // mouth
+    c.strokeStyle = darken(color.body, 0.5);
+    c.lineWidth = 1;
+    c.beginPath(); c.moveTo(20, 2); c.lineTo(22, 3); c.stroke();
+  }
+
+  function drawBetta(b) {
+    ctx.save();
+    ctx.translate(b.x, b.y);
+    ctx.rotate(b.angle);
+    ctx.scale(1, b.facing); // flip vertically so fish stays upright when angled
+    drawBettaWithColor(ctx, b.color, b.finPhase, b.flareT, b.iridescence);
+    ctx.restore();
+  }
+
+  function drawTetra(t) {
+    ctx.save();
+    ctx.translate(t.x, t.y);
+    ctx.rotate(t.angle);
+    if (Math.cos(t.angle) < 0) ctx.scale(1, -1);
+    // body
+    ctx.fillStyle = '#cdd6e0';
+    ctx.beginPath(); ctx.ellipse(0, 0, t.size, t.size*0.45, 0, 0, Math.PI*2); ctx.fill();
+    // neon stripe (top)
+    ctx.fillStyle = t.color;
+    ctx.fillRect(-t.size*0.7, -t.size*0.25, t.size*1.4, t.size*0.18);
+    // red stripe (back half bottom)
+    ctx.fillStyle = t.stripe;
+    ctx.fillRect(-t.size*0.1, t.size*0.05, t.size*0.7, t.size*0.18);
+    // tail
+    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx.beginPath();
+    ctx.moveTo(-t.size, 0);
+    ctx.lineTo(-t.size - 6, -t.size*0.4);
+    ctx.lineTo(-t.size - 6, t.size*0.4);
+    ctx.closePath(); ctx.fill();
+    // eye
+    ctx.fillStyle = '#000';
+    ctx.beginPath(); ctx.arc(t.size*0.7, -t.size*0.05, 1.2, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
+  }
+
+  function drawBarb(b) {
+    ctx.save();
+    ctx.translate(b.x, b.y);
+    ctx.rotate(b.angle);
+    if (Math.cos(b.angle) < 0) ctx.scale(1, -1);
+    // body
+    const grad = ctx.createLinearGradient(0, -b.size*0.5, 0, b.size*0.5);
+    grad.addColorStop(0, '#ffc64a');
+    grad.addColorStop(0.5, b.color);
+    grad.addColorStop(1, '#a86810');
+    ctx.fillStyle = grad;
+    ctx.beginPath(); ctx.ellipse(0, 0, b.size, b.size*0.55, 0, 0, Math.PI*2); ctx.fill();
+    // tiger stripes
+    ctx.fillStyle = b.stripe;
+    for (let i = 0; i < 4; i++) {
+      const x = -b.size*0.6 + i * b.size*0.4;
+      ctx.fillRect(x, -b.size*0.5, 2, b.size);
+    }
+    // tail (orange)
+    ctx.fillStyle = '#ff7020';
+    ctx.beginPath();
+    ctx.moveTo(-b.size, 0);
+    ctx.lineTo(-b.size - 8, -b.size*0.5);
+    ctx.lineTo(-b.size - 8, b.size*0.5);
+    ctx.closePath(); ctx.fill();
+    // eye
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(b.size*0.7, -b.size*0.05, 1.8, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#000';
+    ctx.beginPath(); ctx.arc(b.size*0.75, -b.size*0.05, 1.1, 0, Math.PI*2); ctx.fill();
+    // aggro tint
+    if (b.aggro > 0.3) {
+      ctx.strokeStyle = `rgba(255, 50, 50, ${b.aggro * 0.6})`;
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.ellipse(0, 0, b.size+2, b.size*0.6, 0, 0, Math.PI*2); ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  // Generic mystery snail draw — works on any context.
+  // facing: 1 = right, -1 = left
+  function drawMysterySnail(c, color, footPhase = 0, antennaPhase = 0, facing = 1, shellOffset = 0) {
+    c.save();
+    c.scale(facing, 1);
+
+    // ---- Shadow under foot ----
+    c.fillStyle = 'rgba(0, 0, 0, 0.25)';
+    c.beginPath();
+    c.ellipse(0, 6, 22, 3, 0, 0, Math.PI * 2);
+    c.fill();
+
+    // ---- Foot (the big squishy body) ----
+    const footStretch = shellOffset * 0.3;
+    const footWiggle = Math.sin(footPhase) * (0.5 + shellOffset * 0.02);
+    const footGrad = c.createLinearGradient(0, -2, 0, 8);
+    footGrad.addColorStop(0, color.foot);
+    footGrad.addColorStop(1, color.footDeep);
+    c.fillStyle = footGrad;
+    c.beginPath();
+    c.moveTo(-20 - footStretch, 4);
+    c.bezierCurveTo(-22 - footStretch, -2, -18 - footStretch * 0.5, -4, -10, -3);
+    c.bezierCurveTo(-2, -4 + footWiggle, 14, -4, 22, -1);
+    c.bezierCurveTo(24, 2, 22, 5, 18, 6);
+    c.bezierCurveTo(8, 7, -10, 7, -20 - footStretch, 4);
+    c.closePath();
+    c.fill();
+
+    // foot underside ripple (like the crawling muscle waves)
+    c.strokeStyle = 'rgba(0, 0, 0, 0.12)';
+    c.lineWidth = 0.6;
+    for (let i = 0; i < 5; i++) {
+      const fx = -16 + i * 8 + Math.sin(footPhase + i * 0.8) * 1.5;
+      c.beginPath();
+      c.moveTo(fx - 2, 6);
+      c.lineTo(fx + 2, 7);
+      c.stroke();
+    }
+
+    // ---- Antennae (two long ones, with little eye dots at base) ----
+    const antennaMult = 1 + shellOffset * 0.04;
+    const aSwayL = Math.sin(antennaPhase) * 0.3 * antennaMult;
+    const aSwayR = Math.sin(antennaPhase + 1.2) * 0.3 * antennaMult;
+    c.strokeStyle = color.foot;
+    c.lineWidth = 1.6;
+    c.lineCap = 'round';
+    // upper antenna
+    c.beginPath();
+    c.moveTo(18, -3);
+    c.bezierCurveTo(22, -8 + aSwayL * 2, 26 + aSwayL * 3, -10 + aSwayL, 28 + aSwayL * 4, -6 + aSwayL * 2);
+    c.stroke();
+    // lower antenna
+    c.beginPath();
+    c.moveTo(20, -1);
+    c.bezierCurveTo(24, -3 + aSwayR, 28 + aSwayR * 3, -2 + aSwayR, 30 + aSwayR * 4, 1 + aSwayR * 2);
+    c.stroke();
+
+    // antenna tips (tiny darker bulbs)
+    c.fillStyle = color.footDeep;
+    c.beginPath(); c.arc(28 + aSwayL * 4, -6 + aSwayL * 2, 0.9, 0, Math.PI * 2); c.fill();
+    c.beginPath(); c.arc(30 + aSwayR * 4,  1 + aSwayR * 2, 0.9, 0, Math.PI * 2); c.fill();
+
+    // ---- Eyes (mystery snails have eyes at the base of their antennae) ----
+    c.fillStyle = '#fff5d8';
+    c.beginPath(); c.arc(20, -4, 1.6, 0, Math.PI * 2); c.fill();
+    c.beginPath(); c.arc(21,  0, 1.6, 0, Math.PI * 2); c.fill();
+    c.fillStyle = '#000';
+    c.beginPath(); c.arc(20.3, -4, 0.9, 0, Math.PI * 2); c.fill();
+    c.beginPath(); c.arc(21.3,  0, 0.9, 0, Math.PI * 2); c.fill();
+
+    // mouth — small dark line on the head
+    c.strokeStyle = 'rgba(0,0,0,0.4)';
+    c.lineWidth = 0.8;
+    c.beginPath();
+    c.moveTo(22, 3);
+    c.lineTo(24, 3.5);
+    c.stroke();
+
+    // ---- The shell (the show-stopper) ----
+    // Draw on the back — to the LEFT (rear) of the head when facing right.
+    // When shellOffset > 0, shift shell backward to show separation.
+    c.save();
+    c.translate(-4 - shellOffset, -8);
+
+    // Shell base (large round body of the spiral)
+    const shellR = 14;
+    const shellGrad = c.createRadialGradient(-3, -4, 2, 0, 0, shellR + 4);
+    shellGrad.addColorStop(0, color.shellLight);
+    shellGrad.addColorStop(0.6, color.shell);
+    shellGrad.addColorStop(1, color.shellDeep);
+    c.fillStyle = shellGrad;
+    c.beginPath();
+    c.arc(0, 0, shellR, 0, Math.PI * 2);
+    c.fill();
+
+    // Spiral coil — concentric arcs that get smaller, suggesting the spire
+    c.strokeStyle = color.shellDeep;
+    c.lineWidth = 1.3;
+    c.lineCap = 'round';
+    // outer ridge
+    c.beginPath();
+    c.arc(0, 0, shellR - 0.5, 0, Math.PI * 2);
+    c.stroke();
+    // inner spiral whorls
+    for (let i = 0; i < 3; i++) {
+      const r = shellR - 3 - i * 3;
+      const ox = -i * 1.4;
+      const oy = -i * 1.6;
+      c.beginPath();
+      c.arc(ox, oy, r, 0, Math.PI * 2);
+      c.stroke();
+    }
+    // tiny spire tip
+    c.fillStyle = color.shellDeep;
+    c.beginPath();
+    c.arc(-4.2, -4.8, 1.6, 0, Math.PI * 2);
+    c.fill();
+
+    // Color band — the signature stripe many mystery snails have
+    if (color.band) {
+      c.strokeStyle = color.band;
+      c.lineWidth = 2.5;
+      c.beginPath();
+      c.arc(0, 0, shellR - 4.5, Math.PI * 0.1, Math.PI * 1.9);
+      c.stroke();
+    }
+
+    // Highlight (top-left glossy gleam)
+    c.fillStyle = 'rgba(255, 255, 255, 0.28)';
+    c.beginPath();
+    c.ellipse(-5, -7, 4, 2.2, -0.4, 0, Math.PI * 2);
+    c.fill();
+    // tiny pinpoint shine
+    c.fillStyle = 'rgba(255, 255, 255, 0.7)';
+    c.beginPath();
+    c.arc(-6, -8, 0.8, 0, Math.PI * 2);
+    c.fill();
+
+    // shell aperture shadow (the opening where the foot comes out)
+    c.fillStyle = 'rgba(0, 0, 0, 0.35)';
+    c.beginPath();
+    c.ellipse(8, 4, 5, 6, -0.3, 0, Math.PI * 2);
+    c.fill();
+
+    c.restore();
+    c.restore();
+  }
+
+  function drawSnail(s) {
+    const separated = s.shellState !== 'normal' && s.shellProgress > 0;
+    if (separated) {
+      const dx = s.x - s.shellAnchorX;
+      const facing = dx >= 0 ? 1 : -1;
+      const sepDist = Math.abs(dx);
+      ctx.save();
+      ctx.translate(s.x, s.y);
+      drawMysterySnail(ctx, s.color, s.footPhase, s.antennaPhase, facing, sepDist);
+      ctx.restore();
+    } else {
+      ctx.save();
+      ctx.translate(s.x, s.y);
+      drawMysterySnail(ctx, s.color, s.footPhase, s.antennaPhase, s.dir, 0);
+      ctx.restore();
+    }
+  }
+
+  function drawPlant(p) {
+    ctx.save();
+    ctx.translate(p.x, p.baseY);
+    const t = performance.now() * 0.001 * p.sway + p.phase;
+    const segs = 12;
+    ctx.strokeStyle = p.color;
+    ctx.lineWidth = 4;
+    ctx.lineCap = 'round';
+    for (let leaf = -1; leaf <= 1; leaf++) {
+      ctx.beginPath();
+      ctx.moveTo(leaf * 6, 0);
+      for (let i = 1; i <= segs; i++) {
+        const yy = -i * (p.h / segs);
+        const xx = leaf * 6 + Math.sin(t + i * 0.5) * (i * 1.2) * 0.3;
+        ctx.lineTo(xx, yy);
+      }
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function drawDriftwood(x, y) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.fillStyle = '#3a2410';
+    ctx.beginPath();
+    ctx.moveTo(-60, 0);
+    ctx.bezierCurveTo(-80, -20, -40, -28, -10, -18);
+    ctx.bezierCurveTo(20, -10, 50, -22, 80, -8);
+    ctx.bezierCurveTo(90, 4, 60, 12, 30, 8);
+    ctx.bezierCurveTo(-10, 14, -50, 16, -60, 0);
+    ctx.fill();
+    ctx.strokeStyle = '#1a0e05';
+    ctx.lineWidth = 1;
+    for (let i = 0; i < 5; i++) {
+      ctx.beginPath();
+      ctx.moveTo(-50 + i*25, -8 + i*2);
+      ctx.lineTo(-30 + i*25, 4 + i);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function drawHeater() {
+    ctx.save();
+    ctx.translate(heater.x, heater.y);
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillRect(0, 0, heater.w, heater.h);
+    // glass tube highlight
+    ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(0.5, 0.5, heater.w-1, heater.h-1);
+    // heating element
+    if (heater.on) {
+      const glow = 0.5 + Math.sin(performance.now()*0.003) * 0.15;
+      ctx.fillStyle = `rgba(255, 100, 30, ${glow})`;
+      ctx.fillRect(2, heater.h - 30, heater.w - 4, 24);
+      ctx.fillStyle = `rgba(255, 200, 80, ${glow*0.6})`;
+      ctx.fillRect(3, heater.h - 28, heater.w - 6, 20);
+    }
+    // wire to top
+    ctx.strokeStyle = '#222';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(heater.w/2, 0);
+    ctx.lineTo(heater.w/2, -heater.y + 4);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawFilter() {
+    ctx.save();
+    ctx.translate(filter.x, filter.y);
+    // intake tube
+    ctx.fillStyle = '#2a2a2a';
+    ctx.fillRect(0, 0, filter.w, filter.h);
+    ctx.fillStyle = '#1a1a1a';
+    // intake holes
+    for (let i = 0; i < 8; i++) {
+      ctx.fillRect(2, 8 + i*10, filter.w - 4, 4);
+    }
+    // top connector
+    ctx.fillStyle = '#3a3a3a';
+    ctx.fillRect(-2, -4, filter.w + 4, 6);
+    // suction visualization
+    const cx = filter.w/2, cy = filter.h/2;
+    ctx.strokeStyle = 'rgba(180,220,235,0.15)';
+    ctx.lineWidth = 1;
+    for (let i = 0; i < 3; i++) {
+      const r = 30 + i * 25 + Math.sin(performance.now()*0.002 + i) * 6;
+      ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  // ============================================================
+  //  MAIN LOOP
+  // ============================================================
+  function loop(now) {
+    const dt = Math.min(0.05, (now - last) / 1000);
+    last = now;
+    update(dt);
+    draw();
+    updateNameFloat();
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+
+})();
+</script>
+</body>
+</html>
