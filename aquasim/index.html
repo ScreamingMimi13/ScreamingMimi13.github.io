@@ -195,15 +195,20 @@
     position: fixed;
     inset: 0;
     background: radial-gradient(ellipse at center, rgba(13, 91, 110, 0.95), rgba(3, 22, 30, 0.98));
+    z-index: 100;
+    transition: opacity 0.8s ease;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  #title-card > .title-inner {
+    padding: 20px 0;
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: safe center;
-    z-index: 100;
-    cursor: pointer;
-    transition: opacity 0.8s ease;
-    overflow-y: auto;
-    padding: 20px 0;
+    flex-shrink: 0;
   }
   #title-card.hidden {
     opacity: 0;
@@ -593,6 +598,7 @@
 </div>
 
 <div id="title-card">
+<div class="title-inner">
   <h1>Betta</h1>
   <div class="sub">A 10-Gallon Life</div>
 
@@ -664,6 +670,7 @@
   <div class="keys" style="margin-top: 24px;">
     <kbd>WASD</kbd> swim · <kbd>Space</kbd> dart · <kbd>F</kbd> feed · <kbd>G</kbd> flare
   </div>
+</div>
 </div>
 
 <button id="customize-btn" class="hidden">⚙ Customize</button>
