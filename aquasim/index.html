@@ -59,6 +59,23 @@
     min-width: 180px;
     pointer-events: none;
   }
+  #mute-btn {
+    pointer-events: auto;
+    margin-top: 8px;
+    width: 100%;
+    background: rgba(110, 224, 255, 0.1);
+    border: 1px solid rgba(110, 224, 255, 0.25);
+    border-radius: 5px;
+    padding: 4px 0;
+    color: var(--muted);
+    font-family: 'Courier New', monospace;
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  #mute-btn:hover { background: rgba(110, 224, 255, 0.2); }
   #hud .title {
     font-family: 'Georgia', serif;
     font-style: italic;
@@ -577,6 +594,7 @@
   <div class="stat-row"><span class="stat-label">Health</span><div class="bar"><div class="bar-fill health" id="bar-health" style="width: 100%"></div></div></div>
   <div class="stat-row"><span class="stat-label">Mood</span><div class="bar"><div class="bar-fill happy" id="bar-happy" style="width: 70%"></div></div></div>
   <div class="stat-row" style="margin-top:6px;"><span class="stat-label">Pellets eaten</span><span id="stat-eaten" style="color:var(--accent-2);">0</span></div>
+  <button id="mute-btn">Mute</button>
 </div>
 
 <div id="controls-help">
@@ -736,6 +754,221 @@
   }
 
   // ============================================================
+  //  AUDIO — procedural Web Audio API sounds
+  // ============================================================
+  let audioCtx = null;
+  let masterGain = null;
+  let muted = false;
+  let ambientNode = null;
+
+  function initAudio() {
+    if (audioCtx) return;
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    masterGain = audioCtx.createGain();
+    masterGain.gain.value = 0.35;
+    masterGain.connect(audioCtx.destination);
+  }
+
+  function toggleMute() {
+    muted = !muted;
+    if (masterGain) masterGain.gain.value = muted ? 0 : 0.35;
+    const btn = document.getElementById('mute-btn');
+    if (btn) btn.textContent = muted ? 'Unmute' : 'Mute';
+  }
+
+  function playTone(freq, duration, type, vol, ramp) {
+    if (!audioCtx || muted) return;
+    const t = audioCtx.currentTime;
+    const g = audioCtx.createGain();
+    g.gain.setValueAtTime(vol, t);
+    if (ramp !== false) g.gain.exponentialRampToValueAtTime(0.001, t + duration);
+    g.connect(masterGain);
+    const o = audioCtx.createOscillator();
+    o.type = type || 'sine';
+    o.frequency.setValueAtTime(freq, t);
+    o.connect(g);
+    o.start(t);
+    o.stop(t + duration);
+    return { osc: o, gain: g };
+  }
+
+  function playNoise(duration, vol, lpFreq) {
+    if (!audioCtx || muted) return;
+    const t = audioCtx.currentTime;
+    const buf = audioCtx.createBuffer(1, audioCtx.sampleRate * duration, audioCtx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    const src = audioCtx.createBufferSource();
+    src.buffer = buf;
+    const flt = audioCtx.createBiquadFilter();
+    flt.type = 'lowpass';
+    flt.frequency.value = lpFreq || 800;
+    const g = audioCtx.createGain();
+    g.gain.setValueAtTime(vol, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + duration);
+    src.connect(flt);
+    flt.connect(g);
+    g.connect(masterGain);
+    src.start(t);
+    src.stop(t + duration);
+  }
+
+  // --- Individual sound effects ---
+  function sndBubble() {
+    if (!audioCtx) return;
+    const f = rand(600, 1200);
+    const t = audioCtx.currentTime;
+    const o = audioCtx.createOscillator();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(f, t);
+    o.frequency.exponentialRampToValueAtTime(f * 1.8, t + 0.08);
+    const g = audioCtx.createGain();
+    g.gain.setValueAtTime(0.06, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
+    o.connect(g); g.connect(masterGain);
+    o.start(t); o.stop(t + 0.1);
+  }
+
+  function sndEat() {
+    playTone(520, 0.08, 'sine', 0.15);
+    setTimeout(() => playTone(780, 0.1, 'sine', 0.12), 50);
+  }
+
+  function sndPelletDrop() {
+    playNoise(0.12, 0.08, 2000);
+    playTone(400, 0.15, 'sine', 0.06);
+  }
+
+  function sndDart() {
+    playNoise(0.15, 0.12, 1200);
+    playTone(220, 0.12, 'sawtooth', 0.05);
+  }
+
+  function sndFlare() {
+    if (!audioCtx) return;
+    const t = audioCtx.currentTime;
+    const o = audioCtx.createOscillator();
+    o.type = 'triangle';
+    o.frequency.setValueAtTime(180, t);
+    o.frequency.linearRampToValueAtTime(320, t + 0.2);
+    o.frequency.linearRampToValueAtTime(260, t + 0.5);
+    const g = audioCtx.createGain();
+    g.gain.setValueAtTime(0.1, t);
+    g.gain.linearRampToValueAtTime(0.15, t + 0.15);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+    o.connect(g); g.connect(masterGain);
+    o.start(t); o.stop(t + 0.5);
+  }
+
+  function sndNip() {
+    playTone(900, 0.06, 'square', 0.1);
+    setTimeout(() => playTone(600, 0.08, 'square', 0.07), 40);
+  }
+
+  function sndDeath() {
+    if (!audioCtx) return;
+    const t = audioCtx.currentTime;
+    [440, 380, 320, 260].forEach((f, i) => {
+      const o = audioCtx.createOscillator();
+      o.type = 'sine';
+      o.frequency.value = f;
+      const g = audioCtx.createGain();
+      g.gain.setValueAtTime(0.12, t + i * 0.35);
+      g.gain.exponentialRampToValueAtTime(0.001, t + i * 0.35 + 0.4);
+      o.connect(g); g.connect(masterGain);
+      o.start(t + i * 0.35); o.stop(t + i * 0.35 + 0.4);
+    });
+  }
+
+  function sndGlassTap() {
+    playTone(1800, 0.08, 'sine', 0.15);
+    setTimeout(() => playTone(2200, 0.06, 'sine', 0.1), 60);
+    playNoise(0.12, 0.06, 4000);
+  }
+
+  function sndWaterChange() {
+    if (!audioCtx) return;
+    const t = audioCtx.currentTime;
+    const buf = audioCtx.createBuffer(1, audioCtx.sampleRate * 1.2, audioCtx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    const src = audioCtx.createBufferSource();
+    src.buffer = buf;
+    const flt = audioCtx.createBiquadFilter();
+    flt.type = 'bandpass';
+    flt.frequency.setValueAtTime(300, t);
+    flt.frequency.linearRampToValueAtTime(600, t + 0.6);
+    flt.frequency.linearRampToValueAtTime(200, t + 1.2);
+    flt.Q.value = 2;
+    const g = audioCtx.createGain();
+    g.gain.setValueAtTime(0.08, t);
+    g.gain.linearRampToValueAtTime(0.12, t + 0.3);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 1.2);
+    src.connect(flt); flt.connect(g); g.connect(masterGain);
+    src.start(t); src.stop(t + 1.2);
+  }
+
+  function sndFilterWarning() {
+    playTone(150, 0.3, 'sawtooth', 0.06);
+    playNoise(0.3, 0.04, 400);
+  }
+
+  function sndNewTank() {
+    if (!audioCtx) return;
+    const t = audioCtx.currentTime;
+    [330, 415, 495, 660].forEach((f, i) => {
+      const o = audioCtx.createOscillator();
+      o.type = 'sine';
+      o.frequency.value = f;
+      const g = audioCtx.createGain();
+      g.gain.setValueAtTime(0.1, t + i * 0.15);
+      g.gain.exponentialRampToValueAtTime(0.001, t + i * 0.15 + 0.35);
+      o.connect(g); g.connect(masterGain);
+      o.start(t + i * 0.15); o.stop(t + i * 0.15 + 0.35);
+    });
+  }
+
+  function sndGameStart() {
+    if (!audioCtx) return;
+    const t = audioCtx.currentTime;
+    [262, 330, 392, 523].forEach((f, i) => {
+      const o = audioCtx.createOscillator();
+      o.type = 'triangle';
+      o.frequency.value = f;
+      const g = audioCtx.createGain();
+      g.gain.setValueAtTime(0.08, t + i * 0.12);
+      g.gain.exponentialRampToValueAtTime(0.001, t + i * 0.12 + 0.3);
+      o.connect(g); g.connect(masterGain);
+      o.start(t + i * 0.12); o.stop(t + i * 0.12 + 0.3);
+    });
+  }
+
+  function sndEvent() {
+    playTone(500, 0.12, 'triangle', 0.06);
+    setTimeout(() => playTone(650, 0.1, 'triangle', 0.05), 80);
+  }
+
+  function startAmbient() {
+    if (!audioCtx || ambientNode) return;
+    const buf = audioCtx.createBuffer(1, audioCtx.sampleRate * 2, audioCtx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    ambientNode = audioCtx.createBufferSource();
+    ambientNode.buffer = buf;
+    ambientNode.loop = true;
+    const flt = audioCtx.createBiquadFilter();
+    flt.type = 'lowpass';
+    flt.frequency.value = 120;
+    flt.Q.value = 1;
+    const g = audioCtx.createGain();
+    g.gain.value = 0.04;
+    ambientNode.connect(flt);
+    flt.connect(g);
+    g.connect(masterGain);
+    ambientNode.start();
+  }
+
+  // ============================================================
   //  INPUT
   // ============================================================
   const keys = {};
@@ -744,11 +977,19 @@
 
   function startGame() {
     if (started) return;
+    initAudio();
     started = true;
     titleCard.classList.add('hidden');
     document.getElementById('customize-btn').classList.remove('hidden');
+    sndGameStart();
+    startAmbient();
     setTimeout(() => showMsg(`${betta.name} settles into the tank.`, 'good'), 500);
   }
+
+  document.getElementById('mute-btn').addEventListener('click', () => {
+    initAudio();
+    toggleMute();
+  });
 
   window.addEventListener('keydown', e => {
     // Don't capture keys while typing in the name field
@@ -1209,6 +1450,7 @@
   //  PARTICLES (bubbles, sparkles, ripples)
   // ============================================================
   const particles = [];
+  let _lastBubbleSnd = 0;
   function spawnBubble(x, y, big = false) {
     particles.push({
       kind: 'bubble',
@@ -1219,6 +1461,8 @@
       life: 1, decay: rand(0.003, 0.008),
       wobble: rand(0, Math.PI*2),
     });
+    const now = performance.now();
+    if (big && now - _lastBubbleSnd > 200) { sndBubble(); _lastBubbleSnd = now; }
   }
   function spawnSparkle(x, y, color = '#ffd76a') {
     for (let i = 0; i < 8; i++) {
@@ -1257,6 +1501,7 @@
       hue: rand(20, 38),
     });
     spawnRipple(px, WATER_LINE_Y);
+    sndPelletDrop();
     for (let i = 0; i < 3; i++) spawnBubble(px + rand(-6,6), WATER_LINE_Y + 6);
     totalPelletsDropped++;
   }
@@ -1286,6 +1531,7 @@
   function triggerFlare() {
     betta.flareT = Math.min(1, betta.flareT + 0.6);
     betta.happy = clamp(betta.happy + 0.04, 0, 1);
+    sndFlare();
     showMsg('You flare your gills magnificently.', 'good');
   }
 
@@ -1441,6 +1687,7 @@
       run: () => {
         // shake + scare everyone
         screenShake = 14;
+        sndGlassTap();
         mates.forEach(m => { if (m.kind !== 'snail') { m.vx += rand(-4,4); m.vy += rand(-2,2); m.panic = 1; } });
         betta.happy = clamp(betta.happy - 0.15, 0, 1);
       }
@@ -1473,6 +1720,7 @@
       run: () => {
         pollutionTarget = 0; pollution = Math.max(0, pollution - 0.6);
         currentSwirl = 1.5;
+        sndWaterChange();
       }
     },
   ];
@@ -1499,6 +1747,7 @@
     mates.push(makeBarb(W * 0.7, H * 0.5));
     mates.push(makeBarb(W * 0.3, H * 0.6));
     spawnChosenMates();
+    sndNewTank();
     showMsg('A fresh tank. New beginnings.', 'good');
   }
   resetWorld();
@@ -1535,6 +1784,7 @@
     nextEventAt -= dt;
     if (nextEventAt <= 0) {
       const ev = weirdEvents[Math.floor(Math.random() * weirdEvents.length)];
+      sndEvent();
       showMsg(ev.msg);
       ev.run();
       nextEventAt = 22 + Math.random() * 30;
@@ -1545,6 +1795,7 @@
     const dartMult = (input.dart && betta.dartCooldown <= 0) ? 2.6 : 1;
     if (input.dart && betta.dartCooldown <= 0 && (input.x || input.y)) {
       betta.dartCooldown = 0.5;
+      sndDart();
       for (let i = 0; i < 6; i++) spawnBubble(betta.x + rand(-8,8), betta.y + rand(-6,6));
     }
     betta.dartCooldown = Math.max(0, betta.dartCooldown - dt);
@@ -1572,7 +1823,7 @@
       if (dF < 30) {
         betta.health = clamp(betta.health - dt * 0.4, 0, 1);
         betta.happy = clamp(betta.happy - dt * 0.5, 0, 1);
-        if (Math.random() < dt * 4) showMsg('The filter intake! Swim away!', 'warn');
+        if (Math.random() < dt * 4) { sndFilterWarning(); showMsg('The filter intake! Swim away!', 'warn'); }
       }
     }
 
@@ -1620,6 +1871,7 @@
         betta.hunger = clamp(betta.hunger - 0.18, 0, 1);
         betta.happy  = clamp(betta.happy + 0.05, 0, 1);
         spawnSparkle(p.x, p.y);
+        sndEat();
         food.splice(i, 1);
         document.getElementById('stat-eaten').textContent = pelletsEaten;
         continue;
@@ -1745,6 +1997,7 @@
             m.cooldown = 2 + Math.random() * 2;
             m.aggro = Math.max(0, m.aggro - 0.4);
             spawnSparkle(betta.x, betta.y, '#ff4060');
+            sndNip();
             showMsg('The barb nipped your fins!', 'warn');
           }
         } else {
@@ -1917,6 +2170,7 @@
 
     // death / revival
     if (betta.health <= 0) {
+      sndDeath();
       showMsg('Your betta has gone to the great tank in the sky.', 'warn');
       setTimeout(() => { resetWorld(); customizeBtn.click(); document.getElementById('start-btn').textContent = 'Begin'; }, 2000);
       betta.health = 0.001;
