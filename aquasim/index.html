@@ -1677,6 +1677,7 @@
   const ceramicCave = { x: W * 0.78, y: SUBSTRATE_Y };
   const treasureChest = { x: W * 0.18, y: SUBSTRATE_Y };
   const airStone = { x: W * 0.48, y: SUBSTRATE_Y + 8 };
+  const pirateShip = { x: W * 0.52, y: SUBSTRATE_Y };
   let airStoneTimer = 0;
 
   // ============================================================
@@ -2253,6 +2254,7 @@
     drawCeramicCave(ceramicCave.x, ceramicCave.y);
     drawTreasureChest(treasureChest.x, treasureChest.y);
     drawAirStone(airStone.x, airStone.y);
+    drawPirateShip(pirateShip.x, pirateShip.y);
 
     // ---- Gravel ----
     for (const g of gravel) {
@@ -2971,6 +2973,7 @@
   function drawCeramicCave(cx, cy) {
     ctx.save();
     ctx.translate(cx, cy);
+    ctx.scale(1.6, 1.6);
     ctx.fillStyle = '#b85c30';
     ctx.beginPath();
     ctx.moveTo(-22, 0);
@@ -3072,6 +3075,96 @@
     ctx.lineTo(0, 10);
     ctx.lineTo(-30, 20);
     ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawPirateShip(px, py) {
+    ctx.save();
+    ctx.translate(px, py);
+    // hull — weathered brown, slightly tilted as if sunk
+    ctx.save();
+    ctx.rotate(0.06);
+    ctx.fillStyle = '#4a2a10';
+    ctx.beginPath();
+    ctx.moveTo(-50, 0);
+    ctx.lineTo(-55, -8);
+    ctx.bezierCurveTo(-55, -28, -40, -32, -30, -32);
+    ctx.lineTo(30, -32);
+    ctx.bezierCurveTo(40, -32, 55, -28, 55, -8);
+    ctx.lineTo(58, 0);
+    ctx.closePath();
+    ctx.fill();
+    // hull planks
+    ctx.strokeStyle = '#3a1a08';
+    ctx.lineWidth = 0.8;
+    for (let i = 0; i < 4; i++) {
+      const ly = -6 - i * 7;
+      ctx.beginPath(); ctx.moveTo(-48, ly); ctx.lineTo(48, ly); ctx.stroke();
+    }
+    // hull stripe
+    ctx.fillStyle = '#8a2010';
+    ctx.fillRect(-48, -14, 96, 4);
+    // deck
+    ctx.fillStyle = '#5a3418';
+    ctx.fillRect(-32, -34, 64, 4);
+    // cabin at stern
+    ctx.fillStyle = '#4a2a10';
+    ctx.fillRect(18, -52, 24, 18);
+    ctx.fillStyle = '#3a1a08';
+    ctx.strokeRect(18, -52, 24, 18);
+    // cabin windows
+    ctx.fillStyle = '#d8c060';
+    ctx.globalAlpha = 0.4 + Math.sin(performance.now() * 0.002) * 0.15;
+    ctx.fillRect(22, -48, 5, 5);
+    ctx.fillRect(32, -48, 5, 5);
+    ctx.globalAlpha = 1;
+    // mast
+    ctx.fillStyle = '#3a2010';
+    ctx.fillRect(-4, -90, 5, 58);
+    // cross beam
+    ctx.fillRect(-22, -80, 40, 3);
+    // torn sail
+    ctx.fillStyle = 'rgba(200, 190, 160, 0.5)';
+    ctx.beginPath();
+    ctx.moveTo(-20, -78);
+    ctx.lineTo(16, -78);
+    ctx.bezierCurveTo(14, -62, 10, -55, 16, -48);
+    ctx.lineTo(-20, -52);
+    ctx.bezierCurveTo(-14, -58, -16, -66, -20, -78);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(120, 110, 80, 0.6)';
+    ctx.lineWidth = 0.6;
+    ctx.stroke();
+    // flag (skull-and-crossbones — simplified)
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillRect(-2, -98, 18, 12);
+    ctx.fillStyle = '#ddd';
+    ctx.beginPath(); ctx.arc(7, -93, 2.5, 0, Math.PI * 2); ctx.fill();
+    ctx.fillRect(4, -90, 6, 1.5);
+    ctx.fillRect(5.5, -92, 3, 5);
+    // bowsprit
+    ctx.strokeStyle = '#3a2010';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(-35, -32);
+    ctx.lineTo(-62, -50);
+    ctx.stroke();
+    // rigging lines
+    ctx.strokeStyle = 'rgba(80, 60, 30, 0.4)';
+    ctx.lineWidth = 0.6;
+    ctx.beginPath(); ctx.moveTo(-2, -88); ctx.lineTo(-50, -30); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(1, -88); ctx.lineTo(48, -30); ctx.stroke();
+    // seaweed/moss on hull
+    ctx.fillStyle = 'rgba(30, 100, 50, 0.4)';
+    for (let i = 0; i < 6; i++) {
+      const sx = -40 + i * 16, sy = -4;
+      ctx.beginPath();
+      ctx.moveTo(sx, sy);
+      ctx.quadraticCurveTo(sx - 2, sy - 10 - (i % 3) * 4, sx + 1, sy - 14);
+      ctx.quadraticCurveTo(sx + 3, sy - 8, sx, sy);
+      ctx.fill();
+    }
+    ctx.restore();
     ctx.restore();
   }
 
