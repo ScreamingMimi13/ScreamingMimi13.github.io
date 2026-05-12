@@ -1672,6 +1672,13 @@
 
   const driftwood = { x: W * 0.32, y: SUBSTRATE_Y - 18 };
 
+  // extra decor
+  const rockFormation = { x: W * 0.62, y: SUBSTRATE_Y };
+  const ceramicCave = { x: W * 0.78, y: SUBSTRATE_Y };
+  const treasureChest = { x: W * 0.18, y: SUBSTRATE_Y };
+  const airStone = { x: W * 0.48, y: SUBSTRATE_Y + 8 };
+  let airStoneTimer = 0;
+
   // ============================================================
   //  AMBIENT BUBBLE STREAM (from filter outflow)
   // ============================================================
@@ -2163,6 +2170,14 @@
       bubbleTimer = 0.15 + Math.random() * 0.2;
     }
 
+    // ---- Air stone bubble stream ----
+    airStoneTimer -= dt;
+    if (airStoneTimer <= 0) {
+      spawnBubble(airStone.x + rand(-8, 8), airStone.y - 8);
+      if (Math.random() < 0.4) spawnBubble(airStone.x + rand(-6, 6), airStone.y - 6);
+      airStoneTimer = 0.08 + Math.random() * 0.14;
+    }
+
     // ---- HUD ----
     document.getElementById('bar-hunger').style.width = Math.round((1 - betta.hunger) * 100) + '%';
     document.getElementById('bar-health').style.width = Math.round(betta.health * 100) + '%';
@@ -2234,6 +2249,10 @@
 
     // ---- Driftwood ----
     drawDriftwood(driftwood.x, driftwood.y);
+    drawRockFormation(rockFormation.x, rockFormation.y);
+    drawCeramicCave(ceramicCave.x, ceramicCave.y);
+    drawTreasureChest(treasureChest.x, treasureChest.y);
+    drawAirStone(airStone.x, airStone.y);
 
     // ---- Gravel ----
     for (const g of gravel) {
@@ -2923,6 +2942,136 @@
       ctx.lineTo(-30 + i*25, 4 + i);
       ctx.stroke();
     }
+    ctx.restore();
+  }
+
+  function drawRockFormation(rx, ry) {
+    ctx.save();
+    ctx.translate(rx, ry);
+    const rocks = [
+      { x: 0, y: -6, rx: 18, ry: 12, col: '#5a5a58' },
+      { x: -14, y: -2, rx: 12, ry: 9, col: '#6a6a65' },
+      { x: 16, y: -3, rx: 10, ry: 8, col: '#4a4a48' },
+      { x: 2, y: -18, rx: 11, ry: 9, col: '#626260' },
+      { x: -6, y: -14, rx: 8, ry: 6, col: '#585855' },
+    ];
+    for (const r of rocks) {
+      ctx.fillStyle = r.col;
+      ctx.beginPath();
+      ctx.ellipse(r.x, r.y, r.rx, r.ry, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,0.08)';
+      ctx.beginPath();
+      ctx.ellipse(r.x - r.rx * 0.3, r.y - r.ry * 0.3, r.rx * 0.4, r.ry * 0.3, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  function drawCeramicCave(cx, cy) {
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.fillStyle = '#b85c30';
+    ctx.beginPath();
+    ctx.moveTo(-22, 0);
+    ctx.bezierCurveTo(-24, -30, -14, -40, 0, -42);
+    ctx.bezierCurveTo(14, -40, 24, -30, 22, 0);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#a04820';
+    ctx.beginPath();
+    ctx.moveTo(-22, 0);
+    ctx.bezierCurveTo(-20, -8, -12, -12, 0, -12);
+    ctx.bezierCurveTo(12, -12, 20, -8, 22, 0);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#1a0a04';
+    ctx.beginPath();
+    ctx.ellipse(0, -4, 12, 10, 0, 0, Math.PI);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(255,180,120,0.12)';
+    ctx.beginPath();
+    ctx.ellipse(-8, -28, 5, 8, -0.2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#8a3818';
+    ctx.lineWidth = 0.8;
+    ctx.beginPath();
+    ctx.moveTo(-16, -10); ctx.lineTo(-18, -25);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(10, -14); ctx.lineTo(12, -32);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawTreasureChest(tx, ty) {
+    ctx.save();
+    ctx.translate(tx, ty);
+    const t = performance.now() * 0.001;
+    const lidAngle = 0.25 + Math.sin(t * 0.4) * 0.08;
+    ctx.fillStyle = '#5a3010';
+    ctx.fillRect(-18, -16, 36, 16);
+    ctx.strokeStyle = '#3a1a08';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(-18, -16, 36, 16);
+    ctx.fillStyle = '#c8a830';
+    ctx.fillRect(-18, -10, 36, 2);
+    ctx.fillRect(-18, -4, 36, 2);
+    ctx.fillRect(-2, -16, 4, 16);
+    ctx.save();
+    ctx.translate(-18, -16);
+    ctx.rotate(-lidAngle);
+    ctx.fillStyle = '#6a3818';
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(36, 0);
+    ctx.bezierCurveTo(38, -10, 36, -14, 18, -16);
+    ctx.bezierCurveTo(0, -14, -2, -10, 0, 0);
+    ctx.fill();
+    ctx.strokeStyle = '#3a1a08';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.fillStyle = '#c8a830';
+    ctx.fillRect(0, -2, 36, 2);
+    ctx.fillRect(16, -14, 4, 14);
+    ctx.restore();
+    ctx.fillStyle = '#e8c840';
+    ctx.beginPath();
+    ctx.arc(0, -16, 3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#ffd700';
+    const sparkle = 0.5 + Math.sin(t * 2) * 0.5;
+    ctx.globalAlpha = sparkle * 0.6;
+    ctx.beginPath(); ctx.arc(-6, -12, 2, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(4, -10, 1.5, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(-2, -8, 1.8, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.restore();
+  }
+
+  function drawAirStone(ax, ay) {
+    ctx.save();
+    ctx.translate(ax, ay);
+    ctx.fillStyle = '#7a7a78';
+    ctx.beginPath();
+    ctx.ellipse(0, -3, 14, 5, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#8a8a85';
+    ctx.beginPath();
+    ctx.ellipse(0, -4, 14, 3, 0, 0, Math.PI);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(0,0,0,0.15)';
+    for (let i = 0; i < 8; i++) {
+      const px = -10 + i * 3, py = -3 + (i % 2) * 1.5;
+      ctx.beginPath(); ctx.arc(px, py, 0.8, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.strokeStyle = '#555';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(0, -2);
+    ctx.lineTo(0, 10);
+    ctx.lineTo(-30, 20);
+    ctx.stroke();
     ctx.restore();
   }
 
