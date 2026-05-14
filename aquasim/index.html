@@ -1607,15 +1607,18 @@
   function makeFrog(x, y) {
     return {
       kind: 'frog',
-      x, y: y || H * 0.6,
-      vx: rand(-0.5, 0.5), vy: 0,
-      angle: 0, legPhase: rand(0, 6),
+      x, y: y || SUBSTRATE_Y - 16,
+      vx: 0, vy: 0,
+      angle: 0, legPhase: 0,
       size: 14,
-      roamX: x, roamY: H * 0.6,
-      roamTimer: rand(2, 5),
       airTimer: rand(15, 35),
       surfacing: false,
       kickPhase: 0,
+      resting: true,
+      restTimer: rand(1.5, 4),
+      kickDir: 0,
+      kickStrength: 0,
+      facingLeft: false,
     };
   }
 
@@ -2089,40 +2092,68 @@
         continue;
       }
 
-      // dwarf frog — swims mid-water, surfaces for air periodically
+      // dwarf frog — burst-kick locomotion, rests between kicks, surfaces for air
       if (m.kind === 'frog') {
-        m.legPhase += dt * 3;
-        m.kickPhase += dt * (m.surfacing ? 8 : 3);
         m.airTimer -= dt;
+        // gentle sink when not actively kicking (slight negative buoyancy)
+        if (m.resting) m.vy += 0.04 * dt * 60;
+        // keep on substrate floor when resting at bottom
+        if (m.y >= SUBSTRATE_Y - 14 && m.resting) { m.y = SUBSTRATE_Y - 14; m.vy = 0; }
+
         if (m.surfacing) {
-          // swim up for air
-          m.vy -= 0.2;
-          if (m.y <= WATER_LINE_Y + 12) {
+          // powerful upward kicks toward surface
+          m.kickPhase += dt * 10;
+          m.legPhase += dt * 8;
+          m.vy -= 0.35 * dt * 60;
+          m.vx *= 0.95;
+          m.angle += (-Math.PI * 0.15 - m.angle) * 0.1;
+          if (m.y <= WATER_LINE_Y + 10) {
             m.surfacing = false;
+            m.resting = true;
+            m.restTimer = rand(0.8, 2);
             m.airTimer = rand(18, 40);
-            m.vy = 0.5;
+            m.vy = 0.3;
+            m.kickPhase = 0;
             spawnBubble(m.x, m.y);
             spawnRipple(m.x, WATER_LINE_Y);
           }
-        } else {
+        } else if (m.resting) {
+          // sitting still, legs tucked, drifting slightly
+          m.kickPhase *= 0.9;
+          m.legPhase *= 0.92;
+          m.angle += (0 - m.angle) * 0.05;
+          m.restTimer -= dt;
           if (m.airTimer <= 0) {
             m.surfacing = true;
+            m.resting = false;
+          } else if (m.restTimer <= 0) {
+            // burst kick to a new spot
+            m.resting = false;
+            const tx = rand(TANK_PAD + 50, W - TANK_PAD - 50);
+            const ty = rand(SUBSTRATE_Y - 120, SUBSTRATE_Y - 20);
+            const dx = tx - m.x, dy = ty - m.y;
+            const d = Math.hypot(dx, dy) || 1;
+            const power = rand(1.8, 3.2);
+            m.vx = (dx / d) * power;
+            m.vy = (dy / d) * power;
+            m.kickStrength = power;
+            m.facingLeft = m.vx < 0;
+            m.kickDir = Math.atan2(dy, dx);
           }
-          // roam
-          m.roamTimer -= dt;
-          if (m.roamTimer <= 0) {
-            m.roamX = rand(TANK_PAD + 40, W - TANK_PAD - 40);
-            m.roamY = rand(WATER_LINE_Y + 60, SUBSTRATE_Y - 40);
-            m.roamTimer = rand(3, 6);
+        } else {
+          // mid-kick burst — legs pumping, then transition to rest
+          m.kickPhase += dt * 10;
+          m.legPhase += dt * 8;
+          m.angle += (m.vy < -0.5 ? -0.2 : m.vy > 0.5 ? 0.15 : 0 - m.angle) * 0.12;
+          const sp = Math.hypot(m.vx, m.vy);
+          if (sp < 0.4) {
+            m.resting = true;
+            m.restTimer = rand(1.5, 4.5);
+            m.kickPhase = 0;
           }
-          const rDist = dist(m, { x: m.roamX, y: m.roamY });
-          if (rDist > 10) {
-            m.vx += (m.roamX - m.x) / (rDist || 1) * 0.1;
-            m.vy += (m.roamY - m.y) / (rDist || 1) * 0.08;
-          }
-          m.vx += rand(-0.03, 0.03);
-          m.vy += rand(-0.02, 0.02);
         }
+        if (m.vx > 0.3) m.facingLeft = false;
+        if (m.vx < -0.3) m.facingLeft = true;
       }
 
       // shared physics
@@ -2130,7 +2161,7 @@
       m.vy *= Math.pow(WATER_DRAG, dt * 60);
       // cap speed
       const sp = Math.hypot(m.vx, m.vy);
-      const maxSpMap = { tetra: m.panic > 0.3 ? 4 : 1.6, barb: 2.4, cory: 1.8, frog: m.surfacing ? 3 : 1.6 };
+      const maxSpMap = { tetra: m.panic > 0.3 ? 4 : 1.6, barb: 2.4, cory: 1.8, frog: m.resting ? 0.8 : 3.5 };
       const maxSp = maxSpMap[m.kind] || 2.4;
       if (sp > maxSp) { m.vx *= maxSp/sp; m.vy *= maxSp/sp; }
 
@@ -2900,6 +2931,8 @@
   function drawFrog(m) {
     ctx.save();
     ctx.translate(m.x, m.y);
+    ctx.rotate(m.angle || 0);
+    if (m.facingLeft) ctx.scale(-1, 1);
     drawFrogWithColor(ctx, m.legPhase, m.kickPhase);
     ctx.restore();
   }
