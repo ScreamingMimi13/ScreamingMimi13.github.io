@@ -1526,6 +1526,7 @@
     age: 0,
     dartCooldown: 0,
     iridescence: 0,
+    inCave: false, caveTimer: 0, caveExit: null,
   };
 
   function triggerFlare() {
@@ -1549,7 +1550,7 @@
       x, y, vx: rand(-1, 1), vy: rand(-0.3, 0.3),
       angle: 0, finPhase: rand(0, 6),
       color: '#3a8cff', stripe: '#ff4060', size: 8,
-      panic: 0,
+      panic: 0, inCave: false, caveTimer: 0, caveExit: null,
     };
   }
   function makeBarb(x, y) {
@@ -1560,6 +1561,7 @@
       color: '#e8a230', stripe: '#1a1a1a', size: 12,
       aggro: 0, target: null, cooldown: 0,
       roamX: x, roamY: y, roamTimer: rand(1, 3),
+      inCave: false, caveTimer: 0, caveExit: null,
     };
   }
   function makeSnail(x, color) {
@@ -1590,6 +1592,7 @@
       roamX: x, roamY: SUBSTRATE_Y - 14,
       roamTimer: rand(1.5, 4),
       foragePhase: rand(0, 6),
+      inCave: false, caveTimer: 0, caveExit: null,
     };
   }
   function makeShrimp(x, y) {
@@ -1602,6 +1605,7 @@
       dir: Math.random() < 0.5 ? -1 : 1,
       pickTimer: rand(0.5, 2),
       picking: false, pickT: 0,
+      inCave: false, caveTimer: 0, caveExit: null,
     };
   }
   function makeFrog(x, y) {
@@ -1619,6 +1623,7 @@
       kickDir: 0,
       kickStrength: 0,
       facingLeft: false,
+      inCave: false, caveTimer: 0, caveExit: null,
     };
   }
 
@@ -1673,14 +1678,21 @@
   spawnPlant(W * 0.5 - 30, 150, 0.8, '#2aa45c');
   spawnPlant(W * 0.5 + 30, 170, 1.0, '#1d8a4a');
 
-  const driftwood = { x: W * 0.32, y: SUBSTRATE_Y - 18 };
+  const driftwood = { x: W * 0.22, y: SUBSTRATE_Y - 18 };
 
   // extra decor
-  const rockFormation = { x: W * 0.62, y: SUBSTRATE_Y };
-  const ceramicCave = { x: W * 0.78, y: SUBSTRATE_Y };
-  const treasureChest = { x: W * 0.18, y: SUBSTRATE_Y };
-  const airStone = { x: W * 0.48, y: SUBSTRATE_Y + 8 };
-  const pirateShip = { x: W * 0.52, y: SUBSTRATE_Y };
+  const rockFormation = { x: W * 0.65, y: SUBSTRATE_Y };
+  const treasureChest = { x: W * 0.12, y: SUBSTRATE_Y };
+  const airStone = { x: W * 0.30, y: SUBSTRATE_Y + 8 };
+  const pirateShip = { x: W * 0.47, y: SUBSTRATE_Y };
+  const caveData = {
+    x: W * 0.84, y: SUBSTRATE_Y,
+    entrances: [
+      { localX: -100, w: 66, h: 62, cy: 24, label: 'left' },
+      { localX: 0,    w: 100, h: 100, cy: 52, label: 'center' },
+      { localX: 100,  w: 66, h: 62, cy: 24, label: 'right' },
+    ]
+  };
   let airStoneTimer = 0;
 
   // ============================================================
@@ -1753,6 +1765,7 @@
     betta.vx = 0; betta.vy = 0;
     betta.hunger = 0.4; betta.health = 1; betta.happy = 0.7;
     betta.flareT = 0; betta.iridescence = 0;
+    betta.inCave = false; betta.caveTimer = 0; betta.caveExit = null;
     // tankmates — tetras & barbs always present, rest chosen by player
     for (let i = 0; i < 5; i++) mates.push(makeTetra(rand(W*0.3, W*0.7), rand(H*0.3, H*0.6)));
     mates.push(makeBarb(W * 0.7, H * 0.5));
@@ -1802,15 +1815,45 @@
     }
 
     // ---- BETTA control ----
+    // cave swim-through for betta
+    if (betta.inCave) {
+      betta.caveTimer -= dt;
+      if (betta.caveTimer <= 0) {
+        const exit = caveData.entrances.find(e => e.label === betta.caveExit);
+        betta.x = caveData.x + exit.localX;
+        betta.y = caveData.y - exit.cy;
+        betta.vx = (exit.localX > 0 ? 1 : exit.localX < 0 ? -1 : 1) * rand(0.5, 1.2);
+        betta.vy = rand(-0.2, 0.2);
+        betta.inCave = false;
+      }
+    }
+    if (!betta.inCave) {
+      for (const ent of caveData.entrances) {
+        const ex = caveData.x + ent.localX;
+        const ey = caveData.y - ent.cy;
+        if (Math.abs(betta.x - ex) < ent.w * 0.5 && Math.abs(betta.y - ey) < ent.h * 0.5 && betta.speed > 0.4) {
+          betta.inCave = true;
+          betta.caveTotalTime = rand(1, 2);
+          betta.caveTimer = betta.caveTotalTime;
+          betta.caveEntry = ent.label;
+          const others = caveData.entrances.filter(e => e.label !== ent.label);
+          betta.caveExit = others[Math.floor(Math.random() * others.length)].label;
+          showMsg('Exploring the cave...', 'good');
+          break;
+        }
+      }
+    }
     const accelBase = 0.12;
     const dartMult = (input.dart && betta.dartCooldown <= 0) ? 2.6 : 1;
-    if (input.dart && betta.dartCooldown <= 0 && (input.x || input.y)) {
+    if (betta.inCave) { /* skip input while inside cave */ }
+    else if (input.dart && betta.dartCooldown <= 0 && (input.x || input.y)) {
       betta.dartCooldown = 0.5;
       sndDart();
       for (let i = 0; i < 6; i++) spawnBubble(betta.x + rand(-8,8), betta.y + rand(-6,6));
     }
     betta.dartCooldown = Math.max(0, betta.dartCooldown - dt);
 
+    if (!betta.inCave) {
     betta.vx += input.x * accelBase * dartMult;
     betta.vy += input.y * accelBase * dartMult;
 
@@ -1837,6 +1880,7 @@
         if (Math.random() < dt * 4) { sndFilterWarning(); showMsg('The filter intake! Swim away!', 'warn'); }
       }
     }
+    } // end !betta.inCave
 
     // drag
     betta.vx *= Math.pow(WATER_DRAG, dt * 60);
@@ -1901,6 +1945,36 @@
 
     // ---- TANKMATES ----
     for (const m of mates) {
+      // cave swim-through logic (skip snails)
+      if (m.kind !== 'snail' && m.inCave) {
+        m.caveTimer -= dt;
+        if (m.caveTimer <= 0) {
+          const exit = caveData.entrances.find(e => e.label === m.caveExit);
+          m.x = caveData.x + exit.localX;
+          m.y = caveData.y - exit.cy;
+          m.vx = (exit.localX > 0 ? 1 : exit.localX < 0 ? -1 : (Math.random() < 0.5 ? -1 : 1)) * rand(0.5, 1.5);
+          m.vy = rand(-0.3, 0.3);
+          m.inCave = false;
+        }
+        continue;
+      }
+      if (m.kind !== 'snail' && !m.inCave) {
+        for (const ent of caveData.entrances) {
+          const ex = caveData.x + ent.localX;
+          const ey = caveData.y - ent.cy;
+          if (Math.abs(m.x - ex) < ent.w * 0.6 && Math.abs(m.y - ey) < ent.h * 0.6) {
+            if (Math.random() < dt * 0.12) {
+              m.inCave = true;
+              m.caveTotalTime = rand(1.5, 4);
+              m.caveTimer = m.caveTotalTime;
+              m.caveEntry = ent.label;
+              const others = caveData.entrances.filter(e => e.label !== ent.label);
+              m.caveExit = others[Math.floor(Math.random() * others.length)].label;
+              continue;
+            }
+          }
+        }
+      }
       if (m.kind === 'snail') {
         m.progress += dt * 0.05;
         m.antennaPhase += dt * 1.2;
@@ -2019,8 +2093,14 @@
           }
           m.roamTimer -= dt;
           if (m.roamTimer <= 0) {
-            m.roamX = rand(TANK_PAD + 40, W - TANK_PAD - 40);
-            m.roamY = rand(WATER_LINE_Y + 30, SUBSTRATE_Y - 30);
+            if (Math.random() < 0.15) {
+              const ent = caveData.entrances[Math.floor(Math.random() * caveData.entrances.length)];
+              m.roamX = caveData.x + ent.localX;
+              m.roamY = caveData.y - ent.cy;
+            } else {
+              m.roamX = rand(TANK_PAD + 40, W - TANK_PAD - 40);
+              m.roamY = rand(WATER_LINE_Y + 30, SUBSTRATE_Y - 30);
+            }
             m.roamTimer = rand(2, 5);
           }
           const rDist = dist(m, { x: m.roamX, y: m.roamY });
@@ -2051,7 +2131,12 @@
         // roam along bottom
         m.roamTimer -= dt;
         if (m.roamTimer <= 0) {
-          m.roamX = rand(TANK_PAD + 30, W - TANK_PAD - 30);
+          if (Math.random() < 0.12) {
+            const ent = caveData.entrances[Math.floor(Math.random() * caveData.entrances.length)];
+            m.roamX = caveData.x + ent.localX;
+          } else {
+            m.roamX = rand(TANK_PAD + 30, W - TANK_PAD - 30);
+          }
           m.roamTimer = rand(2, 5);
         }
         const dx = m.roamX - m.x;
@@ -2282,7 +2367,51 @@
     // ---- Driftwood ----
     drawDriftwood(driftwood.x, driftwood.y);
     drawRockFormation(rockFormation.x, rockFormation.y);
-    drawCeramicCave(ceramicCave.x, ceramicCave.y);
+
+    // draw in-cave creatures visible through center entrance
+    {
+      const cEnt = caveData.entrances.find(e => e.label === 'center');
+      const cmx = caveData.x + cEnt.localX;
+      const cmy = caveData.y - cEnt.cy;
+      const crx = cEnt.w * 0.48;
+      const cry = cEnt.h * 0.48;
+      // dark interior behind the opening (jagged)
+      ctx.fillStyle = '#0a0908';
+      ctx.beginPath();
+      jaggedCirclePath(ctx, cmx, cmy, crx, cry, 24, 0.15);
+      ctx.fill();
+      // clip to center entrance and draw in-cave creatures at interpolated positions
+      ctx.save();
+      ctx.beginPath();
+      jaggedCirclePath(ctx, cmx, cmy, crx, cry, 24, 0.15);
+      ctx.clip();
+      const drawCaveCreature = (entity, drawFn) => {
+        if (!entity.inCave || !entity.caveTotalTime) return;
+        const progress = 1 - entity.caveTimer / entity.caveTotalTime;
+        const entEnt = caveData.entrances.find(e => e.label === entity.caveEntry);
+        const extEnt = caveData.entrances.find(e => e.label === entity.caveExit);
+        if (!entEnt || !extEnt) return;
+        const sx = caveData.x + entEnt.localX, sy = caveData.y - entEnt.cy;
+        const ex = caveData.x + extEnt.localX, ey = caveData.y - extEnt.cy;
+        const origX = entity.x, origY = entity.y;
+        entity.x = sx + (ex - sx) * progress;
+        entity.y = sy + (ey - sy) * progress;
+        drawFn(entity);
+        entity.x = origX; entity.y = origY;
+      };
+      for (const m of mates) {
+        if (!m.inCave) continue;
+        if (m.kind === 'tetra')  drawCaveCreature(m, drawTetra);
+        if (m.kind === 'barb')   drawCaveCreature(m, drawBarb);
+        if (m.kind === 'shrimp') drawCaveCreature(m, drawShrimp);
+        if (m.kind === 'cory')   drawCaveCreature(m, drawCory);
+        if (m.kind === 'frog')   drawCaveCreature(m, drawFrog);
+      }
+      if (betta.inCave) drawCaveCreature(betta, drawBetta);
+      ctx.restore();
+    }
+
+    drawCeramicCave(caveData.x, caveData.y);
     drawTreasureChest(treasureChest.x, treasureChest.y);
     drawAirStone(airStone.x, airStone.y);
     drawPirateShip(pirateShip.x, pirateShip.y);
@@ -2313,15 +2442,15 @@
     }
 
     // ---- Tankmates (bottom-dwellers first, then swimmers) ----
-    for (const m of mates) if (m.kind === 'snail')  drawSnail(m);
-    for (const m of mates) if (m.kind === 'shrimp') drawShrimp(m);
-    for (const m of mates) if (m.kind === 'cory')   drawCory(m);
-    for (const m of mates) if (m.kind === 'tetra')  drawTetra(m);
-    for (const m of mates) if (m.kind === 'barb')   drawBarb(m);
-    for (const m of mates) if (m.kind === 'frog')   drawFrog(m);
+    for (const m of mates) if (m.kind === 'snail')                drawSnail(m);
+    for (const m of mates) if (m.kind === 'shrimp' && !m.inCave) drawShrimp(m);
+    for (const m of mates) if (m.kind === 'cory'   && !m.inCave) drawCory(m);
+    for (const m of mates) if (m.kind === 'tetra'  && !m.inCave) drawTetra(m);
+    for (const m of mates) if (m.kind === 'barb'   && !m.inCave) drawBarb(m);
+    for (const m of mates) if (m.kind === 'frog'   && !m.inCave) drawFrog(m);
 
     // ---- The betta ----
-    drawBetta(betta);
+    if (!betta.inCave) drawBetta(betta);
 
     // ---- Particles ----
     for (const p of particles) {
@@ -3003,46 +3132,148 @@
     ctx.restore();
   }
 
+  // jagged roughly-circular path — seeded so it's stable across frames
+  function jaggedCirclePath(ctx, cx, cy, rx, ry, segments, jag) {
+    const seed = Math.abs(cx * 73 + cy * 137 + rx * 51) | 0;
+    const rng = (i) => { let s = (seed + i * 9973) & 0x7fffffff; s = ((s >> 16) ^ s) * 0x45d9f3b; return ((s >> 16) ^ s & 0x7fff) / 0x7fff; };
+    for (let i = 0; i < segments; i++) {
+      const a = (i / segments) * Math.PI * 2;
+      const j = 1 + (rng(i) - 0.5) * jag;
+      const px = cx + Math.cos(a) * rx * j;
+      const py = cy + Math.sin(a) * ry * j;
+      if (i === 0) ctx.moveTo(px, py);
+      else ctx.lineTo(px, py);
+    }
+    ctx.closePath();
+  }
+
   function drawCeramicCave(cx, cy) {
     ctx.save();
     ctx.translate(cx, cy);
-    ctx.scale(1.6, 1.6);
-    ctx.fillStyle = '#b85c30';
+    // large rock mass — jagged irregular boulders with center hole (evenodd)
+    const bodyColor = '#5a5550';
+    const cEnt = caveData.entrances.find(e => e.label === 'center');
+    const cRx = cEnt.w * 0.48, cRy = cEnt.h * 0.48;
+    const cCy = -cEnt.cy;
+    ctx.fillStyle = bodyColor;
     ctx.beginPath();
-    ctx.moveTo(-22, 0);
-    ctx.bezierCurveTo(-24, -30, -14, -40, 0, -42);
-    ctx.bezierCurveTo(14, -40, 24, -30, 22, 0);
+    // outer rock silhouette (clockwise) — wider to cover side entrances
+    ctx.moveTo(-138, 0);
+    ctx.lineTo(-142, -12);
+    ctx.bezierCurveTo(-145, -30, -138, -55, -118, -72);
+    ctx.lineTo(-108, -88);
+    ctx.bezierCurveTo(-100, -100, -85, -108, -68, -118);
+    ctx.lineTo(-45, -132);
+    ctx.bezierCurveTo(-35, -138, -22, -135, -12, -130);
+    ctx.lineTo(2, -142);
+    ctx.bezierCurveTo(15, -148, 28, -140, 35, -130);
+    ctx.lineTo(45, -122);
+    ctx.bezierCurveTo(55, -112, 65, -116, 72, -105);
+    ctx.lineTo(82, -92);
+    ctx.bezierCurveTo(92, -78, 102, -68, 112, -55);
+    ctx.lineTo(125, -35);
+    ctx.bezierCurveTo(138, -22, 142, -8, 138, 0);
     ctx.closePath();
-    ctx.fill();
-    ctx.fillStyle = '#a04820';
+    // center entrance cutout (jagged)
+    jaggedCirclePath(ctx, cEnt.localX, cCy, cRx, cRy, 24, 0.15);
+    ctx.fill('evenodd');
+    // stepped ledge on left
+    ctx.fillStyle = '#4e4a46';
     ctx.beginPath();
-    ctx.moveTo(-22, 0);
-    ctx.bezierCurveTo(-20, -8, -12, -12, 0, -12);
-    ctx.bezierCurveTo(12, -12, 20, -8, 22, 0);
-    ctx.closePath();
+    ctx.moveTo(-138, 0); ctx.lineTo(-148, -8); ctx.lineTo(-145, -28);
+    ctx.lineTo(-135, -22); ctx.lineTo(-132, 0); ctx.closePath();
     ctx.fill();
-    ctx.fillStyle = '#1a0a04';
+    // jutting rock on right
+    ctx.fillStyle = '#524e4a';
     ctx.beginPath();
-    ctx.ellipse(0, -4, 12, 10, 0, 0, Math.PI);
+    ctx.moveTo(112, -52); ctx.lineTo(145, -40); ctx.lineTo(148, -22);
+    ctx.lineTo(132, -28); ctx.closePath();
     ctx.fill();
-    ctx.fillStyle = 'rgba(255,180,120,0.12)';
+    // layered boulder outlines
+    ctx.strokeStyle = '#3a3835';
+    ctx.lineWidth = 1.2;
     ctx.beginPath();
-    ctx.ellipse(-8, -28, 5, 8, -0.2, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = '#8a3818';
+    ctx.moveTo(-90, -22); ctx.lineTo(-78, -50); ctx.bezierCurveTo(-60, -72, -30, -82, 0, -88);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(12, -94); ctx.lineTo(30, -85); ctx.bezierCurveTo(55, -70, 82, -50, 95, -22);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(-65, -50); ctx.bezierCurveTo(-40, -105, 28, -112, 58, -62);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(-48, -115); ctx.lineTo(-40, -98); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(44, -118); ctx.lineTo(52, -102); ctx.stroke();
+    // highlight patches
+    ctx.fillStyle = 'rgba(255,255,255,0.07)';
+    ctx.beginPath(); ctx.ellipse(-50, -88, 18, 12, -0.3, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(35, -98, 15, 10, 0.2, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(-12, -125, 12, 8, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(75, -72, 10, 7, 0.4, 0, Math.PI * 2); ctx.fill();
+    // secondary rock color patches
+    ctx.fillStyle = '#6a6560';
+    ctx.beginPath(); ctx.ellipse(-80, -48, 25, 18, 0.1, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#4a4540';
+    ctx.beginPath(); ctx.ellipse(65, -42, 22, 16, -0.15, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#504a45';
+    ctx.beginPath(); ctx.ellipse(-35, -68, 20, 14, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#5e5855';
+    ctx.beginPath(); ctx.ellipse(40, -58, 18, 14, 0.3, 0, Math.PI * 2); ctx.fill();
+    // crack lines
+    ctx.strokeStyle = 'rgba(30,28,25,0.4)';
     ctx.lineWidth = 0.8;
+    ctx.beginPath(); ctx.moveTo(-60, -72); ctx.lineTo(-42, -55); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(48, -80); ctx.lineTo(62, -62); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-20, -112); ctx.lineTo(-10, -95); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(80, -58); ctx.lineTo(90, -42); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-95, -62); ctx.lineTo(-85, -50); ctx.stroke();
+    // moss tufts on top
+    ctx.fillStyle = 'rgba(40,90,45,0.5)';
+    ctx.beginPath(); ctx.ellipse(-45, -130, 8, 4, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(2, -141, 7, 3, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(40, -120, 6, 3, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(-65, -95, 5, 3, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = 'rgba(50,110,55,0.4)';
+    ctx.beginPath(); ctx.ellipse(60, -88, 6, 3, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(-90, -78, 5, 3, 0, 0, Math.PI * 2); ctx.fill();
+    // center entrance rim — jagged rocky ring
+    ctx.strokeStyle = '#4a4540';
+    ctx.lineWidth = 4;
     ctx.beginPath();
-    ctx.moveTo(-16, -10); ctx.lineTo(-18, -25);
+    jaggedCirclePath(ctx, cEnt.localX, cCy, cRx + 2, cRy + 2, 24, 0.15);
     ctx.stroke();
+    ctx.strokeStyle = '#3a3835';
+    ctx.lineWidth = 1.5;
     ctx.beginPath();
-    ctx.moveTo(10, -14); ctx.lineTo(12, -32);
+    jaggedCirclePath(ctx, cEnt.localX, cCy, cRx + 5, cRy + 5, 24, 0.15);
     ctx.stroke();
+    // left & right entrance archways — jagged dark openings
+    for (const ent of caveData.entrances) {
+      if (ent.label === 'center') continue;
+      ctx.fillStyle = '#0a0908';
+      ctx.beginPath();
+      jaggedCirclePath(ctx, ent.localX, -ent.cy, ent.w * 0.48, ent.h * 0.48, 18, 0.18);
+      ctx.fill();
+      // rocky rim
+      ctx.strokeStyle = '#4a4540';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      jaggedCirclePath(ctx, ent.localX, -ent.cy, ent.w * 0.5, ent.h * 0.5, 18, 0.18);
+      ctx.stroke();
+      ctx.strokeStyle = '#3a3835';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      jaggedCirclePath(ctx, ent.localX, -ent.cy, ent.w * 0.52, ent.h * 0.52, 18, 0.18);
+      ctx.stroke();
+    }
     ctx.restore();
   }
 
   function drawTreasureChest(tx, ty) {
     ctx.save();
     ctx.translate(tx, ty);
+    ctx.scale(4, 4);
     const t = performance.now() * 0.001;
     const lidAngle = 0.25 + Math.sin(t * 0.4) * 0.08;
     ctx.fillStyle = '#5a3010';
@@ -3114,6 +3345,7 @@
   function drawPirateShip(px, py) {
     ctx.save();
     ctx.translate(px, py);
+    ctx.scale(2, 2);
     // hull — weathered brown, slightly tilted as if sunk
     ctx.save();
     ctx.rotate(0.06);
