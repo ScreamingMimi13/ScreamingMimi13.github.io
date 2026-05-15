@@ -943,6 +943,49 @@
     });
   }
 
+  function sndCreak() {
+    if (!audioCtx || muted) return;
+    const t = audioCtx.currentTime;
+    const dur = 0.7;
+    // low gritty oscillator with wobble
+    const o1 = audioCtx.createOscillator();
+    o1.type = 'sawtooth';
+    o1.frequency.setValueAtTime(45, t);
+    o1.frequency.linearRampToValueAtTime(65, t + 0.15);
+    o1.frequency.linearRampToValueAtTime(38, t + 0.4);
+    o1.frequency.linearRampToValueAtTime(55, t + dur);
+    // modulate for creaky wobble
+    const lfo = audioCtx.createOscillator();
+    lfo.frequency.value = 18;
+    const lfoG = audioCtx.createGain();
+    lfoG.gain.value = 12;
+    lfo.connect(lfoG);
+    lfoG.connect(o1.frequency);
+    // filtered noise layer
+    const buf = audioCtx.createBuffer(1, audioCtx.sampleRate * dur, audioCtx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    const nSrc = audioCtx.createBufferSource();
+    nSrc.buffer = buf;
+    const bp = audioCtx.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.frequency.value = 300;
+    bp.Q.value = 3;
+    const nG = audioCtx.createGain();
+    nG.gain.setValueAtTime(0.06, t);
+    nG.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    nSrc.connect(bp); bp.connect(nG); nG.connect(masterGain);
+    // main gain
+    const g = audioCtx.createGain();
+    g.gain.setValueAtTime(0.08, t);
+    g.gain.linearRampToValueAtTime(0.12, t + 0.1);
+    g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    o1.connect(g); g.connect(masterGain);
+    o1.start(t); o1.stop(t + dur);
+    lfo.start(t); lfo.stop(t + dur);
+    nSrc.start(t); nSrc.stop(t + dur);
+  }
+
   function sndEvent() {
     playTone(500, 0.12, 'triangle', 0.06);
     setTimeout(() => playTone(650, 0.1, 'triangle', 0.05), 80);
@@ -1682,7 +1725,11 @@
 
   // extra decor
   const rockFormation = { x: W * 0.65, y: SUBSTRATE_Y };
-  const treasureChest = { x: W * 0.12, y: SUBSTRATE_Y };
+  const treasureChest = {
+    x: W * 0.12, y: SUBSTRATE_Y,
+    state: 'closed', timer: rand(110, 130),
+    lidAngle: 0, eelOut: 0, eelPeaked: false,
+  };
   const airStone = { x: W * 0.30, y: SUBSTRATE_Y + 8 };
   const pirateShip = { x: W * 0.47, y: SUBSTRATE_Y };
   const caveData = {
@@ -2293,6 +2340,47 @@
       spawnBubble(airStone.x + rand(-8, 8), airStone.y - 8);
       if (Math.random() < 0.4) spawnBubble(airStone.x + rand(-6, 6), airStone.y - 6);
       airStoneTimer = 0.08 + Math.random() * 0.14;
+    }
+
+    // ---- Treasure chest state machine ----
+    const tc = treasureChest;
+    tc.timer -= dt;
+    if (tc.state === 'closed') {
+      tc.lidAngle = Math.max(0, tc.lidAngle - dt * 0.8);
+      if (tc.timer <= 0) {
+        tc.state = 'opening';
+        tc.timer = 2;
+        sndCreak();
+        showMsg('The treasure chest is opening...', '');
+      }
+    } else if (tc.state === 'opening') {
+      tc.lidAngle = Math.min(1.3, tc.lidAngle + dt * 0.65);
+      if (tc.timer <= 0) {
+        tc.state = 'open';
+        tc.timer = 15;
+        tc.eelOut = 0;
+        tc.eelPeaked = false;
+      }
+    } else if (tc.state === 'open') {
+      if (!tc.eelPeaked && tc.timer < 12) {
+        tc.eelOut = Math.min(1, tc.eelOut + dt * 0.5);
+        if (tc.eelOut >= 1) tc.eelPeaked = true;
+      }
+      if (tc.eelPeaked) {
+        tc.eelOut = Math.max(0, tc.eelOut - dt * 0.4);
+      }
+      if (tc.timer <= 0) {
+        tc.state = 'closing';
+        tc.timer = 2;
+        sndCreak();
+      }
+    } else if (tc.state === 'closing') {
+      tc.lidAngle = Math.max(0, tc.lidAngle - dt * 0.65);
+      if (tc.timer <= 0) {
+        tc.state = 'closed';
+        tc.timer = 120;
+        tc.eelOut = 0;
+      }
     }
 
     // ---- HUD ----
@@ -3275,7 +3363,60 @@
     ctx.translate(tx, ty);
     ctx.scale(4, 4);
     const t = performance.now() * 0.001;
-    const lidAngle = 0.25 + Math.sin(t * 0.4) * 0.08;
+    const tc = treasureChest;
+    const lidAngle = tc.lidAngle + Math.sin(t * 0.4) * 0.02;
+    // moray eel peeking out (drawn behind lid)
+    if (tc.eelOut > 0.01) {
+      ctx.save();
+      const eelY = -16 - tc.eelOut * 18;
+      const eelSway = Math.sin(t * 3) * 2;
+      // body
+      ctx.strokeStyle = '#2a4a20';
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.moveTo(2, -14);
+      ctx.bezierCurveTo(2 + eelSway, eelY + 10, -3 + eelSway * 0.5, eelY + 5, eelSway * 0.8, eelY);
+      ctx.stroke();
+      ctx.strokeStyle = '#3a6a2a';
+      ctx.lineWidth = 3.5;
+      ctx.beginPath();
+      ctx.moveTo(2, -14);
+      ctx.bezierCurveTo(2 + eelSway, eelY + 10, -3 + eelSway * 0.5, eelY + 5, eelSway * 0.8, eelY);
+      ctx.stroke();
+      // spots
+      ctx.fillStyle = 'rgba(20,35,15,0.4)';
+      const spots = [0.3, 0.5, 0.7];
+      for (const s of spots) {
+        const sy = -14 + (eelY + 14) * s;
+        ctx.beginPath(); ctx.arc(2 + eelSway * s * 0.5, sy, 1.2, 0, Math.PI * 2); ctx.fill();
+      }
+      // head
+      const hx = eelSway * 0.8, hy = eelY;
+      ctx.fillStyle = '#3a6a2a';
+      ctx.beginPath();
+      ctx.ellipse(hx, hy, 3.5, 2.8, eelSway * 0.05, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#2a4a20';
+      ctx.beginPath();
+      ctx.ellipse(hx, hy, 3.5, 2.8, eelSway * 0.05, 0, Math.PI * 2);
+      ctx.stroke();
+      // eyes
+      ctx.fillStyle = '#ff8800';
+      ctx.beginPath(); ctx.arc(hx - 1.8, hy - 0.8, 1, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(hx + 1.8, hy - 0.8, 1, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#111';
+      ctx.beginPath(); ctx.arc(hx - 1.8, hy - 0.8, 0.4, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(hx + 1.8, hy - 0.8, 0.4, 0, Math.PI * 2); ctx.fill();
+      // mouth line
+      ctx.strokeStyle = '#1a3015';
+      ctx.lineWidth = 0.5;
+      ctx.beginPath();
+      ctx.moveTo(hx - 2.5, hy + 1.2);
+      ctx.quadraticCurveTo(hx, hy + 2, hx + 2.5, hy + 1.2);
+      ctx.stroke();
+      ctx.restore();
+    }
+    // chest body
     ctx.fillStyle = '#5a3010';
     ctx.fillRect(-18, -16, 36, 16);
     ctx.strokeStyle = '#3a1a08';
@@ -3285,6 +3426,7 @@
     ctx.fillRect(-18, -10, 36, 2);
     ctx.fillRect(-18, -4, 36, 2);
     ctx.fillRect(-2, -16, 4, 16);
+    // lid
     ctx.save();
     ctx.translate(-18, -16);
     ctx.rotate(-lidAngle);
@@ -3302,17 +3444,21 @@
     ctx.fillRect(0, -2, 36, 2);
     ctx.fillRect(16, -14, 4, 14);
     ctx.restore();
+    // clasp
     ctx.fillStyle = '#e8c840';
     ctx.beginPath();
     ctx.arc(0, -16, 3, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = '#ffd700';
-    const sparkle = 0.5 + Math.sin(t * 2) * 0.5;
-    ctx.globalAlpha = sparkle * 0.6;
-    ctx.beginPath(); ctx.arc(-6, -12, 2, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.arc(4, -10, 1.5, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.arc(-2, -8, 1.8, 0, Math.PI * 2); ctx.fill();
-    ctx.globalAlpha = 1;
+    // gold sparkle (visible when open)
+    if (lidAngle > 0.3) {
+      ctx.fillStyle = '#ffd700';
+      const sparkle = 0.5 + Math.sin(t * 2) * 0.5;
+      ctx.globalAlpha = sparkle * 0.6 * Math.min(1, (lidAngle - 0.3) * 2);
+      ctx.beginPath(); ctx.arc(-6, -12, 2, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(4, -10, 1.5, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(-2, -8, 1.8, 0, Math.PI * 2); ctx.fill();
+      ctx.globalAlpha = 1;
+    }
     ctx.restore();
   }
 
