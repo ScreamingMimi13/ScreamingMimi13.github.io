@@ -1569,7 +1569,7 @@
     age: 0,
     dartCooldown: 0,
     iridescence: 0,
-    inCave: false, caveTimer: 0, caveExit: null,
+    inCave: false, caveTimer: 0, caveExit: null, caveCooldown: 0,
   };
 
   function triggerFlare() {
@@ -1729,6 +1729,7 @@
     x: W * 0.12, y: SUBSTRATE_Y,
     state: 'closed', timer: rand(110, 130),
     lidAngle: 0, eelOut: 0, eelPeaked: false,
+    eelNip: 0, eelNipCooldown: 0,
   };
   const airStone = { x: W * 0.30, y: SUBSTRATE_Y + 8 };
   const pirateShip = { x: W * 0.47, y: SUBSTRATE_Y };
@@ -1863,18 +1864,20 @@
 
     // ---- BETTA control ----
     // cave swim-through for betta
+    if (betta.caveCooldown > 0) betta.caveCooldown -= dt;
     if (betta.inCave) {
       betta.caveTimer -= dt;
       if (betta.caveTimer <= 0) {
         const exit = caveData.entrances.find(e => e.label === betta.caveExit);
         betta.x = caveData.x + exit.localX;
         betta.y = caveData.y - exit.cy;
-        betta.vx = (exit.localX > 0 ? 1 : exit.localX < 0 ? -1 : 1) * rand(0.5, 1.2);
-        betta.vy = rand(-0.2, 0.2);
+        betta.vx = (exit.localX > 0 ? 1 : exit.localX < 0 ? -1 : 1) * rand(1.5, 2.5);
+        betta.vy = rand(-0.5, -0.2);
         betta.inCave = false;
+        betta.caveCooldown = 3;
       }
     }
-    if (!betta.inCave) {
+    if (!betta.inCave && betta.caveCooldown <= 0) {
       for (const ent of caveData.entrances) {
         const ex = caveData.x + ent.localX;
         const ey = caveData.y - ent.cy;
@@ -1892,7 +1895,7 @@
     }
     const accelBase = 0.12;
     const dartMult = (input.dart && betta.dartCooldown <= 0) ? 2.6 : 1;
-    if (betta.inCave) { /* skip input while inside cave */ }
+    if (betta.inCave || treasureChest.trapped) { /* skip input while inside cave/trapped */ }
     else if (input.dart && betta.dartCooldown <= 0 && (input.x || input.y)) {
       betta.dartCooldown = 0.5;
       sndDart();
@@ -1900,7 +1903,7 @@
     }
     betta.dartCooldown = Math.max(0, betta.dartCooldown - dt);
 
-    if (!betta.inCave) {
+    if (!betta.inCave && !treasureChest.trapped) {
     betta.vx += input.x * accelBase * dartMult;
     betta.vy += input.y * accelBase * dartMult;
 
@@ -1927,7 +1930,7 @@
         if (Math.random() < dt * 4) { sndFilterWarning(); showMsg('The filter intake! Swim away!', 'warn'); }
       }
     }
-    } // end !betta.inCave
+    } // end !betta.inCave && !trapped
 
     // drag
     betta.vx *= Math.pow(WATER_DRAG, dt * 60);
@@ -1993,19 +1996,21 @@
     // ---- TANKMATES ----
     for (const m of mates) {
       // cave swim-through logic (skip snails)
+      if ((m.caveCooldown || 0) > 0) m.caveCooldown -= dt;
       if (m.kind !== 'snail' && m.inCave) {
         m.caveTimer -= dt;
         if (m.caveTimer <= 0) {
           const exit = caveData.entrances.find(e => e.label === m.caveExit);
           m.x = caveData.x + exit.localX;
           m.y = caveData.y - exit.cy;
-          m.vx = (exit.localX > 0 ? 1 : exit.localX < 0 ? -1 : (Math.random() < 0.5 ? -1 : 1)) * rand(0.5, 1.5);
-          m.vy = rand(-0.3, 0.3);
+          m.vx = (exit.localX > 0 ? 1 : exit.localX < 0 ? -1 : (Math.random() < 0.5 ? -1 : 1)) * rand(1.5, 2.5);
+          m.vy = rand(-0.5, -0.2);
           m.inCave = false;
+          m.caveCooldown = 3;
         }
         continue;
       }
-      if (m.kind !== 'snail' && !m.inCave) {
+      if (m.kind !== 'snail' && !m.inCave && (m.caveCooldown || 0) <= 0) {
         for (const ent of caveData.entrances) {
           const ex = caveData.x + ent.localX;
           const ey = caveData.y - ent.cy;
@@ -2366,20 +2371,74 @@
         tc.eelOut = Math.min(1, tc.eelOut + dt * 0.5);
         if (tc.eelOut >= 1) tc.eelPeaked = true;
       }
-      if (tc.eelPeaked) {
+      if (tc.eelPeaked && tc.eelNip <= 0) {
         tc.eelOut = Math.max(0, tc.eelOut - dt * 0.4);
+      }
+      // eel nip at betta if close enough
+      if (tc.eelNipCooldown > 0) tc.eelNipCooldown -= dt;
+      if (tc.eelNip > 0) {
+        tc.eelNip -= dt;
+      } else if (tc.eelOut > 0.5 && tc.eelNipCooldown <= 0) {
+        const t = performance.now() * 0.001;
+        const eelSway = Math.sin(t * 3) * 2;
+        const eelHeadX = tc.x + eelSway * 0.8 * 4;
+        const eelHeadY = tc.y + (-16 - tc.eelOut * 18) * 4;
+        const dxE = betta.x - eelHeadX;
+        const dyE = betta.y - eelHeadY;
+        const dE = Math.hypot(dxE, dyE);
+        if (dE < 48) {
+          tc.eelNip = 0.4;
+          tc.eelNipCooldown = 4;
+          tc.eelNipDirX = dxE / (dE || 1);
+          tc.eelNipDirY = dyE / (dE || 1);
+          betta.health = clamp(betta.health - 0.05, 0, 1);
+          betta.happy = clamp(betta.happy - 0.08, 0, 1);
+          betta.vx += dxE / (dE || 1) * 3;
+          betta.vy += dyE / (dE || 1) * 3;
+          sndNip();
+          showMsg('The moray eel nipped at ' + betta.name + '!', 'warn');
+        }
       }
       if (tc.timer <= 0) {
         tc.state = 'closing';
         tc.timer = 2;
+        tc.eelNip = 0;
         sndCreak();
       }
     } else if (tc.state === 'closing') {
       tc.lidAngle = Math.max(0, tc.lidAngle - dt * 0.65);
+      // check if betta is inside the chest opening while lid closes
+      if (!tc.trapped && tc.lidAngle > 0.2) {
+        const cdx = Math.abs(betta.x - tc.x);
+        const cdy = betta.y - (tc.y - 32);
+        if (cdx < 36 && cdy > -30 && cdy < 20) {
+          tc.trapped = true;
+          sndCreak();
+          showMsg('The chest closed on ' + betta.name + '!', 'warn');
+        }
+      }
       if (tc.timer <= 0) {
+        if (tc.trapped) {
+          tc.state = 'trapped';
+        } else {
+          tc.state = 'closed';
+          tc.timer = 120;
+        }
+        tc.eelOut = 0;
+      }
+    } else if (tc.state === 'trapped') {
+      betta.x = tc.x;
+      betta.y = tc.y - 32;
+      betta.vx = 0;
+      betta.vy = 0;
+      betta.hunger = clamp(betta.hunger + dt * 0.08, 0, 1);
+      betta.health = clamp(betta.health - dt * 0.12, 0, 1);
+      betta.happy = clamp(betta.happy - dt * 0.15, 0, 1);
+      if (betta.health <= 0) {
         tc.state = 'closed';
         tc.timer = 120;
-        tc.eelOut = 0;
+        tc.trapped = false;
+        showMsg(betta.name + ' didn\'t make it...', 'warn');
       }
     }
 
@@ -2538,7 +2597,7 @@
     for (const m of mates) if (m.kind === 'frog'   && !m.inCave) drawFrog(m);
 
     // ---- The betta ----
-    if (!betta.inCave) drawBetta(betta);
+    if (!betta.inCave && !treasureChest.trapped) drawBetta(betta);
 
     // ---- Particles ----
     for (const p of particles) {
@@ -3366,32 +3425,37 @@
     const tc = treasureChest;
     const lidAngle = tc.lidAngle + Math.sin(t * 0.4) * 0.02;
     // moray eel peeking out (drawn behind lid)
-    if (tc.eelOut > 0.01) {
+    if (tc.eelOut > 0.01 || tc.eelNip > 0) {
       ctx.save();
-      const eelY = -16 - tc.eelOut * 18;
-      const eelSway = Math.sin(t * 3) * 2;
+      const nipT = Math.max(0, tc.eelNip || 0);
+      const nipLunge = nipT > 0 ? Math.sin(nipT / 0.4 * Math.PI) * 10 : 0;
+      const nipDx = (tc.eelNipDirX || 0) * nipLunge;
+      const nipDy = (tc.eelNipDirY || 0) * nipLunge;
+      const eelExtend = Math.max(tc.eelOut, nipT > 0 ? 1 : 0);
+      const eelY = -16 - eelExtend * 18 + nipDy;
+      const eelSway = nipT > 0 ? nipDx * 0.3 : Math.sin(t * 3) * 2;
       // body
       ctx.strokeStyle = '#2a4a20';
       ctx.lineWidth = 5;
       ctx.beginPath();
       ctx.moveTo(2, -14);
-      ctx.bezierCurveTo(2 + eelSway, eelY + 10, -3 + eelSway * 0.5, eelY + 5, eelSway * 0.8, eelY);
+      ctx.bezierCurveTo(2 + eelSway * 0.5, eelY + 10, -3 + eelSway * 0.3, eelY + 5, eelSway * 0.8 + nipDx, eelY);
       ctx.stroke();
       ctx.strokeStyle = '#3a6a2a';
       ctx.lineWidth = 3.5;
       ctx.beginPath();
       ctx.moveTo(2, -14);
-      ctx.bezierCurveTo(2 + eelSway, eelY + 10, -3 + eelSway * 0.5, eelY + 5, eelSway * 0.8, eelY);
+      ctx.bezierCurveTo(2 + eelSway * 0.5, eelY + 10, -3 + eelSway * 0.3, eelY + 5, eelSway * 0.8 + nipDx, eelY);
       ctx.stroke();
       // spots
       ctx.fillStyle = 'rgba(20,35,15,0.4)';
       const spots = [0.3, 0.5, 0.7];
       for (const s of spots) {
         const sy = -14 + (eelY + 14) * s;
-        ctx.beginPath(); ctx.arc(2 + eelSway * s * 0.5, sy, 1.2, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(2 + eelSway * s * 0.3 + nipDx * s, sy, 1.2, 0, Math.PI * 2); ctx.fill();
       }
       // head
-      const hx = eelSway * 0.8, hy = eelY;
+      const hx = eelSway * 0.8 + nipDx, hy = eelY;
       ctx.fillStyle = '#3a6a2a';
       ctx.beginPath();
       ctx.ellipse(hx, hy, 3.5, 2.8, eelSway * 0.05, 0, Math.PI * 2);
@@ -3401,19 +3465,31 @@
       ctx.ellipse(hx, hy, 3.5, 2.8, eelSway * 0.05, 0, Math.PI * 2);
       ctx.stroke();
       // eyes
-      ctx.fillStyle = '#ff8800';
+      ctx.fillStyle = nipT > 0 ? '#ff4400' : '#ff8800';
       ctx.beginPath(); ctx.arc(hx - 1.8, hy - 0.8, 1, 0, Math.PI * 2); ctx.fill();
       ctx.beginPath(); ctx.arc(hx + 1.8, hy - 0.8, 1, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = '#111';
       ctx.beginPath(); ctx.arc(hx - 1.8, hy - 0.8, 0.4, 0, Math.PI * 2); ctx.fill();
       ctx.beginPath(); ctx.arc(hx + 1.8, hy - 0.8, 0.4, 0, Math.PI * 2); ctx.fill();
-      // mouth line
+      // mouth — open when nipping
       ctx.strokeStyle = '#1a3015';
       ctx.lineWidth = 0.5;
-      ctx.beginPath();
-      ctx.moveTo(hx - 2.5, hy + 1.2);
-      ctx.quadraticCurveTo(hx, hy + 2, hx + 2.5, hy + 1.2);
-      ctx.stroke();
+      if (nipT > 0) {
+        const mOpen = Math.sin(nipT / 0.4 * Math.PI) * 2.5;
+        ctx.beginPath();
+        ctx.moveTo(hx - 2.5, hy + 0.5 - mOpen * 0.3);
+        ctx.quadraticCurveTo(hx, hy - mOpen, hx + 2.5, hy + 0.5 - mOpen * 0.3);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(hx - 2.5, hy + 1.5 + mOpen * 0.3);
+        ctx.quadraticCurveTo(hx, hy + 2 + mOpen, hx + 2.5, hy + 1.5 + mOpen * 0.3);
+        ctx.stroke();
+      } else {
+        ctx.beginPath();
+        ctx.moveTo(hx - 2.5, hy + 1.2);
+        ctx.quadraticCurveTo(hx, hy + 2, hx + 2.5, hy + 1.2);
+        ctx.stroke();
+      }
       ctx.restore();
     }
     // chest body
