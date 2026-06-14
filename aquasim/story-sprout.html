@@ -770,15 +770,32 @@
   const ALL_QUESTS = TIERS.flatMap(t => t.quests);
 
   // ---------- Shop catalog ----------
-  // kind 'pen' = ink color, 'font' = font family, 'paper' = textarea background.
+  // kind 'pen' = writing instrument (weight/slant/texture), 'ink' = color,
+  // 'font' = font family, 'paper' = textarea background.
+  // Pen 'style' bundle: { weight, fontStyle, spacing, shadow } applied to the textarea.
   const SHOP_ITEMS = [
-    { id: 'pen-black',  kind: 'pen', name: 'Black Pen',      cost: 0, value: '#3e3a39' },
-    { id: 'pen-blue',   kind: 'pen', name: 'Blueberry Pen',  cost: 1, value: '#1565c0' },
-    { id: 'pen-red',    kind: 'pen', name: 'Strawberry Pen', cost: 1, value: '#c62828' },
-    { id: 'pen-green',  kind: 'pen', name: 'Forest Pen',     cost: 1, value: '#2e7d32' },
-    { id: 'pen-purple', kind: 'pen', name: 'Grape Pen',      cost: 2, value: '#6a1b9a' },
-    { id: 'pen-orange', kind: 'pen', name: 'Sunset Pen',     cost: 2, value: '#e65100' },
-    { id: 'pen-gold',   kind: 'pen', name: 'Golden Pen',     cost: 3, value: '#a67c00' },
+    { id: 'pen-ballpoint', kind: 'pen', name: 'Ballpoint', cost: 0, glyph: '🖊️',
+      style: { weight: '400', fontStyle: 'normal', spacing: 'normal', shadow: 'none' } },
+    { id: 'pen-pencil', kind: 'pen', name: 'Pencil', cost: 1, glyph: '✏️',
+      style: { weight: '400', fontStyle: 'normal', spacing: '0.4px', shadow: '0 0 1px rgba(0,0,0,0.3)' } },
+    { id: 'pen-quill', kind: 'pen', name: 'Quill', cost: 2, glyph: '🪶',
+      style: { weight: '400', fontStyle: 'italic', spacing: '0.5px', shadow: 'none' } },
+    { id: 'pen-marker', kind: 'pen', name: 'Marker', cost: 2, glyph: '🖍️',
+      style: { weight: '800', fontStyle: 'normal', spacing: '0.3px', shadow: '0 0 2px currentColor' } },
+    { id: 'pen-crayon', kind: 'pen', name: 'Crayon', cost: 2, glyph: '🖍️',
+      style: { weight: '700', fontStyle: 'normal', spacing: '0.6px', shadow: '1px 1px 0 rgba(0,0,0,0.12)' } },
+    { id: 'pen-fountain', kind: 'pen', name: 'Fountain Pen', cost: 3, glyph: '✒️',
+      style: { weight: '500', fontStyle: 'italic', spacing: '0.3px', shadow: '0 1px 1px rgba(0,0,0,0.18)' } },
+    { id: 'pen-glitter', kind: 'pen', name: 'Glitter Pen', cost: 3, glyph: '✨',
+      style: { weight: '700', fontStyle: 'normal', spacing: '0.4px', shadow: '0 0 4px #ffd54f, 0 0 8px #ff80ab' } },
+
+    { id: 'ink-black',  kind: 'ink', name: 'Black Ink',      cost: 0, value: '#3e3a39' },
+    { id: 'ink-blue',   kind: 'ink', name: 'Blueberry Ink',  cost: 1, value: '#1565c0' },
+    { id: 'ink-red',    kind: 'ink', name: 'Strawberry Ink', cost: 1, value: '#c62828' },
+    { id: 'ink-green',  kind: 'ink', name: 'Forest Ink',     cost: 1, value: '#2e7d32' },
+    { id: 'ink-purple', kind: 'ink', name: 'Grape Ink',      cost: 2, value: '#6a1b9a' },
+    { id: 'ink-orange', kind: 'ink', name: 'Sunset Ink',     cost: 2, value: '#e65100' },
+    { id: 'ink-gold',   kind: 'ink', name: 'Golden Ink',     cost: 3, value: '#a67c00' },
 
     { id: 'font-classic',    kind: 'font', name: 'Classic',    cost: 0, value: '' },
     { id: 'font-neat',       kind: 'font', name: 'Neat Print', cost: 1, value: 'Verdana, sans-serif' },
@@ -793,7 +810,8 @@
     { id: 'paper-ocean',     kind: 'paper', name: 'Ocean Paper',     cost: 2, value: '#e1f5fe' },
     { id: 'paper-lined',     kind: 'paper', name: 'Lined Paper',     cost: 3, value: 'lined' }
   ];
-  const KIND_LABELS = { pen: '🖊️ Pens', font: '🔤 Fonts', paper: '📄 Paper' };
+  const SHOP_KINDS = ['pen', 'ink', 'font', 'paper'];
+  const KIND_LABELS = { pen: '🖊️ Pens', ink: '🎨 Inks', font: '🔤 Fonts', paper: '📄 Paper' };
   const LINED_BG = 'repeating-linear-gradient(#ffffff, #ffffff calc(1.6em - 2px), #b3e5fc calc(1.6em - 2px), #b3e5fc 1.6em)';
 
   // ---------- State (in-memory only) ----------
@@ -802,8 +820,8 @@
     progress: {},
     currentQuest: null,
     shop: {
-      owned: new Set(['pen-black', 'font-classic', 'paper-white']),
-      equipped: { pen: 'pen-black', font: 'font-classic', paper: 'paper-white' },
+      owned: new Set(['pen-ballpoint', 'ink-black', 'font-classic', 'paper-white']),
+      equipped: { pen: 'pen-ballpoint', ink: 'ink-black', font: 'font-classic', paper: 'paper-white' },
       traded: new Set() // questIds whose stickers were traded away
     }
   };
@@ -1214,14 +1232,24 @@
   function applyEquipped() {
     const ta = el('story');
     const get = kind => SHOP_ITEMS.find(i => i.id === state.shop.equipped[kind]);
-    ta.style.color = get('pen').value;
+    ta.style.color = get('ink').value;
     ta.style.fontFamily = get('font').value;
+    const pen = get('pen').style;
+    ta.style.fontWeight = pen.weight;
+    ta.style.fontStyle = pen.fontStyle;
+    ta.style.letterSpacing = pen.spacing;
+    ta.style.textShadow = pen.shadow;
     const paper = get('paper').value;
     ta.style.background = paper === 'lined' ? LINED_BG : paper;
   }
 
   function itemPreview(item) {
     if (item.kind === 'pen') {
+      const s = item.style;
+      return `<span class="s-preview" style="font-weight:${s.weight}; font-style:${s.fontStyle};` +
+        ` letter-spacing:${s.spacing}; text-shadow:${s.shadow};">${item.glyph} Aa</span>`;
+    }
+    if (item.kind === 'ink') {
       return `<span class="s-preview" style="color:${item.value}; font-weight:bold;">Aa ✏️</span>`;
     }
     if (item.kind === 'font') {
@@ -1240,7 +1268,7 @@
     const content = el('shopContent');
     content.innerHTML = '';
 
-    ['pen', 'font', 'paper'].forEach(kind => {
+    SHOP_KINDS.forEach(kind => {
       const heading = document.createElement('h3');
       heading.className = 'shop-section-title';
       heading.textContent = KIND_LABELS[kind];
