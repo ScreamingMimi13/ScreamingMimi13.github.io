@@ -1,0 +1,1365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Story Sprout — A Writing Adventure</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --green: #4caf50;
+    --green-dark: #388e3c;
+    --orange: #ff9800;
+    --purple: #7e57c2;
+    --blue: #42a5f5;
+    --card: #ffffff;
+    --ink: #3e3a39;
+    --soft: #fff8ec;
+  }
+
+  html, body { height: 100%; }
+
+  body {
+    font-family: "Comic Sans MS", "Chalkboard SE", "Segoe UI", sans-serif;
+    color: var(--ink);
+    background: linear-gradient(180deg, #aee3ff 0%, #d8f3e3 55%, #fdf3d8 100%);
+    min-height: 100vh;
+  }
+
+  /* ---------- Header ---------- */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 16px;
+    background: rgba(255,255,255,0.85);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    position: sticky;
+    top: 0;
+    z-index: 50;
+  }
+  header h1 { font-size: 1.3rem; color: var(--green-dark); }
+  .header-right { display: flex; align-items: center; gap: 10px; }
+  .star-pill {
+    background: #fff3c4;
+    border: 2px solid #ffd54f;
+    border-radius: 999px;
+    padding: 4px 14px;
+    font-weight: bold;
+    font-size: 1.05rem;
+    transition: transform 0.2s;
+  }
+  .star-pill.pop { transform: scale(1.3); }
+  .book-btn {
+    background: var(--purple);
+    color: white;
+    border: none;
+    border-radius: 999px;
+    padding: 6px 14px;
+    font-family: inherit;
+    font-size: 0.95rem;
+    font-weight: bold;
+    cursor: pointer;
+  }
+  .book-btn:active { transform: scale(0.95); }
+
+  main { max-width: 860px; margin: 0 auto; padding: 16px; }
+
+  .hidden { display: none !important; }
+
+  /* ---------- Quest map ---------- */
+  .map-intro {
+    text-align: center;
+    margin: 8px 0 20px;
+    font-size: 1.05rem;
+  }
+  .tier { margin-bottom: 26px; }
+  .tier-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 1.15rem;
+    color: var(--green-dark);
+    margin-bottom: 10px;
+  }
+  .tier-lock-note {
+    font-size: 0.85rem;
+    color: #8d6e63;
+    background: #fff;
+    border-radius: 999px;
+    padding: 2px 10px;
+  }
+  .quest-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 12px;
+  }
+  .quest-card {
+    background: var(--card);
+    border: 3px solid #e0e0e0;
+    border-radius: 18px;
+    padding: 14px;
+    cursor: pointer;
+    position: relative;
+    transition: transform 0.15s, box-shadow 0.15s;
+    text-align: left;
+    font-family: inherit;
+  }
+  .quest-card:hover { transform: translateY(-3px); box-shadow: 0 6px 14px rgba(0,0,0,0.12); }
+  .quest-card .q-emoji { font-size: 2rem; }
+  .quest-card h3 { font-size: 1.05rem; margin: 6px 0 4px; }
+  .quest-card p { font-size: 0.85rem; color: #757575; min-height: 2.4em; }
+  .quest-card .q-stars { margin-top: 8px; font-size: 0.95rem; }
+  .quest-card.done { border-color: var(--green); background: #f1fff1; }
+  .quest-card.locked { cursor: default; filter: grayscale(0.9); opacity: 0.65; }
+  .quest-card.locked:hover { transform: none; box-shadow: none; }
+  .lock-badge {
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    font-size: 1.2rem;
+  }
+  .done-badge {
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    font-size: 1.2rem;
+  }
+
+  /* ---------- Writing screen ---------- */
+  .back-btn {
+    background: none;
+    border: none;
+    font-family: inherit;
+    font-size: 1rem;
+    font-weight: bold;
+    color: var(--green-dark);
+    cursor: pointer;
+    padding: 6px 0;
+    margin-bottom: 6px;
+  }
+  .prompt-card {
+    background: var(--card);
+    border: 3px solid var(--blue);
+    border-radius: 18px;
+    padding: 14px 16px;
+    margin-bottom: 12px;
+  }
+  .prompt-card h2 { font-size: 1.2rem; margin-bottom: 4px; }
+  .prompt-card .prompt-text { font-size: 1.05rem; }
+  .speak-btn {
+    background: var(--blue);
+    color: white;
+    border: none;
+    border-radius: 999px;
+    padding: 5px 12px;
+    font-family: inherit;
+    font-size: 0.85rem;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 8px;
+  }
+  .speak-btn:active { transform: scale(0.95); }
+
+  .goals-card {
+    background: var(--soft);
+    border: 3px dashed var(--orange);
+    border-radius: 18px;
+    padding: 12px 16px;
+    margin-bottom: 12px;
+  }
+  .goals-card h3 { font-size: 1rem; margin-bottom: 8px; }
+  .goal-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 0;
+    font-size: 0.98rem;
+  }
+  .goal-check {
+    width: 26px;
+    height: 26px;
+    border-radius: 8px;
+    border: 2px solid #bdbdbd;
+    background: white;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    flex-shrink: 0;
+  }
+  .goal-row.met .goal-check { background: var(--green); border-color: var(--green-dark); color: white; }
+  .goal-row.met .goal-label { color: var(--green-dark); }
+  .goal-progress { font-size: 0.8rem; color: #9e9e9e; margin-left: auto; }
+
+  .word-bank {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 12px;
+    align-items: center;
+  }
+  .word-bank-label { font-size: 0.9rem; font-weight: bold; color: var(--purple); }
+  .chip {
+    background: #ede7f6;
+    border: 2px solid var(--purple);
+    color: var(--purple);
+    border-radius: 999px;
+    padding: 3px 12px;
+    font-family: inherit;
+    font-size: 0.9rem;
+    cursor: pointer;
+  }
+  .chip:active { transform: scale(0.93); }
+
+  textarea#story {
+    width: 100%;
+    min-height: 200px;
+    border: 3px solid #c8e6c9;
+    border-radius: 18px;
+    padding: 14px;
+    font-family: inherit;
+    font-size: 1.15rem;
+    line-height: 1.6;
+    resize: vertical;
+    background: white;
+    outline: none;
+  }
+  textarea#story:focus { border-color: var(--green); }
+
+  .write-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 10px 0 16px;
+    flex-wrap: wrap;
+  }
+  .word-counter { font-size: 0.95rem; color: #757575; }
+  .check-btn {
+    background: var(--green);
+    color: white;
+    border: none;
+    border-bottom: 4px solid var(--green-dark);
+    border-radius: 14px;
+    padding: 12px 26px;
+    font-family: inherit;
+    font-size: 1.15rem;
+    font-weight: bold;
+    cursor: pointer;
+    margin-left: auto;
+  }
+  .check-btn:active { transform: translateY(2px); border-bottom-width: 2px; }
+
+  /* ---------- Feedback ---------- */
+  .feedback { margin-bottom: 30px; }
+  .fb-block {
+    border-radius: 18px;
+    padding: 14px 16px;
+    margin-bottom: 12px;
+    animation: slideIn 0.35s ease;
+  }
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .fb-praise { background: #e8f5e9; border: 3px solid var(--green); }
+  .fb-tips { background: #fff3e0; border: 3px solid var(--orange); }
+  .fb-block h3 { font-size: 1.05rem; margin-bottom: 8px; }
+  .fb-block li { margin-left: 22px; padding: 3px 0; font-size: 1rem; }
+
+  /* ---------- Modals ---------- */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    padding: 16px;
+  }
+  .modal {
+    background: white;
+    border-radius: 22px;
+    padding: 24px;
+    max-width: 440px;
+    width: 100%;
+    max-height: 85vh;
+    overflow-y: auto;
+    text-align: center;
+    animation: popIn 0.3s ease;
+  }
+  @keyframes popIn {
+    from { transform: scale(0.7); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+  .modal .big-sticker { font-size: 4.5rem; animation: wiggle 1s ease infinite; display: inline-block; }
+  @keyframes wiggle {
+    0%, 100% { transform: rotate(-6deg); }
+    50% { transform: rotate(6deg); }
+  }
+  .modal h2 { color: var(--green-dark); margin: 10px 0; }
+  .modal p { margin-bottom: 14px; font-size: 1.05rem; }
+  .modal-btns { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+  .modal-btn {
+    border: none;
+    border-radius: 12px;
+    padding: 10px 18px;
+    font-family: inherit;
+    font-size: 1rem;
+    font-weight: bold;
+    cursor: pointer;
+  }
+  .modal-btn.primary { background: var(--green); color: white; }
+  .modal-btn.secondary { background: #e0e0e0; color: var(--ink); }
+
+  .sticker-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin: 14px 0;
+  }
+  .sticker-slot {
+    background: #f5f5f5;
+    border: 2px dashed #bdbdbd;
+    border-radius: 14px;
+    padding: 12px 6px;
+    font-size: 2rem;
+  }
+  .sticker-slot.earned { background: #fff8e1; border: 2px solid #ffd54f; }
+  .sticker-slot .s-name { display: block; font-size: 0.65rem; color: #757575; margin-top: 4px; }
+  .sticker-slot.empty-slot { filter: grayscale(1); opacity: 0.4; }
+  .sticker-slot.traded { opacity: 0.45; filter: grayscale(0.6); }
+
+  /* ---------- Shop ---------- */
+  .shop-btn { background: var(--orange); }
+  .shop-balance { font-size: 1rem; }
+  .shop-section-title { text-align: left; color: var(--green-dark); margin: 12px 0 6px; font-size: 1.05rem; }
+  .shop-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 6px; }
+  .shop-item {
+    border: 3px solid #e0e0e0;
+    border-radius: 14px;
+    padding: 10px 8px;
+    background: #fafafa;
+    font-family: inherit;
+    font-size: 0.95rem;
+    cursor: pointer;
+    text-align: center;
+  }
+  .shop-item:active { transform: scale(0.97); }
+  .shop-item.owned { border-color: var(--blue); }
+  .shop-item.equipped { border-color: var(--green); background: #f1fff1; }
+  .shop-item:disabled { opacity: 0.55; cursor: default; }
+  .shop-item:disabled:active { transform: none; }
+  .shop-item .s-preview { display: block; font-size: 1.3rem; margin-bottom: 4px; min-height: 1.4em; }
+  .shop-item .paper-chip { display: block; height: 1.4em; border-radius: 6px; border: 1px solid #e0e0e0; }
+  .shop-item .s-cost { display: block; font-size: 0.8rem; color: #8d6e63; margin-top: 4px; }
+  .pick-slot { cursor: pointer; font-family: inherit; }
+  .pick-slot.selected { border: 3px solid var(--green); background: #e8f5e9; transform: scale(1.07); }
+  .modal-btn:disabled { opacity: 0.45; cursor: default; }
+
+  /* ---------- Confetti ---------- */
+  .confetti {
+    position: fixed;
+    top: -20px;
+    width: 12px;
+    height: 12px;
+    z-index: 200;
+    pointer-events: none;
+    animation: fall linear forwards;
+  }
+  @keyframes fall {
+    to { transform: translateY(110vh) rotate(720deg); }
+  }
+
+  @media (max-width: 540px) {
+    header h1 { font-size: 1.05rem; }
+    .quest-grid { grid-template-columns: 1fr 1fr; }
+    textarea#story { font-size: 1.05rem; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🌱 Story Sprout</h1>
+  <div class="header-right">
+    <div class="star-pill" id="starPill">⭐ 0</div>
+    <button class="book-btn shop-btn" id="shopBtn">🛍️ Shop</button>
+    <button class="book-btn" id="stickerBookBtn">📖 Stickers</button>
+  </div>
+</header>
+
+<main>
+  <!-- Quest map -->
+  <section id="mapScreen">
+    <p class="map-intro">Pick a quest, write your story, and earn stars and stickers! 🌟</p>
+    <div id="tiers"></div>
+  </section>
+
+  <!-- Writing screen -->
+  <section id="writeScreen" class="hidden">
+    <button class="back-btn" id="backBtn">← Back to quests</button>
+
+    <div class="prompt-card">
+      <h2 id="questTitle"></h2>
+      <p class="prompt-text" id="questPrompt"></p>
+      <button class="speak-btn" id="speakPromptBtn">🔊 Read it to me</button>
+    </div>
+
+    <div class="goals-card">
+      <h3>🎯 Your writing goals:</h3>
+      <div id="goalList"></div>
+    </div>
+
+    <div class="word-bank" id="wordBank"></div>
+
+    <textarea id="story" placeholder="Once upon a time..." spellcheck="false"></textarea>
+
+    <div class="write-toolbar">
+      <span class="word-counter" id="wordCounter">0 words</span>
+      <button class="speak-btn" id="speakStoryBtn">🔊 Hear my story</button>
+      <button class="check-btn" id="checkBtn">✅ Check my writing!</button>
+    </div>
+
+    <div class="feedback" id="feedback"></div>
+  </section>
+</main>
+
+<!-- Sticker book modal -->
+<div class="modal-overlay hidden" id="stickerModal">
+  <div class="modal">
+    <h2>📖 My Sticker Book</h2>
+    <div class="sticker-grid" id="stickerGrid"></div>
+    <div class="modal-btns">
+      <button class="modal-btn primary" id="closeStickerBtn">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Shop modal -->
+<div class="modal-overlay hidden" id="shopModal">
+  <div class="modal">
+    <h2>🛍️ Sticker Shop</h2>
+    <p class="shop-balance" id="shopBalance"></p>
+    <div id="shopContent"></div>
+    <div class="modal-btns">
+      <button class="modal-btn primary" id="closeShopBtn">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Trade picker modal -->
+<div class="modal-overlay hidden" id="tradeModal">
+  <div class="modal">
+    <h2 id="tradeTitle"></h2>
+    <p id="tradeText"></p>
+    <div class="sticker-grid" id="tradeGrid"></div>
+    <div class="modal-btns">
+      <button class="modal-btn secondary" id="cancelTradeBtn">Keep my stickers</button>
+      <button class="modal-btn primary" id="confirmTradeBtn" disabled>Trade!</button>
+    </div>
+  </div>
+</div>
+
+<!-- Quest complete modal -->
+<div class="modal-overlay hidden" id="completeModal">
+  <div class="modal">
+    <span class="big-sticker" id="completeSticker"></span>
+    <h2>Quest Complete!</h2>
+    <p id="completeText"></p>
+    <div class="modal-btns">
+      <button class="modal-btn secondary" id="keepWritingBtn">Keep polishing ✏️</button>
+      <button class="modal-btn primary" id="backToMapBtn">More quests! 🗺️</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  'use strict';
+
+  // ---------- Word banks ----------
+  const BANKS = {
+    describing: ['sparkly', 'enormous', 'fuzzy', 'tiny', 'slimy', 'shiny', 'bumpy', 'gigantic',
+      'squishy', 'crunchy', 'spooky', 'silly', 'stinky', 'soft', 'fast', 'slow', 'loud',
+      'quiet', 'magical', 'wiggly', 'brave', 'sneaky', 'glittery', 'huge', 'little', 'old',
+      'new', 'wild', 'fluffy', 'pointy', 'smooth', 'sticky', 'rusty', 'frozen', 'melty'],
+    feeling: ['happy', 'sad', 'excited', 'scared', 'surprised', 'proud', 'grumpy', 'worried',
+      'angry', 'shy', 'joyful', 'nervous', 'lonely', 'cheerful', 'amazed', 'curious',
+      'frightened', 'thrilled', 'embarrassed', 'jealous', 'calm', 'mad'],
+    sound: ['boom', 'crash', 'splash', 'whoosh', 'zoom', 'buzz', 'roar', 'squeak', 'thud',
+      'pop', 'bang', 'beep', 'growl', 'meow', 'woof', 'crackle', 'fizz', 'plop', 'screech',
+      'rumble', 'ding', 'swish'],
+    color: ['red', 'blue', 'green', 'yellow', 'purple', 'orange', 'pink', 'golden', 'silver',
+      'black', 'white', 'brown', 'rainbow', 'turquoise', 'violet', 'gray', 'crimson']
+  };
+
+  const BANK_LABELS = {
+    describing: '🎨 Describing words',
+    feeling: '💛 Feeling words',
+    sound: '💥 Sound words',
+    color: '🌈 Color words'
+  };
+
+  // ---------- Goal factories ----------
+  // Each goal: { id, label, check(a), tip(a), progress(a) }
+  const G = {
+    words: n => ({
+      id: 'words' + n,
+      label: `Write at least ${n} words`,
+      check: a => a.wordCount >= n,
+      progress: a => `${a.wordCount}/${n}`,
+      tip: a => `Your story wants to grow! You have ${a.wordCount} word${a.wordCount === 1 ? '' : 's'} — just ${n - a.wordCount} more to go. What happened next?`
+    }),
+    sentences: n => ({
+      id: 'sent' + n,
+      label: `Write at least ${n} sentences`,
+      check: a => a.sentenceCount >= n,
+      progress: a => `${a.sentenceCount}/${n}`,
+      tip: () => `A sentence ends with a period (.), an exclamation mark (!), or a question mark (?). Try splitting your ideas into more sentences.`
+    }),
+    capitals: () => ({
+      id: 'capitals',
+      label: 'Start every sentence with a capital letter',
+      check: a => a.sentenceCount > 0 && a.badCapitals.length === 0,
+      progress: () => '',
+      tip: a => a.badCapitals.length
+        ? `Oops — the sentence starting with "${a.badCapitals[0]}..." needs a CAPITAL letter at the front.`
+        : `Every sentence needs to start with a CAPITAL letter.`
+    }),
+    punct: () => ({
+      id: 'punct',
+      label: 'End your story with . ! or ?',
+      check: a => a.endsWithPunct,
+      progress: () => '',
+      tip: () => `Your last sentence needs an ending mark. Pick one: . ! or ?`
+    }),
+    describing: () => ({
+      id: 'describing',
+      label: 'Use a describing word',
+      check: a => a.found.describing.length > 0,
+      progress: () => '',
+      tip: () => `Add a describing word to paint a picture! How about "sparkly", "enormous", or "fuzzy"? (Check the word bank above your story.)`
+    }),
+    feeling: () => ({
+      id: 'feeling',
+      label: 'Use a feeling word',
+      check: a => a.found.feeling.length > 0,
+      progress: () => '',
+      tip: () => `How did your character FEEL? Try a word like "excited", "scared", or "proud".`
+    }),
+    sound: () => ({
+      id: 'sound',
+      label: 'Use a sound word',
+      check: a => a.found.sound.length > 0,
+      progress: () => '',
+      tip: () => `Add a sound word to make your story exciting — like "BOOM", "splash", or "squeak"!`
+    }),
+    color: () => ({
+      id: 'color',
+      label: 'Use a color word',
+      check: a => a.found.color.length > 0,
+      progress: () => '',
+      tip: () => `Paint your story with a color! Try "golden", "purple", or "turquoise".`
+    }),
+    dialogue: () => ({
+      id: 'dialogue',
+      label: 'Make someone talk (use "quotes")',
+      check: a => a.hasDialogue,
+      progress: () => '',
+      tip: () => `Let a character speak! Put their words inside quotes, like this: "Hello!" said Max.`
+    }),
+    name: () => ({
+      id: 'name',
+      label: 'Give a character a name (with a capital letter)',
+      check: a => a.names.length > 0,
+      progress: () => '',
+      tip: () => `Give your character a name that starts with a capital letter, like Luna, Max, or Ziggy.`
+    }),
+    question: () => ({
+      id: 'question',
+      label: 'Ask a question (?) in your story',
+      check: a => a.hasQuestion,
+      progress: () => '',
+      tip: () => `Make your reader curious — ask a question! Like: What was behind the door?`
+    }),
+    exclaim: () => ({
+      id: 'exclaim',
+      label: 'Use an exclamation mark (!)',
+      check: a => a.hasExclamation,
+      progress: () => '',
+      tip: () => `Add a burst of excitement with an exclamation mark! Like: It was ALIVE!`
+    })
+  };
+
+  // ---------- Quests ----------
+  const TIERS = [
+    {
+      name: '🌱 Sprout Quests',
+      starsNeeded: 0,
+      quests: [
+        {
+          id: 'pet', emoji: '🐶', sticker: '🐶', stickerName: 'Pet Pal',
+          title: 'My Pet Friend',
+          prompt: 'Write about a pet you have — or a pet you WISH you had. What does it look like? What does it do?',
+          goals: [G.words(10), G.sentences(2), G.capitals()]
+        },
+        {
+          id: 'door', emoji: '🚪', sticker: '🚪', stickerName: 'Door Finder',
+          title: 'The Tiny Door',
+          prompt: 'You find a tiny door in your wall. You open it. What is behind it?',
+          goals: [G.words(12), G.sentences(2), G.punct()]
+        },
+        {
+          id: 'food', emoji: '🍕', sticker: '🍕', stickerName: 'Taste Tester',
+          title: 'Yummy or Yucky',
+          prompt: 'Write about the BEST or the WORST food you ever ate. Make me taste it with your words!',
+          goals: [G.words(12), G.sentences(2), G.describing()]
+        },
+        {
+          id: 'rain', emoji: '🌧️', sticker: '🌧️', stickerName: 'Puddle Jumper',
+          title: 'A Rainy Day',
+          prompt: 'It is raining ALL day. What do you do inside? Build a fort? Bake cookies? Tell me!',
+          goals: [G.words(10), G.sentences(2), G.punct()]
+        },
+        {
+          id: 'robot', emoji: '🤖', sticker: '🤖', stickerName: 'Robot Boss',
+          title: 'My Robot Helper',
+          prompt: 'You get a robot that helps with ONE job. What job does it do? What does it look like?',
+          goals: [G.words(12), G.sentences(2), G.capitals()]
+        },
+        {
+          id: 'balloon', emoji: '🎈', sticker: '🎈', stickerName: 'Sky Chaser',
+          title: 'The Runaway Balloon',
+          prompt: 'Whoops — your balloon slips out of your hand and floats away! Where does it go?',
+          goals: [G.words(12), G.sentences(2), G.color()]
+        }
+      ]
+    },
+    {
+      name: '📚 Storyteller Quests',
+      starsNeeded: 8,
+      quests: [
+        {
+          id: 'dragon', emoji: '🐉', sticker: '🐉', stickerName: 'Dragon Helper',
+          title: 'The Lost Dragon',
+          prompt: 'A little dragon has lost its fire! How does it feel? Who helps it get the fire back?',
+          goals: [G.words(25), G.sentences(3), G.describing(), G.feeling()]
+        },
+        {
+          id: 'super', emoji: '🦸', sticker: '🦸', stickerName: 'Super Writer',
+          title: 'Super Me',
+          prompt: 'You wake up with a superpower! What is it? What is the FIRST thing you do?',
+          goals: [G.words(25), G.sentences(3), G.name(), G.punct()]
+        },
+        {
+          id: 'sea', emoji: '🐙', sticker: '🐙', stickerName: 'Deep Diver',
+          title: 'Deep Sea Surprise',
+          prompt: 'You dive deep under the sea and meet a creature no one has ever seen. Describe it!',
+          goals: [G.words(30), G.sentences(3), G.describing(), G.color()]
+        },
+        {
+          id: 'zoo', emoji: '🦁', sticker: '🦁', stickerName: 'Animal Friend',
+          title: 'Zoo Breakout',
+          prompt: 'An animal escapes from the zoo... and follows YOU home! Which animal is it? What happens?',
+          goals: [G.words(25), G.sentences(3), G.describing(), G.name()]
+        },
+        {
+          id: 'map', emoji: '🗺️', sticker: '🗺️', stickerName: 'Treasure Hunter',
+          title: "The Pirate's Map",
+          prompt: 'You find an old pirate map in your backyard. Where does it lead? What is the treasure?',
+          goals: [G.words(25), G.sentences(3), G.question(), G.describing()]
+        },
+        {
+          id: 'snowman', emoji: '⛄', sticker: '⛄', stickerName: 'Frost Friend',
+          title: "The Snowman Who Wouldn't Melt",
+          prompt: 'Summer comes, but your snowman does NOT melt. How? How does the snowman feel about it?',
+          goals: [G.words(30), G.sentences(3), G.feeling(), G.punct()]
+        }
+      ]
+    },
+    {
+      name: '🧙 Word Wizard Quests',
+      starsNeeded: 26,
+      quests: [
+        {
+          id: 'backpack', emoji: '🎒', sticker: '🎒', stickerName: 'Backpack Buddy',
+          title: 'The Talking Backpack',
+          prompt: 'One morning, your backpack starts TALKING. What does it say? What do you say back?',
+          goals: [G.words(40), G.sentences(4), G.dialogue(), G.feeling()]
+        },
+        {
+          id: 'snack', emoji: '🍪', sticker: '🍪', stickerName: 'Snack Detective',
+          title: 'Midnight Snack Mystery',
+          prompt: 'You hear a noise in the kitchen at midnight. Someone — or someTHING — is eating the cookies. Investigate!',
+          goals: [G.words(40), G.sentences(4), G.sound(), G.describing()]
+        },
+        {
+          id: 'planet', emoji: '🪐', sticker: '🪐', stickerName: 'Planet Maker',
+          title: 'My Own Planet',
+          prompt: 'You get your very own planet! What is it called? What lives there? Take me on a tour.',
+          goals: [G.words(50), G.sentences(5), G.dialogue(), G.describing(), G.feeling()]
+        },
+        {
+          id: 'spell', emoji: '🧙', sticker: '🧙', stickerName: 'Spell Fixer',
+          title: 'The Mixed-Up Spell',
+          prompt: "A wizard's spell goes WRONG and turns something ordinary into something crazy. What happens next?",
+          goals: [G.words(40), G.sentences(4), G.dialogue(), G.sound()]
+        },
+        {
+          id: 'dino', emoji: '🦕', sticker: '🦕', stickerName: 'Dino Sitter',
+          title: 'Dinosaur in the Garden',
+          prompt: 'You wake up and there is a DINOSAUR in your garden. Is it friendly? What do you name it?',
+          goals: [G.words(40), G.sentences(4), G.describing(), G.name(), G.feeling()]
+        },
+        {
+          id: 'time', emoji: '⏰', sticker: '⏰', stickerName: 'Time Traveler',
+          title: 'One Day in the Past',
+          prompt: 'Your time machine takes you back in time for ONE day. Where do you go? Who do you meet?',
+          goals: [G.words(45), G.sentences(4), G.dialogue(), G.question()]
+        }
+      ]
+    },
+    {
+      name: '👑 Story Master Quests',
+      starsNeeded: 48,
+      quests: [
+        {
+          id: 'island', emoji: '🏝️', sticker: '🏝️', stickerName: 'Island Explorer',
+          title: 'The Secret Island',
+          prompt: 'Your boat washes up on an island that is not on any map. Explore it from the beach to the very middle!',
+          goals: [G.words(60), G.sentences(6), G.dialogue(), G.describing(), G.feeling()]
+        },
+        {
+          id: 'circus', emoji: '🎪', sticker: '🎪', stickerName: 'Ring Master',
+          title: 'The Midnight Circus',
+          prompt: 'A circus appears in town overnight — but it is only open at midnight, and the performers are NOT what they seem...',
+          goals: [G.words(60), G.sentences(6), G.sound(), G.describing(), G.name()]
+        },
+        {
+          id: 'ghost', emoji: '👻', sticker: '👻', stickerName: 'Ghost Greeter',
+          title: 'The Friendly Ghost',
+          prompt: 'There is a ghost in your house — but it is NICE, and it needs your help with something. What does it need?',
+          goals: [G.words(60), G.sentences(6), G.dialogue(), G.feeling(), G.question()]
+        },
+        {
+          id: 'invention', emoji: '💡', sticker: '💡', stickerName: 'Genius Inventor',
+          title: 'My Amazing Invention',
+          prompt: 'You invent a machine the world has NEVER seen. What does it do? Show me the first time you switch it on!',
+          goals: [G.words(70), G.sentences(6), G.describing(), G.name(), G.exclaim()]
+        },
+        {
+          id: 'jungle', emoji: '🦜', sticker: '🦜', stickerName: 'Jungle Scout',
+          title: 'Lost in the Jungle',
+          prompt: 'You are lost in a noisy, steamy jungle. Strange sounds are everywhere. How do you find your way home?',
+          goals: [G.words(70), G.sentences(7), G.sound(), G.feeling(), G.dialogue()]
+        },
+        {
+          id: 'dream', emoji: '🌙', sticker: '🌙', stickerName: 'Dream Walker',
+          title: 'The Dream Door',
+          prompt: 'Every night, a glowing door appears in your dreams. Tonight, you finally step through it. Describe the world inside!',
+          goals: [G.words(80), G.sentences(7), G.describing(), G.color(), G.dialogue()]
+        }
+      ]
+    }
+  ];
+
+  const ALL_QUESTS = TIERS.flatMap(t => t.quests);
+
+  // ---------- Shop catalog ----------
+  // kind 'pen' = ink color, 'font' = font family, 'paper' = textarea background.
+  const SHOP_ITEMS = [
+    { id: 'pen-black',  kind: 'pen', name: 'Black Pen',      cost: 0, value: '#3e3a39' },
+    { id: 'pen-blue',   kind: 'pen', name: 'Blueberry Pen',  cost: 1, value: '#1565c0' },
+    { id: 'pen-red',    kind: 'pen', name: 'Strawberry Pen', cost: 1, value: '#c62828' },
+    { id: 'pen-green',  kind: 'pen', name: 'Forest Pen',     cost: 1, value: '#2e7d32' },
+    { id: 'pen-purple', kind: 'pen', name: 'Grape Pen',      cost: 2, value: '#6a1b9a' },
+    { id: 'pen-orange', kind: 'pen', name: 'Sunset Pen',     cost: 2, value: '#e65100' },
+    { id: 'pen-gold',   kind: 'pen', name: 'Golden Pen',     cost: 3, value: '#a67c00' },
+
+    { id: 'font-classic',    kind: 'font', name: 'Classic',    cost: 0, value: '' },
+    { id: 'font-neat',       kind: 'font', name: 'Neat Print', cost: 1, value: 'Verdana, sans-serif' },
+    { id: 'font-typewriter', kind: 'font', name: 'Typewriter', cost: 2, value: '"Courier New", monospace' },
+    { id: 'font-fancy',      kind: 'font', name: 'Fancy',      cost: 2, value: 'Georgia, "Times New Roman", serif' },
+    { id: 'font-curly',      kind: 'font', name: 'Curly',      cost: 3, value: '"Segoe Script", "Bradley Hand", cursive' },
+
+    { id: 'paper-white',     kind: 'paper', name: 'Plain Paper',     cost: 0, value: '#ffffff' },
+    { id: 'paper-sunshine',  kind: 'paper', name: 'Sunshine Paper',  cost: 1, value: '#fffde7' },
+    { id: 'paper-bubblegum', kind: 'paper', name: 'Bubblegum Paper', cost: 1, value: '#fce4ec' },
+    { id: 'paper-mint',      kind: 'paper', name: 'Mint Paper',      cost: 1, value: '#e8f5e9' },
+    { id: 'paper-ocean',     kind: 'paper', name: 'Ocean Paper',     cost: 2, value: '#e1f5fe' },
+    { id: 'paper-lined',     kind: 'paper', name: 'Lined Paper',     cost: 3, value: 'lined' }
+  ];
+  const KIND_LABELS = { pen: '🖊️ Pens', font: '🔤 Fonts', paper: '📄 Paper' };
+  const LINED_BG = 'repeating-linear-gradient(#ffffff, #ffffff calc(1.6em - 2px), #b3e5fc calc(1.6em - 2px), #b3e5fc 1.6em)';
+
+  // ---------- State (in-memory only) ----------
+  const state = {
+    // questId -> { earned: Set of goal ids, complete: bool }
+    progress: {},
+    currentQuest: null,
+    shop: {
+      owned: new Set(['pen-black', 'font-classic', 'paper-white']),
+      equipped: { pen: 'pen-black', font: 'font-classic', paper: 'paper-white' },
+      traded: new Set() // questIds whose stickers were traded away
+    }
+  };
+  ALL_QUESTS.forEach(q => { state.progress[q.id] = { earned: new Set(), complete: false }; });
+
+  const availableStickers = () =>
+    ALL_QUESTS.filter(q => state.progress[q.id].complete && !state.shop.traded.has(q.id));
+
+  const totalStars = () =>
+    Object.values(state.progress).reduce((sum, p) => sum + p.earned.size, 0);
+
+  // ---------- DOM helpers ----------
+  const el = id => document.getElementById(id);
+
+  // ---------- Text analysis ----------
+  function analyze(text) {
+    const trimmed = text.trim();
+    const words = trimmed ? trimmed.split(/\s+/).filter(w => /[a-zA-Z0-9]/.test(w)) : [];
+    const lowerWords = words.map(w => w.toLowerCase().replace(/[^a-z']/g, ''));
+
+    // Completed sentences = chunks ending in . ! or ?
+    const sentenceMatches = trimmed.match(/[^.!?]+[.!?]+/g) || [];
+    const sentences = sentenceMatches.map(s => s.trim()).filter(s => /[a-zA-Z]/.test(s));
+    // Leftover text after the last ending mark (an unfinished sentence)
+    const leftover = trimmed.replace(/[^.!?]+[.!?]+/g, '').trim();
+
+    // Capital-letter check on every sentence (including the unfinished one)
+    const allChunks = sentences.concat(/[a-zA-Z]/.test(leftover) ? [leftover] : []);
+    const badCapitals = [];
+    allChunks.forEach(s => {
+      const m = s.match(/[a-zA-Z]/);
+      if (m && m[0] !== m[0].toUpperCase()) {
+        badCapitals.push(s.split(/\s+/).slice(0, 2).join(' '));
+      }
+    });
+
+    // Words from each bank that appear in the story
+    const found = {};
+    for (const bank in BANKS) {
+      found[bank] = BANKS[bank].filter(w => lowerWords.includes(w));
+    }
+
+    // Dialogue: at least one pair of double quotes (straight or curly)
+    const quoteCount = (trimmed.match(/["“”]/g) || []).length;
+    const hasDialogue = quoteCount >= 2;
+
+    // Names: capitalized words that are NOT the first word of a sentence and not "I"
+    const names = [];
+    allChunks.forEach(s => {
+      const ws = s.split(/\s+/);
+      ws.slice(1).forEach(w => {
+        const clean = w.replace(/[^a-zA-Z']/g, '');
+        if (/^[A-Z][a-z]+$/.test(clean) && clean !== 'I' && !names.includes(clean)) {
+          names.push(clean);
+        }
+      });
+    });
+
+    // Lowercase "i" used as a word
+    const lonelyI = /(^|\s)i('|\s|[.,!?]|$)/.test(trimmed);
+
+    // Overused words
+    const overused = [];
+    ['very', 'then', 'really'].forEach(w => {
+      const count = lowerWords.filter(x => x === w).length;
+      if (count >= 3) overused.push({ word: w, count });
+    });
+
+    // Many sentences starting with the same word
+    let repeatStarter = null;
+    if (sentences.length >= 3) {
+      const starters = {};
+      sentences.forEach(s => {
+        const first = (s.split(/\s+/)[0] || '').toLowerCase().replace(/[^a-z]/g, '');
+        if (first) starters[first] = (starters[first] || 0) + 1;
+      });
+      for (const w in starters) {
+        if (starters[w] >= 3) { repeatStarter = w; break; }
+      }
+    }
+
+    const hasExclamation = trimmed.includes('!');
+    const hasQuestion = trimmed.includes('?');
+
+    return {
+      wordCount: words.length,
+      sentenceCount: sentences.length,
+      sentences,
+      badCapitals,
+      endsWithPunct: /[.!?]\s*$/.test(trimmed),
+      found,
+      hasDialogue,
+      names,
+      lonelyI,
+      overused,
+      repeatStarter,
+      hasExclamation,
+      hasQuestion
+    };
+  }
+
+  // ---------- Feedback ----------
+  function buildPraise(a, quest) {
+    const praise = [];
+    quest.goals.forEach(g => {
+      if (!g.check(a)) return;
+      switch (true) {
+        case g.id.startsWith('words'):
+          praise.push(`Wow — you wrote ${a.wordCount} words! Your story has real muscles. 💪`);
+          break;
+        case g.id.startsWith('sent'):
+          praise.push(`You wrote ${a.sentenceCount} full sentences. That's how real authors build a story!`);
+          break;
+        case g.id === 'capitals':
+          praise.push(`Every sentence starts with a capital letter. So tidy!`);
+          break;
+        case g.id === 'punct':
+          praise.push(`You finished with an ending mark. Nice and complete!`);
+          break;
+        case g.id === 'describing':
+          praise.push(`Great describing word${a.found.describing.length > 1 ? 's' : ''}: ${a.found.describing.map(w => `"${w}"`).join(', ')}! I can really picture it.`);
+          break;
+        case g.id === 'feeling':
+          praise.push(`You used the feeling word "${a.found.feeling[0]}" — that helps me care about your character!`);
+          break;
+        case g.id === 'sound':
+          praise.push(`"${a.found.sound[0]}" — I could HEAR that! Sound words make stories come alive.`);
+          break;
+        case g.id === 'color':
+          praise.push(`Lovely color word: "${a.found.color[0]}". You painted with your words!`);
+          break;
+        case g.id === 'dialogue':
+          praise.push(`Your characters TALK! Using quotes is real author stuff.`);
+          break;
+        case g.id === 'name':
+          praise.push(`You named a character: ${a.names[0]}. Names make characters feel real!`);
+          break;
+        case g.id === 'question':
+          praise.push(`You asked a question — that pulls your reader right into the story!`);
+          break;
+        case g.id === 'exclaim':
+          praise.push(`That exclamation mark gives your story a burst of energy!`);
+          break;
+      }
+    });
+
+    // Bonus praise not tied to goals
+    const hasGoal = id => quest.goals.some(g => g.id === id);
+    if (a.hasExclamation && praise.length < 4 && !hasGoal('exclaim')) {
+      praise.push(`I love the excitement — exclamation marks give your story energy!`);
+    }
+    if (a.hasQuestion && praise.length < 4 && !hasGoal('question')) {
+      praise.push(`Asking a question pulls your reader right in. Clever!`);
+    }
+    if (praise.length === 0 && a.wordCount > 0) {
+      praise.push(`You started your story — and every great author starts with the first word!`);
+    }
+    return praise.slice(0, 4);
+  }
+
+  function buildTips(a, quest) {
+    const tips = [];
+    // Tips for unmet goals first
+    quest.goals.forEach(g => {
+      if (!g.check(a)) tips.push(g.tip(a));
+    });
+    // General style tips (only if we still have room)
+    if (a.lonelyI) {
+      tips.push(`Quick fix: the word "I" is ALWAYS a capital letter, even in the middle of a sentence.`);
+    }
+    if (a.overused.length) {
+      const o = a.overused[0];
+      tips.push(`You used "${o.word}" ${o.count} times. Can you swap one for a different word? It makes your writing extra strong.`);
+    }
+    if (a.repeatStarter) {
+      tips.push(`Lots of your sentences start with "${a.repeatStarter}". Try starting one sentence a brand-new way!`);
+    }
+    return tips.slice(0, 2);
+  }
+
+  // ---------- Confetti ----------
+  function confetti() {
+    const colors = ['#ff5252', '#ffd740', '#69f0ae', '#40c4ff', '#e040fb', '#ff9800'];
+    for (let i = 0; i < 80; i++) {
+      const c = document.createElement('div');
+      c.className = 'confetti';
+      c.style.left = Math.random() * 100 + 'vw';
+      c.style.background = colors[Math.floor(Math.random() * colors.length)];
+      c.style.borderRadius = Math.random() < 0.5 ? '50%' : '2px';
+      c.style.animationDuration = (1.6 + Math.random() * 1.8) + 's';
+      c.style.animationDelay = (Math.random() * 0.6) + 's';
+      document.body.appendChild(c);
+      setTimeout(() => c.remove(), 4000);
+    }
+  }
+
+  // ---------- Speech ----------
+  const canSpeak = 'speechSynthesis' in window;
+  function speak(text) {
+    if (!canSpeak || !text) return;
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.rate = 0.95;
+    speechSynthesis.speak(u);
+  }
+
+  // ---------- Rendering: quest map ----------
+  function renderMap() {
+    const stars = totalStars();
+    const tiersDiv = el('tiers');
+    tiersDiv.innerHTML = '';
+
+    TIERS.forEach(tier => {
+      const unlocked = stars >= tier.starsNeeded;
+      const section = document.createElement('div');
+      section.className = 'tier';
+
+      const title = document.createElement('div');
+      title.className = 'tier-title';
+      title.textContent = tier.name;
+      if (!unlocked) {
+        const note = document.createElement('span');
+        note.className = 'tier-lock-note';
+        note.textContent = `Earn ${tier.starsNeeded} ⭐ to unlock (you have ${stars})`;
+        title.appendChild(note);
+      }
+      section.appendChild(title);
+
+      const grid = document.createElement('div');
+      grid.className = 'quest-grid';
+
+      tier.quests.forEach(q => {
+        const p = state.progress[q.id];
+        const card = document.createElement('button');
+        card.className = 'quest-card' + (p.complete ? ' done' : '') + (unlocked ? '' : ' locked');
+        card.innerHTML = `
+          <span class="q-emoji">${q.emoji}</span>
+          ${p.complete ? '<span class="done-badge">🏅</span>' : unlocked ? '' : '<span class="lock-badge">🔒</span>'}
+          <h3>${q.title}</h3>
+          <p>${q.prompt}</p>
+          <div class="q-stars">${'⭐'.repeat(p.earned.size)}${'☆'.repeat(q.goals.length - p.earned.size)} ${p.earned.size}/${q.goals.length}</div>
+        `;
+        if (unlocked) card.addEventListener('click', () => openQuest(q));
+        grid.appendChild(card);
+      });
+
+      section.appendChild(grid);
+      tiersDiv.appendChild(section);
+    });
+  }
+
+  // ---------- Rendering: writing screen ----------
+  function openQuest(quest) {
+    state.currentQuest = quest;
+    el('questTitle').textContent = `${quest.emoji} ${quest.title}`;
+    el('questPrompt').textContent = quest.prompt;
+    el('story').value = '';
+    el('feedback').innerHTML = '';
+    el('wordCounter').textContent = '0 words';
+    renderGoals(analyze(''));
+    renderWordBank(quest);
+    el('mapScreen').classList.add('hidden');
+    el('writeScreen').classList.remove('hidden');
+    window.scrollTo(0, 0);
+  }
+
+  function renderGoals(a) {
+    const quest = state.currentQuest;
+    const list = el('goalList');
+    list.innerHTML = '';
+    quest.goals.forEach(g => {
+      const met = g.check(a);
+      const earned = state.progress[quest.id].earned.has(g.id);
+      const row = document.createElement('div');
+      row.className = 'goal-row' + (met ? ' met' : '');
+      row.innerHTML = `
+        <span class="goal-check">${met ? '✓' : ''}</span>
+        <span class="goal-label">${g.label}${earned ? ' ⭐' : ''}</span>
+        <span class="goal-progress">${g.progress(a)}</span>
+      `;
+      list.appendChild(row);
+    });
+  }
+
+  function renderWordBank(quest) {
+    const bankDiv = el('wordBank');
+    bankDiv.innerHTML = '';
+    const wanted = ['describing', 'feeling', 'sound', 'color']
+      .filter(b => quest.goals.some(g => g.id === b));
+    if (!wanted.length) return;
+
+    wanted.forEach(bank => {
+      const label = document.createElement('span');
+      label.className = 'word-bank-label';
+      label.textContent = BANK_LABELS[bank] + ':';
+      bankDiv.appendChild(label);
+      // Show 5 random words from the bank
+      const sample = [...BANKS[bank]].sort(() => Math.random() - 0.5).slice(0, 5);
+      sample.forEach(w => {
+        const chip = document.createElement('button');
+        chip.className = 'chip';
+        chip.textContent = w;
+        chip.addEventListener('click', () => insertWord(w));
+        bankDiv.appendChild(chip);
+      });
+    });
+  }
+
+  function insertWord(word) {
+    const ta = el('story');
+    const pos = ta.selectionStart ?? ta.value.length;
+    const before = ta.value.slice(0, pos);
+    const after = ta.value.slice(pos);
+    const padBefore = before && !/\s$/.test(before) ? ' ' : '';
+    const padAfter = after && !/^\s/.test(after) ? ' ' : '';
+    ta.value = before + padBefore + word + padAfter + after;
+    const newPos = (before + padBefore + word).length;
+    ta.focus();
+    ta.setSelectionRange(newPos, newPos);
+    updateLive();
+  }
+
+  // ---------- Live word counter + goal preview ----------
+  function updateLive() {
+    const a = analyze(el('story').value);
+    el('wordCounter').textContent = `${a.wordCount} word${a.wordCount === 1 ? '' : 's'}`;
+    renderGoals(a);
+  }
+
+  // ---------- Check writing ----------
+  function checkWriting() {
+    const quest = state.currentQuest;
+    const text = el('story').value;
+    const a = analyze(text);
+    const fb = el('feedback');
+    fb.innerHTML = '';
+
+    if (a.wordCount === 0) {
+      fb.innerHTML = `<div class="fb-block fb-tips"><h3>✏️ Pssst...</h3><li>Write something first, then press the button! Even one sentence is a great start.</li></div>`;
+      return;
+    }
+
+    const progress = state.progress[quest.id];
+    let newStars = 0;
+    quest.goals.forEach(g => {
+      if (g.check(a) && !progress.earned.has(g.id)) {
+        progress.earned.add(g.id);
+        newStars++;
+      }
+    });
+
+    renderGoals(a);
+    updateStarPill(newStars > 0);
+
+    const praise = buildPraise(a, quest);
+    const tips = buildTips(a, quest);
+
+    let html = '';
+    if (praise.length) {
+      html += `<div class="fb-block fb-praise"><h3>🎉 What you did great:</h3>${praise.map(p => `<li>${p}</li>`).join('')}</div>`;
+    }
+    if (tips.length) {
+      html += `<div class="fb-block fb-tips"><h3>💡 Writing tip${tips.length > 1 ? 's' : ''}:</h3>${tips.map(t => `<li>${t}</li>`).join('')}<li style="list-style:none; margin-top:6px; font-size:0.9rem; color:#8d6e63;">Fix it up and press ✅ Check again!</li></div>`;
+    }
+    fb.innerHTML = html;
+
+    const allMet = quest.goals.every(g => g.check(a));
+    if (allMet && !progress.complete) {
+      progress.complete = true;
+      setTimeout(() => {
+        confetti();
+        el('completeSticker').textContent = quest.sticker;
+        el('completeText').textContent =
+          `You hit ALL the goals for "${quest.title}" and earned the ${quest.stickerName} sticker! Keep it in your sticker book — or trade it in the 🛍️ Shop for new pens, fonts, and paper!`;
+        el('completeModal').classList.remove('hidden');
+      }, 500);
+    } else if (allMet) {
+      fb.innerHTML = `<div class="fb-block fb-praise"><h3>🏅 Still perfect!</h3><li>All goals met — your revision skills are top-notch!</li></div>` + html;
+    }
+  }
+
+  function updateStarPill(pop) {
+    const pill = el('starPill');
+    pill.textContent = `⭐ ${totalStars()}`;
+    if (pop) {
+      pill.classList.add('pop');
+      setTimeout(() => pill.classList.remove('pop'), 300);
+    }
+  }
+
+  // ---------- Sticker book ----------
+  function renderStickerBook() {
+    const grid = el('stickerGrid');
+    grid.innerHTML = '';
+    ALL_QUESTS.forEach(q => {
+      const earned = state.progress[q.id].complete;
+      const traded = state.shop.traded.has(q.id);
+      const slot = document.createElement('div');
+      slot.className = 'sticker-slot ' + (earned ? (traded ? 'earned traded' : 'earned') : 'empty-slot');
+      slot.innerHTML = earned
+        ? `${q.sticker}<span class="s-name">${traded ? 'traded away' : q.stickerName}</span>`
+        : `❔<span class="s-name">???</span>`;
+      grid.appendChild(slot);
+    });
+  }
+
+  // ---------- Shop ----------
+  function applyEquipped() {
+    const ta = el('story');
+    const get = kind => SHOP_ITEMS.find(i => i.id === state.shop.equipped[kind]);
+    ta.style.color = get('pen').value;
+    ta.style.fontFamily = get('font').value;
+    const paper = get('paper').value;
+    ta.style.background = paper === 'lined' ? LINED_BG : paper;
+  }
+
+  function itemPreview(item) {
+    if (item.kind === 'pen') {
+      return `<span class="s-preview" style="color:${item.value}; font-weight:bold;">Aa ✏️</span>`;
+    }
+    if (item.kind === 'font') {
+      return `<span class="s-preview" style="font-family:${item.value || 'inherit'};">Aa Bb</span>`;
+    }
+    const bg = item.value === 'lined'
+      ? 'repeating-linear-gradient(#ffffff, #ffffff 6px, #b3e5fc 6px, #b3e5fc 8px)'
+      : item.value;
+    return `<span class="s-preview paper-chip" style="background:${bg};"></span>`;
+  }
+
+  function renderShop() {
+    const n = availableStickers().length;
+    el('shopBalance').innerHTML =
+      `You have <b>${n}</b> sticker${n === 1 ? '' : 's'} to trade. Finish quests to earn more!`;
+    const content = el('shopContent');
+    content.innerHTML = '';
+
+    ['pen', 'font', 'paper'].forEach(kind => {
+      const heading = document.createElement('h3');
+      heading.className = 'shop-section-title';
+      heading.textContent = KIND_LABELS[kind];
+      content.appendChild(heading);
+
+      const grid = document.createElement('div');
+      grid.className = 'shop-grid';
+      SHOP_ITEMS.filter(i => i.kind === kind).forEach(item => {
+        const owned = state.shop.owned.has(item.id);
+        const equipped = state.shop.equipped[kind] === item.id;
+        const afford = n >= item.cost;
+        const btn = document.createElement('button');
+        btn.className = 'shop-item' + (equipped ? ' equipped' : owned ? ' owned' : '');
+        if (!owned && !afford) btn.disabled = true;
+        const costLabel = equipped ? '✓ Using it!'
+          : owned ? 'Tap to use'
+          : `Trade ${item.cost} sticker${item.cost === 1 ? '' : 's'}`;
+        btn.innerHTML = `${itemPreview(item)}<b>${item.name}</b><span class="s-cost">${costLabel}</span>`;
+        btn.addEventListener('click', () => {
+          if (owned) {
+            state.shop.equipped[kind] = item.id;
+            applyEquipped();
+            renderShop();
+          } else if (afford) {
+            openTrade(item);
+          }
+        });
+        grid.appendChild(btn);
+      });
+      content.appendChild(grid);
+    });
+  }
+
+  let tradeState = null;
+
+  function openTrade(item) {
+    tradeState = { item, selected: new Set() };
+    el('tradeTitle').textContent = `Trade for the ${item.name}?`;
+    renderTradeGrid();
+    el('tradeModal').classList.remove('hidden');
+  }
+
+  function renderTradeGrid() {
+    const { item, selected } = tradeState;
+    const left = item.cost - selected.size;
+    el('tradeText').textContent = left > 0
+      ? `Tap ${left} more sticker${left === 1 ? '' : 's'} you want to trade away.`
+      : `Ready! Trade these for the ${item.name}?`;
+    const grid = el('tradeGrid');
+    grid.innerHTML = '';
+    availableStickers().forEach(q => {
+      const slot = document.createElement('button');
+      slot.className = 'sticker-slot earned pick-slot' + (selected.has(q.id) ? ' selected' : '');
+      slot.innerHTML = `${q.sticker}<span class="s-name">${q.stickerName}</span>`;
+      slot.addEventListener('click', () => {
+        if (selected.has(q.id)) selected.delete(q.id);
+        else if (selected.size < item.cost) selected.add(q.id);
+        renderTradeGrid();
+      });
+      grid.appendChild(slot);
+    });
+    el('confirmTradeBtn').disabled = selected.size !== item.cost;
+  }
+
+  function confirmTrade() {
+    const { item, selected } = tradeState;
+    if (selected.size !== item.cost) return;
+    selected.forEach(qid => state.shop.traded.add(qid));
+    state.shop.owned.add(item.id);
+    state.shop.equipped[item.kind] = item.id;
+    applyEquipped();
+    el('tradeModal').classList.add('hidden');
+    tradeState = null;
+    renderShop();
+    confetti();
+  }
+
+  // ---------- Wire up ----------
+  el('story').addEventListener('input', updateLive);
+  el('checkBtn').addEventListener('click', checkWriting);
+  el('backBtn').addEventListener('click', () => {
+    el('writeScreen').classList.add('hidden');
+    el('mapScreen').classList.remove('hidden');
+    renderMap();
+    if (canSpeak) speechSynthesis.cancel();
+  });
+  el('stickerBookBtn').addEventListener('click', () => {
+    renderStickerBook();
+    el('stickerModal').classList.remove('hidden');
+  });
+  el('closeStickerBtn').addEventListener('click', () => el('stickerModal').classList.add('hidden'));
+  el('shopBtn').addEventListener('click', () => {
+    renderShop();
+    el('shopModal').classList.remove('hidden');
+  });
+  el('closeShopBtn').addEventListener('click', () => el('shopModal').classList.add('hidden'));
+  el('cancelTradeBtn').addEventListener('click', () => {
+    el('tradeModal').classList.add('hidden');
+    tradeState = null;
+  });
+  el('confirmTradeBtn').addEventListener('click', confirmTrade);
+  el('keepWritingBtn').addEventListener('click', () => el('completeModal').classList.add('hidden'));
+  el('backToMapBtn').addEventListener('click', () => {
+    el('completeModal').classList.add('hidden');
+    el('writeScreen').classList.add('hidden');
+    el('mapScreen').classList.remove('hidden');
+    renderMap();
+  });
+  el('speakPromptBtn').addEventListener('click', () =>
+    speak(el('questTitle').textContent + '. ' + el('questPrompt').textContent));
+  el('speakStoryBtn').addEventListener('click', () => speak(el('story').value));
+  if (!canSpeak) {
+    el('speakPromptBtn').style.display = 'none';
+    el('speakStoryBtn').style.display = 'none';
+  }
+
+  applyEquipped();
+  renderMap();
+})();
+</script>
+</body>
+</html>
