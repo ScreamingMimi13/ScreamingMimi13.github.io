@@ -360,6 +360,30 @@
   .pick-slot.selected { border: 3px solid var(--green); background: #e8f5e9; transform: scale(1.07); }
   .modal-btn:disabled { opacity: 0.45; cursor: default; }
 
+  /* ---------- Age picker ---------- */
+  .age-btn-top { background: var(--blue); }
+  .age-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 14px 0; }
+  .age-opt {
+    border: 3px solid #ffd54f;
+    background: #fff8e1;
+    border-radius: 14px;
+    padding: 14px 6px;
+    font-family: inherit;
+    font-size: 1.4rem;
+    font-weight: bold;
+    color: var(--ink);
+    cursor: pointer;
+  }
+  .age-opt:active { transform: scale(0.95); }
+  .age-opt.selected { border-color: var(--green); background: #e8f5e9; }
+  .age-hint { font-size: 0.85rem !important; color: #8d6e63; }
+  .level-note {
+    text-align: center;
+    color: var(--green-dark);
+    font-size: 0.95rem;
+    margin: -4px 0 14px;
+  }
+
   /* ---------- Confetti ---------- */
   .confetti {
     position: fixed;
@@ -387,6 +411,7 @@
   <h1>🌱 Story Sprout</h1>
   <div class="header-right">
     <div class="star-pill" id="starPill">⭐ 0</div>
+    <button class="book-btn age-btn-top" id="ageBtn">🎂 Age</button>
     <button class="book-btn shop-btn" id="shopBtn">🛍️ Shop</button>
     <button class="book-btn" id="stickerBookBtn">📖 Stickers</button>
   </div>
@@ -396,6 +421,7 @@
   <!-- Quest map -->
   <section id="mapScreen">
     <p class="map-intro">Pick a quest, write your story, and earn stars and stickers! 🌟</p>
+    <p class="level-note" id="levelNote"></p>
     <div id="tiers"></div>
   </section>
 
@@ -427,6 +453,17 @@
     <div class="feedback" id="feedback"></div>
   </section>
 </main>
+
+<!-- Age picker modal (shown on first load) -->
+<div class="modal-overlay" id="ageModal">
+  <div class="modal">
+    <span class="big-sticker">🌱</span>
+    <h2>Welcome to Story Sprout!</h2>
+    <p id="agePrompt">How old are you? I'll size your writing goals just right for you.</p>
+    <div class="age-grid" id="ageGrid"></div>
+    <p class="age-hint">A grown-up can change this any time with the 🎂 button.</p>
+  </div>
+</div>
 
 <!-- Sticker book modal -->
 <div class="modal-overlay hidden" id="stickerModal">
@@ -494,31 +531,51 @@
       'pop', 'bang', 'beep', 'growl', 'meow', 'woof', 'crackle', 'fizz', 'plop', 'screech',
       'rumble', 'ding', 'swish'],
     color: ['red', 'blue', 'green', 'yellow', 'purple', 'orange', 'pink', 'golden', 'silver',
-      'black', 'white', 'brown', 'rainbow', 'turquoise', 'violet', 'gray', 'crimson']
+      'black', 'white', 'brown', 'rainbow', 'turquoise', 'violet', 'gray', 'crimson'],
+    connector: ['first', 'next', 'then', 'after', 'before', 'finally', 'suddenly', 'meanwhile',
+      'later', 'soon', 'because', 'so', 'but', 'while', 'eventually', 'again', 'also', 'once',
+      'until', 'when'],
+    action: ['zoomed', 'leaped', 'dashed', 'grabbed', 'whispered', 'shouted', 'crept', 'tumbled',
+      'gobbled', 'sparkled', 'raced', 'crashed', 'exploded', 'vanished', 'sprinted', 'dived',
+      'snatched', 'wobbled', 'galloped', 'soared', 'stomped', 'giggled', 'screamed', 'wiggled',
+      'bounced']
   };
 
   const BANK_LABELS = {
     describing: '🎨 Describing words',
     feeling: '💛 Feeling words',
     sound: '💥 Sound words',
-    color: '🌈 Color words'
+    color: '🌈 Color words',
+    connector: '🔗 Connecting words',
+    action: '⚡ Action words'
   };
+
+  // ---------- Difficulty (scales word/sentence goals by age) ----------
+  // Baseline is age 8 (multiplier 1.0). Younger writers get gentler targets,
+  // older writers get bigger ones. Technique goals (similes, etc.) are unchanged.
+  let ageLevel = 8;
+  function diffMult() {
+    const m = 1 + (ageLevel - 8) * 0.18;
+    return Math.max(0.5, Math.min(1.9, m));
+  }
+  function wordTarget(base) { return Math.max(5, Math.round(base * diffMult())); }
+  function sentTarget(base) { return Math.max(1, Math.round(base * diffMult())); }
 
   // ---------- Goal factories ----------
   // Each goal: { id, label, check(a), tip(a), progress(a) }
   const G = {
     words: n => ({
       id: 'words' + n,
-      label: `Write at least ${n} words`,
-      check: a => a.wordCount >= n,
-      progress: a => `${a.wordCount}/${n}`,
-      tip: a => `Your story wants to grow! You have ${a.wordCount} word${a.wordCount === 1 ? '' : 's'} — just ${n - a.wordCount} more to go. What happened next?`
+      get label() { return `Write at least ${wordTarget(n)} words`; },
+      check: a => a.wordCount >= wordTarget(n),
+      progress: a => `${a.wordCount}/${wordTarget(n)}`,
+      tip: a => `Your story wants to grow! You have ${a.wordCount} word${a.wordCount === 1 ? '' : 's'} — just ${Math.max(1, wordTarget(n) - a.wordCount)} more to go. What happened next?`
     }),
     sentences: n => ({
       id: 'sent' + n,
-      label: `Write at least ${n} sentences`,
-      check: a => a.sentenceCount >= n,
-      progress: a => `${a.sentenceCount}/${n}`,
+      get label() { const t = sentTarget(n); return `Write at least ${t} sentence${t === 1 ? '' : 's'}`; },
+      check: a => a.sentenceCount >= sentTarget(n),
+      progress: a => `${a.sentenceCount}/${sentTarget(n)}`,
       tip: () => `A sentence ends with a period (.), an exclamation mark (!), or a question mark (?). Try splitting your ideas into more sentences.`
     }),
     capitals: () => ({
@@ -592,6 +649,27 @@
       check: a => a.hasExclamation,
       progress: () => '',
       tip: () => `Add a burst of excitement with an exclamation mark! Like: It was ALIVE!`
+    }),
+    connector: () => ({
+      id: 'connector',
+      label: 'Use a connecting word (first, next, then...)',
+      check: a => a.found.connector.length > 0,
+      progress: () => '',
+      tip: () => `Glue your ideas together with a connecting word! Try "first", "next", "then", or "suddenly" to show what happens in order.`
+    }),
+    action: () => ({
+      id: 'action',
+      label: 'Use a strong action word',
+      check: a => a.found.action.length > 0,
+      progress: () => '',
+      tip: () => `Don't just "go" — ZOOM, leap, or dash! Swap a plain word for a strong action word. (Check the word bank above.)`
+    }),
+    simile: () => ({
+      id: 'simile',
+      label: 'Compare two things (a simile: "as ___ as" or "like a ___")',
+      check: a => a.hasSimile,
+      progress: () => '',
+      tip: () => `Make a picture by comparing! Try "as fast as a rocket" or "it shone like a star". This is called a simile — real authors love them!`
     })
   };
 
@@ -764,6 +842,48 @@
           goals: [G.words(80), G.sentences(7), G.describing(), G.color(), G.dialogue()]
         }
       ]
+    },
+    {
+      name: '🏆 Legend Quests',
+      starsNeeded: 72,
+      quests: [
+        {
+          id: 'volcano', emoji: '🌋', sticker: '🌋', stickerName: 'Lava Legend',
+          title: 'The Volcano Adventure',
+          prompt: 'You climb a rumbling volcano to discover what is hiding inside. Take me on the whole journey, step by step!',
+          goals: [G.words(90), G.sentences(8), G.connector(), G.action(), G.simile(), G.feeling()]
+        },
+        {
+          id: 'space', emoji: '🚀', sticker: '🚀', stickerName: 'Star Captain',
+          title: 'Mission to a New Galaxy',
+          prompt: 'You are the captain of a spaceship heading to a galaxy nobody has ever explored. What do you find out there?',
+          goals: [G.words(90), G.sentences(8), G.connector(), G.dialogue(), G.describing(), G.simile()]
+        },
+        {
+          id: 'castle', emoji: '🏰', sticker: '🏰', stickerName: 'Castle Keeper',
+          title: 'The Castle With No Doors',
+          prompt: 'You find a giant castle — but there are NO doors anywhere. How do you get inside, and what waits for you there?',
+          goals: [G.words(90), G.sentences(8), G.action(), G.describing(), G.simile(), G.question()]
+        },
+        {
+          id: 'storm', emoji: '🌪️', sticker: '🌪️', stickerName: 'Storm Chaser',
+          title: 'Into the Storm',
+          prompt: 'A wild storm is coming and you have to race to safety. Make me HEAR the wind and FEEL your heart pound!',
+          goals: [G.words(90), G.sentences(8), G.sound(), G.action(), G.connector(), G.feeling()]
+        },
+        {
+          id: 'mirror', emoji: '🪞', sticker: '🪞', stickerName: 'Mirror Walker',
+          title: 'Through the Magic Mirror',
+          prompt: 'You touch an old mirror and your hand goes THROUGH it. You step inside. What is the world on the other side like?',
+          goals: [G.words(100), G.sentences(9), G.simile(), G.describing(), G.connector(), G.dialogue()]
+        },
+        {
+          id: 'wish', emoji: '🌟', sticker: '🌟', stickerName: 'Wish Granter',
+          title: 'Three Wishes',
+          prompt: 'A tiny glowing creature grants you THREE wishes — but every wish has a surprise. Tell the whole tale, beginning to end!',
+          goals: [G.words(100), G.sentences(9), G.connector(), G.dialogue(), G.feeling(), G.simile()]
+        }
+      ]
     }
   ];
 
@@ -788,6 +908,8 @@
       style: { weight: '500', fontStyle: 'italic', spacing: '0.3px', shadow: '0 1px 1px rgba(0,0,0,0.18)' } },
     { id: 'pen-glitter', kind: 'pen', name: 'Glitter Pen', cost: 3, glyph: '✨',
       style: { weight: '700', fontStyle: 'normal', spacing: '0.4px', shadow: '0 0 4px #ffd54f, 0 0 8px #ff80ab' } },
+    { id: 'pen-brush', kind: 'pen', name: 'Paint Brush', cost: 4, glyph: '🖌️',
+      style: { weight: '600', fontStyle: 'normal', spacing: '0.5px', shadow: '0 1px 2px rgba(0,0,0,0.25)' } },
 
     { id: 'ink-black',  kind: 'ink', name: 'Black Ink',      cost: 0, value: '#3e3a39' },
     { id: 'ink-blue',   kind: 'ink', name: 'Blueberry Ink',  cost: 1, value: '#1565c0' },
@@ -796,18 +918,22 @@
     { id: 'ink-purple', kind: 'ink', name: 'Grape Ink',      cost: 2, value: '#6a1b9a' },
     { id: 'ink-orange', kind: 'ink', name: 'Sunset Ink',     cost: 2, value: '#e65100' },
     { id: 'ink-gold',   kind: 'ink', name: 'Golden Ink',     cost: 3, value: '#a67c00' },
+    { id: 'ink-pink',   kind: 'ink', name: 'Bubblegum Ink',  cost: 2, value: '#d81b60' },
+    { id: 'ink-teal',   kind: 'ink', name: 'Mermaid Ink',    cost: 2, value: '#00838f' },
 
     { id: 'font-classic',    kind: 'font', name: 'Classic',    cost: 0, value: '' },
     { id: 'font-neat',       kind: 'font', name: 'Neat Print', cost: 1, value: 'Verdana, sans-serif' },
     { id: 'font-typewriter', kind: 'font', name: 'Typewriter', cost: 2, value: '"Courier New", monospace' },
     { id: 'font-fancy',      kind: 'font', name: 'Fancy',      cost: 2, value: 'Georgia, "Times New Roman", serif' },
     { id: 'font-curly',      kind: 'font', name: 'Curly',      cost: 3, value: '"Segoe Script", "Bradley Hand", cursive' },
+    { id: 'font-bubbly',     kind: 'font', name: 'Bubbly',     cost: 3, value: '"Comic Sans MS", "Chalkboard SE", cursive' },
 
     { id: 'paper-white',     kind: 'paper', name: 'Plain Paper',     cost: 0, value: '#ffffff' },
     { id: 'paper-sunshine',  kind: 'paper', name: 'Sunshine Paper',  cost: 1, value: '#fffde7' },
     { id: 'paper-bubblegum', kind: 'paper', name: 'Bubblegum Paper', cost: 1, value: '#fce4ec' },
     { id: 'paper-mint',      kind: 'paper', name: 'Mint Paper',      cost: 1, value: '#e8f5e9' },
     { id: 'paper-ocean',     kind: 'paper', name: 'Ocean Paper',     cost: 2, value: '#e1f5fe' },
+    { id: 'paper-lavender',  kind: 'paper', name: 'Lavender Paper',  cost: 2, value: '#ede7f6' },
     { id: 'paper-lined',     kind: 'paper', name: 'Lined Paper',     cost: 3, value: 'lined' }
   ];
   const SHOP_KINDS = ['pen', 'ink', 'font', 'paper'];
@@ -906,6 +1032,13 @@
     const hasExclamation = trimmed.includes('!');
     const hasQuestion = trimmed.includes('?');
 
+    // Simile: "as ___ as" or "like a/an ___"
+    const hasSimile = /\bas\s+[a-z]+\s+as\b/i.test(trimmed) || /\blike\s+an?\b/i.test(trimmed);
+
+    // Longest sentence (in words) — used to gently flag run-ons
+    const longestSentence = allChunks.reduce((mx, s) =>
+      Math.max(mx, s.split(/\s+/).filter(w => /[a-zA-Z]/.test(w)).length), 0);
+
     return {
       wordCount: words.length,
       sentenceCount: sentences.length,
@@ -919,30 +1052,50 @@
       overused,
       repeatStarter,
       hasExclamation,
-      hasQuestion
+      hasQuestion,
+      hasSimile,
+      longestSentence
     };
   }
 
   // ---------- Feedback ----------
+  const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+
   function buildPraise(a, quest) {
     const praise = [];
     quest.goals.forEach(g => {
       if (!g.check(a)) return;
       switch (true) {
         case g.id.startsWith('words'):
-          praise.push(`Wow — you wrote ${a.wordCount} words! Your story has real muscles. 💪`);
+          praise.push(pick([
+            `Wow — you wrote ${a.wordCount} words! Your story has real muscles. 💪`,
+            `${a.wordCount} words! You filled the page like a true author.`,
+            `That's ${a.wordCount} whole words. Your story grew big and strong!`
+          ]));
           break;
         case g.id.startsWith('sent'):
-          praise.push(`You wrote ${a.sentenceCount} full sentences. That's how real authors build a story!`);
+          praise.push(pick([
+            `You wrote ${a.sentenceCount} full sentences. That's how real authors build a story!`,
+            `${a.sentenceCount} complete sentences — your story flows beautifully.`,
+            `Nice work building ${a.sentenceCount} sentences, each with its own idea!`
+          ]));
           break;
         case g.id === 'capitals':
-          praise.push(`Every sentence starts with a capital letter. So tidy!`);
+          praise.push(pick([
+            `Every sentence starts with a capital letter. So tidy!`,
+            `Capital letters at the start of every sentence — neat as a pin!`,
+            `Your capital letters are perfect. That's careful writing!`
+          ]));
           break;
         case g.id === 'punct':
-          praise.push(`You finished with an ending mark. Nice and complete!`);
+          praise.push(pick([
+            `You finished with an ending mark. Nice and complete!`,
+            `Your story ends with the right mark — all wrapped up!`,
+            `A proper ending mark. That's the finishing touch!`
+          ]));
           break;
         case g.id === 'describing':
-          praise.push(`Great describing word${a.found.describing.length > 1 ? 's' : ''}: ${a.found.describing.map(w => `"${w}"`).join(', ')}! I can really picture it.`);
+          praise.push(`Great describing word${a.found.describing.length > 1 ? 's' : ''}: ${a.found.describing.slice(0, 3).map(w => `"${w}"`).join(', ')}! I can really picture it.`);
           break;
         case g.id === 'feeling':
           praise.push(`You used the feeling word "${a.found.feeling[0]}" — that helps me care about your character!`);
@@ -952,6 +1105,18 @@
           break;
         case g.id === 'color':
           praise.push(`Lovely color word: "${a.found.color[0]}". You painted with your words!`);
+          break;
+        case g.id === 'connector':
+          praise.push(`"${a.found.connector[0]}" connects your ideas — that's how authors lead readers through a story!`);
+          break;
+        case g.id === 'action':
+          praise.push(`Strong action word: "${a.found.action[0]}"! That makes your story leap off the page.`);
+          break;
+        case g.id === 'simile':
+          praise.push(pick([
+            `You made a simile — comparing two things! That's advanced author magic. ✨`,
+            `A simile! Comparing things like that helps your reader SEE the picture.`
+          ]));
           break;
         case g.id === 'dialogue':
           praise.push(`Your characters TALK! Using quotes is real author stuff.`);
@@ -999,6 +1164,9 @@
     if (a.repeatStarter) {
       tips.push(`Lots of your sentences start with "${a.repeatStarter}". Try starting one sentence a brand-new way!`);
     }
+    if (a.longestSentence > 28) {
+      tips.push(`One of your sentences is super long! See if you can split it into two shorter sentences — it's easier to read.`);
+    }
     return tips.slice(0, 2);
   }
 
@@ -1026,6 +1194,38 @@
     const u = new SpeechSynthesisUtterance(text);
     u.rate = 0.95;
     speechSynthesis.speak(u);
+  }
+
+  // ---------- Age picker ----------
+  const AGES = [5, 6, 7, 8, 9, 10, 11, 12, 13];
+
+  function levelWord() {
+    if (ageLevel <= 6) return 'gentle';
+    if (ageLevel <= 8) return 'just-right';
+    if (ageLevel <= 10) return 'bigger';
+    return 'super';
+  }
+
+  function renderAgeGrid() {
+    const grid = el('ageGrid');
+    grid.innerHTML = '';
+    AGES.forEach(age => {
+      const b = document.createElement('button');
+      b.className = 'age-opt' + (age === ageLevel ? ' selected' : '');
+      b.textContent = age === 13 ? '13+' : age;
+      b.addEventListener('click', () => setAge(age));
+      grid.appendChild(b);
+    });
+  }
+
+  function setAge(age) {
+    ageLevel = age;
+    el('ageBtn').textContent = `🎂 Age ${age === 13 ? '13+' : age}`;
+    el('levelNote').textContent =
+      `Writing level: Age ${age === 13 ? '13+' : age} — your goals are sized ${levelWord()} for you.`;
+    el('ageModal').classList.add('hidden');
+    renderAgeGrid();
+    renderMap();
   }
 
   // ---------- Rendering: quest map ----------
@@ -1109,7 +1309,7 @@
   function renderWordBank(quest) {
     const bankDiv = el('wordBank');
     bankDiv.innerHTML = '';
-    const wanted = ['describing', 'feeling', 'sound', 'color']
+    const wanted = ['describing', 'feeling', 'sound', 'color', 'connector', 'action']
       .filter(b => quest.goals.some(g => g.id === b));
     if (!wanted.length) return;
 
@@ -1360,6 +1560,10 @@
     el('stickerModal').classList.remove('hidden');
   });
   el('closeStickerBtn').addEventListener('click', () => el('stickerModal').classList.add('hidden'));
+  el('ageBtn').addEventListener('click', () => {
+    renderAgeGrid();
+    el('ageModal').classList.remove('hidden');
+  });
   el('shopBtn').addEventListener('click', () => {
     renderShop();
     el('shopModal').classList.remove('hidden');
@@ -1385,6 +1589,10 @@
     el('speakStoryBtn').style.display = 'none';
   }
 
+  renderAgeGrid();
+  el('ageBtn').textContent = `🎂 Age ${ageLevel}`;
+  el('levelNote').textContent =
+    `Writing level: Age ${ageLevel} — your goals are sized ${levelWord()} for you.`;
   applyEquipped();
   renderMap();
 })();
