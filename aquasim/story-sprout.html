@@ -360,6 +360,79 @@
   .pick-slot.selected { border: 3px solid var(--green); background: #e8f5e9; transform: scale(1.07); }
   .modal-btn:disabled { opacity: 0.45; cursor: default; }
 
+  /* ---------- Avatar ---------- */
+  .avatar {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    line-height: 1;
+    flex: none;
+  }
+  .avatar .av-acc { position: absolute; top: -6%; right: -6%; }
+  .avatar-lg { width: 92px; height: 92px; font-size: 54px; box-shadow: 0 3px 10px rgba(0,0,0,0.15); }
+  .avatar-lg .av-acc { font-size: 30px; }
+  .avatar-sm { width: 28px; height: 28px; font-size: 17px; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+  .avatar-sm .av-acc { font-size: 12px; }
+
+  /* ---------- Setup / profile ---------- */
+  .profile-btn { background: var(--blue); display: inline-flex; align-items: center; gap: 7px; padding: 4px 12px 4px 5px; }
+  .profile-btn #hdrName { max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .setup-modal { text-align: center; }
+  .setup-modal .avatar-lg { margin: 4px auto 10px; }
+  .setup-label { font-weight: bold; color: var(--green-dark); margin: 12px 0 6px; font-size: 0.95rem; }
+  .setup-sub { font-weight: normal; color: #8d6e63; font-size: 0.8rem; }
+  .name-input {
+    width: 100%;
+    border: 3px solid #ffd54f;
+    border-radius: 12px;
+    padding: 10px 14px;
+    font-family: inherit;
+    font-size: 1.15rem;
+    text-align: center;
+    background: #fffdf5;
+    color: var(--ink);
+  }
+  .name-input:focus { outline: none; border-color: var(--green); }
+  .picker-row { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+  .pick-chip {
+    position: relative;
+    border: 3px solid #e0e0e0;
+    background: #fafafa;
+    border-radius: 12px;
+    width: 46px;
+    height: 46px;
+    font-size: 24px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    line-height: 1;
+    overflow: visible;
+  }
+  .pick-chip:active { transform: scale(0.92); }
+  .pick-chip.selected { border-color: var(--green); background: #e8f5e9; transform: scale(1.08); }
+  .pick-chip.color-chip { font-size: 0; }
+  .pick-chip.none-chip { font-size: 0.8rem; color: #8d6e63; }
+  .pick-chip.locked { opacity: 0.55; }
+  .pick-chip.locked.color-chip { opacity: 0.7; }
+  .pick-chip .lock-cost {
+    position: absolute;
+    bottom: -7px;
+    right: -7px;
+    background: #fff3c4;
+    border: 1.5px solid #ffd54f;
+    border-radius: 999px;
+    font-size: 0.6rem;
+    font-weight: bold;
+    color: var(--ink);
+    padding: 0 4px;
+    line-height: 1.5;
+    white-space: nowrap;
+  }
+
   /* ---------- Age picker ---------- */
   .age-btn-top { background: var(--blue); }
   .age-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 14px 0; }
@@ -411,7 +484,7 @@
   <h1>🌱 Story Sprout</h1>
   <div class="header-right">
     <div class="star-pill" id="starPill">⭐ 0</div>
-    <button class="book-btn age-btn-top" id="ageBtn">🎂 Age</button>
+    <button class="book-btn profile-btn" id="profileBtn"><span id="hdrAvatar"></span><span id="hdrName">Me</span></button>
     <button class="book-btn shop-btn" id="shopBtn">🛍️ Shop</button>
     <button class="book-btn" id="stickerBookBtn">📖 Stickers</button>
   </div>
@@ -420,7 +493,7 @@
 <main>
   <!-- Quest map -->
   <section id="mapScreen">
-    <p class="map-intro">Pick a quest, write your story, and earn stars and stickers! 🌟</p>
+    <p class="map-intro" id="mapIntro">Pick a quest, write your story, and earn stars and stickers! 🌟</p>
     <p class="level-note" id="levelNote"></p>
     <div id="tiers"></div>
   </section>
@@ -454,14 +527,31 @@
   </section>
 </main>
 
-<!-- Age picker modal (shown on first load) -->
-<div class="modal-overlay" id="ageModal">
-  <div class="modal">
-    <span class="big-sticker">🌱</span>
-    <h2>Welcome to Story Sprout!</h2>
-    <p id="agePrompt">How old are you? I'll size your writing goals just right for you.</p>
+<!-- Writer setup modal (shown on first load) -->
+<div class="modal-overlay" id="setupModal">
+  <div class="modal setup-modal">
+    <h2>Make your writer! ✍️</h2>
+    <div class="avatar avatar-lg" id="avatarPreview"></div>
+
+    <div class="setup-label">My name is...</div>
+    <input id="nameInput" class="name-input" maxlength="16" placeholder="Type your name" autocomplete="off" spellcheck="false">
+
+    <div class="setup-label">Pick your character</div>
+    <div class="picker-row" id="baseRow"></div>
+
+    <div class="setup-label">Pick a background <span class="setup-sub">(⭐ = trade stickers)</span></div>
+    <div class="picker-row" id="bgRow"></div>
+
+    <div class="setup-label">Add a sticker <span class="setup-sub">(⭐ = trade stickers)</span></div>
+    <div class="picker-row" id="accRow"></div>
+
+    <div class="setup-label">How old are you? (this sizes your goals)</div>
     <div class="age-grid" id="ageGrid"></div>
-    <p class="age-hint">A grown-up can change this any time with the 🎂 button.</p>
+
+    <div class="modal-btns">
+      <button class="modal-btn primary" id="startBtn">Start writing! 🚀</button>
+    </div>
+    <p class="age-hint">A grown-up can change all of this any time with the button up top.</p>
   </div>
 </div>
 
@@ -940,13 +1030,67 @@
   const KIND_LABELS = { pen: '🖊️ Pens', ink: '🎨 Inks', font: '🔤 Fonts', paper: '📄 Paper' };
   const LINED_BG = 'repeating-linear-gradient(#ffffff, #ffffff calc(1.6em - 2px), #b3e5fc calc(1.6em - 2px), #b3e5fc 1.6em)';
 
+  // ---------- Avatar catalog ----------
+  // Backgrounds and stickers for the avatar. Some are free; the rest are
+  // unlocked by trading earned quest stickers, just like the writing Shop.
+  // Plain solid colors are always free. Textured/patterned backgrounds cost stickers.
+  const AVATAR_BGS = [
+    { id: 'avbg-yellow', kind: 'avatarBg', name: 'Sunny background',  value: '#ffd54f', cost: 0 },
+    { id: 'avbg-coral',  kind: 'avatarBg', name: 'Coral background',  value: '#ff8a80', cost: 0 },
+    { id: 'avbg-cloud',  kind: 'avatarBg', name: 'Cloud background',  value: '#e0e0e0', cost: 0 },
+    { id: 'avbg-sky',    kind: 'avatarBg', name: 'Sky background',    value: '#80d8ff', cost: 0 },
+    { id: 'avbg-mint',   kind: 'avatarBg', name: 'Mint background',   value: '#b9f6ca', cost: 0 },
+    { id: 'avbg-peach',  kind: 'avatarBg', name: 'Peach background',  value: '#ffab91', cost: 0 },
+    { id: 'avbg-grape',  kind: 'avatarBg', name: 'Grape background',  value: '#ea80fc', cost: 0 },
+    { id: 'avbg-rose',   kind: 'avatarBg', name: 'Rose background',   value: '#f48fb1', cost: 0 },
+    { id: 'avbg-violet', kind: 'avatarBg', name: 'Violet background', value: '#b388ff', cost: 0 },
+    { id: 'avbg-jade',   kind: 'avatarBg', name: 'Jade background',   value: '#69f0ae', cost: 0 },
+    // Textured backgrounds (cost stickers)
+    { id: 'avbg-rainbow', kind: 'avatarBg', name: 'Rainbow background', cost: 1,
+      value: 'linear-gradient(135deg, #ff8a80, #ffd54f, #b9f6ca, #80d8ff, #b388ff)' },
+    { id: 'avbg-stripes', kind: 'avatarBg', name: 'Stripes background', cost: 1,
+      value: 'repeating-linear-gradient(45deg, #ffd54f 0 9px, #ffb74d 9px 18px)' },
+    { id: 'avbg-sunset',  kind: 'avatarBg', name: 'Sunset background', cost: 2,
+      value: 'linear-gradient(180deg, #ff9a9e, #fad0c4, #fbc2eb)' },
+    { id: 'avbg-dots',    kind: 'avatarBg', name: 'Polka-dot background', cost: 2,
+      value: 'radial-gradient(#ffffff 24%, transparent 26%) 0 0 / 14px 14px, #ff8ab3' },
+    { id: 'avbg-bubbles', kind: 'avatarBg', name: 'Bubbles background', cost: 2,
+      value: 'radial-gradient(circle at 25% 75%, #ffffffaa 9%, transparent 10%), radial-gradient(circle at 72% 32%, #ffffffaa 7%, transparent 8%), #4fc3f7' },
+    { id: 'avbg-glitter', kind: 'avatarBg', name: 'Glitter-gold background', cost: 3,
+      value: 'radial-gradient(circle at 30% 30%, #ffffffcc, transparent 45%), linear-gradient(135deg, #ffd54f, #ffb300)' },
+    { id: 'avbg-galaxy',  kind: 'avatarBg', name: 'Galaxy background', cost: 3,
+      value: 'radial-gradient(#ffffff 1.5px, transparent 2px) 0 0 / 12px 12px, radial-gradient(circle at 60% 35%, #7e57c2, #311b92)' }
+  ];
+  // Plain stickers are free. Glowing "special" stickers cost stickers.
+  const AVATAR_STICKERS = [
+    { id: 'avst-none',    kind: 'avatarSticker', name: 'No sticker',     value: '',   cost: 0 },
+    { id: 'avst-tophat',  kind: 'avatarSticker', name: 'Top hat',        value: '🎩', cost: 0 },
+    { id: 'avst-bow',     kind: 'avatarSticker', name: 'Bow',            value: '🎀', cost: 0 },
+    { id: 'avst-star',    kind: 'avatarSticker', name: 'Star',           value: '⭐', cost: 0 },
+    { id: 'avst-cap',     kind: 'avatarSticker', name: 'Cap',            value: '🧢', cost: 0 },
+    { id: 'avst-candy',   kind: 'avatarSticker', name: 'Candy',          value: '🍭', cost: 0 },
+    { id: 'avst-flower',  kind: 'avatarSticker', name: 'Flower',         value: '🌸', cost: 0 },
+    { id: 'avst-balloon', kind: 'avatarSticker', name: 'Balloon',        value: '🎈', cost: 0 },
+    // Glowing "special" stickers (cost stickers)
+    { id: 'avst-sparkle', kind: 'avatarSticker', name: 'Glowing Sparkles', value: '✨', cost: 1, glow: '#ffd54f' },
+    { id: 'avst-glowstar',kind: 'avatarSticker', name: 'Glowing Star',     value: '🌟', cost: 1, glow: '#ffca28' },
+    { id: 'avst-crown',   kind: 'avatarSticker', name: 'Golden Crown',     value: '👑', cost: 2, glow: '#ffd54f' },
+    { id: 'avst-rainbow', kind: 'avatarSticker', name: 'Glowing Rainbow',  value: '🌈', cost: 2, glow: '#ff80ab' },
+    { id: 'avst-fire',    kind: 'avatarSticker', name: 'Blazing Fire',     value: '🔥', cost: 2, glow: '#ff7043' },
+    { id: 'avst-fly',     kind: 'avatarSticker', name: 'Glowing Butterfly', value: '🦋', cost: 2, glow: '#80d8ff' },
+    { id: 'avst-diamond', kind: 'avatarSticker', name: 'Shiny Diamond',    value: '💎', cost: 3, glow: '#40c4ff' },
+    { id: 'avst-unicorn', kind: 'avatarSticker', name: 'Magic Unicorn',    value: '🦄', cost: 3, glow: '#ea80fc' }
+  ];
+  const FREE_AVATAR_IDS = [...AVATAR_BGS, ...AVATAR_STICKERS]
+    .filter(i => i.cost === 0).map(i => i.id);
+
   // ---------- State (in-memory only) ----------
   const state = {
     // questId -> { earned: Set of goal ids, complete: bool }
     progress: {},
     currentQuest: null,
     shop: {
-      owned: new Set(['pen-ballpoint', 'ink-black', 'font-classic', 'paper-white']),
+      owned: new Set(['pen-ballpoint', 'ink-black', 'font-classic', 'paper-white', ...FREE_AVATAR_IDS]),
       equipped: { pen: 'pen-ballpoint', ink: 'ink-black', font: 'font-classic', paper: 'paper-white' },
       traded: new Set() // questIds whose stickers were traded away
     }
@@ -1196,14 +1340,115 @@
     speechSynthesis.speak(u);
   }
 
-  // ---------- Age picker ----------
+  // ---------- Profile: name, avatar, age ----------
+  const AV_BASES = ['🦊', '🐱', '🐶', '🐼', '🦄', '🐸', '🐯', '🐵', '🦁', '🐰',
+    '🐨', '🐧', '🐢', '🦉', '🐲', '🐙', '🐝', '🦖'];
+
+  const profile = { name: '', avatar: { base: AV_BASES[0], bg: AVATAR_BGS[0].value, acc: '', accGlow: '' } };
+
+  function equipAvatarItem(item) {
+    if (item.kind === 'avatarBg') {
+      profile.avatar.bg = item.value;
+    } else {
+      profile.avatar.acc = item.value;
+      profile.avatar.accGlow = item.glow || '';
+    }
+  }
+
+  function innerAvatar(av) {
+    const accStyle = av.accGlow ? ` style="filter:drop-shadow(0 0 4px ${av.accGlow})"` : '';
+    return `<span class="av-base">${av.base}</span>` +
+      (av.acc ? `<span class="av-acc"${accStyle}>${av.acc}</span>` : '');
+  }
+  function updateAvatarPreview() {
+    const p = el('avatarPreview');
+    p.style.background = profile.avatar.bg;
+    p.innerHTML = innerAvatar(profile.avatar);
+  }
+  function updateHeaderProfile() {
+    const h = el('hdrAvatar');
+    h.className = 'avatar avatar-sm';
+    h.style.background = profile.avatar.bg;
+    h.innerHTML = innerAvatar(profile.avatar);
+    el('hdrName').textContent = profile.name || 'Me';
+  }
+
+  function renderSetupPickers() {
+    // Characters are always free.
+    const baseRow = el('baseRow');
+    baseRow.innerHTML = '';
+    AV_BASES.forEach(base => {
+      const c = document.createElement('button');
+      c.className = 'pick-chip' + (base === profile.avatar.base ? ' selected' : '');
+      c.textContent = base;
+      c.addEventListener('click', () => {
+        profile.avatar.base = base;
+        renderSetupPickers();
+        updateAvatarPreview();
+      });
+      baseRow.appendChild(c);
+    });
+    // Backgrounds and stickers can be locked behind the sticker economy.
+    renderAvatarShopRow('bgRow', AVATAR_BGS, 'bg', { color: true });
+    renderAvatarShopRow('accRow', AVATAR_STICKERS, 'acc', { sticker: true });
+  }
+
+  function renderAvatarShopRow(rowId, items, key, opts = {}) {
+    const row = el(rowId);
+    row.innerHTML = '';
+    items.forEach(item => {
+      const owned = state.shop.owned.has(item.id);
+      const selected = profile.avatar[key] === item.value;
+      const isNone = opts.sticker && item.value === '';
+      const c = document.createElement('button');
+      c.className = 'pick-chip' +
+        (opts.color ? ' color-chip' : '') +
+        (isNone ? ' none-chip' : '') +
+        (selected ? ' selected' : '') +
+        (owned ? '' : ' locked');
+      if (opts.color) {
+        c.style.background = item.value;
+      } else {
+        c.textContent = isNone ? 'none' : item.value;
+        if (item.glow) c.style.filter = `drop-shadow(0 0 3px ${item.glow})`;
+      }
+      if (!owned) {
+        const badge = document.createElement('span');
+        badge.className = 'lock-cost';
+        badge.textContent = '⭐' + item.cost;
+        c.appendChild(badge);
+      }
+      c.addEventListener('click', () => {
+        if (state.shop.owned.has(item.id)) {
+          equipAvatarItem(item);
+          renderSetupPickers();
+          updateAvatarPreview();
+        } else {
+          openTrade(item);
+        }
+      });
+      row.appendChild(c);
+    });
+  }
+
+  // ---------- Age ----------
   const AGES = [5, 6, 7, 8, 9, 10, 11, 12, 13];
+  const ageLabel = age => age === 13 ? '13+' : age;
 
   function levelWord() {
     if (ageLevel <= 6) return 'gentle';
     if (ageLevel <= 8) return 'just-right';
     if (ageLevel <= 10) return 'bigger';
     return 'super';
+  }
+  function updateLevelTexts() {
+    el('levelNote').textContent =
+      `Writing level: Age ${ageLabel(ageLevel)} — your goals are sized ${levelWord()} for you.`;
+  }
+  function updateMapIntro() {
+    el('mapIntro').textContent = profile.name
+      ? `Pick a quest, ${profile.name} — write your story and earn stars and stickers! 🌟`
+      : `Pick a quest, write your story, and earn stars and stickers! 🌟`;
   }
 
   function renderAgeGrid() {
@@ -1212,19 +1457,32 @@
     AGES.forEach(age => {
       const b = document.createElement('button');
       b.className = 'age-opt' + (age === ageLevel ? ' selected' : '');
-      b.textContent = age === 13 ? '13+' : age;
-      b.addEventListener('click', () => setAge(age));
+      b.textContent = ageLabel(age);
+      b.addEventListener('click', () => selectAge(age));
       grid.appendChild(b);
     });
   }
-
-  function setAge(age) {
+  function selectAge(age) {
     ageLevel = age;
-    el('ageBtn').textContent = `🎂 Age ${age === 13 ? '13+' : age}`;
-    el('levelNote').textContent =
-      `Writing level: Age ${age === 13 ? '13+' : age} — your goals are sized ${levelWord()} for you.`;
-    el('ageModal').classList.add('hidden');
     renderAgeGrid();
+    updateLevelTexts();
+  }
+
+  // ---------- Setup modal open/finish ----------
+  function openSetup() {
+    el('nameInput').value = profile.name;
+    renderSetupPickers();
+    updateAvatarPreview();
+    renderAgeGrid();
+    el('setupModal').classList.remove('hidden');
+    setTimeout(() => el('nameInput').focus(), 50);
+  }
+  function finishSetup() {
+    profile.name = el('nameInput').value.trim().slice(0, 16);
+    updateHeaderProfile();
+    updateLevelTexts();
+    updateMapIntro();
+    el('setupModal').classList.add('hidden');
     renderMap();
   }
 
@@ -1381,7 +1639,8 @@
 
     let html = '';
     if (praise.length) {
-      html += `<div class="fb-block fb-praise"><h3>🎉 What you did great:</h3>${praise.map(p => `<li>${p}</li>`).join('')}</div>`;
+      const praiseHead = profile.name ? `🎉 Wow, ${profile.name}! What you did great:` : `🎉 What you did great:`;
+      html += `<div class="fb-block fb-praise"><h3>${praiseHead}</h3>${praise.map(p => `<li>${p}</li>`).join('')}</div>`;
     }
     if (tips.length) {
       html += `<div class="fb-block fb-tips"><h3>💡 Writing tip${tips.length > 1 ? 's' : ''}:</h3>${tips.map(t => `<li>${t}</li>`).join('')}<li style="list-style:none; margin-top:6px; font-size:0.9rem; color:#8d6e63;">Fix it up and press ✅ Check again!</li></div>`;
@@ -1395,7 +1654,7 @@
         confetti();
         el('completeSticker').textContent = quest.sticker;
         el('completeText').textContent =
-          `You hit ALL the goals for "${quest.title}" and earned the ${quest.stickerName} sticker! Keep it in your sticker book — or trade it in the 🛍️ Shop for new pens, fonts, and paper!`;
+          `${profile.name ? `Amazing, ${profile.name}! You` : 'You'} hit ALL the goals for "${quest.title}" and earned the ${quest.stickerName} sticker! Keep it in your sticker book — or trade it in the 🛍️ Shop for new pens, fonts, and paper!`;
         el('completeModal').classList.remove('hidden');
       }, 500);
     } else if (allMet) {
@@ -1514,9 +1773,12 @@
   function renderTradeGrid() {
     const { item, selected } = tradeState;
     const left = item.cost - selected.size;
-    el('tradeText').textContent = left > 0
-      ? `Tap ${left} more sticker${left === 1 ? '' : 's'} you want to trade away.`
-      : `Ready! Trade these for the ${item.name}?`;
+    const haveEnough = availableStickers().length >= item.cost;
+    el('tradeText').textContent = !haveEnough
+      ? `You need ${item.cost} sticker${item.cost === 1 ? '' : 's'} to get the ${item.name}. Finish more quests to earn stickers!`
+      : left > 0
+        ? `Tap ${left} more sticker${left === 1 ? '' : 's'} you want to trade away.`
+        : `Ready! Trade these for the ${item.name}?`;
     const grid = el('tradeGrid');
     grid.innerHTML = '';
     availableStickers().forEach(q => {
@@ -1538,12 +1800,20 @@
     if (selected.size !== item.cost) return;
     selected.forEach(qid => state.shop.traded.add(qid));
     state.shop.owned.add(item.id);
-    state.shop.equipped[item.kind] = item.id;
-    applyEquipped();
     el('tradeModal').classList.add('hidden');
     tradeState = null;
-    renderShop();
     confetti();
+    if (item.kind === 'avatarBg' || item.kind === 'avatarSticker') {
+      // Auto-equip the freshly unlocked avatar part and refresh the setup screen.
+      equipAvatarItem(item);
+      renderSetupPickers();
+      updateAvatarPreview();
+      updateHeaderProfile();
+    } else {
+      state.shop.equipped[item.kind] = item.id;
+      applyEquipped();
+      renderShop();
+    }
   }
 
   // ---------- Wire up ----------
@@ -1560,10 +1830,9 @@
     el('stickerModal').classList.remove('hidden');
   });
   el('closeStickerBtn').addEventListener('click', () => el('stickerModal').classList.add('hidden'));
-  el('ageBtn').addEventListener('click', () => {
-    renderAgeGrid();
-    el('ageModal').classList.remove('hidden');
-  });
+  el('profileBtn').addEventListener('click', openSetup);
+  el('startBtn').addEventListener('click', finishSetup);
+  el('nameInput').addEventListener('keydown', e => { if (e.key === 'Enter') finishSetup(); });
   el('shopBtn').addEventListener('click', () => {
     renderShop();
     el('shopModal').classList.remove('hidden');
@@ -1589,12 +1858,15 @@
     el('speakStoryBtn').style.display = 'none';
   }
 
+  renderSetupPickers();
+  updateAvatarPreview();
   renderAgeGrid();
-  el('ageBtn').textContent = `🎂 Age ${ageLevel}`;
-  el('levelNote').textContent =
-    `Writing level: Age ${ageLevel} — your goals are sized ${levelWord()} for you.`;
+  updateHeaderProfile();
+  updateLevelTexts();
+  updateMapIntro();
   applyEquipped();
   renderMap();
+  setTimeout(() => el('nameInput').focus(), 50);
 })();
 </script>
 </body>
