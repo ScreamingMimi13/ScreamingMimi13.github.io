@@ -428,22 +428,78 @@
   var STREAK_TARGET = 5;
 
   // ---------- Species ----------
-  // netCost: stars per catch attempt.  zone: green fraction of the bar (smaller = harder).
-  // speed: wander speed px/s.  sweep: seconds for the catch needle to cross (smaller = harder).
-  // weight: spawn likelihood.
-  var SPECIES = [
-    { id: "frog",    emoji: "🐸", name: "Hoppy Frog", rar: "common",    netCost: 12, zone: 0.36, speed: 38,  sweep: 1.5, weight: 26 },
-    { id: "cat",     emoji: "🐱", name: "Whiskers",   rar: "common",    netCost: 14, zone: 0.34, speed: 42,  sweep: 1.4, weight: 24 },
-    { id: "bunny",   emoji: "🐰", name: "Thumper",    rar: "common",    netCost: 16, zone: 0.32, speed: 48,  sweep: 1.35, weight: 22 },
-    { id: "fox",     emoji: "🦊", name: "Sly Fox",    rar: "rare",      netCost: 30, zone: 0.24, speed: 60,  sweep: 1.15, weight: 14 },
-    { id: "owl",     emoji: "🦉", name: "Professor",  rar: "rare",      netCost: 34, zone: 0.23, speed: 56,  sweep: 1.1, weight: 12 },
-    { id: "panda",   emoji: "🐼", name: "Bamboo",     rar: "rare",      netCost: 38, zone: 0.22, speed: 52,  sweep: 1.1, weight: 11 },
-    { id: "penguin", emoji: "🐧", name: "Waddles",    rar: "epic",      netCost: 65, zone: 0.16, speed: 64,  sweep: 0.95, weight: 7 },
-    { id: "tiger",   emoji: "🐯", name: "Stripes",    rar: "epic",      netCost: 75, zone: 0.15, speed: 74,  sweep: 0.9, weight: 6 },
-    { id: "monkey",  emoji: "🐵", name: "Bananas",    rar: "epic",      netCost: 80, zone: 0.15, speed: 78,  sweep: 0.88, weight: 5 },
-    { id: "unicorn", emoji: "🦄", name: "Sparkle",    rar: "legendary", netCost: 150, zone: 0.10, speed: 88, sweep: 0.75, weight: 2 },
-    { id: "dragon",  emoji: "🐉", name: "Embertail",  rar: "legendary", netCost: 180, zone: 0.09, speed: 94, sweep: 0.72, weight: 2 }
+  // Per-rarity base stats. Each critter's exact numbers are derived from its tier
+  // (with a small deterministic per-critter wobble) so 100 critters stay balanced.
+  //   netCost: stars per catch attempt   zone: green fraction of the bar (smaller = harder)
+  //   speed: wander speed px/s            sweep: seconds for the needle to cross (smaller = harder)
+  //   weight: relative spawn likelihood per critter
+  var RARITY = {
+    common:    { netCost: 12,  zone: 0.36, speed: 40, sweep: 1.50, weight: 30 },
+    uncommon:  { netCost: 26,  zone: 0.28, speed: 52, sweep: 1.28, weight: 16 },
+    rare:      { netCost: 48,  zone: 0.21, speed: 62, sweep: 1.06, weight: 8 },
+    epic:      { netCost: 90,  zone: 0.15, speed: 76, sweep: 0.90, weight: 3.5 },
+    legendary: { netCost: 180, zone: 0.10, speed: 92, sweep: 0.72, weight: 1.1 }
+  };
+
+  // [id, emoji, name, rarity] — 100 critters to collect.
+  var RAW = [
+    // ---- common (30) ----
+    ["dog","🐶","Rex","common"], ["cat","🐱","Mittens","common"], ["mouse","🐭","Squeaky","common"],
+    ["hamster","🐹","Nugget","common"], ["chick","🐤","Sunny","common"], ["hatch","🐣","Pip","common"],
+    ["bird","🐦","Tweety","common"], ["frog","🐸","Hopper","common"], ["fish","🐟","Bubbles","common"],
+    ["tropicalfish","🐠","Coral","common"], ["blowfish","🐡","Puffy","common"], ["bee","🐝","Buzz","common"],
+    ["butterfly","🦋","Flutter","common"], ["snail","🐌","Pokey","common"], ["ladybug","🐞","Dot","common"],
+    ["ant","🐜","Pinch","common"], ["caterpillar","🐛","Inch","common"], ["cricket","🦗","Chirp","common"],
+    ["spider","🕷️","Webster","common"], ["chicken","🐔","Henrietta","common"], ["rooster","🐓","Cluck","common"],
+    ["mousewhite","🐁","Nibbles","common"], ["rat","🐀","Scratch","common"], ["worm","🪱","Wiggles","common"],
+    ["beetle","🪲","Click","common"], ["fly","🪰","Zippy","common"], ["roach","🪳","Crumbs","common"],
+    ["shrimp","🦐","Snappy","common"], ["crab","🦀","Pinchy","common"], ["scorpion","🦂","Sting","common"],
+    // ---- uncommon (24) ----
+    ["rabbit","🐰","Thumper","uncommon"], ["duck","🦆","Quackers","uncommon"], ["pig","🐷","Hamlet","uncommon"],
+    ["cow","🐮","Daisy","uncommon"], ["monkey","🐵","Bananas","uncommon"], ["turtle","🐢","Shelly","uncommon"],
+    ["snake","🐍","Slinky","uncommon"], ["lizard","🦎","Gecko","uncommon"], ["bat","🦇","Echo","uncommon"],
+    ["boar","🐗","Tusk","uncommon"], ["goat","🐐","Billy","uncommon"], ["sheep","🐑","Woolly","uncommon"],
+    ["ram","🐏","Curly","uncommon"], ["horse","🐴","Clover","uncommon"], ["hedgehog","🦔","Spike","uncommon"],
+    ["chipmunk","🐿️","Acorn","uncommon"], ["beaver","🦫","Chip","uncommon"], ["badger","🦡","Digger","uncommon"],
+    ["skunk","🦨","Stripe","uncommon"], ["dolphin","🐬","Splash","uncommon"], ["squid","🦑","Inky","uncommon"],
+    ["lobster","🦞","Claws","uncommon"], ["dove","🕊️","Olive","uncommon"], ["penguin","🐧","Waddles","uncommon"],
+    // ---- rare (22) ----
+    ["fox","🦊","Rusty","rare"], ["owl","🦉","Professor","rare"], ["panda","🐼","Bamboo","rare"],
+    ["wolf","🐺","Shadow","rare"], ["deer","🦌","Fern","rare"], ["koala","🐨","Eucky","rare"],
+    ["kangaroo","🦘","Boomer","rare"], ["flamingo","🦩","Rosie","rare"], ["parrot","🦜","Mango","rare"],
+    ["swan","🦢","Grace","rare"], ["raccoon","🦝","Bandit","rare"], ["otter","🦦","Pebble","rare"],
+    ["sloth","🦥","Mellow","rare"], ["seal","🦭","Flipper","rare"], ["llama","🦙","Cuzco","rare"],
+    ["camel","🐪","Dusty","rare"], ["camel2","🐫","Sahara","rare"], ["zebra","🦓","Marty","rare"],
+    ["leopard","🐆","Spots","rare"], ["eagle","🦅","Sky","rare"], ["turkey","🦃","Gobble","rare"],
+    ["poodle","🐩","Fifi","rare"],
+    // ---- epic (16) ----
+    ["lion","🦁","Leo","epic"], ["tiger","🐯","Stripes","epic"], ["gorilla","🦍","Kong","epic"],
+    ["elephant","🐘","Trunky","epic"], ["rhino","🦏","Tank","epic"], ["hippo","🦛","Splosh","epic"],
+    ["giraffe","🦒","Stretch","epic"], ["shark","🦈","Chomp","epic"], ["crocodile","🐊","Snap","epic"],
+    ["octopus","🐙","Reef","epic"], ["orangutan","🦧","Ginger","epic"], ["bison","🦬","Thunder","epic"],
+    ["buffalo","🐃","Horns","epic"], ["whale","🐳","Moby","epic"], ["racehorse","🐎","Comet","epic"],
+    ["peacock","🦚","Iris","epic"],
+    // ---- legendary (8) ----
+    ["unicorn","🦄","Sparkle","legendary"], ["dragon","🐉","Embertail","legendary"],
+    ["dragonface","🐲","Wyrm","legendary"], ["trex","🦖","Rexor","legendary"],
+    ["sauropod","🦕","Longneck","legendary"], ["mammoth","🦣","Tusker","legendary"],
+    ["bigwhale","🐋","Bluemoon","legendary"], ["dodo","🦤","Dewey","legendary"]
   ];
+
+  function clampN(v, lo, hi) { return Math.min(hi, Math.max(lo, v)); }
+
+  var SPECIES = RAW.map(function (r, i) {
+    var base = RARITY[r[3]];
+    var wobble = ((i * 37 + r[0].length * 13) % 7) - 3; // deterministic -3..3
+    return {
+      id: r[0], emoji: r[1], name: r[2], rar: r[3],
+      netCost: Math.max(8, Math.round(base.netCost * (1 + 0.05 * wobble))),
+      zone: clampN(base.zone + wobble * 0.004, 0.07, 0.4),
+      speed: base.speed + wobble * 2,
+      sweep: Math.max(0.6, base.sweep + wobble * 0.015),
+      weight: base.weight
+    };
+  });
   var SP_BY_ID = {};
   SPECIES.forEach(function (s) { SP_BY_ID[s.id] = s; });
 
