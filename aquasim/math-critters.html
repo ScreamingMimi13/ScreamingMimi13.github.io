@@ -224,8 +224,29 @@
   /* a critter is a 0-size anchor placed at its FEET; child .wb holds the art and scales by depth */
   .wild { position: absolute; left: 0; top: 0; width: 0; height: 0; cursor: pointer; }
   .wild .wb { position: absolute; left: 0; top: 0; transform-origin: 50% 100%; white-space: nowrap; will-change: transform; }
-  .wild .body { display: block; font-size: 42px; line-height: 1; filter: drop-shadow(0 3px 2px rgba(0,0,0,.22)); transition: filter .1s ease; }
-  .wild:active .body { filter: drop-shadow(0 2px 2px rgba(0,0,0,.3)) brightness(1.12); }
+  .wild .body {
+    position: relative; display: block; font-size: 42px; line-height: 1;
+    filter: drop-shadow(0 3px 2px rgba(0,0,0,.22)) saturate(1.3) brightness(1.08) contrast(1.04);
+    transition: filter .1s ease;
+  }
+  /* glossy specular highlight + a soft sheen sweep = shiny critters */
+  .wild .body::before {
+    content: ""; position: absolute; left: 15%; top: 3%; width: 42%; height: 36%;
+    background: radial-gradient(ellipse at 50% 50%, rgba(255,255,255,.92), rgba(255,255,255,0) 70%);
+    border-radius: 50%; pointer-events: none;
+  }
+  .wild .body::after {
+    content: ""; position: absolute; inset: 8% 12%;
+    background: linear-gradient(115deg, transparent 38%, rgba(255,255,255,.5) 48%, transparent 58%);
+    border-radius: 40%; pointer-events: none; mix-blend-mode: screen;
+    animation: sheen 3.4s ease-in-out infinite;
+  }
+  @keyframes sheen {
+    0%, 70%, 100% { opacity: 0; transform: translateX(-40%); }
+    82% { opacity: 1; }
+    95% { opacity: 0; transform: translateX(40%); }
+  }
+  .wild:active .body { filter: drop-shadow(0 2px 2px rgba(0,0,0,.3)) saturate(1.3) brightness(1.2); }
   .wild .shadow {
     position: absolute; left: 0; top: 0; width: 46px; height: 15px;
     background: radial-gradient(ellipse at center, rgba(0,0,0,.34), rgba(0,0,0,0) 70%);
@@ -235,20 +256,40 @@
     from { filter: drop-shadow(0 3px 2px rgba(0,0,0,.22)); }
     to   { filter: drop-shadow(0 0 9px rgba(255,196,60,.95)) drop-shadow(0 3px 2px rgba(0,0,0,.22)); }
   }
-  /* the ranger kid — same side-view anchoring */
-  .player { position: absolute; left: 0; top: 0; width: 0; height: 0; pointer-events: none; }
-  .player .wb { position: absolute; left: 0; top: 0; transform-origin: 50% 100%; white-space: nowrap; will-change: transform; }
-  .player .body { display: block; font-size: 50px; line-height: 1; position: relative; filter: drop-shadow(0 3px 2px rgba(0,0,0,.28)); }
-  .player .net { position: absolute; left: 62%; top: -6px; font-size: 32px; transform-origin: bottom left; }
-  .player .shadow {
-    position: absolute; left: 0; top: 0; width: 52px; height: 16px;
-    background: radial-gradient(ellipse at center, rgba(0,0,0,.34), rgba(0,0,0,0) 70%);
+  /* first-person: the net YOU hold in the foreground */
+  .fp-net {
+    position: absolute; left: 50%; bottom: -26px; width: 210px; height: 250px;
+    transform: translateX(-50%) rotate(-10deg); transform-origin: 50% 100%;
+    pointer-events: none; z-index: 70; animation: netIdle 3.2s ease-in-out infinite;
   }
-  .player.swing .net { animation: netSwing .5s ease; }
-  @keyframes netSwing {
-    0% { transform: rotate(0); }
-    45% { transform: rotate(-60deg) translateY(-4px); }
-    100% { transform: rotate(0); }
+  .fp-net .handle {
+    position: absolute; left: 50%; bottom: 0; width: 16px; height: 178px;
+    transform: translateX(-50%); border-radius: 9px;
+    background: linear-gradient(90deg, #7c4f1d, #d8ad66 45%, #b07c33 70%, #6f441a);
+    box-shadow: 0 2px 6px rgba(0,0,0,.4);
+  }
+  .fp-net .hoop {
+    position: absolute; left: 50%; top: 0; width: 134px; height: 134px;
+    transform: translateX(-50%); border-radius: 50%; border: 10px solid #d6dde7;
+    background: radial-gradient(circle at 38% 30%, rgba(255,255,255,.42), rgba(180,210,255,.14) 55%, rgba(150,180,230,.05) 78%);
+    box-shadow: 0 5px 12px rgba(0,0,0,.22), inset 0 0 24px rgba(255,255,255,.32);
+  }
+  .fp-net .hoop::after {
+    content: ""; position: absolute; inset: 5px; border-radius: 50%;
+    background:
+      repeating-linear-gradient(45deg, rgba(255,255,255,.15) 0 1.5px, transparent 1.5px 9px),
+      repeating-linear-gradient(-45deg, rgba(255,255,255,.15) 0 1.5px, transparent 1.5px 9px);
+  }
+  @keyframes netIdle {
+    0%, 100% { transform: translateX(-50%) rotate(-10deg) translateY(0); }
+    50% { transform: translateX(-50%) rotate(-8deg) translateY(-6px); }
+  }
+  .fp-net.swipe { animation: netSwipe .52s ease; }
+  @keyframes netSwipe {
+    0% { transform: translateX(-50%) rotate(-10deg) translateY(0) scale(1); }
+    35% { transform: translateX(-50%) rotate(9deg) translateY(-95px) scale(1.14); }
+    70% { transform: translateX(-50%) rotate(-4deg) translateY(-44px) scale(1.05); }
+    100% { transform: translateX(-50%) rotate(-10deg) translateY(0) scale(1); }
   }
   .wild .tag {
     position: absolute;
@@ -416,14 +457,14 @@
         <div class="safari-head">
           <div>
             <h2>🌿 Safari</h2>
-            <div class="safari-sub">Tap a critter — your ranger runs over to catch it!</div>
+            <div class="safari-sub">You're out on safari — tap a critter to swing your net!</div>
           </div>
           <div class="coins" style="box-shadow:0 3px 0 var(--accent-d)">⭐ <span id="coinVal2">0</span></div>
         </div>
         <div class="field" id="field">
           <div class="field-empty" id="fieldEmpty">The meadow is quiet... new critters wander in over time.</div>
         </div>
-        <div class="safari-tip">Tap a critter and your <b>ranger 🧒</b> chases it down — but they'll flee, so corner them! When the ranger reaches one, stop the needle in the green to net it. Rare critters are faster and trickier.</div>
+        <div class="safari-tip">You're holding the <b>net</b> 🥅 — tap a critter to swing! They spook and bolt, so be quick. Stop the needle in the green to net it. Rare critters are faster and trickier.</div>
       </div>
     </div>
 
@@ -693,9 +734,9 @@
   var spawnTimer = 0;
   var lastT = 0;
   var safariActive = false;
-  var player = null;     // the ranger kid: {x,y,facing,bob,target,locked,idleT,wx,wy,el}
-  var PLAYER_SPEED = 178;
-  var CATCH_RANGE = 42;
+  var targetWild = null; // the critter you're currently trying to net
+  var netTimer = null;   // delay between the net swing and the catch minigame
+  var fpNet = null;      // the first-person net held in the foreground
 
   // Side-view perspective: critters roam a ground band from the horizon (far, small)
   // down to the front of the field (near, big). y is the screen position of their feet.
@@ -709,7 +750,7 @@
   function renderEntity(o, flip, hop, gT, gB) {
     var ds = depthScale(o.y, gT, gB);
     o.el.style.transform = "translate(" + o.x + "px," + o.y + "px)";
-    o.el.style.zIndex = String(10 + Math.round(ds.d * 120));
+    o.el.style.zIndex = String(5 + Math.round(ds.d * 60));
     // depth scale on the wrapper; left/right flip only on the body so the price tag stays readable
     o.elWb.style.transform = "translate(-50%,-100%) scale(" + ds.s.toFixed(3) + ")";
     o.elBody.style.transform = "scaleX(" + flip + ") translateY(" + (-hop).toFixed(2) + "px)";
@@ -737,6 +778,11 @@
       d.style.left = t[1] + "%"; d.style.top = t[2] + "%"; d.style.fontSize = t[3] + "px";
       fieldEl.appendChild(d);
     });
+    // the first-person net held in the foreground
+    fpNet = document.createElement("div");
+    fpNet.className = "fp-net";
+    fpNet.innerHTML = '<div class="handle"></div><div class="hoop"></div>';
+    fieldEl.appendChild(fpNet);
   })();
 
   function fieldSize() {
@@ -767,7 +813,7 @@
       '<div class="shadow"></div>' +
       '<div class="wb"><span class="body">' + sp.emoji + '</span>' +
       '<span class="tag ' + sp.rar + '">⭐' + sp.netCost + '</span></div>';
-    el.addEventListener("click", function (e) { e.stopPropagation(); sendRanger(w); });
+    el.addEventListener("click", function (e) { e.stopPropagation(); throwNet(w); });
     fieldEl.appendChild(el);
     w.el = el;
     w.elWb = el.querySelector(".wb");
@@ -787,83 +833,35 @@
     if (wilds.length === 0) fieldEmpty.classList.remove("hidden");
   }
 
-  // send the ranger walking toward a critter; the catch starts when he reaches it
-  function sendRanger(w) {
-    if (catchModal || !player) return;
+  // swing the foreground net (a quick scoop animation)
+  function netSwipe() {
+    if (!fpNet) return;
+    fpNet.classList.remove("swipe");
+    void fpNet.offsetWidth; // restart the animation
+    fpNet.classList.add("swipe");
+    setTimeout(function () { if (fpNet) fpNet.classList.remove("swipe"); }, 540);
+  }
+
+  // tap a critter to swing the net: it bolts for a moment, then the catch minigame opens
+  function throwNet(w) {
+    if (catchModal) return;
     if (state.coins < w.sp.netCost) {
       toast("Need " + (w.sp.netCost - state.coins) + " more ⭐ to net " + w.sp.name + "!");
       return;
     }
-    if (player.target && player.target.el) player.target.el.classList.remove("targeted");
-    player.target = w;
-    player.locked = false;
+    if (targetWild && targetWild.el) targetWild.el.classList.remove("targeted");
+    targetWild = w;
     w.el.classList.add("targeted");
+    netSwipe();
+    clearTimeout(netTimer);
+    netTimer = setTimeout(function () { if (targetWild === w && !catchModal) openCatch(w); }, 560);
   }
 
-  // clear the chase (called when a catch resolves or the player sneaks away)
+  // clear the attempt (called when a catch resolves or the player sneaks away)
   function endChase() {
-    if (!player) return;
-    if (player.target && player.target.el) player.target.el.classList.remove("targeted");
-    player.target = null;
-    player.locked = false;
-  }
-
-  function createPlayer() {
-    var sz = fieldSize();
-    var gb = groundBounds(sz);
-    player = { x: sz.w / 2, y: gb.bottom - 6, facing: 1, bob: 0, target: null, locked: false, idleT: 0, wx: sz.w / 2, wy: gb.bottom - 6, el: null };
-    var pel = document.createElement("div");
-    pel.className = "player";
-    pel.innerHTML =
-      '<div class="shadow"></div>' +
-      '<div class="wb"><span class="body">🧒<span class="net">🥅</span></span></div>';
-    fieldEl.appendChild(pel);
-    player.el = pel;
-    player.elWb = pel.querySelector(".wb");
-    player.elBody = pel.querySelector(".body");
-    player.elShadow = pel.querySelector(".shadow");
-    renderEntity(player, 1, 0, gb.top, gb.bottom);
-  }
-
-  function updatePlayer(dt, sz, gb) {
-    if (!player) return;
-    if (!catchModal) {
-      if (player.target) {
-        var tx = player.target.x, ty = player.target.y;
-        var dx = tx - player.x, dy = ty - player.y, d = Math.hypot(dx, dy);
-        if (d > 1) {
-          player.x += dx / d * PLAYER_SPEED * dt;
-          player.y += dy / d * PLAYER_SPEED * dt;
-          player.facing = dx < -1 ? -1 : (dx > 1 ? 1 : player.facing);
-          player.bob += dt * 13;
-        }
-        if (d <= CATCH_RANGE && !player.locked) {
-          player.locked = true;
-          player.el.classList.add("swing");
-          setTimeout(function () { if (player && player.el) player.el.classList.remove("swing"); }, 500);
-          openCatch(player.target);
-        }
-      } else {
-        // idle: stroll the grounds so the ranger feels alive
-        player.idleT -= dt;
-        if (player.idleT <= 0) {
-          player.wx = rand(40, sz.w - 40);
-          player.wy = rand(gb.top + (gb.bottom - gb.top) * 0.35, gb.bottom);
-          player.idleT = rand(2.2, 4.5);
-        }
-        var ix = player.wx - player.x, iy = player.wy - player.y, id = Math.hypot(ix, iy);
-        if (id > 5) {
-          player.x += ix / id * PLAYER_SPEED * 0.38 * dt;
-          player.y += iy / id * PLAYER_SPEED * 0.38 * dt;
-          player.facing = ix < -1 ? -1 : (ix > 1 ? 1 : player.facing);
-          player.bob += dt * 9;
-        }
-      }
-      player.x = clampN(player.x, 30, sz.w - 30);
-      player.y = clampN(player.y, gb.top + 6, gb.bottom);
-    }
-    var pbob = Math.abs(Math.sin(player.bob)) * 4;
-    renderEntity(player, player.facing, pbob, gb.top, gb.bottom);
+    clearTimeout(netTimer);
+    if (targetWild && targetWild.el) targetWild.el.classList.remove("targeted");
+    targetWild = null;
   }
 
   function safariStep(t) {
@@ -875,6 +873,7 @@
     var sz = fieldSize();
     var gb = groundBounds(sz);
     var pad = 34;
+    var camX = sz.w / 2, camY = gb.bottom + 50; // your viewpoint: front-center, just off-screen
 
     spawnTimer -= dt;
     if (spawnTimer <= 0 && wilds.length < MAX_WILD) {
@@ -886,9 +885,9 @@
       var w = wilds[i];
       if (w.caughtPaused) continue;
 
-      if (player && w === player.target && !catchModal) {
-        // FLEE: bolt directly away from the ranger
-        var fx = w.x - player.x, fy = w.y - player.y, fd = Math.hypot(fx, fy) || 1;
+      if (w === targetWild && !catchModal) {
+        // FLEE: bolt directly away from you (toward the horizon)
+        var fx = w.x - camX, fy = w.y - camY, fd = Math.hypot(fx, fy) || 1;
         var fs = w.sp.speed * 1.7;
         w.vx = fx / fd * fs;
         w.vy = fy / fd * fs;
@@ -911,10 +910,10 @@
           }
           w.turnT = rand(0.9, 2.4);
         }
-        // skittish: drift away if the ranger wanders too close
-        if (player && !catchModal) {
-          var ax = w.x - player.x, ay = w.y - player.y, ad = Math.hypot(ax, ay);
-          if (ad < 78 && ad > 0.1) { w.vx += ax / ad * 34; w.vy += ay / ad * 34; }
+        // skittish: drift away if you get too close
+        if (!catchModal) {
+          var ax = w.x - camX, ay = w.y - camY, ad = Math.hypot(ax, ay);
+          if (ad < 90 && ad > 0.1) { w.vx += ax / ad * 30; w.vy += ay / ad * 30; }
         }
       }
 
@@ -931,14 +930,12 @@
       renderEntity(w, w.lastFlip, hop, gb.top, gb.bottom);
     }
 
-    updatePlayer(dt, sz, gb);
     requestAnimationFrame(safariStep);
   }
 
   function startSafari() {
     safariActive = true;
     lastT = 0;
-    if (!player) createPlayer();
     if (wilds.length === 0) { spawnWild(); spawnWild(); spawnWild(); }
     requestAnimationFrame(safariStep);
   }
