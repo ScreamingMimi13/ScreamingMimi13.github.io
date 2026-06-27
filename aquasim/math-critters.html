@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Math Critters — Solve & Catch</title>
+<style>
+  :root {
+    --bg1: #1b2a4a;
+    --bg2: #24406e;
+    --panel: #ffffff;
+    --ink: #21344f;
+    --muted: #6b7d96;
+    --good: #2bb673;
+    --good-d: #1d8e58;
+    --bad: #e8554e;
+    --bad-d: #c23f39;
+    --accent: #ffb23e;
+    --accent-d: #e8951a;
+    --pop: #6c8cff;
+    --soft: #eef3fb;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body {
+    font-family: "Baloo 2", "Comic Sans MS", "Trebuchet MS", system-ui, sans-serif;
+    background: radial-gradient(1200px 700px at 50% -10%, var(--bg2), var(--bg1));
+    color: var(--ink);
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    user-select: none;
+    overflow-x: hidden;
+  }
+  .wrap {
+    width: 100%;
+    max-width: 560px;
+    padding: 14px 14px 40px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  /* Top bar */
+  .topbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #fff;
+  }
+  .brand {
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: .3px;
+    flex: 1;
+    text-shadow: 0 2px 0 rgba(0,0,0,.18);
+  }
+  .brand .paw { font-size: 22px; }
+  .coins {
+    background: linear-gradient(180deg, #ffd277, var(--accent));
+    color: #5a3c00;
+    font-weight: 800;
+    padding: 8px 14px;
+    border-radius: 999px;
+    box-shadow: 0 3px 0 var(--accent-d);
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: transform .12s ease;
+    white-space: nowrap;
+  }
+  .coins.bump { transform: scale(1.18); }
+
+  .tabs { justify-content: center; gap: 8px; }
+  .tab-btn {
+    border: none;
+    background: rgba(255,255,255,.15);
+    color: #fff;
+    font: inherit;
+    font-weight: 700;
+    padding: 8px 14px;
+    border-radius: 999px;
+    cursor: pointer;
+    font-size: 14px;
+  }
+  .tab-btn.active { background: #fff; color: var(--ink); }
+
+  /* Panel */
+  .panel {
+    background: var(--panel);
+    border-radius: 22px;
+    padding: 20px;
+    box-shadow: 0 14px 34px rgba(0,0,0,.28);
+  }
+
+  /* Problem card */
+  .stage { text-align: center; }
+  .meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    font-weight: 700;
+    color: var(--muted);
+    font-size: 14px;
+  }
+  .streak { color: var(--accent-d); }
+  .problem {
+    font-size: 58px;
+    font-weight: 800;
+    margin: 8px 0 4px;
+    color: var(--ink);
+    letter-spacing: 1px;
+  }
+  .helper-animal { font-size: 64px; line-height: 1; margin: 4px 0 2px; }
+  .feedback {
+    height: 26px;
+    font-weight: 800;
+    font-size: 18px;
+    margin: 4px 0;
+  }
+  .feedback.good { color: var(--good-d); }
+  .feedback.bad { color: var(--bad-d); }
+
+  .answers {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 12px;
+  }
+  .ans {
+    border: none;
+    background: var(--soft);
+    color: var(--ink);
+    font: inherit;
+    font-weight: 800;
+    font-size: 30px;
+    padding: 18px 8px;
+    border-radius: 16px;
+    cursor: pointer;
+    box-shadow: 0 4px 0 #d3deee;
+    transition: transform .08s ease, background .15s ease;
+  }
+  .ans:active { transform: translateY(2px); box-shadow: 0 2px 0 #d3deee; }
+  .ans.correct { background: var(--good); color: #fff; box-shadow: 0 4px 0 var(--good-d); }
+  .ans.wrong { background: var(--bad); color: #fff; box-shadow: 0 4px 0 var(--bad-d); }
+  .ans:disabled { cursor: default; }
+
+  .progress {
+    height: 12px;
+    background: var(--soft);
+    border-radius: 999px;
+    overflow: hidden;
+    margin-top: 16px;
+  }
+  .progress > div {
+    height: 100%;
+    width: 0;
+    background: linear-gradient(90deg, var(--pop), #9db6ff);
+    border-radius: 999px;
+    transition: width .35s ease;
+  }
+  .progress-label { font-size: 13px; color: var(--muted); margin-top: 6px; font-weight: 700; }
+
+  /* Difficulty picker */
+  .seg {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .chip {
+    border: 2px solid #dbe6f5;
+    background: #fff;
+    color: var(--muted);
+    font: inherit;
+    font-weight: 800;
+    padding: 8px 14px;
+    border-radius: 999px;
+    cursor: pointer;
+    font-size: 14px;
+  }
+  .chip.active { border-color: var(--pop); background: #eef3ff; color: var(--pop); }
+  .section-title { font-weight: 800; font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin: 0 0 8px; text-align: center; }
+
+  /* ---------- SAFARI ---------- */
+  .safari-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .safari-head h2 { margin: 0; font-size: 20px; }
+  .safari-sub { color: var(--muted); font-weight: 700; font-size: 13px; }
+
+  .field {
+    position: relative;
+    width: 100%;
+    height: 320px;
+    border-radius: 18px;
+    overflow: hidden;
+    background:
+      radial-gradient(120px 60px at 20% 18%, rgba(255,255,255,.18), transparent),
+      linear-gradient(180deg, #bfe9a0 0%, #9fd87f 55%, #7cc25c 100%);
+    box-shadow: inset 0 0 0 3px rgba(255,255,255,.35), inset 0 -30px 40px rgba(60,120,40,.25);
+    touch-action: manipulation;
+  }
+  .bush { position: absolute; font-size: 30px; opacity: .8; pointer-events: none; }
+  .wild {
+    position: absolute;
+    font-size: 42px;
+    line-height: 1;
+    cursor: pointer;
+    will-change: transform;
+    transition: filter .1s ease;
+    filter: drop-shadow(0 4px 3px rgba(0,0,0,.25));
+  }
+  .wild:active { filter: drop-shadow(0 2px 2px rgba(0,0,0,.3)) brightness(1.1); }
+  .wild .tag {
+    position: absolute;
+    left: 50%;
+    top: 100%;
+    transform: translateX(-50%);
+    margin-top: 1px;
+    font-size: 11px;
+    font-weight: 800;
+    background: rgba(33,52,79,.85);
+    color: #fff;
+    padding: 1px 7px;
+    border-radius: 999px;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+  .wild .tag.rare { background: var(--pop); }
+  .wild .tag.epic { background: #a259e6; }
+  .wild .tag.legendary { background: var(--accent-d); }
+  .field-empty {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    color: rgba(40,70,30,.6); font-weight: 800; font-size: 15px; text-align: center;
+    padding: 0 30px; pointer-events: none;
+  }
+  .safari-tip { color: var(--muted); font-weight: 700; font-size: 12.5px; margin-top: 10px; text-align: center; }
+
+  /* ---------- CATCH MODAL ---------- */
+  .modal-back {
+    position: fixed; inset: 0;
+    background: rgba(15,24,42,.62);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 80; padding: 16px;
+  }
+  .modal {
+    background: #fff; border-radius: 22px; padding: 22px 20px;
+    width: 100%; max-width: 360px; text-align: center;
+    box-shadow: 0 20px 50px rgba(0,0,0,.4);
+  }
+  .modal .big { font-size: 72px; line-height: 1; margin: 4px 0 2px; }
+  .modal .big.shake { animation: shake .4s ease; }
+  @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-8px) rotate(-6deg)} 75%{transform:translateX(8px) rotate(6deg)} }
+  .modal h3 { margin: 2px 0 2px; font-size: 20px; }
+  .modal .rar { font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; }
+  .modal .info { color: var(--muted); font-weight: 700; font-size: 13px; margin: 6px 0 12px; }
+
+  .track {
+    position: relative; height: 26px; border-radius: 999px;
+    background: #e7edf6; overflow: hidden; margin: 6px 0 2px;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,.08);
+  }
+  .zone { position: absolute; top: 0; bottom: 0; background: linear-gradient(180deg,#5fdca0,#2bb673); border-radius: 999px; }
+  .needle { position: absolute; top: -3px; bottom: -3px; width: 6px; background: #21344f; border-radius: 3px; transform: translateX(-50%); }
+  .track-label { font-size: 12px; color: var(--muted); font-weight: 700; margin: 4px 0 14px; }
+
+  .catch-btn {
+    border: none; width: 100%; font: inherit; font-weight: 800; font-size: 20px;
+    padding: 14px; border-radius: 14px; cursor: pointer; color: #fff;
+    background: linear-gradient(180deg,#7fa0ff,var(--pop)); box-shadow: 0 4px 0 #4a6ae0;
+  }
+  .catch-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 #4a6ae0; }
+  .catch-btn:disabled { background: #cdd8e6; box-shadow: 0 4px 0 #b6c3d6; cursor: default; }
+  .sneak-btn {
+    border: none; background: none; color: var(--muted); font: inherit; font-weight: 800;
+    margin-top: 12px; cursor: pointer; font-size: 14px; text-decoration: underline;
+  }
+  .result-msg { font-weight: 800; font-size: 17px; min-height: 22px; margin: 4px 0 2px; }
+  .result-msg.good { color: var(--good-d); }
+  .result-msg.bad { color: var(--bad-d); }
+
+  /* ---------- COLLECTION ---------- */
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .critter {
+    background: var(--soft); border-radius: 16px; padding: 12px 6px 12px;
+    text-align: center; border: 2px solid transparent;
+  }
+  .critter.owned { background: #eaf8f0; border-color: #bfe8d2; }
+  .critter .emoji { font-size: 40px; line-height: 1; filter: grayscale(1) opacity(.4); }
+  .critter.owned .emoji { filter: none; }
+  .critter .name { font-weight: 800; font-size: 13px; margin: 6px 0 2px; }
+  .critter .rar { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .5px; }
+  .critter .cnt { font-size: 12px; font-weight: 800; color: var(--good-d); margin-top: 2px; }
+  .rar.common { color: #8a9bb3; }
+  .rar.rare { color: var(--pop); }
+  .rar.epic { color: #a259e6; }
+  .rar.legendary { color: var(--accent-d); }
+
+  .hidden { display: none !important; }
+
+  .toast {
+    position: fixed; left: 50%; bottom: 22px;
+    transform: translateX(-50%) translateY(20px);
+    background: #21344f; color: #fff; font-weight: 800;
+    padding: 12px 20px; border-radius: 14px; box-shadow: 0 10px 24px rgba(0,0,0,.3);
+    opacity: 0; pointer-events: none; transition: opacity .25s ease, transform .25s ease;
+    z-index: 90; text-align: center; max-width: 90%;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  .float {
+    position: fixed; font-weight: 900; font-size: 30px; pointer-events: none;
+    z-index: 95; animation: floatUp 1s ease forwards;
+  }
+  @keyframes floatUp {
+    0% { opacity: 1; transform: translateY(0) scale(1); }
+    100% { opacity: 0; transform: translateY(-70px) scale(1.3); }
+  }
+  .footer-note { text-align: center; color: rgba(255,255,255,.55); font-size: 12px; font-weight: 600; }
+
+  @media (max-width: 380px) {
+    .problem { font-size: 46px; }
+    .ans { font-size: 24px; }
+    .critter .emoji { font-size: 34px; }
+    .field { height: 280px; }
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="brand"><span class="paw">🐾</span> Math Critters</div>
+      <div class="coins" id="coins">⭐ <span id="coinVal">0</span></div>
+    </div>
+
+    <div class="topbar tabs">
+      <button class="tab-btn active" id="tabPlay">Play</button>
+      <button class="tab-btn" id="tabSafari">Safari</button>
+      <button class="tab-btn" id="tabCollect">Collection <span id="collectCount" style="opacity:.8"></span></button>
+    </div>
+
+    <!-- PLAY VIEW -->
+    <div id="playView">
+      <div class="panel" style="margin-bottom:14px;">
+        <p class="section-title">Choose your challenge</p>
+        <div class="seg" id="opSeg">
+          <button class="chip active" data-op="add">➕ Add</button>
+          <button class="chip" data-op="sub">➖ Subtract</button>
+          <button class="chip" data-op="mul">✖️ Multiply</button>
+          <button class="chip" data-op="mix">🎲 Mix</button>
+        </div>
+        <div class="seg" id="lvlSeg">
+          <button class="chip active" data-lvl="1">🐣 Easy</button>
+          <button class="chip" data-lvl="2">🐰 Medium</button>
+          <button class="chip" data-lvl="3">🦁 Hard</button>
+        </div>
+      </div>
+
+      <div class="panel stage">
+        <div class="meta">
+          <span>Reward: <span id="reward">+10</span> ⭐</span>
+          <span class="streak" id="streakLabel">🔥 Streak 0</span>
+        </div>
+        <div class="helper-animal" id="helper">🦊</div>
+        <div class="problem" id="problem">3 + 4</div>
+        <div class="feedback" id="feedback">&nbsp;</div>
+        <div class="answers" id="answers"></div>
+        <div class="progress"><div id="streakBar"></div></div>
+        <div class="progress-label" id="streakBarLabel">Build a streak for bonus stars!</div>
+      </div>
+    </div>
+
+    <!-- SAFARI VIEW -->
+    <div id="safariView" class="hidden">
+      <div class="panel">
+        <div class="safari-head">
+          <div>
+            <h2>🌿 Safari</h2>
+            <div class="safari-sub">Tap a wild critter to try a catch!</div>
+          </div>
+          <div class="coins" style="box-shadow:0 3px 0 var(--accent-d)">⭐ <span id="coinVal2">0</span></div>
+        </div>
+        <div class="field" id="field">
+          <div class="field-empty" id="fieldEmpty">The meadow is quiet... new critters wander in over time.</div>
+        </div>
+        <div class="safari-tip">Each catch costs a <b>net</b> (⭐). Rare critters are fast and tricky — stop the needle in the green to catch them. Miss, and they run off with your net!</div>
+      </div>
+    </div>
+
+    <!-- COLLECTION VIEW -->
+    <div id="collectView" class="hidden">
+      <div class="panel">
+        <div class="safari-head">
+          <div>
+            <h2>My Collection</h2>
+            <div class="safari-sub" id="collectProgress">0 of 0 species discovered</div>
+          </div>
+          <div class="coins" style="box-shadow:0 3px 0 var(--accent-d)">⭐ <span id="coinVal3">0</span></div>
+        </div>
+        <div class="grid" id="collectGrid"></div>
+      </div>
+    </div>
+
+    <div class="footer-note">Solve problems → earn stars → spend nets to catch wild critters. Wrong math answers cost a few stars!</div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+<script>
+(function () {
+  "use strict";
+
+  // ---------- State ----------
+  var state = {
+    coins: 0,
+    op: "add",
+    level: 1,
+    streak: 0,
+    bestStreak: 0,
+    caught: {},     // id -> count caught
+    current: null
+  };
+
+  var STREAK_TARGET = 5;
+
+  // ---------- Species ----------
+  // netCost: stars per catch attempt.  zone: green fraction of the bar (smaller = harder).
+  // speed: wander speed px/s.  sweep: seconds for the catch needle to cross (smaller = harder).
+  // weight: spawn likelihood.
+  var SPECIES = [
+    { id: "frog",    emoji: "🐸", name: "Hoppy Frog", rar: "common",    netCost: 12, zone: 0.36, speed: 38,  sweep: 1.5, weight: 26 },
+    { id: "cat",     emoji: "🐱", name: "Whiskers",   rar: "common",    netCost: 14, zone: 0.34, speed: 42,  sweep: 1.4, weight: 24 },
+    { id: "bunny",   emoji: "🐰", name: "Thumper",    rar: "common",    netCost: 16, zone: 0.32, speed: 48,  sweep: 1.35, weight: 22 },
+    { id: "fox",     emoji: "🦊", name: "Sly Fox",    rar: "rare",      netCost: 30, zone: 0.24, speed: 60,  sweep: 1.15, weight: 14 },
+    { id: "owl",     emoji: "🦉", name: "Professor",  rar: "rare",      netCost: 34, zone: 0.23, speed: 56,  sweep: 1.1, weight: 12 },
+    { id: "panda",   emoji: "🐼", name: "Bamboo",     rar: "rare",      netCost: 38, zone: 0.22, speed: 52,  sweep: 1.1, weight: 11 },
+    { id: "penguin", emoji: "🐧", name: "Waddles",    rar: "epic",      netCost: 65, zone: 0.16, speed: 64,  sweep: 0.95, weight: 7 },
+    { id: "tiger",   emoji: "🐯", name: "Stripes",    rar: "epic",      netCost: 75, zone: 0.15, speed: 74,  sweep: 0.9, weight: 6 },
+    { id: "monkey",  emoji: "🐵", name: "Bananas",    rar: "epic",      netCost: 80, zone: 0.15, speed: 78,  sweep: 0.88, weight: 5 },
+    { id: "unicorn", emoji: "🦄", name: "Sparkle",    rar: "legendary", netCost: 150, zone: 0.10, speed: 88, sweep: 0.75, weight: 2 },
+    { id: "dragon",  emoji: "🐉", name: "Embertail",  rar: "legendary", netCost: 180, zone: 0.09, speed: 94, sweep: 0.72, weight: 2 }
+  ];
+  var SP_BY_ID = {};
+  SPECIES.forEach(function (s) { SP_BY_ID[s.id] = s; });
+
+  var HELPERS = ["🦊","🐰","🐼","🐯","🐵","🦉","🐧","🐱","🐸"];
+
+  // ---------- Elements ----------
+  var $ = function (id) { return document.getElementById(id); };
+  var coinVal = $("coinVal"), coinVal2 = $("coinVal2"), coinVal3 = $("coinVal3"), coinsBox = $("coins");
+  var problemEl = $("problem"), answersEl = $("answers"), feedbackEl = $("feedback");
+  var rewardEl = $("reward"), streakLabel = $("streakLabel"), helperEl = $("helper");
+  var streakBar = $("streakBar"), streakBarLabel = $("streakBarLabel");
+  var fieldEl = $("field"), fieldEmpty = $("fieldEmpty");
+  var collectGrid = $("collectGrid"), collectProgress = $("collectProgress"), collectCount = $("collectCount");
+  var toastEl = $("toast");
+
+  // ---------- Utils ----------
+  function randInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+  function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+  function shuffle(arr) {
+    for (var i = arr.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = arr[i]; arr[i] = arr[j]; arr[j] = t;
+    }
+    return arr;
+  }
+  function weightedSpecies() {
+    var total = 0, i;
+    for (i = 0; i < SPECIES.length; i++) total += SPECIES[i].weight;
+    var r = Math.random() * total;
+    for (i = 0; i < SPECIES.length; i++) { r -= SPECIES[i].weight; if (r <= 0) return SPECIES[i]; }
+    return SPECIES[0];
+  }
+
+  // ---------- Coins ----------
+  function setCoins(n) {
+    state.coins = Math.max(0, Math.round(n));
+    coinVal.textContent = state.coins;
+    coinVal2.textContent = state.coins;
+    coinVal3.textContent = state.coins;
+    coinsBox.classList.remove("bump");
+    void coinsBox.offsetWidth;
+    coinsBox.classList.add("bump");
+  }
+  function floatPoints(text, good) {
+    var el = document.createElement("div");
+    el.className = "float";
+    el.textContent = text;
+    el.style.color = good ? "#2bb673" : "#e8554e";
+    var rect = coinsBox.getBoundingClientRect();
+    el.style.left = (rect.left + rect.width / 2 - 18) + "px";
+    el.style.top = (rect.bottom + 4) + "px";
+    document.body.appendChild(el);
+    setTimeout(function () { el.remove(); }, 1000);
+  }
+
+  // ---------- Problem generation ----------
+  function rangeForLevel(lvl) {
+    if (lvl === 1) return { add: 10, sub: 10, mulA: 5, mulB: 5 };
+    if (lvl === 2) return { add: 25, sub: 25, mulA: 9, mulB: 9 };
+    return { add: 60, sub: 60, mulA: 12, mulB: 12 };
+  }
+  function rewardForLevel(lvl) { return lvl === 1 ? 10 : lvl === 2 ? 15 : 25; }
+  function penaltyForLevel(lvl) { return lvl === 1 ? 4 : lvl === 2 ? 6 : 10; }
+
+  function makeProblem() {
+    var op = state.op === "mix" ? pick(["add", "sub", "mul"]) : state.op;
+    var r = rangeForLevel(state.level);
+    var a, b, answer, symbol;
+    if (op === "add") {
+      a = randInt(1, r.add); b = randInt(1, r.add); answer = a + b; symbol = "+";
+    } else if (op === "sub") {
+      a = randInt(1, r.sub); b = randInt(1, r.sub);
+      if (b > a) { var t = a; a = b; b = t; }
+      answer = a - b; symbol = "−";
+    } else {
+      a = randInt(1, r.mulA); b = randInt(1, r.mulB); answer = a * b; symbol = "×";
+    }
+    var opts = [answer], guard = 0;
+    while (opts.length < 4 && guard < 50) {
+      guard++;
+      var spread = Math.max(2, Math.round(answer * 0.25)) + 3;
+      var cand = answer + randInt(-spread, spread);
+      if (cand < 0) cand = Math.abs(cand) + 1;
+      if (cand !== answer && opts.indexOf(cand) === -1) opts.push(cand);
+    }
+    var extra = 1;
+    while (opts.length < 4) { if (opts.indexOf(answer + extra) === -1) opts.push(answer + extra); extra++; }
+    return { a: a, b: b, symbol: symbol, answer: answer, options: shuffle(opts) };
+  }
+
+  function newRound() {
+    state.current = makeProblem();
+    var p = state.current;
+    helperEl.textContent = pick(HELPERS);
+    problemEl.textContent = p.a + " " + p.symbol + " " + p.b;
+    rewardEl.textContent = "+" + rewardForLevel(state.level);
+    feedbackEl.textContent = " ";
+    feedbackEl.className = "feedback";
+    answersEl.innerHTML = "";
+    p.options.forEach(function (val) {
+      var btn = document.createElement("button");
+      btn.className = "ans";
+      btn.textContent = val;
+      btn.addEventListener("click", function () { answer(val, btn); });
+      answersEl.appendChild(btn);
+    });
+    updateStreakUI();
+  }
+
+  function answer(val, btn) {
+    if (state.current.locked) return;
+    state.current.locked = true;
+    var correct = val === state.current.answer;
+    answersEl.querySelectorAll(".ans").forEach(function (b) {
+      b.disabled = true;
+      if (parseInt(b.textContent, 10) === state.current.answer) b.classList.add("correct");
+    });
+    if (correct) {
+      state.streak++;
+      if (state.streak > state.bestStreak) state.bestStreak = state.streak;
+      var gain = rewardForLevel(state.level);
+      var bonus = (state.streak % STREAK_TARGET === 0) ? 20 : 0;
+      setCoins(state.coins + gain + bonus);
+      floatPoints("+" + (gain + bonus), true);
+      feedbackEl.textContent = bonus ? "Streak bonus! +" + bonus + " ⭐" : pick(["Nice!", "Correct!", "Great job!", "You got it!", "Yes!"]);
+      feedbackEl.className = "feedback good";
+      if (bonus) toast("🔥 " + state.streak + " in a row! Bonus +" + bonus + " stars!");
+    } else {
+      btn.classList.add("wrong");
+      state.streak = 0;
+      var before = state.coins;
+      setCoins(state.coins - penaltyForLevel(state.level));
+      var actualLoss = before - state.coins;
+      if (actualLoss > 0) floatPoints("-" + actualLoss, false);
+      feedbackEl.textContent = "Oops! Answer was " + state.current.answer + ". -" + actualLoss + " ⭐";
+      feedbackEl.className = "feedback bad";
+    }
+    updateStreakUI();
+    setTimeout(newRound, correct ? 750 : 1300);
+  }
+
+  function updateStreakUI() {
+    streakLabel.textContent = "🔥 Streak " + state.streak;
+    var into = state.streak % STREAK_TARGET;
+    streakBar.style.width = (into / STREAK_TARGET * 100) + "%";
+    var left = STREAK_TARGET - into;
+    streakBarLabel.textContent = state.streak === 0
+      ? "Build a streak for bonus stars!"
+      : (left === STREAK_TARGET ? "Bonus earned!" : left + " more for a +20 ⭐ bonus!");
+  }
+
+  // ---------- SAFARI: wandering wild critters ----------
+  var wilds = [];        // {sp, x, y, vx, vy, el, bob, turnT}
+  var MAX_WILD = 5;
+  var spawnTimer = 0;
+  var lastT = 0;
+  var safariActive = false;
+
+  // decorate the field with a few static bushes
+  (function decorate() {
+    var spots = [["🌳", 6, 8], ["🌿", 88, 14], ["🌳", 80, 70], ["🌾", 14, 78], ["🍄", 50, 88]];
+    spots.forEach(function (s) {
+      var b = document.createElement("div");
+      b.className = "bush";
+      b.textContent = s[0];
+      b.style.left = s[1] + "%";
+      b.style.top = s[2] + "%";
+      fieldEl.appendChild(b);
+    });
+  })();
+
+  function fieldSize() {
+    return { w: fieldEl.clientWidth, h: fieldEl.clientHeight };
+  }
+
+  function spawnWild() {
+    if (wilds.length >= MAX_WILD) return;
+    var sp = weightedSpecies();
+    var sz = fieldSize();
+    var pad = 44;
+    var w = {
+      sp: sp,
+      x: randInt(pad, sz.w - pad),
+      y: randInt(pad + 10, sz.h - pad),
+      vx: (Math.random() < 0.5 ? -1 : 1) * sp.speed,
+      vy: (Math.random() - 0.5) * sp.speed * 0.6,
+      turnT: rand(0.8, 2.2),
+      bob: Math.random() * Math.PI * 2,
+      el: null
+    };
+    var el = document.createElement("div");
+    el.className = "wild";
+    el.innerHTML = sp.emoji + '<span class="tag ' + sp.rar + '">⭐' + sp.netCost + '</span>';
+    el.addEventListener("click", function (e) { e.stopPropagation(); openCatch(w); });
+    el.style.transform = "translate(-50%,-50%) translate(" + w.x + "px," + w.y + "px)";
+    fieldEl.appendChild(el);
+    w.el = el;
+    wilds.push(w);
+    fieldEmpty.classList.add("hidden");
+  }
+
+  function rand(a, b) { return a + Math.random() * (b - a); }
+
+  function removeWild(w) {
+    var i = wilds.indexOf(w);
+    if (i !== -1) wilds.splice(i, 1);
+    if (w.el && w.el.parentNode) w.el.parentNode.removeChild(w.el);
+    if (wilds.length === 0) fieldEmpty.classList.remove("hidden");
+  }
+
+  function safariStep(t) {
+    if (!safariActive) return;
+    if (!lastT) lastT = t;
+    var dt = Math.min(0.05, (t - lastT) / 1000);
+    lastT = t;
+
+    var sz = fieldSize();
+    var pad = 30;
+
+    spawnTimer -= dt;
+    if (spawnTimer <= 0 && wilds.length < MAX_WILD) {
+      spawnWild();
+      spawnTimer = rand(2.5, 5.5);
+    }
+
+    for (var i = 0; i < wilds.length; i++) {
+      var w = wilds[i];
+      if (w.caughtPaused) continue;
+      w.turnT -= dt;
+      if (w.turnT <= 0) {
+        // pick a new wander heading
+        var ang = Math.random() * Math.PI * 2;
+        w.vx = Math.cos(ang) * w.sp.speed;
+        w.vy = Math.sin(ang) * w.sp.speed * 0.7;
+        w.turnT = rand(0.9, 2.4);
+      }
+      w.x += w.vx * dt;
+      w.y += w.vy * dt;
+      // bounce off edges
+      if (w.x < pad) { w.x = pad; w.vx = Math.abs(w.vx); }
+      if (w.x > sz.w - pad) { w.x = sz.w - pad; w.vx = -Math.abs(w.vx); }
+      if (w.y < pad + 8) { w.y = pad + 8; w.vy = Math.abs(w.vy); }
+      if (w.y > sz.h - pad) { w.y = sz.h - pad; w.vy = -Math.abs(w.vy); }
+      w.bob += dt * 9;
+      var hop = Math.abs(Math.sin(w.bob)) * 5;
+      var flip = w.vx < 0 ? -1 : 1;
+      w.el.style.transform = "translate(-50%,-50%) translate(" + w.x + "px," + (w.y - hop) + "px) scaleX(" + flip + ")";
+    }
+    requestAnimationFrame(safariStep);
+  }
+
+  function startSafari() {
+    safariActive = true;
+    lastT = 0;
+    if (wilds.length === 0) { spawnWild(); spawnWild(); }
+    requestAnimationFrame(safariStep);
+  }
+  function stopSafari() { safariActive = false; }
+
+  // ---------- CATCH MINIGAME ----------
+  var catchModal = null;
+  var needleRAF = 0;
+
+  function openCatch(w) {
+    if (catchModal) return;
+    var sp = w.sp;
+    w.caughtPaused = true;
+
+    if (state.coins < sp.netCost) {
+      w.caughtPaused = false;
+      toast("Need " + (sp.netCost - state.coins) + " more ⭐ to net " + sp.name + "!");
+      return;
+    }
+
+    var back = document.createElement("div");
+    back.className = "modal-back";
+    var zonePct = Math.round(sp.zone * 100);
+    var zoneLeft = Math.round((0.5 - sp.zone / 2) * 100);
+    back.innerHTML =
+      '<div class="modal">' +
+        '<div class="big" id="cmEmoji">' + sp.emoji + '</div>' +
+        '<h3>' + sp.name + '</h3>' +
+        '<div class="rar ' + sp.rar + '">' + sp.rar + '</div>' +
+        '<div class="info">Net cost: ⭐' + sp.netCost + ' &middot; stop the needle in the green!</div>' +
+        '<div class="track">' +
+          '<div class="zone" style="left:' + zoneLeft + '%;width:' + zonePct + '%"></div>' +
+          '<div class="needle" id="cmNeedle" style="left:0%"></div>' +
+        '</div>' +
+        '<div class="track-label" id="cmHint">Tap CATCH when the needle is on the green band</div>' +
+        '<div class="result-msg" id="cmResult">&nbsp;</div>' +
+        '<button class="catch-btn" id="cmCatch">CATCH! 🥅</button>' +
+        '<button class="sneak-btn" id="cmSneak">Sneak away (keep your net)</button>' +
+      '</div>';
+    document.body.appendChild(back);
+    catchModal = back;
+
+    var needle = $("cmNeedle");
+    var pos = 0, dir = 1;
+    var lastFrame = 0;
+    var speedPerSec = 1 / sp.sweep; // fraction of track per second
+    var resolved = false;
+
+    function tick(ts) {
+      if (resolved) return;
+      if (!lastFrame) lastFrame = ts;
+      var dt = (ts - lastFrame) / 1000; lastFrame = ts;
+      pos += dir * speedPerSec * dt;
+      if (pos >= 1) { pos = 1; dir = -1; }
+      if (pos <= 0) { pos = 0; dir = 1; }
+      needle.style.left = (pos * 100) + "%";
+      needleRAF = requestAnimationFrame(tick);
+    }
+    needleRAF = requestAnimationFrame(tick);
+
+    function close() {
+      cancelAnimationFrame(needleRAF);
+      if (back.parentNode) back.parentNode.removeChild(back);
+      catchModal = null;
+    }
+
+    $("cmSneak").addEventListener("click", function () {
+      w.caughtPaused = false;
+      close();
+    });
+
+    $("cmCatch").addEventListener("click", function () {
+      if (resolved) return;
+      resolved = true;
+      cancelAnimationFrame(needleRAF);
+      $("cmCatch").disabled = true;
+
+      // pay the net
+      setCoins(state.coins - sp.netCost);
+      floatPoints("-" + sp.netCost, false);
+
+      var hit = Math.abs(pos - 0.5) <= (sp.zone / 2);
+      var resEl = $("cmResult");
+      if (hit) {
+        state.caught[sp.id] = (state.caught[sp.id] || 0) + 1;
+        resEl.textContent = "🎉 Gotcha! " + sp.name + " joined your collection!";
+        resEl.className = "result-msg good";
+        $("cmHint").textContent = "";
+        updateCollectCount();
+        setTimeout(function () { close(); removeWild(w); }, 1200);
+      } else {
+        $("cmEmoji").classList.add("shake");
+        resEl.textContent = "💨 " + sp.name + " wriggled free and ran off!";
+        resEl.className = "result-msg bad";
+        $("cmHint").textContent = "";
+        setTimeout(function () { close(); removeWild(w); }, 1300);
+      }
+    });
+  }
+
+  // ---------- Collection ----------
+  function speciesCaught() { return Object.keys(state.caught).length; }
+  function updateCollectCount() {
+    var have = speciesCaught(), total = SPECIES.length;
+    collectCount.textContent = "(" + have + "/" + total + ")";
+    renderCollection();
+  }
+  function renderCollection() {
+    collectGrid.innerHTML = "";
+    SPECIES.forEach(function (s) {
+      var n = state.caught[s.id] || 0;
+      var owned = n > 0;
+      var card = document.createElement("div");
+      card.className = "critter" + (owned ? " owned" : "");
+      card.innerHTML =
+        '<div class="emoji">' + s.emoji + '</div>' +
+        '<div class="name">' + (owned ? s.name : "???") + '</div>' +
+        '<div class="rar ' + s.rar + '">' + s.rar + '</div>' +
+        '<div class="cnt">' + (owned ? "caught ×" + n : "&nbsp;") + '</div>';
+      collectGrid.appendChild(card);
+    });
+    collectProgress.textContent = speciesCaught() + " of " + SPECIES.length + " species discovered";
+  }
+
+  // ---------- Tabs ----------
+  function showTab(which) {
+    $("playView").classList.toggle("hidden", which !== "play");
+    $("safariView").classList.toggle("hidden", which !== "safari");
+    $("collectView").classList.toggle("hidden", which !== "collect");
+    $("tabPlay").classList.toggle("active", which === "play");
+    $("tabSafari").classList.toggle("active", which === "safari");
+    $("tabCollect").classList.toggle("active", which === "collect");
+    if (which === "safari") startSafari(); else stopSafari();
+    if (which === "collect") renderCollection();
+  }
+
+  // ---------- Toast ----------
+  var toastTimer = null;
+  function toast(msg) {
+    toastEl.textContent = msg;
+    toastEl.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { toastEl.classList.remove("show"); }, 2600);
+  }
+
+  // ---------- Controls ----------
+  function setupSeg(segId, key, cast) {
+    var seg = $(segId);
+    seg.querySelectorAll(".chip").forEach(function (chip) {
+      chip.addEventListener("click", function () {
+        seg.querySelectorAll(".chip").forEach(function (c) { c.classList.remove("active"); });
+        chip.classList.add("active");
+        state[key] = cast(chip.dataset[key === "op" ? "op" : "lvl"]);
+        newRound();
+      });
+    });
+  }
+  setupSeg("opSeg", "op", function (v) { return v; });
+  setupSeg("lvlSeg", "level", function (v) { return parseInt(v, 10); });
+
+  $("tabPlay").addEventListener("click", function () { showTab("play"); });
+  $("tabSafari").addEventListener("click", function () { showTab("safari"); });
+  $("tabCollect").addEventListener("click", function () { showTab("collect"); });
+
+  document.addEventListener("keydown", function (e) {
+    if ($("playView").classList.contains("hidden")) return;
+    var idx = ["1", "2", "3", "4"].indexOf(e.key);
+    if (idx === -1) return;
+    var btns = answersEl.querySelectorAll(".ans");
+    if (btns[idx] && !btns[idx].disabled) btns[idx].click();
+  });
+
+  // ---------- Boot ----------
+  setCoins(0);
+  newRound();
+  updateCollectCount();
+})();
+</script>
+</body>
+</html>
