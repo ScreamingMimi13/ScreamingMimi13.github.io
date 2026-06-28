@@ -73,7 +73,7 @@
   }
   .coins.bump { transform: scale(1.18); }
 
-  .tabs { justify-content: center; gap: 8px; }
+  .tabs { justify-content: center; gap: 8px; flex-wrap: wrap; }
   .tab-btn {
     border: none;
     background: rgba(255,255,255,.15);
@@ -240,21 +240,52 @@
     from { filter: drop-shadow(0 3px 2px rgba(0,0,0,.22)); }
     to   { filter: drop-shadow(0 0 9px rgba(255,196,60,.95)) drop-shadow(0 3px 2px rgba(0,0,0,.22)); }
   }
-  /* the avatar person who walks over and nets critters (same feet-anchored side view) */
+  /* the editable avatar (SVG) who walks over and nets critters; feet-anchored side view */
   .avatar { position: absolute; left: 0; top: 0; width: 0; height: 0; pointer-events: none; }
   .avatar .wb { position: absolute; left: 0; top: 0; transform-origin: 50% 100%; white-space: nowrap; will-change: transform; }
-  .avatar .body { position: relative; display: block; font-size: 52px; line-height: 1; filter: drop-shadow(0 4px 3px rgba(0,0,0,.34)) saturate(1.15); }
-  .avatar .net { position: absolute; left: 60%; top: -4px; font-size: 34px; transform-origin: bottom left; }
+  .avatar .body { position: relative; display: block; line-height: 0; filter: drop-shadow(0 4px 3px rgba(0,0,0,.32)); }
+  .avatar .body svg { display: block; width: 66px; height: auto; }
   .avatar .shadow {
-    position: absolute; left: 0; top: 0; width: 54px; height: 17px;
+    position: absolute; left: 0; top: 0; width: 56px; height: 17px;
     background: radial-gradient(ellipse at center, rgba(0,0,0,.34), rgba(0,0,0,0) 70%);
   }
-  .avatar.swing .net { animation: netSwing .5s ease; }
-  @keyframes netSwing {
+  .avatar.swing .av-net { animation: netSwingSvg .5s ease; transform-box: fill-box; transform-origin: 18% 92%; }
+  @keyframes netSwingSvg {
     0% { transform: rotate(0); }
-    45% { transform: rotate(-62deg) translateY(-5px); }
+    45% { transform: rotate(-42deg); }
     100% { transform: rotate(0); }
   }
+  /* full-screen safari */
+  .field.full {
+    position: fixed; inset: 0; width: 100vw; height: 100vh;
+    min-height: 0; max-height: none; border-radius: 0; z-index: 30;
+  }
+  .safari-hud {
+    position: fixed; top: 10px; left: 12px; right: 12px; z-index: 45;
+    display: flex; align-items: center; justify-content: space-between; pointer-events: none;
+  }
+  .safari-hud .coins, .safari-hud .hud-btn { pointer-events: auto; }
+  .hud-btn {
+    border: none; background: rgba(33,52,79,.86); color: #fff; font: inherit; font-weight: 800;
+    padding: 9px 16px; border-radius: 999px; cursor: pointer; font-size: 15px; box-shadow: 0 3px 0 rgba(0,0,0,.3);
+  }
+  .hud-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0,0,0,.3); }
+  /* avatar customizer */
+  .avatar-editor { display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-start; }
+  .avatar-preview {
+    flex: 0 0 134px; height: 210px; border-radius: 16px;
+    background: linear-gradient(180deg,#bfe7ff 0%,#d8f1ff 45%,#cdeaa0 45%,#a8d878 100%);
+    display: flex; align-items: flex-end; justify-content: center; padding-bottom: 10px;
+    box-shadow: inset 0 0 0 2px rgba(255,255,255,.5);
+  }
+  .avatar-preview svg { width: 112px; height: auto; filter: drop-shadow(0 5px 4px rgba(0,0,0,.22)); }
+  .editor-controls { flex: 1 1 220px; min-width: 200px; }
+  .swatches { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 4px; }
+  .sw {
+    width: 30px; height: 30px; border-radius: 50%; border: 3px solid #fff;
+    box-shadow: 0 0 0 1px #cdd8e6; cursor: pointer; padding: 0;
+  }
+  .sw.active { box-shadow: 0 0 0 3px var(--pop); transform: scale(1.08); }
   /* price tag floats above the critter's head at a constant readable size (JS positions it) */
   .wild .tag {
     position: absolute;
@@ -381,6 +412,7 @@
       <button class="tab-btn active" id="tabPlay">Play</button>
       <button class="tab-btn" id="tabSafari">Safari</button>
       <button class="tab-btn" id="tabCollect">Collection <span id="collectCount" style="opacity:.8"></span></button>
+      <button class="tab-btn" id="tabAvatar">Avatar</button>
     </div>
 
     <!-- PLAY VIEW -->
@@ -445,7 +477,43 @@
       </div>
     </div>
 
+    <!-- AVATAR CUSTOMIZER VIEW -->
+    <div id="avatarView" class="hidden">
+      <div class="panel">
+        <div class="safari-head">
+          <div>
+            <h2>🧑 Your Catcher</h2>
+            <div class="safari-sub">Style your safari avatar — they'll catch the critters!</div>
+          </div>
+        </div>
+        <div class="avatar-editor">
+          <div class="avatar-preview" id="avatarPreview"></div>
+          <div class="editor-controls">
+            <p class="section-title" style="text-align:left">Hair style</p>
+            <div class="seg" id="hairStyleSeg" style="justify-content:flex-start;margin-bottom:10px">
+              <button class="chip active" data-hair="short">Short</button>
+              <button class="chip" data-hair="long">Long</button>
+              <button class="chip" data-hair="spiky">Spiky</button>
+              <button class="chip" data-hair="bun">Bun</button>
+              <button class="chip" data-hair="ponytail">Pony</button>
+            </div>
+            <p class="section-title" style="text-align:left">Hair color</p>
+            <div class="swatches" id="hairColorSw"></div>
+            <p class="section-title" style="text-align:left;margin-top:10px">Eye color</p>
+            <div class="swatches" id="eyeColorSw"></div>
+            <p class="section-title" style="text-align:left;margin-top:10px">Skin tone</p>
+            <div class="swatches" id="skinSw"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="footer-note">Solve problems → earn stars → spend nets to catch wild critters. Wrong math answers cost a few stars!</div>
+  </div>
+
+  <div id="safariHud" class="safari-hud hidden">
+    <div class="coins">⭐ <span id="coinVal4">0</span></div>
+    <button id="safariDone" class="hud-btn">✕ Done</button>
   </div>
 
   <div class="toast" id="toast"></div>
@@ -579,6 +647,7 @@
     coinVal.textContent = state.coins;
     coinVal2.textContent = state.coins;
     coinVal3.textContent = state.coins;
+    var c4 = $("coinVal4"); if (c4) c4.textContent = state.coins;
     coinsBox.classList.remove("bump");
     void coinsBox.offsetWidth;
     coinsBox.classList.add("bump");
@@ -717,7 +786,8 @@
     buffalo:2.10, crocodile:2.20, shark:2.30, rhino:2.60, hippo:2.40, elephant:3.20, giraffe:3.60,
     mammoth:3.40, whale:3.60, bigwhale:4.0, dragon:3.0, dragonface:3.0, trex:3.30, sauropod:3.90
   };
-  var MAX_RENDER_SCALE = 3.4; // cap so the biggest beasts don't overflow the field
+  var CRITTER_SCALE = 1.7;    // global "much bigger" multiplier for critters (avatar excluded)
+  var MAX_RENDER_SCALE = 5.6; // cap so the biggest beasts don't overflow the field
 
   // Side-view perspective: critters roam a ground band from the horizon (far, small)
   // down to the front of the field (near, big). y is the screen position of their feet.
@@ -730,7 +800,7 @@
   // place an entity's feet at (x,y), scale by depth * life-size, lift the body by `hop`, sort by depth
   function renderEntity(o, flip, hop, gT, gB) {
     var ds = depthScale(o.y, gT, gB);
-    var s = Math.min(ds.s * (o.sizeRel || 1), MAX_RENDER_SCALE);
+    var s = Math.min(ds.s * (o.sizeRel || 1) * (o.isAvatar ? 1 : CRITTER_SCALE), MAX_RENDER_SCALE);
     o.el.style.transform = "translate(" + o.x + "px," + o.y + "px)";
     o.el.style.zIndex = String(5 + Math.round(ds.d * 60));
     o.elWb.style.transform = "translate(-50%,-100%) scale(" + s.toFixed(3) + ")";
@@ -820,11 +890,11 @@
   function createAvatar() {
     var sz = fieldSize();
     var gb = groundBounds(sz);
-    avatar = { x: sz.w * 0.5, y: gb.bottom - 8, facing: 1, bob: 0, target: null, locked: false,
-      idleT: 0, wx: sz.w * 0.5, wy: gb.bottom - 8, sizeRel: 1.0, el: null };
+    avatar = { isAvatar: true, sizeRel: 1.0, x: sz.w * 0.5, y: gb.bottom - 8, facing: 1, bob: 0,
+      target: null, locked: false, idleT: 0, wx: sz.w * 0.5, wy: gb.bottom - 8, el: null };
     var a = document.createElement("div");
     a.className = "avatar";
-    a.innerHTML = '<div class="shadow"></div><div class="wb"><span class="body">🧑<span class="net">🥅</span></span></div>';
+    a.innerHTML = '<div class="shadow"></div><div class="wb"><span class="body">' + buildAvatarSVG(avatarOpts) + '</span></div>';
     fieldEl.appendChild(a);
     avatar.el = a;
     avatar.elWb = a.querySelector(".wb");
@@ -975,6 +1045,96 @@
   }
   function stopSafari() { safariActive = false; }
 
+  // ---------- AVATAR CUSTOMIZER ----------
+  var avatarOpts = { hairStyle: "short", hairColor: "#5a3a22", eyeColor: "#4a3526", skin: "#f1c39c", shirt: "#5a86d6" };
+  var HAIR_COLORS = ["#2b2b2b", "#5a3a22", "#8a5a2b", "#c8893b", "#e8c45f", "#b03b2e", "#d98ab0", "#8895a6"];
+  var EYE_COLORS  = ["#4a3526", "#6b4a2e", "#3b7d4f", "#2f6fb0", "#6b8190", "#7a4fb0"];
+  var SKIN_TONES  = ["#f7d9bd", "#f1c39c", "#e0a878", "#c88a5a", "#a3683f", "#7a4a2b"];
+
+  function buildAvatarSVG(o) {
+    o = o || avatarOpts;
+    var skin = o.skin, hair = o.hairColor, eye = o.eyeColor, shirt = o.shirt, pants = "#39506e";
+    var hairShapes = {
+      short:    '<path d="M27 44 Q29 17 50 15 Q71 17 73 44 Q66 29 50 27 Q34 29 27 44 Z"/>',
+      long:     '<path d="M26 46 Q27 15 50 13 Q73 15 74 46 L74 78 Q68 66 65 50 Q62 33 50 30 Q38 33 35 50 Q32 66 26 78 Z"/>',
+      spiky:    '<path d="M27 45 L30 20 L38 33 L45 16 L50 32 L55 16 L62 33 L70 20 L73 45 Q65 29 50 28 Q35 29 27 45 Z"/>',
+      bun:      '<circle cx="50" cy="11" r="8"/><path d="M27 44 Q29 18 50 17 Q71 18 73 44 Q66 29 50 27 Q34 29 27 44 Z"/>',
+      ponytail: '<path d="M71 33 Q87 39 84 61 Q79 51 72 49 Z"/><path d="M27 44 Q29 17 50 15 Q71 17 73 44 Q66 29 50 27 Q34 29 27 44 Z"/>'
+    };
+    var hairSvg = hairShapes[o.hairStyle] || hairShapes.short;
+    return ''
+      + '<svg viewBox="0 0 108 152" xmlns="http://www.w3.org/2000/svg">'
+      + '<rect x="41" y="104" width="8" height="40" rx="4" fill="' + pants + '"/>'
+      + '<rect x="51" y="104" width="8" height="40" rx="4" fill="' + pants + '"/>'
+      + '<ellipse cx="45" cy="146" rx="8" ry="4.5" fill="#3a3f4a"/>'
+      + '<ellipse cx="55" cy="146" rx="8" ry="4.5" fill="#3a3f4a"/>'
+      + '<rect x="34" y="66" width="32" height="44" rx="13" fill="' + shirt + '"/>'
+      + '<path d="M38 74 Q31 88 31 99" stroke="' + skin + '" stroke-width="8" stroke-linecap="round" fill="none"/>'
+      + '<path d="M62 74 Q72 64 80 54" stroke="' + skin + '" stroke-width="8" stroke-linecap="round" fill="none"/>'
+      + '<g class="av-net">'
+      +   '<line x1="80" y1="54" x2="98" y2="18" stroke="#9a6a32" stroke-width="4" stroke-linecap="round"/>'
+      +   '<circle cx="99" cy="14" r="12" fill="rgba(255,255,255,.30)" stroke="#cfd6e0" stroke-width="3"/>'
+      +   '<path d="M89 11 a12 12 0 0 1 20 0" fill="none" stroke="rgba(255,255,255,.55)" stroke-width="1"/>'
+      +   '<path d="M89 18 a12 12 0 0 0 20 0" fill="none" stroke="rgba(255,255,255,.4)" stroke-width="1"/>'
+      + '</g>'
+      + '<circle cx="31" cy="100" r="4.6" fill="' + skin + '"/>'
+      + '<circle cx="80" cy="54" r="4.6" fill="' + skin + '"/>'
+      + '<rect x="46" y="58" width="8" height="12" fill="' + skin + '"/>'
+      + '<circle cx="28" cy="46" r="5" fill="' + skin + '"/><circle cx="72" cy="46" r="5" fill="' + skin + '"/>'
+      + '<circle cx="50" cy="44" r="22" fill="' + skin + '"/>'
+      + '<g fill="' + hair + '">' + hairSvg + '</g>'
+      + '<path d="M37 38 Q42 35.5 47 38" stroke="' + hair + '" stroke-width="2" fill="none" stroke-linecap="round"/>'
+      + '<path d="M53 38 Q58 35.5 63 38" stroke="' + hair + '" stroke-width="2" fill="none" stroke-linecap="round"/>'
+      + '<ellipse cx="42" cy="46.5" rx="4.6" ry="5.8" fill="#fff"/>'
+      + '<ellipse cx="58" cy="46.5" rx="4.6" ry="5.8" fill="#fff"/>'
+      + '<circle cx="42.5" cy="47.5" r="3" fill="' + eye + '"/>'
+      + '<circle cx="58.5" cy="47.5" r="3" fill="' + eye + '"/>'
+      + '<circle cx="41.3" cy="46" r="1" fill="#fff"/>'
+      + '<circle cx="57.3" cy="46" r="1" fill="#fff"/>'
+      + '<circle cx="50" cy="52" r="1.3" fill="rgba(0,0,0,.18)"/>'
+      + '<path d="M45 57 Q50 62 55 57" stroke="#b3543f" stroke-width="2" fill="none" stroke-linecap="round"/>'
+      + '<circle cx="34" cy="53" r="3" fill="rgba(255,120,120,.35)"/>'
+      + '<circle cx="66" cy="53" r="3" fill="rgba(255,120,120,.35)"/>'
+      + '</svg>';
+  }
+
+  function refreshAvatar() {
+    if (avatar && avatar.elBody) avatar.elBody.innerHTML = buildAvatarSVG(avatarOpts);
+  }
+  function updateAvatarPreview() {
+    var pv = $("avatarPreview");
+    if (pv) pv.innerHTML = buildAvatarSVG(avatarOpts);
+  }
+  function buildSwatches(container, colors, key) {
+    container.innerHTML = "";
+    colors.forEach(function (c) {
+      var b = document.createElement("button");
+      b.className = "sw" + (avatarOpts[key] === c ? " active" : "");
+      b.style.background = c;
+      b.addEventListener("click", function () {
+        avatarOpts[key] = c;
+        container.querySelectorAll(".sw").forEach(function (x) { x.classList.remove("active"); });
+        b.classList.add("active");
+        updateAvatarPreview(); refreshAvatar();
+      });
+      container.appendChild(b);
+    });
+  }
+  function setupCustomizer() {
+    buildSwatches($("hairColorSw"), HAIR_COLORS, "hairColor");
+    buildSwatches($("eyeColorSw"), EYE_COLORS, "eyeColor");
+    buildSwatches($("skinSw"), SKIN_TONES, "skin");
+    $("hairStyleSeg").querySelectorAll(".chip").forEach(function (chip) {
+      chip.addEventListener("click", function () {
+        $("hairStyleSeg").querySelectorAll(".chip").forEach(function (c) { c.classList.remove("active"); });
+        chip.classList.add("active");
+        avatarOpts.hairStyle = chip.dataset.hair;
+        updateAvatarPreview(); refreshAvatar();
+      });
+    });
+    updateAvatarPreview();
+  }
+
   // ---------- CATCH MINIGAME ----------
   var catchModal = null;
   var needleRAF = 0;
@@ -1101,11 +1261,17 @@
     $("playView").classList.toggle("hidden", which !== "play");
     $("safariView").classList.toggle("hidden", which !== "safari");
     $("collectView").classList.toggle("hidden", which !== "collect");
+    $("avatarView").classList.toggle("hidden", which !== "avatar");
     $("tabPlay").classList.toggle("active", which === "play");
     $("tabSafari").classList.toggle("active", which === "safari");
     $("tabCollect").classList.toggle("active", which === "collect");
-    if (which === "safari") startSafari(); else stopSafari();
+    $("tabAvatar").classList.toggle("active", which === "avatar");
+    var isSafari = which === "safari";
+    fieldEl.classList.toggle("full", isSafari);      // full-screen safari
+    $("safariHud").classList.toggle("hidden", !isSafari);
+    if (isSafari) startSafari(); else stopSafari();
     if (which === "collect") renderCollection();
+    if (which === "avatar") updateAvatarPreview();
   }
 
   // ---------- Toast ----------
@@ -1135,6 +1301,8 @@
   $("tabPlay").addEventListener("click", function () { showTab("play"); });
   $("tabSafari").addEventListener("click", function () { showTab("safari"); });
   $("tabCollect").addEventListener("click", function () { showTab("collect"); });
+  $("tabAvatar").addEventListener("click", function () { showTab("avatar"); });
+  $("safariDone").addEventListener("click", function () { showTab("play"); });
 
   document.addEventListener("keydown", function (e) {
     if ($("playView").classList.contains("hidden")) return;
@@ -1148,6 +1316,7 @@
   setCoins(0);
   newRound();
   updateCollectCount();
+  setupCustomizer();
 })();
 </script>
 </body>
