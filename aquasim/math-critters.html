@@ -226,17 +226,11 @@
   .wild .wb { position: absolute; left: 0; top: 0; transform-origin: 50% 100%; white-space: nowrap; will-change: transform; }
   .wild .body {
     position: relative; display: block; font-size: 42px; line-height: 1;
-    /* punchy colors + a crisp shadow so critters pop off the grass */
-    filter: drop-shadow(0 4px 3px rgba(0,0,0,.3)) saturate(1.6) contrast(1.16) brightness(1.04);
+    /* punchy colors + a crisp shadow so critters pop off the grass (no sheen) */
+    filter: drop-shadow(0 4px 3px rgba(0,0,0,.32)) saturate(1.62) contrast(1.2) brightness(1.03);
     transition: filter .1s ease;
   }
-  /* glossy specular highlight (no animated shimmer) */
-  .wild .body::before {
-    content: ""; position: absolute; left: 16%; top: 3%; width: 40%; height: 34%;
-    background: radial-gradient(ellipse at 50% 50%, rgba(255,255,255,.95), rgba(255,255,255,0) 70%);
-    border-radius: 50%; pointer-events: none;
-  }
-  .wild:active .body { filter: drop-shadow(0 2px 2px rgba(0,0,0,.32)) saturate(1.6) contrast(1.16) brightness(1.18); }
+  .wild:active .body { filter: drop-shadow(0 2px 2px rgba(0,0,0,.34)) saturate(1.62) contrast(1.2) brightness(1.16); }
   .wild .shadow {
     position: absolute; left: 0; top: 0; width: 46px; height: 15px;
     background: radial-gradient(ellipse at center, rgba(0,0,0,.34), rgba(0,0,0,0) 70%);
@@ -246,47 +240,26 @@
     from { filter: drop-shadow(0 3px 2px rgba(0,0,0,.22)); }
     to   { filter: drop-shadow(0 0 9px rgba(255,196,60,.95)) drop-shadow(0 3px 2px rgba(0,0,0,.22)); }
   }
-  /* first-person: the net YOU hold in the foreground */
-  .fp-net {
-    position: absolute; left: 50%; bottom: -26px; width: 210px; height: 250px;
-    transform: translateX(-50%) rotate(-10deg); transform-origin: 50% 100%;
-    pointer-events: none; z-index: 70; animation: netIdle 3.2s ease-in-out infinite;
+  /* the avatar person who walks over and nets critters (same feet-anchored side view) */
+  .avatar { position: absolute; left: 0; top: 0; width: 0; height: 0; pointer-events: none; }
+  .avatar .wb { position: absolute; left: 0; top: 0; transform-origin: 50% 100%; white-space: nowrap; will-change: transform; }
+  .avatar .body { position: relative; display: block; font-size: 52px; line-height: 1; filter: drop-shadow(0 4px 3px rgba(0,0,0,.34)) saturate(1.15); }
+  .avatar .net { position: absolute; left: 60%; top: -4px; font-size: 34px; transform-origin: bottom left; }
+  .avatar .shadow {
+    position: absolute; left: 0; top: 0; width: 54px; height: 17px;
+    background: radial-gradient(ellipse at center, rgba(0,0,0,.34), rgba(0,0,0,0) 70%);
   }
-  .fp-net .handle {
-    position: absolute; left: 50%; bottom: 0; width: 16px; height: 178px;
-    transform: translateX(-50%); border-radius: 9px;
-    background: linear-gradient(90deg, #7c4f1d, #d8ad66 45%, #b07c33 70%, #6f441a);
-    box-shadow: 0 2px 6px rgba(0,0,0,.4);
+  .avatar.swing .net { animation: netSwing .5s ease; }
+  @keyframes netSwing {
+    0% { transform: rotate(0); }
+    45% { transform: rotate(-62deg) translateY(-5px); }
+    100% { transform: rotate(0); }
   }
-  .fp-net .hoop {
-    position: absolute; left: 50%; top: 0; width: 134px; height: 134px;
-    transform: translateX(-50%); border-radius: 50%; border: 10px solid #d6dde7;
-    background: radial-gradient(circle at 38% 30%, rgba(255,255,255,.42), rgba(180,210,255,.14) 55%, rgba(150,180,230,.05) 78%);
-    box-shadow: 0 5px 12px rgba(0,0,0,.22), inset 0 0 24px rgba(255,255,255,.32);
-  }
-  .fp-net .hoop::after {
-    content: ""; position: absolute; inset: 5px; border-radius: 50%;
-    background:
-      repeating-linear-gradient(45deg, rgba(255,255,255,.15) 0 1.5px, transparent 1.5px 9px),
-      repeating-linear-gradient(-45deg, rgba(255,255,255,.15) 0 1.5px, transparent 1.5px 9px);
-  }
-  @keyframes netIdle {
-    0%, 100% { transform: translateX(-50%) rotate(-10deg) translateY(0); }
-    50% { transform: translateX(-50%) rotate(-8deg) translateY(-6px); }
-  }
-  .fp-net.swipe { animation: netSwipe .52s ease; }
-  @keyframes netSwipe {
-    0% { transform: translateX(-50%) rotate(-10deg) translateY(0) scale(1); }
-    35% { transform: translateX(-50%) rotate(9deg) translateY(-95px) scale(1.14); }
-    70% { transform: translateX(-50%) rotate(-4deg) translateY(-44px) scale(1.05); }
-    100% { transform: translateX(-50%) rotate(-10deg) translateY(0) scale(1); }
-  }
+  /* price tag floats above the critter's head at a constant readable size (JS positions it) */
   .wild .tag {
     position: absolute;
-    left: 50%;
-    bottom: 100%;
-    transform: translateX(-50%);
-    margin-bottom: 3px;
+    left: 0;
+    top: 0;
     font-size: 11px;
     font-weight: 800;
     background: rgba(33,52,79,.85);
@@ -447,14 +420,14 @@
         <div class="safari-head">
           <div>
             <h2>🌿 Safari</h2>
-            <div class="safari-sub">You're out on safari — tap a critter to swing your net!</div>
+            <div class="safari-sub">Tap a critter — your safari catcher runs over to net it!</div>
           </div>
           <div class="coins" style="box-shadow:0 3px 0 var(--accent-d)">⭐ <span id="coinVal2">0</span></div>
         </div>
         <div class="field" id="field">
           <div class="field-empty" id="fieldEmpty">The meadow is quiet... new critters wander in over time.</div>
         </div>
-        <div class="safari-tip">You're holding the <b>net</b> 🥅 — tap a critter to swing! They spook and bolt, so be quick. Stop the needle in the green to net it. Rare critters are faster and trickier.</div>
+        <div class="safari-tip">Tap a critter and your <b>catcher 🧑</b> runs over with the net — but they bolt, so corner them! Critters are <b>life-size</b> (mice are tiny, elephants are huge). Stop the needle in the green to net it.</div>
       </div>
     </div>
 
@@ -724,9 +697,27 @@
   var spawnTimer = 0;
   var lastT = 0;
   var safariActive = false;
-  var targetWild = null; // the critter you're currently trying to net
-  var netTimer = null;   // delay between the net swing and the catch minigame
-  var fpNet = null;      // the first-person net held in the foreground
+  var avatar = null;     // the person you watch catch critters
+  var PLAYER_SPEED = 185;
+  var CATCH_RANGE = 46;
+
+  // life-size scale per species, relative to the avatar (≈1.0). Tiny bugs ~0.3, elephants/whales ~3-4.
+  var SIZE = {
+    ant:.25, bee:.30, butterfly:.32, ladybug:.26, caterpillar:.30, cricket:.30, spider:.32, worm:.30,
+    beetle:.30, fly:.24, roach:.30, snail:.32, scorpion:.40, shrimp:.36, crab:.42, mouse:.40,
+    mousewhite:.36, rat:.44, chick:.30, hatch:.30, bird:.42, frog:.42, fish:.45, tropicalfish:.42,
+    blowfish:.46, hamster:.36, chicken:.55, rooster:.62, bat:.40, lizard:.45, dove:.46, lobster:.50,
+    hedgehog:.45, chipmunk:.40, rabbit:.60, duck:.55, cat:.75, monkey:.70, turtle:.50, snake:.60,
+    goat:.95, sheep:.95, ram:1.0, pig:.95, dog:.85, poodle:.72, fox:.82, owl:.60, koala:.72,
+    raccoon:.70, otter:.62, sloth:.72, beaver:.58, badger:.62, skunk:.55, parrot:.55, swan:1.0,
+    turkey:.82, penguin:.70, squid:.85, octopus:.85, eagle:.95, peacock:1.05, flamingo:1.15,
+    wolf:1.05, deer:1.30, kangaroo:1.35, panda:1.50, seal:1.20, llama:1.55, leopard:1.35, dodo:.95,
+    boar:1.05, cow:1.70, horse:1.85, racehorse:1.85, zebra:1.75, dolphin:1.50, unicorn:1.85,
+    lion:1.55, tiger:1.65, gorilla:1.70, orangutan:1.40, camel:2.10, camel2:2.10, bison:2.10,
+    buffalo:2.10, crocodile:2.20, shark:2.30, rhino:2.60, hippo:2.40, elephant:3.20, giraffe:3.60,
+    mammoth:3.40, whale:3.60, bigwhale:4.0, dragon:3.0, dragonface:3.0, trex:3.30, sauropod:3.90
+  };
+  var MAX_RENDER_SCALE = 3.4; // cap so the biggest beasts don't overflow the field
 
   // Side-view perspective: critters roam a ground band from the horizon (far, small)
   // down to the front of the field (near, big). y is the screen position of their feet.
@@ -736,15 +727,21 @@
     var d = clampN((y - gT) / (gB - gT), 0, 1);
     return { d: d, s: FAR_S + (NEAR_S - FAR_S) * d };
   }
-  // place an entity's feet at (x,y), scale by depth, lift the body by `hop`, sort by depth
+  // place an entity's feet at (x,y), scale by depth * life-size, lift the body by `hop`, sort by depth
   function renderEntity(o, flip, hop, gT, gB) {
     var ds = depthScale(o.y, gT, gB);
+    var s = Math.min(ds.s * (o.sizeRel || 1), MAX_RENDER_SCALE);
     o.el.style.transform = "translate(" + o.x + "px," + o.y + "px)";
     o.el.style.zIndex = String(5 + Math.round(ds.d * 60));
-    // depth scale on the wrapper; left/right flip only on the body so the price tag stays readable
-    o.elWb.style.transform = "translate(-50%,-100%) scale(" + ds.s.toFixed(3) + ")";
+    o.elWb.style.transform = "translate(-50%,-100%) scale(" + s.toFixed(3) + ")";
+    // flip only the body so the tag/shadow stay upright
     o.elBody.style.transform = "scaleX(" + flip + ") translateY(" + (-hop).toFixed(2) + "px)";
-    o.elShadow.style.transform = "translate(-50%,-50%) scale(" + (ds.s * (1 - hop * 0.012)).toFixed(3) + ")";
+    o.elShadow.style.transform = "translate(-50%,-50%) scale(" + (s * (1 - hop * 0.012)).toFixed(3) + ")";
+    if (o.elTag) {
+      // keep the price tag a constant on-screen size, hovering above the critter's head
+      var headPx = 42 * s + 8;
+      o.elTag.style.transform = "translate(-50%," + (-headPx).toFixed(1) + "px)";
+    }
   }
 
   // decorate the field: sun, distant hills, clouds, and ground trees with perspective
@@ -768,11 +765,6 @@
       d.style.left = t[1] + "%"; d.style.top = t[2] + "%"; d.style.fontSize = t[3] + "px";
       fieldEl.appendChild(d);
     });
-    // the first-person net held in the foreground
-    fpNet = document.createElement("div");
-    fpNet.className = "fp-net";
-    fpNet.innerHTML = '<div class="handle"></div><div class="hoop"></div>';
-    fieldEl.appendChild(fpNet);
   })();
 
   function fieldSize() {
@@ -787,6 +779,7 @@
     var pad = 44;
     var w = {
       sp: sp,
+      sizeRel: SIZE[sp.id] || 0.8,
       x: randInt(pad, sz.w - pad),
       y: randInt(Math.round(gb.top) + 8, Math.round(gb.bottom)),
       vx: (Math.random() < 0.5 ? -1 : 1) * sp.speed,
@@ -801,14 +794,15 @@
     el.className = "wild";
     el.innerHTML =
       '<div class="shadow"></div>' +
-      '<div class="wb"><span class="body">' + sp.emoji + '</span>' +
-      '<span class="tag ' + sp.rar + '">⭐' + sp.netCost + '</span></div>';
-    el.addEventListener("click", function (e) { e.stopPropagation(); throwNet(w); });
+      '<div class="wb"><span class="body">' + sp.emoji + '</span></div>' +
+      '<span class="tag ' + sp.rar + '">⭐' + sp.netCost + '</span>';
+    el.addEventListener("click", function (e) { e.stopPropagation(); sendAvatar(w); });
     fieldEl.appendChild(el);
     w.el = el;
     w.elWb = el.querySelector(".wb");
     w.elBody = el.querySelector(".body");
     w.elShadow = el.querySelector(".shadow");
+    w.elTag = el.querySelector(".tag");
     renderEntity(w, 1, 0, gb.top, gb.bottom);
     wilds.push(w);
     fieldEmpty.classList.add("hidden");
@@ -823,35 +817,82 @@
     if (wilds.length === 0) fieldEmpty.classList.remove("hidden");
   }
 
-  // swing the foreground net (a quick scoop animation)
-  function netSwipe() {
-    if (!fpNet) return;
-    fpNet.classList.remove("swipe");
-    void fpNet.offsetWidth; // restart the animation
-    fpNet.classList.add("swipe");
-    setTimeout(function () { if (fpNet) fpNet.classList.remove("swipe"); }, 540);
+  function createAvatar() {
+    var sz = fieldSize();
+    var gb = groundBounds(sz);
+    avatar = { x: sz.w * 0.5, y: gb.bottom - 8, facing: 1, bob: 0, target: null, locked: false,
+      idleT: 0, wx: sz.w * 0.5, wy: gb.bottom - 8, sizeRel: 1.0, el: null };
+    var a = document.createElement("div");
+    a.className = "avatar";
+    a.innerHTML = '<div class="shadow"></div><div class="wb"><span class="body">🧑<span class="net">🥅</span></span></div>';
+    fieldEl.appendChild(a);
+    avatar.el = a;
+    avatar.elWb = a.querySelector(".wb");
+    avatar.elBody = a.querySelector(".body");
+    avatar.elShadow = a.querySelector(".shadow");
+    renderEntity(avatar, 1, 0, gb.top, gb.bottom);
   }
 
-  // tap a critter to swing the net: it bolts for a moment, then the catch minigame opens
-  function throwNet(w) {
-    if (catchModal) return;
+  // tap a critter to send the avatar after it; the catch starts when they reach it
+  function sendAvatar(w) {
+    if (catchModal || !avatar) return;
     if (state.coins < w.sp.netCost) {
       toast("Need " + (w.sp.netCost - state.coins) + " more ⭐ to net " + w.sp.name + "!");
       return;
     }
-    if (targetWild && targetWild.el) targetWild.el.classList.remove("targeted");
-    targetWild = w;
+    if (avatar.target && avatar.target.el) avatar.target.el.classList.remove("targeted");
+    avatar.target = w;
+    avatar.locked = false;
     w.el.classList.add("targeted");
-    netSwipe();
-    clearTimeout(netTimer);
-    netTimer = setTimeout(function () { if (targetWild === w && !catchModal) openCatch(w); }, 560);
   }
 
-  // clear the attempt (called when a catch resolves or the player sneaks away)
+  // clear the chase (called when a catch resolves or the player sneaks away)
   function endChase() {
-    clearTimeout(netTimer);
-    if (targetWild && targetWild.el) targetWild.el.classList.remove("targeted");
-    targetWild = null;
+    if (!avatar) return;
+    if (avatar.target && avatar.target.el) avatar.target.el.classList.remove("targeted");
+    avatar.target = null;
+    avatar.locked = false;
+  }
+
+  function updateAvatar(dt, sz, gb) {
+    if (!avatar) return;
+    if (!catchModal) {
+      if (avatar.target) {
+        var tx = avatar.target.x, ty = avatar.target.y;
+        var dx = tx - avatar.x, dy = ty - avatar.y, d = Math.hypot(dx, dy);
+        if (d > 1) {
+          avatar.x += dx / d * PLAYER_SPEED * dt;
+          avatar.y += dy / d * PLAYER_SPEED * dt;
+          avatar.facing = dx < -1 ? -1 : (dx > 1 ? 1 : avatar.facing);
+          avatar.bob += dt * 13;
+        }
+        if (d <= CATCH_RANGE && !avatar.locked) {
+          avatar.locked = true;
+          avatar.el.classList.add("swing");
+          setTimeout(function () { if (avatar && avatar.el) avatar.el.classList.remove("swing"); }, 500);
+          openCatch(avatar.target);
+        }
+      } else {
+        // idle: stroll the grounds so the avatar feels alive
+        avatar.idleT -= dt;
+        if (avatar.idleT <= 0) {
+          avatar.wx = rand(40, sz.w - 40);
+          avatar.wy = rand(gb.top + (gb.bottom - gb.top) * 0.35, gb.bottom);
+          avatar.idleT = rand(2.2, 4.5);
+        }
+        var ix = avatar.wx - avatar.x, iy = avatar.wy - avatar.y, id = Math.hypot(ix, iy);
+        if (id > 5) {
+          avatar.x += ix / id * PLAYER_SPEED * 0.34 * dt;
+          avatar.y += iy / id * PLAYER_SPEED * 0.34 * dt;
+          avatar.facing = ix < -1 ? -1 : (ix > 1 ? 1 : avatar.facing);
+          avatar.bob += dt * 9;
+        }
+      }
+      avatar.x = clampN(avatar.x, 30, sz.w - 30);
+      avatar.y = clampN(avatar.y, gb.top + 6, gb.bottom);
+    }
+    var ab = Math.abs(Math.sin(avatar.bob)) * 4;
+    renderEntity(avatar, avatar.facing, ab, gb.top, gb.bottom);
   }
 
   function safariStep(t) {
@@ -863,7 +904,8 @@
     var sz = fieldSize();
     var gb = groundBounds(sz);
     var pad = 34;
-    var camX = sz.w / 2, camY = gb.bottom + 50; // your viewpoint: front-center, just off-screen
+    var camX = avatar ? avatar.x : sz.w / 2;     // critters flee from the avatar
+    var camY = avatar ? avatar.y : gb.bottom + 50;
 
     spawnTimer -= dt;
     if (spawnTimer <= 0 && wilds.length < MAX_WILD) {
@@ -875,8 +917,8 @@
       var w = wilds[i];
       if (w.caughtPaused) continue;
 
-      if (w === targetWild && !catchModal) {
-        // FLEE: bolt directly away from you (toward the horizon)
+      if (avatar && w === avatar.target && !catchModal) {
+        // FLEE: bolt directly away from the avatar
         var fx = w.x - camX, fy = w.y - camY, fd = Math.hypot(fx, fy) || 1;
         var fs = w.sp.speed * 1.7;
         w.vx = fx / fd * fs;
@@ -920,12 +962,14 @@
       renderEntity(w, w.lastFlip, hop, gb.top, gb.bottom);
     }
 
+    updateAvatar(dt, sz, gb);
     requestAnimationFrame(safariStep);
   }
 
   function startSafari() {
     safariActive = true;
     lastT = 0;
+    if (!avatar) createAvatar();
     if (wilds.length === 0) { spawnWild(); spawnWild(); spawnWild(); }
     requestAnimationFrame(safariStep);
   }
