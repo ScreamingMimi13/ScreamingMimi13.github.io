@@ -255,6 +255,14 @@
     45% { transform: rotate(-42deg); }
     100% { transform: rotate(0); }
   }
+  /* hair bounces/sways while the avatar runs */
+  .avatar .av-hair { transform-box: fill-box; transform-origin: 50% 16%; will-change: transform; }
+  .avatar.running .av-hair { animation: hairRun .4s ease-in-out infinite; }
+  @keyframes hairRun {
+    0%, 100% { transform: rotate(0deg) translateY(0); }
+    25% { transform: rotate(4deg) translateY(-0.4px); }
+    75% { transform: rotate(-4deg) translateY(-0.4px); }
+  }
   /* full-screen safari */
   .field.full {
     position: fixed; inset: 0; width: 100vw; height: 100vh;
@@ -940,6 +948,7 @@
 
   function updateAvatar(dt, sz, gb) {
     if (!avatar) return;
+    var moving = false;
     if (!catchModal) {
       if (avatar.target) {
         var tx = avatar.target.x, ty = avatar.target.y;
@@ -949,6 +958,7 @@
           avatar.y += dy / d * PLAYER_SPEED * dt;
           avatar.facing = dx < -1 ? -1 : (dx > 1 ? 1 : avatar.facing);
           avatar.bob += dt * 13;
+          moving = true;
         }
         if (d <= CATCH_RANGE && !avatar.locked) {
           avatar.locked = true;
@@ -970,11 +980,13 @@
           avatar.y += iy / id * PLAYER_SPEED * 0.34 * dt;
           avatar.facing = ix < -1 ? -1 : (ix > 1 ? 1 : avatar.facing);
           avatar.bob += dt * 9;
+          moving = true;
         }
       }
       avatar.x = clampN(avatar.x, 30, sz.w - 30);
       avatar.y = clampN(avatar.y, gb.top + 6, gb.bottom);
     }
+    avatar.el.classList.toggle("running", moving);
     var ab = Math.abs(Math.sin(avatar.bob)) * 4;
     renderEntity(avatar, avatar.facing, ab, gb.top, gb.bottom);
   }
@@ -1096,7 +1108,17 @@
       bun:      '<circle cx="50" cy="10" r="8.5"/><path d="M27 46 C25 24 37 16 50 16 C63 16 75 24 73 46 C71 35 64 31 50 31 C36 31 29 35 27 46 Z"/>',
       ponytail: '<path d="M69 29 C86 33 89 53 82 68 C82 55 76 49 69 47 C72 41 71 34 69 29 Z"/><path d="M27 46 C25 24 37 15 50 15 C63 15 75 24 73 46 C71 35 64 31 50 31 C36 31 29 35 27 46 Z"/>'
     };
+    // subtle strand shading per style for a more realistic look
+    var hairDetail = {
+      short:    '',
+      flowing:  '<path d="M40 26 Q33 48 32 72" stroke="rgba(0,0,0,.13)" stroke-width="1.5" fill="none"/><path d="M60 26 Q67 48 68 72" stroke="rgba(0,0,0,.13)" stroke-width="1.5" fill="none"/>',
+      spiky:    '',
+      curly:    '<path d="M37 33 q4 4 8 0" stroke="rgba(0,0,0,.12)" stroke-width="1.3" fill="none"/><path d="M53 33 q4 4 8 0" stroke="rgba(0,0,0,.12)" stroke-width="1.3" fill="none"/>',
+      bun:      '',
+      ponytail: '<path d="M74 38 Q84 52 79 65" stroke="rgba(0,0,0,.13)" stroke-width="1.5" fill="none"/>'
+    };
     var hairSvg = hairShapes[o.hairStyle] || hairShapes.short;
+    var detail = hairDetail[o.hairStyle] || "";
     return ''
       + '<svg viewBox="0 0 108 152" xmlns="http://www.w3.org/2000/svg">'
       + '<rect x="41" y="104" width="8" height="40" rx="4" fill="' + pants + '"/>'
@@ -1117,7 +1139,9 @@
       + '<rect x="46" y="58" width="8" height="12" fill="' + skin + '"/>'
       + '<circle cx="28" cy="46" r="5" fill="' + skin + '"/><circle cx="72" cy="46" r="5" fill="' + skin + '"/>'
       + '<circle cx="50" cy="44" r="22" fill="' + skin + '"/>'
-      + '<g fill="' + hair + '">' + hairSvg + '</g>'
+      + '<g class="av-hair" fill="' + hair + '">' + hairSvg + detail
+      +   '<path d="M34 25 Q43 18 55 20" stroke="rgba(255,255,255,.42)" stroke-width="2.4" fill="none" stroke-linecap="round"/>'
+      + '</g>'
       + '<path d="M37 38 Q42 35.5 47 38" stroke="' + hair + '" stroke-width="2" fill="none" stroke-linecap="round"/>'
       + '<path d="M53 38 Q58 35.5 63 38" stroke="' + hair + '" stroke-width="2" fill="none" stroke-linecap="round"/>'
       + '<ellipse cx="42" cy="46.5" rx="4.6" ry="5.8" fill="#fff"/>'
