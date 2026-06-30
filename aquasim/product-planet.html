@@ -1144,15 +1144,31 @@
       wrap.appendChild(posField);
 
       camBtn.onclick = async () => {
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { toast("No camera here — use Upload", "warn"); return; }
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { toast("This browser can't use the camera — use Upload", "warn"); return; }
+        if (!window.isSecureContext) { toast("Camera needs the https web link (not a local file) — or use Upload", "warn"); return; }
+        camBtn.textContent = "Opening…";
         try {
-          stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false });
-          video.srcObject = stream; camWrap.style.display = "block"; takeBtn.style.display = "inline-block"; camBtn.textContent = "🔄 Restart";
-        } catch (e) { toast("Can't open camera — use Upload instead", "warn"); }
+          stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+          video.muted = true; video.setAttribute("playsinline", "");
+          video.srcObject = stream;
+          camWrap.style.display = "block";
+          await video.play().catch(() => {});
+          takeBtn.style.display = "inline-block"; camBtn.textContent = "🔄 Restart";
+          toast("Camera on! Click Snap when you're ready 📸", "good");
+        } catch (e) {
+          camBtn.textContent = "📷 Open camera";
+          const n = (e && e.name) || "";
+          let msg = "Can't open camera — use Upload instead";
+          if (n === "NotAllowedError" || n === "SecurityError") msg = "Camera blocked — click the camera icon in the address bar, choose Allow, then retry";
+          else if (n === "NotFoundError" || n === "OverconstrainedError" || n === "DevicesNotFoundError") msg = "No webcam found — use Upload";
+          else if (n === "NotReadableError" || n === "TrackStartError") msg = "Camera is in use by another app — close it (Zoom/Teams?) and retry";
+          toast(msg, "warn");
+        }
       };
       takeBtn.onclick = () => {
+        if (!video.videoWidth) { toast("Camera still warming up — wait a second, then Snap", "warn"); return; }
         const cap = document.createElement("canvas");
-        cap.width = video.videoWidth || 320; cap.height = video.videoHeight || 240;
+        cap.width = video.videoWidth; cap.height = video.videoHeight;
         cap.getContext("2d").drawImage(video, 0, 0, cap.width, cap.height);
         rawCapture = cap; stopCam();
         camWrap.style.display = "none"; takeBtn.style.display = "none"; camBtn.textContent = "📷 Open camera";
