@@ -176,6 +176,18 @@
     background: rgba(255,255,255,0.95); color: var(--ink); border-radius: 999px;
     padding: 6px 12px; font-weight: bold; white-space: nowrap;
   }
+  .ad-card.photo { background: #20202a; }
+  .ad-card.photo .ad-inner { background: linear-gradient(180deg, rgba(0,0,0,0.4), rgba(0,0,0,0) 28%, rgba(0,0,0,0) 62%, rgba(0,0,0,0.5)); }
+  .ad-card .ad-bottom { margin-top: auto; }
+  .ad-prod-abs { position: absolute; transform: translate(-50%, -50%); margin: 0; z-index: 2; pointer-events: none; }
+  .ad-card.photo.placing { cursor: crosshair; }
+
+  /* ---------- Camera / photo ad maker ---------- */
+  .cam-wrap { position: relative; border-radius: 14px; overflow: hidden; background: #11111a; margin-bottom: 10px; }
+  .cam-wrap video, .cam-wrap canvas { display: block; width: 100%; border-radius: 14px; }
+  .cam-hint { font-size: 0.85rem; color: #8a80a3; margin: 4px 0 10px; }
+  .cam-btns { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+  .cam-btns .btn { padding: 9px 16px; font-size: 0.95rem; }
 
   /* ---------- Quiz ---------- */
   .subj-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px,1fr)); gap: 12px; }
@@ -309,6 +321,9 @@
   ].map(t => ({ name: t.name, css: GLOW + ", " + t.grad }));
 
   const PACK_PATTERNS = ["plain", "stripes", "dots", "zigzag"];
+
+  // photo-ad art styles (applied to a camera/upload photo via canvas filters)
+  const PHOTO_STYLES = ["Anime", "Cartoon", "Comic", "Sketch", "Neon", "Pixel", "Normal"];
 
   // ---------------------------------------------------------------- Quiz bank
   const QUIZ = {
@@ -631,18 +646,141 @@
     </div>`;
   }
 
+  // ---------------------------------------------------------------- Photo styling
+  const clamp255 = (v) => v < 0 ? 0 : v > 255 ? 255 : v;
+
+  function lumArray(d, W, H) {
+    const n = W * H, L = new Float32Array(n);
+    for (let i = 0; i < n; i++) { const j = i * 4; L[i] = 0.299 * d[j] + 0.587 * d[j + 1] + 0.114 * d[j + 2]; }
+    return L;
+  }
+  function sobelMag(L, W, H) {
+    const M = new Float32Array(W * H);
+    for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++) {
+      const i = y * W + x;
+      const a = L[i - W - 1], b = L[i - W], c = L[i - W + 1], dd = L[i - 1], ee = L[i + 1], f = L[i + W - 1], g = L[i + W], h = L[i + W + 1];
+      const gx = (c + 2 * ee + h) - (a + 2 * dd + f);
+      const gy = (f + 2 * g + h) - (a + 2 * b + c);
+      M[i] = Math.sqrt(gx * gx + gy * gy);
+    }
+    return M;
+  }
+  // draw a source (video/image/canvas) into ctx using cover-fit
+  function coverDraw(ctx, src, W, H) {
+    const iw = src.videoWidth || src.naturalWidth || src.width;
+    const ih = src.videoHeight || src.naturalHeight || src.height;
+    if (!iw || !ih) return;
+    const s = Math.max(W / iw, H / ih), dw = iw * s, dh = ih * s;
+    ctx.drawImage(src, (W - dw) / 2, (H - dh) / 2, dw, dh);
+  }
+
+  function applyPhotoStyle(src, style) {
+    const W = 320, H = 360;
+    const c = document.createElement("canvas"); c.width = W; c.height = H;
+    const ctx = c.getContext("2d");
+    coverDraw(ctx, src, W, H);
+
+    if (style === "Pixel") {
+      const sc = 0.11, tc = document.createElement("canvas");
+      tc.width = Math.max(1, Math.round(W * sc)); tc.height = Math.max(1, Math.round(H * sc));
+      tc.getContext("2d").drawImage(c, 0, 0, tc.width, tc.height);
+      ctx.imageSmoothingEnabled = false; ctx.clearRect(0, 0, W, H); ctx.drawImage(tc, 0, 0, W, H);
+      return c.toDataURL("image/jpeg", 0.85);
+    }
+    if (style === "Normal") return c.toDataURL("image/jpeg", 0.85);
+
+    const img = ctx.getImageData(0, 0, W, H), d = img.data;
+    const sat = (j, amt) => {
+      const l = 0.299 * d[j] + 0.587 * d[j + 1] + 0.114 * d[j + 2];
+      d[j] = clamp255(l + (d[j] - l) * amt);
+      d[j + 1] = clamp255(l + (d[j + 1] - l) * amt);
+      d[j + 2] = clamp255(l + (d[j + 2] - l) * amt);
+    };
+
+    if (style === "Anime") {
+      const L = lumArray(d, W, H), M = sobelMag(L, W, H);
+      const step = 255 / 5;
+      for (let i = 0; i < W * H; i++) {
+        const j = i * 4;
+        sat(j, 1.5);
+        for (let k = 0; k < 3; k++) {
+          let v = (d[j + k] - 128) * 1.1 + 128 + 10;   // soft contrast + lift
+          v = Math.round(v / step) * step;             // cel-shade flatten
+          d[j + k] = clamp255(v);
+        }
+        if (M[i] > 90) { d[j] *= 0.35; d[j + 1] *= 0.35; d[j + 2] *= 0.4; } // ink outline
+      }
+    } else if (style === "Cartoon" || style === "Comic") {
+      const levels = style === "Comic" ? 3 : 5, thr = style === "Comic" ? 55 : 75;
+      const ct = style === "Comic" ? 1.35 : 1.1, warm = style === "Comic";
+      const L = lumArray(d, W, H), M = sobelMag(L, W, H), step = 255 / (levels - 1);
+      for (let i = 0; i < W * H; i++) {
+        const j = i * 4;
+        sat(j, 1.35);
+        for (let k = 0; k < 3; k++) {
+          let v = (d[j + k] - 128) * ct + 128;
+          v = Math.round(v / step) * step;
+          d[j + k] = clamp255(v);
+        }
+        if (warm) { d[j] = clamp255(d[j] + 12); d[j + 2] = clamp255(d[j + 2] - 8); }
+        if (M[i] > thr) { d[j] *= 0.12; d[j + 1] *= 0.12; d[j + 2] *= 0.12; }
+      }
+    } else if (style === "Sketch") {
+      const L = lumArray(d, W, H), M = sobelMag(L, W, H);
+      for (let i = 0; i < W * H; i++) {
+        const j = i * 4;
+        let v = 255 - M[i] * 1.5;            // edges become dark lines
+        v = v * (0.4 + 0.6 * (L[i] / 255));  // keep soft shading
+        v = clamp255(v);
+        d[j] = d[j + 1] = d[j + 2] = v;
+      }
+    } else if (style === "Neon") {
+      const L = lumArray(d, W, H), M = sobelMag(L, W, H);
+      for (let i = 0; i < W * H; i++) {
+        const j = i * 4, e = Math.min(1, M[i] / 110);
+        const r = d[j], g = d[j + 1], b = d[j + 2];
+        const l = L[i], s = 2.0;
+        const sr = clamp255(l + (r - l) * s), sg = clamp255(l + (g - l) * s), sb = clamp255(l + (b - l) * s);
+        d[j] = clamp255(r * 0.18 + sr * e * 1.4);
+        d[j + 1] = clamp255(g * 0.18 + sg * e * 1.4);
+        d[j + 2] = clamp255(b * 0.22 + sb * e * 1.4 + e * 30);
+      }
+    }
+    ctx.putImageData(img, 0, 0);
+    return c.toDataURL("image/jpeg", 0.85);
+  }
+
+  // turn a typed location ("top left", "center", "bottom right") into x/y percentages
+  function parsePos(text) {
+    const t = (text || "").toLowerCase();
+    let x = 50, y = 46;
+    if (/left/.test(t)) x = 24; else if (/right/.test(t)) x = 76; else if (/cent|mid/.test(t)) x = 50;
+    if (/top|up|high/.test(t)) y = 24; else if (/bottom|down|low/.test(t)) y = 72; else if (/cent|mid/.test(t)) y = 48;
+    return { x, y };
+  }
+
   function adCardHTML(ad, product, creatorAvatar, creatorName, mini = false) {
-    const theme = AD_THEMES[ad.theme] || AD_THEMES[0];
-    return `<div class="ad-card${mini ? " mini-ad" : ""}" style="background:${theme.css}">
+    const isPhoto = ad.bgType === "photo" && ad.photo;
+    const bgStyle = isPhoto
+      ? `background-image:url('${ad.photo}'); background-size:cover; background-position:center;`
+      : `background:${(AD_THEMES[ad.theme] || AD_THEMES[0]).css};`;
+    const pos = ad.pos || { x: 50, y: 46 };
+    const prod = isPhoto
+      ? `<div class="ad-prod ad-prod-abs" style="left:${pos.x}%; top:${pos.y}%">${product.icon}</div>`
+      : `<div class="ad-prod">${product.icon}</div>`;
+    return `<div class="ad-card${mini ? " mini-ad" : ""}${isPhoto ? " photo" : ""}" style="${bgStyle}">
       <div class="ad-inner">
         <div class="ad-slogan">${esc(ad.slogan)}</div>
-        <div class="ad-prod">${product.icon}</div>
-        <div class="ad-name">${esc(product.name)}</div>
-        <div class="ad-foot">
-          <div class="ad-by">${avatarSVG(creatorAvatar, 30)}<span>${esc(creatorName)}</span></div>
-          <div class="ad-price">⭐ ${ad.price}</div>
+        ${isPhoto ? "" : prod}
+        <div class="ad-bottom">
+          <div class="ad-name">${esc(product.name)}</div>
+          <div class="ad-foot">
+            <div class="ad-by">${avatarSVG(creatorAvatar, 30)}<span>${esc(creatorName)}</span></div>
+            <div class="ad-price">⭐ ${ad.price}</div>
+          </div>
         </div>
       </div>
+      ${isPhoto ? prod : ""}
     </div>`;
   }
 
@@ -892,13 +1030,22 @@
       main.appendChild(back);
       return;
     }
-    main.appendChild(el(`<p class="screen-sub">Pick a product, write a catchy slogan, choose a look and set a star price. Then publish!</p>`));
+    main.appendChild(el(`<p class="screen-sub">Write a slogan, then choose a colorful theme OR snap your own photo, make it anime/cartoon, and place your product. Then publish!</p>`));
 
     let curId = preProduct || state.products[0].id;
     const existingAd = () => state.ads.find(a => a.productId === curId);
-    const ad = { slogan: "Best ever!", theme: 0, price: 6 };
+    const ad = { bgType: "theme", slogan: "Best ever!", theme: 0, photo: null, style: "Anime", pos: { x: 50, y: 46 }, price: 6 };
+    function loadSeed(s) {
+      ad.bgType = s.bgType || "theme"; ad.slogan = s.slogan; ad.theme = s.theme || 0;
+      ad.photo = s.photo || null; ad.style = s.style || "Anime";
+      ad.pos = s.pos ? { x: s.pos.x, y: s.pos.y } : { x: 50, y: 46 }; ad.price = s.price;
+    }
     const seed = existingAd();
-    if (seed) { ad.slogan = seed.slogan; ad.theme = seed.theme; ad.price = seed.price; }
+    if (seed) loadSeed(seed);
+
+    let stream = null, rawCapture = null, posInput = null;
+    function stopCam() { if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; } }
+    function applyStyleNow() { if (rawCapture) { ad.photo = applyPhotoStyle(rawCapture, ad.style); draw(); } }
 
     const studio = el(`<div class="studio"></div>`);
     const stage = el(`<div class="panel"><div class="preview-stage" id="adPrev"></div></div>`);
@@ -909,14 +1056,27 @@
     const draw = () => {
       const product = state.products.find(p => p.id === curId);
       $("#adPrev").innerHTML = adCardHTML(ad, product, state.avatar, state.name);
+      if (ad.bgType === "photo" && ad.photo) {
+        const card = $("#adPrev").querySelector(".ad-card");
+        if (card) {
+          card.classList.add("placing");
+          card.addEventListener("click", (ev) => {
+            const r = card.getBoundingClientRect();
+            ad.pos = { x: Math.round((ev.clientX - r.left) / r.width * 100), y: Math.round((ev.clientY - r.top) / r.height * 100) };
+            if (posInput) posInput.value = "";
+            draw();
+          });
+        }
+      }
     };
 
     // product picker
     controls.appendChild(chipField("Which product?", state.products.map(p => ({ v: p.id, label: p.icon + " " + p.name })), curId, v => {
       curId = v;
       const s = existingAd();
-      if (s) { ad.slogan = s.slogan; ad.theme = s.theme; ad.price = s.price; sloganInput.value = ad.slogan; priceInput.value = ad.price; rebuildThemes(); }
-      draw();
+      if (s) loadSeed(s); else { ad.bgType = "theme"; ad.photo = null; }
+      sloganInput.value = ad.slogan; priceInput.value = ad.price;
+      rebuildBgMode(); rebuildBg(); draw();
     }, false));
 
     const sloganField = el(`<div class="field"><label>Slogan</label><input type="text" maxlength="24"></div>`);
@@ -925,13 +1085,73 @@
     sloganInput.addEventListener("input", () => { ad.slogan = sloganInput.value || "Best ever!"; draw(); });
     controls.appendChild(sloganField);
 
-    const themeHolder = el(`<div></div>`);
-    controls.appendChild(themeHolder);
-    function rebuildThemes() {
-      themeHolder.innerHTML = "";
-      themeHolder.appendChild(chipField("Background", AD_THEMES.map((t, i) => ({ v: i, label: t.name })), ad.theme, v => { ad.theme = +v; draw(); }, true));
+    // background mode toggle (Theme vs My Photo)
+    const bgModeHolder = el(`<div></div>`);
+    const bgHolder = el(`<div></div>`);
+    controls.appendChild(bgModeHolder);
+    controls.appendChild(bgHolder);
+    function rebuildBgMode() {
+      bgModeHolder.innerHTML = "";
+      bgModeHolder.appendChild(chipField("Ad background", [{ v: "theme", label: "🎨 Theme" }, { v: "photo", label: "📷 My Photo" }], ad.bgType, v => {
+        if (v !== "photo") stopCam();
+        ad.bgType = v; rebuildBg(); draw();
+      }, true));
     }
-    rebuildThemes();
+    function rebuildBg() {
+      posInput = null;
+      bgHolder.innerHTML = "";
+      if (ad.bgType === "photo") bgHolder.appendChild(buildPhotoControls());
+      else bgHolder.appendChild(chipField("Theme", AD_THEMES.map((t, i) => ({ v: i, label: t.name })), ad.theme, v => { ad.theme = +v; draw(); }, true));
+    }
+    function buildPhotoControls() {
+      const wrap = el(`<div></div>`);
+      const camWrap = el(`<div class="cam-wrap" style="display:none"><video playsinline autoplay muted></video></div>`);
+      const video = camWrap.querySelector("video");
+      wrap.appendChild(camWrap);
+
+      const btns = el(`<div class="cam-btns"></div>`);
+      const camBtn = el(`<button class="btn blue">📷 Open camera</button>`);
+      const takeBtn = el(`<button class="btn green" style="display:none">Snap! 📸</button>`);
+      const upBtn = el(`<button class="btn ghost">🖼️ Upload</button>`);
+      const fileInput = el(`<input type="file" accept="image/*" style="display:none">`);
+      btns.appendChild(camBtn); btns.appendChild(takeBtn); btns.appendChild(upBtn); btns.appendChild(fileInput);
+      wrap.appendChild(btns);
+      wrap.appendChild(el(`<div class="cam-hint">Snap a selfie or upload a pic, pick an art style, then type where the product goes (or tap the photo).</div>`));
+
+      wrap.appendChild(chipField("Art style", PHOTO_STYLES.map(s => ({ v: s, label: s })), ad.style, v => { ad.style = v; applyStyleNow(); }, true));
+
+      const posField = el(`<div class="field"><label>Put the product where?</label><input type="text" maxlength="20" placeholder="e.g. top left, center, bottom right"></div>`);
+      posInput = posField.querySelector("input");
+      posInput.addEventListener("input", () => { ad.pos = parsePos(posInput.value); draw(); });
+      wrap.appendChild(posField);
+
+      camBtn.onclick = async () => {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { toast("No camera here — use Upload", "warn"); return; }
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false });
+          video.srcObject = stream; camWrap.style.display = "block"; takeBtn.style.display = "inline-block"; camBtn.textContent = "🔄 Restart";
+        } catch (e) { toast("Can't open camera — use Upload instead", "warn"); }
+      };
+      takeBtn.onclick = () => {
+        const cap = document.createElement("canvas");
+        cap.width = video.videoWidth || 320; cap.height = video.videoHeight || 240;
+        cap.getContext("2d").drawImage(video, 0, 0, cap.width, cap.height);
+        rawCapture = cap; stopCam();
+        camWrap.style.display = "none"; takeBtn.style.display = "none"; camBtn.textContent = "📷 Open camera";
+        applyStyleNow(); toast("Photo captured! Pick a style ✨", "good");
+      };
+      upBtn.onclick = () => fileInput.click();
+      fileInput.onchange = () => {
+        const f = fileInput.files && fileInput.files[0];
+        if (!f) return;
+        const img = new Image();
+        img.onload = () => { rawCapture = img; applyStyleNow(); toast("Picture loaded! Pick a style ✨", "good"); };
+        img.src = URL.createObjectURL(f);
+      };
+      return wrap;
+    }
+    rebuildBgMode();
+    rebuildBg();
 
     const priceField = el(`<div class="field"><label>Price in stars: <span id="priceVal">${ad.price}</span> ⭐</label>
       <input id="priceRange" type="range" min="1" max="20" step="1" style="width:100%"></div>`);
@@ -943,13 +1163,15 @@
     const row = el(`<div class="btn-row"></div>`);
     const pub = el(`<button class="btn pink">${seed ? "Update ad" : "Publish ad"} 🚀</button>`);
     pub.onclick = () => {
+      const payload = { slogan: ad.slogan, bgType: ad.bgType, theme: ad.theme, photo: ad.photo, style: ad.style, pos: { x: ad.pos.x, y: ad.pos.y }, price: ad.price };
       const s = existingAd();
-      if (s) { s.slogan = ad.slogan; s.theme = ad.theme; s.price = ad.price; toast("Ad updated!", "good"); }
-      else { state.ads.push({ id: id(), productId: curId, slogan: ad.slogan, theme: ad.theme, price: ad.price }); toast("Ad published to the Marketplace! 🎉", "good"); }
+      if (s) { Object.assign(s, payload); toast("Ad updated!", "good"); }
+      else { state.ads.push({ id: id(), productId: curId, ...payload }); toast("Ad published to the Marketplace! 🎉", "good"); }
+      stopCam();
       go("market");
     };
     const back = el(`<button class="btn ghost">Back</button>`);
-    back.onclick = () => go("hub");
+    back.onclick = () => { stopCam(); go("hub"); };
     row.appendChild(pub); row.appendChild(back);
     controls.appendChild(row);
     draw();
