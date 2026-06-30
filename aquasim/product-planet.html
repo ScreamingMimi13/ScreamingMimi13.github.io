@@ -189,6 +189,17 @@
   .cam-btns { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
   .cam-btns .btn { padding: 9px 16px; font-size: 0.95rem; }
 
+  .mode-switch { display: flex; gap: 10px; margin-bottom: 16px; }
+  .mode-switch button {
+    flex: 1; border: 3px solid #e3dcf2; background: var(--soft); border-radius: 16px;
+    padding: 14px 8px; font-family: inherit; font-weight: bold; font-size: 1rem; color: var(--ink);
+    cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 3px; text-align: center;
+  }
+  .mode-switch button .ms-emoji { font-size: 1.9rem; }
+  .mode-switch button .ms-sub { font-size: 0.72rem; color: #8a80a3; font-weight: normal; }
+  .mode-switch button.sel { border-color: var(--pink); background: #ffe9f4; box-shadow: 0 4px 0 rgba(226,62,139,0.25); }
+  .photo-box { border: 3px dashed var(--pink); background: #fff6fb; border-radius: 16px; padding: 14px; margin-bottom: 14px; }
+
   /* ---------- Quiz ---------- */
   .subj-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px,1fr)); gap: 12px; }
   .subj-card { background: #fff; border-radius: 18px; padding: 16px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.1); border: 3px solid transparent; }
@@ -1070,6 +1081,13 @@
       }
     };
 
+    // ---- BIG ad-look chooser, first thing in the panel ----
+    const bgModeHolder = el(`<div></div>`);
+    const bgHolder = el(`<div></div>`);
+    controls.appendChild(el(`<label style="font-weight:bold;display:block;margin-bottom:8px;font-size:1.05rem">1️⃣ How should your ad look?</label>`));
+    controls.appendChild(bgModeHolder);
+    controls.appendChild(bgHolder);
+
     // product picker
     controls.appendChild(chipField("Which product?", state.products.map(p => ({ v: p.id, label: p.icon + " " + p.name })), curId, v => {
       curId = v;
@@ -1085,17 +1103,16 @@
     sloganInput.addEventListener("input", () => { ad.slogan = sloganInput.value || "Best ever!"; draw(); });
     controls.appendChild(sloganField);
 
-    // background mode toggle (Theme vs My Photo)
-    const bgModeHolder = el(`<div></div>`);
-    const bgHolder = el(`<div></div>`);
-    controls.appendChild(bgModeHolder);
-    controls.appendChild(bgHolder);
     function rebuildBgMode() {
       bgModeHolder.innerHTML = "";
-      bgModeHolder.appendChild(chipField("Ad background", [{ v: "theme", label: "🎨 Theme" }, { v: "photo", label: "📷 My Photo" }], ad.bgType, v => {
-        if (v !== "photo") stopCam();
-        ad.bgType = v; rebuildBg(); draw();
-      }, true));
+      const sw = el(`<div class="mode-switch"></div>`);
+      const themeB = el(`<button><span class="ms-emoji">🎨</span>Color Theme<span class="ms-sub">pick a background</span></button>`);
+      const photoB = el(`<button><span class="ms-emoji">📷</span>My Photo + Camera<span class="ms-sub">make it anime!</span></button>`);
+      (ad.bgType === "photo" ? photoB : themeB).classList.add("sel");
+      themeB.onclick = () => { stopCam(); ad.bgType = "theme"; rebuildBgMode(); rebuildBg(); draw(); };
+      photoB.onclick = () => { ad.bgType = "photo"; rebuildBgMode(); rebuildBg(); draw(); };
+      sw.appendChild(themeB); sw.appendChild(photoB);
+      bgModeHolder.appendChild(sw);
     }
     function rebuildBg() {
       posInput = null;
@@ -1104,7 +1121,8 @@
       else bgHolder.appendChild(chipField("Theme", AD_THEMES.map((t, i) => ({ v: i, label: t.name })), ad.theme, v => { ad.theme = +v; draw(); }, true));
     }
     function buildPhotoControls() {
-      const wrap = el(`<div></div>`);
+      const wrap = el(`<div class="photo-box"></div>`);
+      wrap.appendChild(el(`<label style="font-weight:bold;display:block;margin-bottom:8px">2️⃣ Get your picture:</label>`));
       const camWrap = el(`<div class="cam-wrap" style="display:none"><video playsinline autoplay muted></video></div>`);
       const video = camWrap.querySelector("video");
       wrap.appendChild(camWrap);
