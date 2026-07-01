@@ -211,6 +211,9 @@
   .idea-card:hover { transform: translateY(-2px); border-color: var(--purple); }
   .idea-card.sel { border-color: var(--pink); box-shadow: 0 3px 0 rgba(226,62,139,0.25); }
   .idea-card svg { width: 100%; height: auto; display: block; }
+  /* avatar ideas: fewer, bigger cards so faces stay readable (not a wall of tiny thumbnails) */
+  .idea-grid.avatars { grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 12px; max-width: 420px; }
+  .idea-grid.avatars .idea-card { padding: 4px; border-radius: 16px; }
 
   /* ---------- Quiz ---------- */
   .subj-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px,1fr)); gap: 12px; }
@@ -307,6 +310,81 @@
     { name: "Galaxy", a: "#8f7be0", b: "#2a2350" },
   ];
 
+  // Avatar Idea Helper: keyword -> hair/eye/mouth/accessory/background hints,
+  // used to turn a typed look description ("robot ninja", "sparkly unicorn
+  // fan") into a small batch of avatar suggestions. wordBound is defined
+  // below but hoisted, so it's usable here.
+  const HAIRC_KEYWORDS = [
+    { re: /black hair/, colors: ["#1a1a1a"] },
+    { re: /brown hair/, colors: ["#6b3e26"] },
+    { re: /blonde hair|golden hair|gold hair|yellow hair/, colors: ["#f4d35e", "#d9a441"] },
+    { re: /red hair|ginger hair|fire hair/, colors: ["#c0392b"] },
+    { re: /pink hair/, colors: ["#ff5ca8"] },
+    { re: /purple hair|violet hair/, colors: ["#8b5cf6"] },
+    { re: /blue hair/, colors: ["#3aa0ff"] },
+    { re: /teal hair|green hair|mint hair/, colors: ["#1abc9c"] },
+    { re: /white hair|silver hair|snow hair/, colors: ["#ffffff"] },
+  ].map(wordBound);
+  const EYEC_KEYWORDS = [
+    { re: /brown eyes/, colors: ["#5b3a1e"] },
+    { re: /black eyes|dark eyes/, colors: ["#2b2b2b"] },
+    { re: /blue eyes/, colors: ["#3a78c2"] },
+    { re: /green eyes/, colors: ["#3a9b6e"] },
+    { re: /purple eyes|violet eyes/, colors: ["#9b59b6"] },
+    { re: /gray eyes|grey eyes/, colors: ["#7a7a7a"] },
+  ].map(wordBound);
+  const HAIRSTYLE_KEYWORDS = [
+    { re: /curly|curl|afro/, styles: ["curly"] },
+    { re: /long hair|princess/, styles: ["long"] },
+    { re: /short hair/, styles: ["short"] },
+    { re: /spiky|spike|punk/, styles: ["spiky"] },
+    { re: /mohawk/, styles: ["mohawk"] },
+    { re: /bald|shaved/, styles: ["bald"] },
+    { re: /bun|ballerina/, styles: ["bun"] },
+    { re: /puff|poofy/, styles: ["puff"] },
+  ].map(wordBound);
+  const EYESTYLE_KEYWORDS = [
+    { re: /sparkle|sparkly|shiny|starry/, styles: ["sparkle"] },
+    { re: /sleepy|tired|drowsy/, styles: ["sleepy"] },
+    { re: /wink|silly|goofy/, styles: ["wink"] },
+    { re: /cute|adorable/, styles: ["cute"] },
+    { re: /happy|joyful|cheerful/, styles: ["happy"] },
+  ].map(wordBound);
+  const AV_MOUTH_KEYWORDS = [
+    { re: /smile|smiling|friendly/, styles: ["smile"] },
+    { re: /grin|grinning|mischievous/, styles: ["grin"] },
+    { re: /surprised|shocked|wow/, styles: ["open"] },
+    { re: /serious|cool|calm/, styles: ["flat"] },
+    { re: /playful|tongue/, styles: ["tongue"] },
+    { re: /cat|kitten|feline/, styles: ["cat"] },
+  ].map(wordBound);
+  const ACC_KEYWORDS = [
+    { re: /crown|royal|princess|king|queen/, accs: ["👑"] },
+    { re: /top hat|magician|fancy/, accs: ["🎩"] },
+    { re: /cap|baseball|sporty/, accs: ["🧢"] },
+    { re: /bow|ribbon/, accs: ["🎀"] },
+    { re: /glasses|nerd|bookworm/, accs: ["👓"] },
+    { re: /sunglasses|shades/, accs: ["🕶️"] },
+    { re: /star|famous|celebrity/, accs: ["⭐"] },
+    { re: /flower|blossom/, accs: ["🌸"] },
+    { re: /music|headphones|dj|beats/, accs: ["🎧"] },
+    { re: /butterfly/, accs: ["🦋"] },
+    { re: /space|astronaut|galaxy|alien/, accs: ["🪐"] },
+    { re: /strawberry|fruit/, accs: ["🍓"] },
+    { re: /lightning|electric|superhero/, accs: ["⚡"] },
+    { re: /plain|simple|no accessory|none/, accs: [""] },
+  ].map(wordBound);
+  const AVBG_KEYWORDS = [
+    { re: /pink|bubblegum|sweet/, idxs: [0] },
+    { re: /sky|ocean|water|cool/, idxs: [1] },
+    { re: /mint|nature|eco/, idxs: [2] },
+    { re: /peach|warm|sunset/, idxs: [3] },
+    { re: /purple|magic|royal|mystic|lilac/, idxs: [4] },
+    { re: /sun|yellow|bright|lemon/, idxs: [5] },
+    { re: /coral|red|fire|hot/, idxs: [6] },
+    { re: /space|night|dark|mystery|galaxy/, idxs: [7] },
+  ].map(wordBound);
+
   const BRAND_COLORS = ["#ff5ca8", "#ff3d6e", "#8b5cf6", "#6c4ce0", "#3aa0ff", "#1f7bdc", "#18c2b3", "#0fae8e", "#ffcf3f", "#ff9233", "#ff6b35", "#4cc35a", "#2fa84a", "#ff5252", "#36304a", "#0f1b3d"];
   const SHAPES = ["circle", "rounded", "square", "shield", "star", "heart", "burst", "hexagon", "diamond", "flower", "gem", "cloud", "banner", "octagon"];
   const LOGO_STYLES = ["flat", "shiny", "outline", "ring"];
@@ -319,9 +397,11 @@
 
   // Logo Idea Helper: keyword -> icon/color/shape hints, used to turn a typed
   // description ("unicorn bakery", "fast robots") into logo suggestions.
-  // Require each match to start at a word boundary so short words like "art"
-  // can't fire on a substring buried inside another word (e.g. "he-ART").
-  function wordBound(k) { return { ...k, re: new RegExp("\\b(?:" + k.re.source + ")", "i") }; }
+  // Require each match to be a whole word (with an optional trailing "s" for
+  // plurals) so short words like "art" or "star" can't fire on a substring
+  // buried inside another word (e.g. "he-ART") or a prefix of a different one
+  // (e.g. "star" inside "START").
+  function wordBound(k) { return { ...k, re: new RegExp("\\b(?:" + k.re.source + ")s?\\b", "i") }; }
   const ICON_KEYWORDS = [
     { re: /pizza/, icons: ["🍕"] },
     { re: /burger|fast ?food/, icons: ["🍔"] },
@@ -749,6 +829,45 @@
     return out;
   }
 
+  // "AI" avatar idea generator: matches typed words (hair/eye color, hair
+  // style, mood, accessory, vibe) against keyword banks, returns n unique
+  // combos. Skin tone is left alone — it's a personal choice, not a guess.
+  function generateAvatarIdeas(text, n) {
+    n = n || 6;
+    const t = (text || "").trim().toLowerCase();
+    const collect = (bank, field) => {
+      let out = [];
+      bank.forEach(k => { if (k.re.test(t)) out.push(...k[field]); });
+      return [...new Set(out)];
+    };
+    let hairCs = collect(HAIRC_KEYWORDS, "colors");
+    let eyeCs = collect(EYEC_KEYWORDS, "colors");
+    let hairs = collect(HAIRSTYLE_KEYWORDS, "styles");
+    let eyess = collect(EYESTYLE_KEYWORDS, "styles");
+    let mouths = collect(AV_MOUTH_KEYWORDS, "styles");
+    let accs = collect(ACC_KEYWORDS, "accs");
+    let bgs = collect(AVBG_KEYWORDS, "idxs");
+    if (!hairCs.length) hairCs = shuffle(HAIRC.slice()).slice(0, 6);
+    if (!eyeCs.length) eyeCs = shuffle(EYEC.slice()).slice(0, 4);
+    if (!hairs.length) hairs = shuffle(HAIR_STYLES.slice()).slice(0, 5);
+    if (!eyess.length) eyess = shuffle(EYES.slice()).slice(0, 4);
+    if (!mouths.length) mouths = shuffle(MOUTHS.slice()).slice(0, 4);
+    if (!accs.length) accs = shuffle(ACCS.slice()).slice(0, 6);
+    if (!bgs.length) bgs = shuffle(AV_BGS.map((_, i) => i)).slice(0, 5);
+
+    const dims = [hairCs, eyeCs, hairs, eyess, mouths, accs, bgs];
+    const total = dims.reduce((a, d) => a * d.length, 1);
+    const idxs = shuffle(Array.from({ length: Math.min(total, 800) }, (_, i) => i));
+    const out = [];
+    for (const raw of idxs) {
+      if (out.length >= n) break;
+      let r = raw;
+      const pick = (arr) => { const v = arr[r % arr.length]; r = Math.floor(r / arr.length); return v; };
+      out.push({ hairC: pick(hairCs), eyeC: pick(eyeCs), hair: pick(hairs), eyes: pick(eyess), mouth: pick(mouths), acc: pick(accs), bg: pick(bgs) });
+    }
+    return out;
+  }
+
   function packPattern(pat, color) {
     const dark = "rgba(0,0,0,0.12)";
     if (pat === "stripes") return `<defs><pattern id="pp" width="14" height="14" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="7" height="14" fill="${dark}"/></pattern></defs>`;
@@ -1071,14 +1190,55 @@
     const a = state.avatar;
     const draw = () => { $("#avPrev").innerHTML = avatarSVG(a, 200); };
 
-    controls.appendChild(swatchField("Skin", SKIN, a.skin, v => { a.skin = v; draw(); }));
-    controls.appendChild(swatchField("Hair color", HAIRC, a.hairC, v => { a.hairC = v; draw(); }));
-    controls.appendChild(chipField("Hair style", HAIR_STYLES.map(h => ({ v: h, label: cap(h) })), a.hair, v => { a.hair = v; draw(); }, true));
-    controls.appendChild(chipField("Eyes", EYES.map(e => ({ v: e, label: cap(e) })), a.eyes, v => { a.eyes = v; draw(); }, true));
-    controls.appendChild(swatchField("Eye color", EYEC, a.eyeC, v => { a.eyeC = v; draw(); }));
-    controls.appendChild(chipField("Mouth", MOUTHS.map(m => ({ v: m, label: cap(m) })), a.mouth, v => { a.mouth = v; draw(); }, true));
-    controls.appendChild(chipField("Accessory", ACCS.map(x => ({ v: x, label: x || "none" })), a.acc, v => { a.acc = v; draw(); }, false));
-    controls.appendChild(gradField("Background", AV_BGS, a.bg, v => { a.bg = v; draw(); }));
+    // ---- 🤖 Avatar Idea Helper: describe your look, get a few instant avatar options ----
+    const aiBox = el(`<div class="ai-box"></div>`);
+    aiBox.appendChild(el(`<label style="font-weight:bold;display:block;margin-bottom:8px">🤖 Avatar Idea Helper</label>`));
+    const aiField = el(`<div class="field" style="margin-bottom:8px"><input type="text" maxlength="40" placeholder="Describe your look... e.g. sparkly unicorn fan, cool robot ninja"></div>`);
+    const aiInput = aiField.querySelector("input");
+    aiBox.appendChild(aiField);
+    const aiBtnRow = el(`<div class="btn-row" style="margin:0 0 12px"></div>`);
+    const aiBtn = el(`<button class="btn">✨ Get avatar ideas</button>`);
+    aiBtnRow.appendChild(aiBtn);
+    aiBox.appendChild(aiBtnRow);
+    const ideaGrid = el(`<div class="idea-grid avatars"></div>`);
+    aiBox.appendChild(ideaGrid);
+    aiBox.appendChild(el(`<div class="cam-hint">Tap one to use it — your skin tone stays yours, only the rest changes!</div>`));
+    controls.appendChild(aiBox);
+
+    function renderIdeas() {
+      const ideas = generateAvatarIdeas(aiInput.value, 4);
+      ideaGrid.innerHTML = "";
+      ideas.forEach(idea => {
+        const card = el(`<div class="idea-card"></div>`);
+        card.innerHTML = avatarSVG({ ...a, ...idea }, 92);
+        card.onclick = () => {
+          Object.assign(a, idea);
+          renderPickers(); draw();
+          ideaGrid.querySelectorAll(".idea-card").forEach(c => c.classList.remove("sel"));
+          card.classList.add("sel");
+          toast("Avatar idea applied! Tweak it below if you like ✨", "good");
+        };
+        ideaGrid.appendChild(card);
+      });
+    }
+    aiBtn.onclick = renderIdeas;
+    aiInput.addEventListener("keydown", (e) => { if (e.key === "Enter") renderIdeas(); });
+    renderIdeas(); // a first small batch right away
+
+    const pickersWrap = el(`<div></div>`);
+    controls.appendChild(pickersWrap);
+    function renderPickers() {
+      pickersWrap.innerHTML = "";
+      pickersWrap.appendChild(swatchField("Skin", SKIN, a.skin, v => { a.skin = v; draw(); }));
+      pickersWrap.appendChild(swatchField("Hair color", HAIRC, a.hairC, v => { a.hairC = v; draw(); }));
+      pickersWrap.appendChild(chipField("Hair style", HAIR_STYLES.map(h => ({ v: h, label: cap(h) })), a.hair, v => { a.hair = v; draw(); }, true));
+      pickersWrap.appendChild(chipField("Eyes", EYES.map(e => ({ v: e, label: cap(e) })), a.eyes, v => { a.eyes = v; draw(); }, true));
+      pickersWrap.appendChild(swatchField("Eye color", EYEC, a.eyeC, v => { a.eyeC = v; draw(); }));
+      pickersWrap.appendChild(chipField("Mouth", MOUTHS.map(m => ({ v: m, label: cap(m) })), a.mouth, v => { a.mouth = v; draw(); }, true));
+      pickersWrap.appendChild(chipField("Accessory", ACCS.map(x => ({ v: x, label: x || "none" })), a.acc, v => { a.acc = v; draw(); }, false));
+      pickersWrap.appendChild(gradField("Background", AV_BGS, a.bg, v => { a.bg = v; draw(); }));
+    }
+    renderPickers();
 
     const row = el(`<div class="btn-row"></div>`);
     const save = el(`<button class="btn green">Save avatar ✅</button>`);
