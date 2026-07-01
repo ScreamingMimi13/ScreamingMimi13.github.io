@@ -314,11 +314,14 @@
     "⚡", "🌟", "🔥", "🚀", "🍀", "💎", "🐱", "🦄", "🌈", "🎮", "🍩", "⚽", "🎵", "🤖", "🌸", "🦊",
     "🐉", "🦋", "🐝", "🦁", "🐼", "🐧", "🦖", "🐙", "🦅", "🐬", "🌵", "🌴", "🍕", "🍔", "🍦", "🍓",
     "🏀", "🎸", "🎯", "🏆", "👑", "🛼", "🎨", "📚", "🔮", "🪐", "☀️", "🌙", "❄️", "🍄", "🌊", "🎪",
-    "🧁", "🍭", "🦕", "🐢", "🦩", "🌻", "💜", "🦷"
+    "🧁", "🍭", "🦕", "🐢", "🦩", "🌻", "💜", "🦷", "🦜", "🐶", "🐰"
   ];
 
   // Logo Idea Helper: keyword -> icon/color/shape hints, used to turn a typed
   // description ("unicorn bakery", "fast robots") into logo suggestions.
+  // Require each match to start at a word boundary so short words like "art"
+  // can't fire on a substring buried inside another word (e.g. "he-ART").
+  function wordBound(k) { return { ...k, re: new RegExp("\\b(?:" + k.re.source + ")", "i") }; }
   const ICON_KEYWORDS = [
     { re: /pizza/, icons: ["🍕"] },
     { re: /burger|fast ?food/, icons: ["🍔"] },
@@ -328,6 +331,9 @@
     { re: /candy|lollipop|sugar|sweet/, icons: ["🍭", "🧁", "🍩"] },
     { re: /berry|strawberr|fruit/, icons: ["🍓"] },
     { re: /cat|kitten|kitty/, icons: ["🐱"] },
+    { re: /dog|puppy|pup\b/, icons: ["🐶"] },
+    { re: /rabbit|bunny|hare/, icons: ["🐰"] },
+    { re: /parrot|macaw|tropical bird|bird/, icons: ["🦜"] },
     { re: /fox|clever|sly/, icons: ["🦊"] },
     { re: /unicorn|fantasy/, icons: ["🦄"] },
     { re: /rainbow|pride|colorful/, icons: ["🌈"] },
@@ -375,7 +381,7 @@
     { re: /lightning|electric|energy|power|bolt/, icons: ["⚡"] },
     { re: /target|aim|goal|precise|bullseye|focus/, icons: ["🎯"] },
     { re: /heart|love|purple/, icons: ["💜"] },
-  ];
+  ].map(wordBound);
   const COLOR_KEYWORDS = [
     { re: /pink|cute|sweet|love|princess|girl/, colors: ["#ff5ca8", "#ff3d6e"] },
     { re: /purple|magic|mystic|royal|unicorn|wizard/, colors: ["#8b5cf6", "#6c4ce0"] },
@@ -386,7 +392,7 @@
     { re: /green|nature|eco|lucky|forest|plant|garden/, colors: ["#4cc35a", "#2fa84a"] },
     { re: /red|bold|power|strong|dragon/, colors: ["#ff5252"] },
     { re: /dark|night|mystery|black|shadow|space|galaxy/, colors: ["#36304a", "#0f1b3d"] },
-  ];
+  ].map(wordBound);
   const SHAPE_KEYWORDS = [
     { re: /shield|strong|brave|protect|warrior|team|guard/, shapes: ["shield", "hexagon", "octagon"] },
     { re: /star|win|champion|best|super/, shapes: ["star"] },
@@ -397,7 +403,7 @@
     { re: /cloud|dream|soft|sky/, shapes: ["cloud"] },
     { re: /fast|speed|zoom|energy|power|rocket/, shapes: ["burst", "diamond"] },
     { re: /classic|official|banner|club/, shapes: ["banner", "square"] },
-  ];
+  ].map(wordBound);
 
   const CATEGORIES = [
     { key: "drink", name: "Drink", icons: ["🥤", "🧃", "🧋", "🥛"] },
