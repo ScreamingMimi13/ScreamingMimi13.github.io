@@ -794,14 +794,36 @@
     return c.toDataURL("image/jpeg", 0.9);
   }
 
-  // turn a typed location ("top left", "center", "bottom right") into x/y percentages
+  // understand a natural description ("on my head", "in my hand", "top left") -> x/y %
   function parsePos(text) {
     const t = (text || "").toLowerCase();
+    const cl = (v) => Math.max(8, Math.min(92, v));
+    const side = (l, r, c) => /left/.test(t) ? l : /right/.test(t) ? r : c;
+    let p = null;
+    if (/head|hair|hat|crown|on top/.test(t)) p = { x: 50, y: 14 };
+    else if (/hand|hold|carry|grab|grip/.test(t)) p = { x: side(28, 72, 32), y: 76 };
+    else if (/mouth|eat|bite|tongue|drink|sip|lick/.test(t)) p = { x: 50, y: 54 };
+    else if (/chest|shirt|heart|tummy|belly|pocket|body/.test(t)) p = { x: 50, y: 70 };
+    else if (/shoulder/.test(t)) p = { x: side(28, 72, 30), y: 46 };
+    else if (/face|cheek|nose|ear|glass|eye/.test(t)) p = { x: side(34, 66, 64), y: 40 };
+    else if (/sky|above|over|float|up high|space|fly/.test(t)) p = { x: 50, y: 12 };
+    else if (/feet|foot|shoe|ground|floor|bottom/.test(t)) p = { x: 50, y: 88 };
+    else if (/beside|next to|side/.test(t)) p = { x: /left/.test(t) ? 14 : 86, y: 50 };
+    if (p) return { x: cl(p.x), y: cl(p.y) };
+    // generic compass fallback
     let x = 50, y = 46;
-    if (/left/.test(t)) x = 24; else if (/right/.test(t)) x = 76; else if (/cent|mid/.test(t)) x = 50;
-    if (/top|up|high/.test(t)) y = 24; else if (/bottom|down|low/.test(t)) y = 72; else if (/cent|mid/.test(t)) y = 48;
-    return { x, y };
+    if (/left/.test(t)) x = 22; else if (/right/.test(t)) x = 78; else if (/cent|mid/.test(t)) x = 50;
+    if (/top|up|high/.test(t)) y = 18; else if (/down|low/.test(t)) y = 76; else if (/cent|mid/.test(t)) y = 48;
+    return { x: cl(x), y: cl(y) };
   }
+  const PLACE_PRESETS = [
+    { label: "On my head", v: "on my head" },
+    { label: "In my hand", v: "in my hand" },
+    { label: "By my face", v: "by my face" },
+    { label: "On my shirt", v: "on my shirt" },
+    { label: "Floating ✨", v: "floating above" },
+    { label: "At my feet", v: "at my feet" },
+  ];
 
   function adCardHTML(ad, product, creatorAvatar, creatorName, mini = false) {
     const isPhoto = ad.bgType === "photo" && ad.photo;
@@ -1106,7 +1128,8 @@
           card.classList.add("placing");
           card.addEventListener("click", (ev) => {
             const r = card.getBoundingClientRect();
-            ad.pos = { x: Math.round((ev.clientX - r.left) / r.width * 100), y: Math.round((ev.clientY - r.top) / r.height * 100) };
+            const cl = (v) => Math.max(8, Math.min(92, Math.round(v)));
+            ad.pos = { x: cl((ev.clientX - r.left) / r.width * 100), y: cl((ev.clientY - r.top) / r.height * 100) };
             if (posInput) posInput.value = "";
             draw();
           });
@@ -1171,10 +1194,24 @@
 
       wrap.appendChild(chipField("Art style", PHOTO_STYLES.map(s => ({ v: s, label: s })), ad.style, v => { ad.style = v; applyStyleNow(); }, true));
 
-      const posField = el(`<div class="field"><label>Put the product where?</label><input type="text" maxlength="20" placeholder="e.g. top left, center, bottom right"></div>`);
+      wrap.appendChild(el(`<label style="font-weight:bold;display:block;margin:6px 0 8px">3️⃣ Where should your product go?</label>`));
+      const quick = el(`<div class="chips" style="margin-bottom:10px"></div>`);
+      PLACE_PRESETS.forEach(pr => {
+        const ch = el(`<button class="chip text">${esc(pr.label)}</button>`);
+        ch.onclick = () => {
+          quick.querySelectorAll(".chip").forEach(x => x.classList.remove("sel")); ch.classList.add("sel");
+          if (posInput) posInput.value = pr.v;
+          ad.pos = parsePos(pr.v); draw();
+        };
+        quick.appendChild(ch);
+      });
+      wrap.appendChild(quick);
+
+      const posField = el(`<div class="field"><label>…or tell it in your own words:</label><input type="text" maxlength="28" placeholder="e.g. in my left hand, on my head, top right"></div>`);
       posInput = posField.querySelector("input");
-      posInput.addEventListener("input", () => { ad.pos = parsePos(posInput.value); draw(); });
+      posInput.addEventListener("input", () => { quick.querySelectorAll(".chip").forEach(x => x.classList.remove("sel")); ad.pos = parsePos(posInput.value); draw(); });
       wrap.appendChild(posField);
+      wrap.appendChild(el(`<div class="cam-hint">Or just tap the photo to drop it exactly where you want!</div>`));
 
       camBtn.onclick = async () => {
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { toast("This browser can't use the camera — use Upload", "warn"); return; }
