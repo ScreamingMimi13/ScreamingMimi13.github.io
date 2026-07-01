@@ -239,6 +239,75 @@
   .feed-item .mini-ad { transform: scale(0.92); transform-origin: top center; }
   .owned-badge { color: var(--green); font-weight: bold; font-size: 0.9rem; }
 
+  /* ---------- Break Room / Mini-Games ---------- */
+  .game-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px,1fr)); gap: 14px; }
+  .game-card {
+    background: var(--card); border-radius: 22px; padding: 18px 14px; text-align: center;
+    box-shadow: 0 5px 16px rgba(0,0,0,0.1); border: 3px solid transparent; cursor: pointer;
+    transition: transform 0.12s, border-color 0.12s;
+  }
+  .game-card:hover { transform: translateY(-4px); border-color: var(--yellow); }
+  .game-card .emoji { font-size: 2.6rem; display: block; }
+  .game-card .label { font-weight: bold; margin-top: 8px; font-size: 1.05rem; }
+  .game-card .desc { font-size: 0.8rem; color: #8a80a3; margin-top: 4px; }
+
+  .game-hud {
+    display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;
+    background: #fff; border-radius: 16px; padding: 10px 16px; margin-bottom: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08); font-weight: bold;
+  }
+  .game-hud span { white-space: nowrap; }
+  .game-stage { position: relative; overflow: hidden; border-radius: 20px; height: 440px; touch-action: none; }
+  .game-countdown {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    font-size: 5rem; font-weight: bold; color: #fff; text-shadow: 0 4px 10px rgba(0,0,0,0.35); z-index: 20;
+  }
+  .game-result { text-align: center; padding: 30px 16px; }
+  .game-result .big { font-size: 3.5rem; }
+  .floaty-text {
+    position: absolute; font-weight: bold; font-size: 1.15rem; pointer-events: none;
+    animation: floatUp 0.8s ease-out forwards; z-index: 15; text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  }
+  @keyframes floatUp { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-46px); } }
+  .stage-shake { animation: shakeStage 0.3s; }
+  @keyframes shakeStage { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-8px); } 75% { transform: translateX(8px); } }
+
+  /* Bubble Pop */
+  .bubblepop-stage { background: linear-gradient(180deg,#bfe9ff 0%, #eaf8ff 100%); }
+  .bubble {
+    position: absolute; bottom: -80px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; user-select: none; font-size: 1.4rem;
+    box-shadow: inset -6px -6px 12px rgba(0,0,0,0.12), inset 6px 6px 10px rgba(255,255,255,0.6);
+    animation-name: bubbleRise; animation-timing-function: linear; animation-fill-mode: forwards;
+  }
+  .bubble.gold { box-shadow: inset -6px -6px 10px rgba(150,90,0,0.25), inset 6px 6px 10px rgba(255,255,255,0.85), 0 0 16px 4px rgba(255,215,60,0.8); }
+  .bubble.pop { animation: none !important; transform: scale(1.7); opacity: 0; transition: transform 0.25s, opacity 0.25s; }
+  @keyframes bubbleRise { from { bottom: -80px; } to { bottom: 105%; } }
+
+  /* Star Catcher */
+  .starcatcher-stage { background: linear-gradient(180deg,#1b1140 0%, #3a2a7a 55%, #4c2f8a 100%); }
+  .starcatcher-stage::before {
+    content: ""; position: absolute; inset: 0; opacity: 0.5; pointer-events: none;
+    background-image: radial-gradient(2px 2px at 20% 30%, #fff, transparent), radial-gradient(2px 2px at 70% 65%, #fff, transparent),
+      radial-gradient(1.5px 1.5px at 40% 80%, #fff, transparent), radial-gradient(1.5px 1.5px at 85% 20%, #fff, transparent),
+      radial-gradient(1.5px 1.5px at 55% 45%, #fff, transparent);
+  }
+  .sc-basket { position: absolute; bottom: 6px; width: 74px; height: 46px; font-size: 2.6rem; display: flex; align-items: center; justify-content: center; transform: translateX(-50%); z-index: 10; }
+  .sc-item { position: absolute; top: -50px; font-size: 2rem; animation-name: scFall; animation-timing-function: linear; animation-fill-mode: forwards; }
+  @keyframes scFall { from { top: -50px; } to { top: 104%; } }
+  .sc-lives { letter-spacing: 2px; }
+
+  /* Memory Match */
+  .memory-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; max-width: 420px; margin: 0 auto; }
+  .mem-card {
+    aspect-ratio: 1; border-radius: 14px; background: linear-gradient(160deg,var(--purple),var(--pink));
+    display: flex; align-items: center; justify-content: center; font-size: 2.2rem; cursor: pointer;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.15); transition: transform 0.15s; user-select: none;
+  }
+  .mem-card.flipped, .mem-card.matched { background: #fff; border: 3px solid #e3dcf2; }
+  .mem-card.matched { border-color: var(--green); opacity: 0.7; cursor: default; }
+  .mem-card:active { transform: scale(0.95); }
+
   /* ---------- Modal ---------- */
   .overlay {
     position: fixed; inset: 0; background: rgba(40,30,60,0.7);
@@ -976,11 +1045,8 @@
     for (let i = 0; i < W * H; i++) out[i * 4 + 3] = 255;
     return out;
   }
-  // binary edge mask from luminance, thickened by `dil` passes for bold outlines
-  function edgeMask(srcData, W, H, thr, dil) {
-    const M = sobelMag(lumArray(srcData, W, H), W, H);
-    let E = new Uint8Array(W * H);
-    for (let i = 0; i < W * H; i++) E[i] = M[i] > thr ? 1 : 0;
+  // thicken a binary mask by `dil` passes (used for bold outlines / glow halos)
+  function dilateMask(E, W, H, dil) {
     for (let k = 0; k < dil; k++) {
       const D = new Uint8Array(W * H);
       for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++) {
@@ -990,6 +1056,15 @@
       E = D;
     }
     return E;
+  }
+  // binary edge mask from luminance, thickened by `dil` passes for bold outlines.
+  // Pass lightly-denoised (not heavily flattened) pixel data so fine detail
+  // like eyes/mouth/nostrils survives as real lines instead of smearing away.
+  function edgeMask(srcData, W, H, thr, dil) {
+    const M = sobelMag(lumArray(srcData, W, H), W, H);
+    let E = new Uint8Array(W * H);
+    for (let i = 0; i < W * H; i++) E[i] = M[i] > thr ? 1 : 0;
+    return dilateMask(E, W, H, dil);
   }
 
   function applyPhotoStyle(src, style) {
@@ -1010,18 +1085,23 @@
     const img = ctx.getImageData(0, 0, W, H), d = img.data, N = W * H;
 
     if (style === "Anime" || style === "Cartoon" || style === "Comic") {
-      // flat cel-shaded color from a blurred copy + bold ink outlines from an edge mask
+      // Fill colors come from a LIGHTLY smoothed copy (flat cel-shaded look).
+      // Edge lines come from a separately, much-less-blurred copy, so fine
+      // detail (eyes, nostrils, mouth) survives as real ink lines instead of
+      // getting smeared away by the same blur that flattens the color — that
+      // smear-then-edge-from-smear order is what caused the blobby look.
       const P = {
-        Anime:   { blur: 2, sat: 1.6,  ct: 1.1,  lift: 12, levels: 6, thr: 55, dil: 1, ink: [40, 30, 50], mul: 0.30, warm: false },
-        Cartoon: { blur: 2, sat: 1.5,  ct: 1.2,  lift: 4,  levels: 4, thr: 60, dil: 2, ink: [18, 16, 22], mul: 0.08, warm: false },
-        Comic:   { blur: 1, sat: 1.35, ct: 1.6,  lift: 0,  levels: 3, thr: 48, dil: 2, ink: [8, 8, 12],   mul: 0.05, warm: true },
+        Anime:   { fillBlur: 1, sat: 1.55, ct: 1.12, lift: 10, levels: 7, edgeBlur: 1, thr: 30, dil: 1, ink: [42, 30, 55], mul: 0.30, warm: false },
+        Cartoon: { fillBlur: 2, sat: 1.5,  ct: 1.25, lift: 4,  levels: 5, edgeBlur: 1, thr: 32, dil: 1, ink: [18, 16, 22], mul: 0.10, warm: false },
+        Comic:   { fillBlur: 1, sat: 1.4,  ct: 1.6,  lift: 0,  levels: 4, edgeBlur: 0, thr: 26, dil: 1, ink: [8, 8, 12],   mul: 0.05, warm: true },
       }[style];
-      const blur = boxBlur(d, W, H, P.blur);
-      const E = edgeMask(blur, W, H, P.thr, P.dil);
+      const fill = P.fillBlur > 0 ? boxBlur(d, W, H, P.fillBlur) : d;
+      const edgeSrc = P.edgeBlur > 0 ? boxBlur(d, W, H, P.edgeBlur) : d;
+      const E = edgeMask(edgeSrc, W, H, P.thr, P.dil);
       const step = 255 / (P.levels - 1);
       for (let i = 0; i < N; i++) {
         const j = i * 4;
-        let r = blur[j], g = blur[j + 1], b = blur[j + 2];
+        let r = fill[j], g = fill[j + 1], b = fill[j + 2];
         const l = 0.299 * r + 0.587 * g + 0.114 * b;
         r = l + (r - l) * P.sat; g = l + (g - l) * P.sat; b = l + (b - l) * P.sat;          // saturate
         r = (r - 128) * P.ct + 128 + P.lift; g = (g - 128) * P.ct + 128 + P.lift; b = (b - 128) * P.ct + 128 + P.lift;
@@ -1043,20 +1123,26 @@
         d[j] = d[j + 1] = d[j + 2] = v;
       }
     } else if (style === "Neon") {
-      const blur = boxBlur(d, W, H, 1);
-      const L = lumArray(blur, W, H), M = sobelMag(L, W, H);
-      const G = new Float32Array(N);             // thicken the glow
-      for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++) {
-        const i = y * W + x;
-        G[i] = Math.max(M[i], M[i - 1], M[i + 1], M[i - W], M[i + W]);
-      }
+      // Crisp bright core line exactly on real edges (from lightly-denoised
+      // detail, not a heavy blur) plus a soft blurred halo around it, instead
+      // of one continuously-scaled glow that reads as a hazy blob.
+      const edgeSrc = boxBlur(d, W, H, 1);
+      const M = sobelMag(lumArray(edgeSrc, W, H), W, H);
+      let core = new Uint8Array(N);
+      for (let i = 0; i < N; i++) core[i] = M[i] > 42 ? 1 : 0;
+      core = dilateMask(core, W, H, 1);
+      const glowBuf = new Uint8ClampedArray(N * 4);
+      for (let i = 0; i < N; i++) { const v = core[i] ? 255 : 0; glowBuf[i * 4] = v; glowBuf[i * 4 + 1] = v; glowBuf[i * 4 + 2] = v; glowBuf[i * 4 + 3] = 255; }
+      const glow = boxBlur(glowBuf, W, H, 3);
+      const L = lumArray(edgeSrc, W, H);
       for (let i = 0; i < N; i++) {
-        const j = i * 4, e = Math.min(1, G[i] / 65);
-        const r = blur[j], g = blur[j + 1], b = blur[j + 2], l = L[i], s = 2.8;
-        const sr = clamp255(l + (r - l) * s), sg = clamp255(l + (g - l) * s), sb = clamp255(l + (b - l) * s);
-        d[j] = clamp255(r * 0.08 + sr * e * 1.7 + e * 12);        // near-black base, bright glowing edges
-        d[j + 1] = clamp255(g * 0.08 + sg * e * 1.7 + e * 12);
-        d[j + 2] = clamp255(b * 0.10 + sb * e * 1.7 + e * 30);
+        const j = i * 4;
+        const halo = glow[j] / 255, amt = Math.max(halo * 0.6, core[i]);
+        const l = L[i], sat = 2.6;
+        const sr = clamp255(l + (edgeSrc[j] - l) * sat), sg = clamp255(l + (edgeSrc[j + 1] - l) * sat), sb = clamp255(l + (edgeSrc[j + 2] - l) * sat);
+        d[j] = clamp255(sr * amt + 10 * amt);
+        d[j + 1] = clamp255(sg * amt + 10 * amt);
+        d[j + 2] = clamp255(sb * amt + 26 * amt);
       }
     }
     ctx.putImageData(img, 0, 0);
@@ -1123,7 +1209,11 @@
 
   // ---------------------------------------------------------------- Router
   const routes = {};
+  // A route (e.g. a running mini-game, or the camera) can set this to a
+  // function that stops its timers/listeners; go() runs it before leaving.
+  let routeCleanup = null;
   function go(name, arg) {
+    if (routeCleanup) { try { routeCleanup(); } catch (e) {} routeCleanup = null; }
     const main = $("#main");
     main.innerHTML = "";
     (routes[name] || routes.hub)(main, arg);
@@ -1168,6 +1258,7 @@
       { k: "ad", e: "📺", l: "Ad Studio", d: "Make ads & set a price", tag: state.ads.length + " published", todo: state.ads.length === 0 },
       { k: "quiz", e: "🎓", l: "Star School", d: "Answer to earn ⭐", tag: "Earn stars", todo: false },
       { k: "market", e: "🛍️", l: "Marketplace", d: "Watch ads & buy stuff", tag: state.collection.length + " owned", todo: false },
+      { k: "games", e: "🎮", l: "Break Room", d: "Take a break — mini-games!", tag: "3 games", todo: false },
     ];
     const grid = el(`<div></div>`);
     main.appendChild(el(`<h2 class="screen-title">🪐 Your Planet</h2>`));
@@ -1464,6 +1555,7 @@
     let stream = null, rawCapture = null, posInput = null;
     function stopCam() { if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; } }
     function applyStyleNow() { if (rawCapture) { ad.photo = applyPhotoStyle(rawCapture, ad.style); draw(); } }
+    routeCleanup = stopCam; // stop the camera even if the user leaves via the header, not just Back
 
     const studio = el(`<div class="studio"></div>`);
     const stage = el(`<div class="panel"><div class="preview-stage" id="adPrev"></div></div>`);
@@ -1818,6 +1910,341 @@
     toast("You bought " + it.product.name + "! 🎉", "good");
     go("market");
   }
+
+  // ---------------------------------------------------------------- Break Room / Mini-Games
+  function showCountdown(stageEl, onDone) {
+    const cd = el(`<div class="game-countdown">3</div>`);
+    stageEl.appendChild(cd);
+    let n = 3;
+    const step = () => {
+      n--;
+      if (n > 0) { cd.textContent = n; setTimeout(step, 650); }
+      else { cd.textContent = "GO!"; setTimeout(() => { cd.remove(); onDone(); }, 450); }
+    };
+    setTimeout(step, 650);
+  }
+
+  function gameResultScreen(main, opts) {
+    main.innerHTML = "";
+    const box = el(`<div class="game-result"></div>`);
+    box.appendChild(el(`<div class="big">${opts.emoji}</div>`));
+    box.appendChild(el(`<h3 style="color:var(--pink-dark);margin:8px 0">${esc(opts.title)}</h3>`));
+    opts.lines.forEach(line => box.appendChild(el(`<p style="color:#7a6f97">${esc(line)}</p>`)));
+    if (opts.starsEarned > 0) {
+      setStars(state.stars + opts.starsEarned);
+      box.appendChild(el(`<p style="font-weight:bold;color:var(--orange);margin-top:6px">+⭐ ${opts.starsEarned} stars earned!</p>`));
+    }
+    const row = el(`<div class="btn-row" style="justify-content:center"></div>`);
+    const again = el(`<button class="btn green">Play again</button>`);
+    again.onclick = opts.onPlayAgain;
+    const other = el(`<button class="btn blue">Other games</button>`);
+    other.onclick = () => go("games");
+    const home = el(`<button class="btn ghost">Back to Planet</button>`);
+    home.onclick = () => go("hub");
+    row.appendChild(again); row.appendChild(other); row.appendChild(home);
+    box.appendChild(row);
+    main.appendChild(box);
+  }
+
+  function gameFloaty(stage, x, y, text, color) {
+    const t = el(`<div class="floaty-text" style="left:${x}px; top:${y}px; color:${color}">${esc(text)}</div>`);
+    stage.appendChild(t);
+    setTimeout(() => t.remove(), 850);
+  }
+
+  routes.games = (main) => {
+    main.appendChild(el(`<h2 class="screen-title">🎮 Break Room</h2>`));
+    main.appendChild(el(`<p class="screen-sub">Take a breather! Play a quick game — score big for bonus stars.</p>`));
+    const GAMES = [
+      { k: "bubblepop", e: "🫧", l: "Bubble Pop", d: "Pop rising bubbles before they escape!" },
+      { k: "starcatcher", e: "⭐", l: "Star Catcher", d: "Catch falling stars, dodge the rocks!" },
+      { k: "memory", e: "🧠", l: "Match Attack", d: "Flip cards and find every pair fast!" },
+    ];
+    const grid = el(`<div class="game-grid"></div>`);
+    GAMES.forEach(g => {
+      const card = el(`<div class="game-card"><span class="emoji">${g.e}</span><div class="label">${g.l}</div><div class="desc">${g.d}</div></div>`);
+      card.onclick = () => go(g.k);
+      grid.appendChild(card);
+    });
+    main.appendChild(grid);
+    const back = el(`<div class="btn-row"><button class="btn ghost">Back to Planet</button></div>`);
+    back.querySelector("button").onclick = () => go("hub");
+    main.appendChild(back);
+  };
+
+  // ---- Bubble Pop ----
+  routes.bubblepop = (main) => {
+    main.appendChild(el(`<h2 class="screen-title">🫧 Bubble Pop</h2>`));
+    main.appendChild(el(`<p class="screen-sub">Pop bubbles before they float away — gold ones are worth more!</p>`));
+    const hud = el(`<div class="game-hud"><span id="bpScore">Score: 0</span><span id="bpCombo">Combo: 0</span><span id="bpTime">Time: 30</span></div>`);
+    main.appendChild(hud);
+    const stage = el(`<div class="game-stage bubblepop-stage"></div>`);
+    main.appendChild(stage);
+    const backRow = el(`<div class="btn-row"><button class="btn ghost">Quit to Break Room</button></div>`);
+    backRow.querySelector("button").onclick = () => go("games");
+    main.appendChild(backRow);
+
+    let score = 0, combo = 0, maxCombo = 0, timeLeft = 30, spawnTimer = null, tickTimer = null, running = false;
+    const startTime = Date.now();
+    const BUBBLE_COLORS = ["#7fd8ff", "#ff9ad1", "#b7f2c0", "#ffe28a", "#c9b8ff", "#ffb199"];
+
+    function updateHud() {
+      $("#bpScore").textContent = "Score: " + score;
+      $("#bpCombo").textContent = "Combo: " + combo;
+      $("#bpTime").textContent = "Time: " + timeLeft;
+    }
+
+    function popBubble(b, isGold) {
+      if (b.dataset.popped) return;
+      b.dataset.popped = "1";
+      const r = b.getBoundingClientRect(), sRect = stage.getBoundingClientRect();
+      const pts = isGold ? 5 : 1;
+      score += pts; combo++; maxCombo = Math.max(maxCombo, combo);
+      gameFloaty(stage, r.left - sRect.left + r.width / 2 - 10, r.top - sRect.top, "+" + pts, isGold ? "#e08e00" : "#1f7bdc");
+      updateHud();
+      b.classList.add("pop");
+      setTimeout(() => b.remove(), 260);
+    }
+
+    function spawnBubble() {
+      if (!running) return;
+      const isGold = Math.random() < 0.12;
+      const size = 40 + Math.random() * 34;
+      const b = el(`<div class="bubble${isGold ? " gold" : ""}"></div>`);
+      b.style.left = (Math.random() * 84 + 4) + "%";
+      b.style.width = size + "px"; b.style.height = size + "px";
+      if (isGold) b.textContent = "⭐";
+      else b.style.background = `radial-gradient(circle at 32% 28%, #fff, ${BUBBLE_COLORS[Math.floor(Math.random() * BUBBLE_COLORS.length)]})`;
+      const elapsed = (Date.now() - startTime) / 1000;
+      b.style.animationDuration = Math.max(1.7, 3.4 - elapsed * 0.035) + "s";
+      b.addEventListener("animationend", () => { if (b.parentNode) { b.remove(); combo = 0; updateHud(); } });
+      b.addEventListener("pointerdown", () => popBubble(b, isGold));
+      stage.appendChild(b);
+    }
+
+    function scheduleSpawn() {
+      if (!running) return;
+      const elapsed = (Date.now() - startTime) / 1000;
+      spawnTimer = setTimeout(() => { spawnBubble(); scheduleSpawn(); }, Math.max(320, 720 - elapsed * 14));
+    }
+
+    function endGame() {
+      running = false;
+      clearTimeout(spawnTimer); clearInterval(tickTimer);
+      routeCleanup = null;
+      const starsEarned = Math.min(12, Math.round(score / 4));
+      gameResultScreen(main, {
+        emoji: score >= 40 ? "🏆" : score >= 20 ? "🌟" : "🫧",
+        title: "Time's up!",
+        lines: ["Final score: " + score, "Best combo: " + maxCombo],
+        starsEarned,
+        onPlayAgain: () => go("bubblepop"),
+      });
+    }
+
+    routeCleanup = () => { running = false; clearTimeout(spawnTimer); clearInterval(tickTimer); };
+
+    showCountdown(stage, () => {
+      running = true;
+      updateHud();
+      scheduleSpawn();
+      tickTimer = setInterval(() => { timeLeft--; updateHud(); if (timeLeft <= 0) endGame(); }, 1000);
+    });
+  };
+
+  // ---- Star Catcher ----
+  routes.starcatcher = (main) => {
+    main.appendChild(el(`<h2 class="screen-title">⭐ Star Catcher</h2>`));
+    main.appendChild(el(`<p class="screen-sub">Move the basket to catch stars — watch out for rocks!</p>`));
+    const hud = el(`<div class="game-hud"><span id="scScore">Score: 0</span><span class="sc-lives" id="scLives">❤️❤️❤️</span><span id="scTime">Time: 45</span></div>`);
+    main.appendChild(hud);
+    const stage = el(`<div class="game-stage starcatcher-stage"></div>`);
+    main.appendChild(stage);
+    const basket = el(`<div class="sc-basket">🧺</div>`);
+    stage.appendChild(basket);
+    const backRow = el(`<div class="btn-row"><button class="btn ghost">Quit to Break Room</button></div>`);
+    backRow.querySelector("button").onclick = () => go("games");
+    main.appendChild(backRow);
+
+    let score = 0, lives = 3, timeLeft = 45, running = false, basketX = 50;
+    let spawnTimer = null, tickTimer = null, raf = null;
+    const startTime = Date.now();
+    const activeItems = [];
+
+    function updateHud() {
+      $("#scScore").textContent = "Score: " + score;
+      $("#scLives").textContent = "❤️".repeat(Math.max(0, lives)) + "🖤".repeat(Math.max(0, 3 - lives));
+      $("#scTime").textContent = "Time: " + timeLeft;
+    }
+
+    function setBasketX(pct) { basketX = Math.max(6, Math.min(94, pct)); basket.style.left = basketX + "%"; }
+    setBasketX(50);
+
+    function onPointerMove(e) {
+      const r = stage.getBoundingClientRect();
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      setBasketX((clientX - r.left) / r.width * 100);
+    }
+    stage.addEventListener("pointermove", onPointerMove);
+
+    function onKey(e) {
+      if (e.key === "ArrowLeft") setBasketX(basketX - 6);
+      else if (e.key === "ArrowRight") setBasketX(basketX + 6);
+    }
+    document.addEventListener("keydown", onKey);
+
+    function shake() { stage.classList.remove("stage-shake"); void stage.offsetWidth; stage.classList.add("stage-shake"); }
+
+    function spawnItem() {
+      if (!running) return;
+      const roll = Math.random();
+      const kind = roll < 0.16 ? "bomb" : roll < 0.28 ? "big" : "star";
+      const b = el(`<div class="sc-item"></div>`);
+      b.textContent = kind === "bomb" ? "🪨" : kind === "big" ? "🌟" : "⭐";
+      b.style.left = (Math.random() * 88 + 4) + "%";
+      const elapsed = (Date.now() - startTime) / 1000;
+      b.style.animationDuration = Math.max(1.5, 3.0 - elapsed * 0.02) + "s";
+      const entry = { el: b, kind };
+      b.addEventListener("animationend", () => {
+        if (b.parentNode) b.remove();
+        const idx = activeItems.indexOf(entry);
+        if (idx > -1) activeItems.splice(idx, 1);
+      });
+      stage.appendChild(b);
+      activeItems.push(entry);
+    }
+
+    function scheduleSpawn() {
+      if (!running) return;
+      const elapsed = (Date.now() - startTime) / 1000;
+      spawnTimer = setTimeout(() => { spawnItem(); scheduleSpawn(); }, Math.max(360, 780 - elapsed * 9));
+    }
+
+    function loop() {
+      if (!running) return;
+      const bRect = basket.getBoundingClientRect();
+      for (let i = activeItems.length - 1; i >= 0; i--) {
+        const it = activeItems[i];
+        if (!it.el.parentNode) { activeItems.splice(i, 1); continue; }
+        const r = it.el.getBoundingClientRect();
+        const overlap = r.left < bRect.right - 10 && r.right > bRect.left + 10 && r.bottom > bRect.top + 6 && r.top < bRect.bottom;
+        if (overlap) {
+          const sRect = stage.getBoundingClientRect();
+          if (it.kind === "bomb") {
+            lives--; shake();
+            gameFloaty(stage, r.left - sRect.left, r.top - sRect.top, "💥", "#ff5252");
+            it.el.remove(); activeItems.splice(i, 1); updateHud();
+            if (lives <= 0) { endGame(); return; }
+          } else {
+            const pts = it.kind === "big" ? 3 : 1;
+            score += pts;
+            gameFloaty(stage, r.left - sRect.left, r.top - sRect.top, "+" + pts, it.kind === "big" ? "#e08e00" : "#ffd54f");
+            it.el.remove(); activeItems.splice(i, 1); updateHud();
+          }
+        }
+      }
+      raf = requestAnimationFrame(loop);
+    }
+
+    function endGame() {
+      running = false;
+      clearTimeout(spawnTimer); clearInterval(tickTimer); cancelAnimationFrame(raf);
+      stage.removeEventListener("pointermove", onPointerMove);
+      document.removeEventListener("keydown", onKey);
+      routeCleanup = null;
+      const starsEarned = Math.min(12, Math.round(score / 3));
+      gameResultScreen(main, {
+        emoji: score >= 30 ? "🏆" : score >= 15 ? "🌟" : "⭐",
+        title: lives <= 0 ? "Out of lives!" : "Time's up!",
+        lines: ["Final score: " + score],
+        starsEarned,
+        onPlayAgain: () => go("starcatcher"),
+      });
+    }
+
+    routeCleanup = () => {
+      running = false;
+      clearTimeout(spawnTimer); clearInterval(tickTimer); cancelAnimationFrame(raf);
+      stage.removeEventListener("pointermove", onPointerMove);
+      document.removeEventListener("keydown", onKey);
+    };
+
+    showCountdown(stage, () => {
+      running = true;
+      updateHud();
+      scheduleSpawn();
+      raf = requestAnimationFrame(loop);
+      tickTimer = setInterval(() => { timeLeft--; updateHud(); if (timeLeft <= 0) endGame(); }, 1000);
+    });
+  };
+
+  // ---- Match Attack (memory) ----
+  const MEMORY_ICON_POOL = ["🦄", "🚀", "🍕", "🐱", "🌈", "🎮", "🍩", "🦋", "🐉", "🎨", "⚡", "🌸", "🏆", "👑", "🦖", "🍓", "🐬", "🎵"];
+
+  routes.memory = (main) => {
+    main.appendChild(el(`<h2 class="screen-title">🧠 Match Attack</h2>`));
+    main.appendChild(el(`<p class="screen-sub">Flip two cards at a time and find every matching pair!</p>`));
+    const hud = el(`<div class="game-hud"><span id="memMoves">Moves: 0</span><span id="memTime">Time: 0s</span></div>`);
+    main.appendChild(hud);
+
+    const icons = shuffle(MEMORY_ICON_POOL.slice()).slice(0, 6);
+    const deck = shuffle([...icons, ...icons]);
+    const grid = el(`<div class="memory-grid"></div>`);
+    main.appendChild(grid);
+    const backRow = el(`<div class="btn-row"><button class="btn ghost">Quit to Break Room</button></div>`);
+    backRow.querySelector("button").onclick = () => go("games");
+    main.appendChild(backRow);
+
+    let moves = 0, matched = 0, flipped = [], busy = false, seconds = 0;
+    const tickTimer = setInterval(() => { seconds++; updateHud(); }, 1000);
+    routeCleanup = () => clearInterval(tickTimer);
+
+    function updateHud() {
+      $("#memMoves").textContent = "Moves: " + moves;
+      $("#memTime").textContent = "Time: " + seconds + "s";
+    }
+
+    function endGame() {
+      clearInterval(tickTimer);
+      routeCleanup = null;
+      const starsEarned = Math.max(3, Math.min(12, 16 - moves));
+      gameResultScreen(main, {
+        emoji: moves <= 8 ? "🏆" : moves <= 12 ? "🌟" : "🧠",
+        title: "All matched!",
+        lines: ["Moves: " + moves, "Time: " + seconds + "s"],
+        starsEarned,
+        onPlayAgain: () => go("memory"),
+      });
+    }
+
+    deck.forEach((icon) => {
+      const card = el(`<div class="mem-card"></div>`);
+      card.dataset.icon = icon;
+      card.onclick = () => {
+        if (busy || card.classList.contains("flipped") || card.classList.contains("matched")) return;
+        card.classList.add("flipped");
+        card.textContent = icon;
+        flipped.push(card);
+        if (flipped.length === 2) {
+          moves++; updateHud();
+          busy = true;
+          const [a, b] = flipped;
+          if (a.dataset.icon === b.dataset.icon) {
+            a.classList.add("matched"); b.classList.add("matched");
+            flipped = []; busy = false; matched++;
+            if (matched === icons.length) endGame();
+          } else {
+            setTimeout(() => {
+              a.classList.remove("flipped"); a.textContent = "";
+              b.classList.remove("flipped"); b.textContent = "";
+              flipped = []; busy = false;
+            }, 700);
+          }
+        }
+      };
+      grid.appendChild(card);
+    });
+  };
 
   // ---------------------------------------------------------------- Field builders
   function swatchField(label, colors, current, onPick) {
