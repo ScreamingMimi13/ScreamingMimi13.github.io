@@ -281,8 +281,11 @@
     animation-name: bubbleRise; animation-timing-function: linear; animation-fill-mode: forwards;
   }
   .bubble.gold { box-shadow: inset -6px -6px 10px rgba(150,90,0,0.25), inset 6px 6px 10px rgba(255,255,255,0.85), 0 0 16px 4px rgba(255,215,60,0.8); }
+  .bubble.bomb { background: radial-gradient(circle at 32% 28%, #666, #1a1a1a); box-shadow: inset -6px -6px 10px rgba(0,0,0,0.4), inset 6px 6px 8px rgba(255,255,255,0.15), 0 0 12px 3px rgba(255,60,60,0.55); }
+  .bubble.rainbow { background: conic-gradient(from 0deg,#ff5ca8,#ffcf3f,#4cc35a,#3aa0ff,#8b5cf6,#ff5ca8); box-shadow: 0 0 18px 6px rgba(255,255,255,0.55); }
   .bubble.pop { animation: none !important; transform: scale(1.7); opacity: 0; transition: transform 0.25s, opacity 0.25s; }
   @keyframes bubbleRise { from { bottom: -80px; } to { bottom: 105%; } }
+  .bubblepop-stage.frenzy { filter: saturate(1.7) brightness(1.1); }
 
   /* Star Catcher */
   .starcatcher-stage { background: linear-gradient(180deg,#1b1140 0%, #3a2a7a 55%, #4c2f8a 100%); }
@@ -298,6 +301,7 @@
   .sc-lives { letter-spacing: 2px; }
 
   /* Memory Match */
+  .mem-wrap { position: relative; }
   .memory-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; max-width: 420px; margin: 0 auto; }
   .mem-card {
     aspect-ratio: 1; border-radius: 14px; background: linear-gradient(160deg,var(--purple),var(--pink));
@@ -1956,9 +1960,9 @@
     main.appendChild(el(`<h2 class="screen-title">🎮 Break Room</h2>`));
     main.appendChild(el(`<p class="screen-sub">Take a breather! Play a quick game — score big for bonus stars.</p>`));
     const GAMES = [
-      { k: "bubblepop", e: "🫧", l: "Bubble Pop", d: "Pop rising bubbles before they escape!" },
-      { k: "starcatcher", e: "⭐", l: "Star Catcher", d: "Catch falling stars, dodge the rocks!" },
-      { k: "memory", e: "🧠", l: "Match Attack", d: "Flip cards and find every pair fast!" },
+      { k: "bubblepop", e: "🫧", l: "Bubble Blitz", d: "Combos, bombs, and FRENZY mode!" },
+      { k: "starcatcher", e: "⭐", l: "Star Rush", d: "Multipliers, diamonds, meteor bursts!" },
+      { k: "memory", e: "🧠", l: "Match Attack: Speed Mode", d: "8 pairs, 60-second clock, no mercy!" },
     ];
     const grid = el(`<div class="game-grid"></div>`);
     GAMES.forEach(g => {
@@ -1974,9 +1978,9 @@
 
   // ---- Bubble Pop ----
   routes.bubblepop = (main) => {
-    main.appendChild(el(`<h2 class="screen-title">🫧 Bubble Pop</h2>`));
-    main.appendChild(el(`<p class="screen-sub">Pop bubbles before they float away — gold ones are worth more!</p>`));
-    const hud = el(`<div class="game-hud"><span id="bpScore">Score: 0</span><span id="bpCombo">Combo: 0</span><span id="bpTime">Time: 30</span></div>`);
+    main.appendChild(el(`<h2 class="screen-title">🫧 Bubble Blitz</h2>`));
+    main.appendChild(el(`<p class="screen-sub">Build combos for bigger multipliers, dodge bombs, and chase rainbow bubbles for FRENZY mode!</p>`));
+    const hud = el(`<div class="game-hud"><span id="bpScore">Score: 0</span><span id="bpCombo">Combo: 0 (x1)</span><span id="bpStrikes">❤️❤️❤️</span><span id="bpTime">Time: 40</span></div>`);
     main.appendChild(hud);
     const stage = el(`<div class="game-stage bubblepop-stage"></div>`);
     main.appendChild(stage);
@@ -1984,58 +1988,90 @@
     backRow.querySelector("button").onclick = () => go("games");
     main.appendChild(backRow);
 
-    let score = 0, combo = 0, maxCombo = 0, timeLeft = 30, spawnTimer = null, tickTimer = null, running = false;
+    let score = 0, combo = 0, maxCombo = 0, strikes = 3, timeLeft = 40, spawnTimer = null, tickTimer = null, running = false, frenzyUntil = 0;
     const startTime = Date.now();
     const BUBBLE_COLORS = ["#7fd8ff", "#ff9ad1", "#b7f2c0", "#ffe28a", "#c9b8ff", "#ffb199"];
+    const multFor = (c) => Math.min(5, Math.floor(c / 5) + 1);
 
     function updateHud() {
       $("#bpScore").textContent = "Score: " + score;
-      $("#bpCombo").textContent = "Combo: " + combo;
+      $("#bpCombo").textContent = "Combo: " + combo + " (x" + multFor(combo) + (Date.now() < frenzyUntil ? " FRENZY!" : "") + ")";
+      $("#bpStrikes").textContent = "❤️".repeat(Math.max(0, strikes)) + "🖤".repeat(Math.max(0, 3 - strikes));
       $("#bpTime").textContent = "Time: " + timeLeft;
     }
 
-    function popBubble(b, isGold) {
+    function pickKind() {
+      if (combo >= 4 && Math.random() < 0.05) return "rainbow";
+      const r = Math.random();
+      if (r < 0.15) return "bomb";
+      if (r < 0.30) return "gold";
+      return "normal";
+    }
+
+    function popBubble(b, kind) {
       if (b.dataset.popped) return;
       b.dataset.popped = "1";
       const r = b.getBoundingClientRect(), sRect = stage.getBoundingClientRect();
-      const pts = isGold ? 5 : 1;
-      score += pts; combo++; maxCombo = Math.max(maxCombo, combo);
-      gameFloaty(stage, r.left - sRect.left + r.width / 2 - 10, r.top - sRect.top, "+" + pts, isGold ? "#e08e00" : "#1f7bdc");
-      updateHud();
+      const fx = r.left - sRect.left + r.width / 2 - 10, fy = r.top - sRect.top;
       b.classList.add("pop");
       setTimeout(() => b.remove(), 260);
+      if (kind === "bomb") {
+        strikes--; combo = 0;
+        stage.classList.remove("stage-shake"); void stage.offsetWidth; stage.classList.add("stage-shake");
+        gameFloaty(stage, fx, fy, "💥 -1", "#ff5252");
+        updateHud();
+        if (strikes <= 0) endGame(true);
+        return;
+      }
+      const frenzyActive = Date.now() < frenzyUntil;
+      const mult = multFor(combo) * (frenzyActive ? 2 : 1);
+      const base = kind === "rainbow" ? 8 : kind === "gold" ? 5 : 1;
+      const pts = base * mult;
+      score += pts; combo++; maxCombo = Math.max(maxCombo, combo);
+      if (kind === "rainbow") {
+        frenzyUntil = Date.now() + 3000;
+        stage.classList.add("frenzy");
+        setTimeout(() => stage.classList.remove("frenzy"), 3000);
+        gameFloaty(stage, fx, fy - 26, "FRENZY!", "#ff3d6e");
+      }
+      gameFloaty(stage, fx, fy, "+" + pts, kind === "gold" ? "#e08e00" : kind === "rainbow" ? "#ff3d6e" : "#1f7bdc");
+      updateHud();
     }
 
     function spawnBubble() {
       if (!running) return;
-      const isGold = Math.random() < 0.12;
+      const kind = pickKind();
       const size = 40 + Math.random() * 34;
-      const b = el(`<div class="bubble${isGold ? " gold" : ""}"></div>`);
+      const b = el(`<div class="bubble${kind === "gold" ? " gold" : kind === "bomb" ? " bomb" : kind === "rainbow" ? " rainbow" : ""}"></div>`);
       b.style.left = (Math.random() * 84 + 4) + "%";
       b.style.width = size + "px"; b.style.height = size + "px";
-      if (isGold) b.textContent = "⭐";
+      if (kind === "gold") b.textContent = "⭐";
+      else if (kind === "bomb") b.textContent = "💣";
+      else if (kind === "rainbow") b.textContent = "🌈";
       else b.style.background = `radial-gradient(circle at 32% 28%, #fff, ${BUBBLE_COLORS[Math.floor(Math.random() * BUBBLE_COLORS.length)]})`;
       const elapsed = (Date.now() - startTime) / 1000;
-      b.style.animationDuration = Math.max(1.7, 3.4 - elapsed * 0.035) + "s";
-      b.addEventListener("animationend", () => { if (b.parentNode) { b.remove(); combo = 0; updateHud(); } });
-      b.addEventListener("pointerdown", () => popBubble(b, isGold));
+      b.style.animationDuration = Math.max(1.1, 2.6 - elapsed * 0.035) + "s";
+      b.addEventListener("animationend", () => { if (b.parentNode) { b.remove(); if (kind !== "bomb") { combo = 0; updateHud(); } } });
+      b.addEventListener("pointerdown", () => popBubble(b, kind));
       stage.appendChild(b);
     }
 
     function scheduleSpawn() {
       if (!running) return;
       const elapsed = (Date.now() - startTime) / 1000;
-      spawnTimer = setTimeout(() => { spawnBubble(); scheduleSpawn(); }, Math.max(320, 720 - elapsed * 14));
+      let delay = Math.max(160, 620 - elapsed * 14);
+      if (Date.now() < frenzyUntil) delay = Math.max(90, delay / 2);
+      spawnTimer = setTimeout(() => { spawnBubble(); scheduleSpawn(); }, delay);
     }
 
-    function endGame() {
+    function endGame(byStrikeout) {
       running = false;
       clearTimeout(spawnTimer); clearInterval(tickTimer);
       routeCleanup = null;
-      const starsEarned = Math.min(12, Math.round(score / 4));
+      const starsEarned = Math.min(15, Math.round(score / 8));
       gameResultScreen(main, {
-        emoji: score >= 40 ? "🏆" : score >= 20 ? "🌟" : "🫧",
-        title: "Time's up!",
+        emoji: byStrikeout ? "💥" : score >= 80 ? "🏆" : score >= 35 ? "🌟" : "🫧",
+        title: byStrikeout ? "Boom! Out of strikes!" : "Time's up!",
         lines: ["Final score: " + score, "Best combo: " + maxCombo],
         starsEarned,
         onPlayAgain: () => go("bubblepop"),
@@ -2048,15 +2084,15 @@
       running = true;
       updateHud();
       scheduleSpawn();
-      tickTimer = setInterval(() => { timeLeft--; updateHud(); if (timeLeft <= 0) endGame(); }, 1000);
+      tickTimer = setInterval(() => { timeLeft--; updateHud(); if (timeLeft <= 0) endGame(false); }, 1000);
     });
   };
 
-  // ---- Star Catcher ----
+  // ---- Star Rush ----
   routes.starcatcher = (main) => {
-    main.appendChild(el(`<h2 class="screen-title">⭐ Star Catcher</h2>`));
-    main.appendChild(el(`<p class="screen-sub">Move the basket to catch stars — watch out for rocks!</p>`));
-    const hud = el(`<div class="game-hud"><span id="scScore">Score: 0</span><span class="sc-lives" id="scLives">❤️❤️❤️</span><span id="scTime">Time: 45</span></div>`);
+    main.appendChild(el(`<h2 class="screen-title">⭐ Star Rush</h2>`));
+    main.appendChild(el(`<p class="screen-sub">Catch stars for combo multipliers, snag rare diamonds, dodge rocks — survive the meteor bursts!</p>`));
+    const hud = el(`<div class="game-hud"><span id="scScore">Score: 0</span><span id="scMult">x1</span><span class="sc-lives" id="scLives">❤️❤️❤️</span><span id="scTime">Time: 45</span></div>`);
     main.appendChild(hud);
     const stage = el(`<div class="game-stage starcatcher-stage"></div>`);
     main.appendChild(stage);
@@ -2066,13 +2102,15 @@
     backRow.querySelector("button").onclick = () => go("games");
     main.appendChild(backRow);
 
-    let score = 0, lives = 3, timeLeft = 45, running = false, basketX = 50;
-    let spawnTimer = null, tickTimer = null, raf = null;
+    let score = 0, combo = 0, lives = 3, timeLeft = 45, running = false, basketX = 50, burstUntil = 0;
+    let spawnTimer = null, tickTimer = null, raf = null, burstTimer = null;
     const startTime = Date.now();
     const activeItems = [];
+    const multFor = (c) => Math.min(5, Math.floor(c / 5) + 1);
 
     function updateHud() {
       $("#scScore").textContent = "Score: " + score;
+      $("#scMult").textContent = "x" + multFor(combo);
       $("#scLives").textContent = "❤️".repeat(Math.max(0, lives)) + "🖤".repeat(Math.max(0, 3 - lives));
       $("#scTime").textContent = "Time: " + timeLeft;
     }
@@ -2088,27 +2126,35 @@
     stage.addEventListener("pointermove", onPointerMove);
 
     function onKey(e) {
-      if (e.key === "ArrowLeft") setBasketX(basketX - 6);
-      else if (e.key === "ArrowRight") setBasketX(basketX + 6);
+      if (e.key === "ArrowLeft") setBasketX(basketX - 8);
+      else if (e.key === "ArrowRight") setBasketX(basketX + 8);
     }
     document.addEventListener("keydown", onKey);
 
     function shake() { stage.classList.remove("stage-shake"); void stage.offsetWidth; stage.classList.add("stage-shake"); }
 
+    function pickKind() {
+      if (score >= 10 && Math.random() < 0.08) return "diamond";
+      const r = Math.random();
+      if (r < 0.15) return "bomb";
+      if (r < 0.35) return "big";
+      return "star";
+    }
+
     function spawnItem() {
       if (!running) return;
-      const roll = Math.random();
-      const kind = roll < 0.16 ? "bomb" : roll < 0.28 ? "big" : "star";
+      const kind = pickKind();
       const b = el(`<div class="sc-item"></div>`);
-      b.textContent = kind === "bomb" ? "🪨" : kind === "big" ? "🌟" : "⭐";
+      b.textContent = kind === "bomb" ? "🪨" : kind === "big" ? "🌟" : kind === "diamond" ? "💎" : "⭐";
       b.style.left = (Math.random() * 88 + 4) + "%";
       const elapsed = (Date.now() - startTime) / 1000;
-      b.style.animationDuration = Math.max(1.5, 3.0 - elapsed * 0.02) + "s";
+      b.style.animationDuration = Math.max(0.9, 2.4 - elapsed * 0.028) + "s";
       const entry = { el: b, kind };
       b.addEventListener("animationend", () => {
         if (b.parentNode) b.remove();
         const idx = activeItems.indexOf(entry);
         if (idx > -1) activeItems.splice(idx, 1);
+        if (kind !== "bomb") { combo = 0; updateHud(); }
       });
       stage.appendChild(b);
       activeItems.push(entry);
@@ -2117,7 +2163,17 @@
     function scheduleSpawn() {
       if (!running) return;
       const elapsed = (Date.now() - startTime) / 1000;
-      spawnTimer = setTimeout(() => { spawnItem(); scheduleSpawn(); }, Math.max(360, 780 - elapsed * 9));
+      let delay = Math.max(180, 620 - elapsed * 12);
+      if (Date.now() < burstUntil) delay = Math.max(90, delay / 3);
+      spawnTimer = setTimeout(() => { spawnItem(); scheduleSpawn(); }, delay);
+    }
+
+    function scheduleBursts() {
+      burstTimer = setInterval(() => {
+        if (!running) return;
+        burstUntil = Date.now() + 1600;
+        gameFloaty(stage, stage.clientWidth / 2 - 60, 20, "METEOR SHOWER!", "#ffd54f");
+      }, 13000);
     }
 
     function loop() {
@@ -2131,14 +2187,15 @@
         if (overlap) {
           const sRect = stage.getBoundingClientRect();
           if (it.kind === "bomb") {
-            lives--; shake();
+            lives--; combo = 0; shake();
             gameFloaty(stage, r.left - sRect.left, r.top - sRect.top, "💥", "#ff5252");
             it.el.remove(); activeItems.splice(i, 1); updateHud();
             if (lives <= 0) { endGame(); return; }
           } else {
-            const pts = it.kind === "big" ? 3 : 1;
-            score += pts;
-            gameFloaty(stage, r.left - sRect.left, r.top - sRect.top, "+" + pts, it.kind === "big" ? "#e08e00" : "#ffd54f");
+            const base = it.kind === "diamond" ? 8 : it.kind === "big" ? 3 : 1;
+            const pts = base * multFor(combo);
+            score += pts; combo++;
+            gameFloaty(stage, r.left - sRect.left, r.top - sRect.top, "+" + pts, it.kind === "diamond" ? "#8b5cf6" : it.kind === "big" ? "#e08e00" : "#ffd54f");
             it.el.remove(); activeItems.splice(i, 1); updateHud();
           }
         }
@@ -2148,13 +2205,13 @@
 
     function endGame() {
       running = false;
-      clearTimeout(spawnTimer); clearInterval(tickTimer); cancelAnimationFrame(raf);
+      clearTimeout(spawnTimer); clearInterval(tickTimer); clearInterval(burstTimer); cancelAnimationFrame(raf);
       stage.removeEventListener("pointermove", onPointerMove);
       document.removeEventListener("keydown", onKey);
       routeCleanup = null;
-      const starsEarned = Math.min(12, Math.round(score / 3));
+      const starsEarned = Math.min(15, Math.round(score / 6));
       gameResultScreen(main, {
-        emoji: score >= 30 ? "🏆" : score >= 15 ? "🌟" : "⭐",
+        emoji: score >= 60 ? "🏆" : score >= 25 ? "🌟" : "⭐",
         title: lives <= 0 ? "Out of lives!" : "Time's up!",
         lines: ["Final score: " + score],
         starsEarned,
@@ -2164,7 +2221,7 @@
 
     routeCleanup = () => {
       running = false;
-      clearTimeout(spawnTimer); clearInterval(tickTimer); cancelAnimationFrame(raf);
+      clearTimeout(spawnTimer); clearInterval(tickTimer); clearInterval(burstTimer); cancelAnimationFrame(raf);
       stage.removeEventListener("pointermove", onPointerMove);
       document.removeEventListener("keydown", onKey);
     };
@@ -2173,53 +2230,64 @@
       running = true;
       updateHud();
       scheduleSpawn();
+      scheduleBursts();
       raf = requestAnimationFrame(loop);
       tickTimer = setInterval(() => { timeLeft--; updateHud(); if (timeLeft <= 0) endGame(); }, 1000);
     });
   };
 
-  // ---- Match Attack (memory) ----
+  // ---- Match Attack: Speed Mode (memory) ----
   const MEMORY_ICON_POOL = ["🦄", "🚀", "🍕", "🐱", "🌈", "🎮", "🍩", "🦋", "🐉", "🎨", "⚡", "🌸", "🏆", "👑", "🦖", "🍓", "🐬", "🎵"];
 
   routes.memory = (main) => {
-    main.appendChild(el(`<h2 class="screen-title">🧠 Match Attack</h2>`));
-    main.appendChild(el(`<p class="screen-sub">Flip two cards at a time and find every matching pair!</p>`));
-    const hud = el(`<div class="game-hud"><span id="memMoves">Moves: 0</span><span id="memTime">Time: 0s</span></div>`);
+    main.appendChild(el(`<h2 class="screen-title">🧠 Match Attack: Speed Mode</h2>`));
+    main.appendChild(el(`<p class="screen-sub">Memorize fast! 8 pairs, 60 seconds — find them all before time runs out.</p>`));
+    const hud = el(`<div class="game-hud"><span id="memMoves">Moves: 0</span><span id="memTime">Time: 60s</span></div>`);
     main.appendChild(hud);
 
-    const icons = shuffle(MEMORY_ICON_POOL.slice()).slice(0, 6);
+    const PAIR_COUNT = 8;
+    const icons = shuffle(MEMORY_ICON_POOL.slice()).slice(0, PAIR_COUNT);
     const deck = shuffle([...icons, ...icons]);
+    const wrap = el(`<div class="mem-wrap"></div>`);
     const grid = el(`<div class="memory-grid"></div>`);
-    main.appendChild(grid);
+    wrap.appendChild(grid);
+    main.appendChild(wrap);
     const backRow = el(`<div class="btn-row"><button class="btn ghost">Quit to Break Room</button></div>`);
     backRow.querySelector("button").onclick = () => go("games");
     main.appendChild(backRow);
 
-    let moves = 0, matched = 0, flipped = [], busy = false, seconds = 0;
-    const tickTimer = setInterval(() => { seconds++; updateHud(); }, 1000);
-    routeCleanup = () => clearInterval(tickTimer);
+    let moves = 0, matched = 0, flipped = [], busy = true, timeLeft = 60, tickTimer = null;
 
     function updateHud() {
       $("#memMoves").textContent = "Moves: " + moves;
-      $("#memTime").textContent = "Time: " + seconds + "s";
+      $("#memTime").textContent = "Time: " + timeLeft + "s";
     }
 
-    function endGame() {
+    function endGame(timedOut) {
       clearInterval(tickTimer);
       routeCleanup = null;
-      const starsEarned = Math.max(3, Math.min(12, 16 - moves));
+      let starsEarned, title, emoji;
+      if (timedOut) {
+        starsEarned = Math.round(matched / PAIR_COUNT * 7);
+        title = "Time's up!";
+        emoji = matched >= PAIR_COUNT / 2 ? "🧠" : "⏰";
+      } else {
+        starsEarned = Math.max(4, Math.min(15, 24 - moves));
+        title = "All matched!";
+        emoji = moves <= 12 ? "🏆" : moves <= 18 ? "🌟" : "🧠";
+      }
       gameResultScreen(main, {
-        emoji: moves <= 8 ? "🏆" : moves <= 12 ? "🌟" : "🧠",
-        title: "All matched!",
-        lines: ["Moves: " + moves, "Time: " + seconds + "s"],
+        emoji, title,
+        lines: timedOut ? ["Pairs found: " + matched + " / " + PAIR_COUNT, "Moves: " + moves] : ["Moves: " + moves, "Time left: " + timeLeft + "s"],
         starsEarned,
         onPlayAgain: () => go("memory"),
       });
     }
 
-    deck.forEach((icon) => {
-      const card = el(`<div class="mem-card"></div>`);
+    const cards = deck.map((icon) => {
+      const card = el(`<div class="mem-card flipped"></div>`);
       card.dataset.icon = icon;
+      card.textContent = icon;
       card.onclick = () => {
         if (busy || card.classList.contains("flipped") || card.classList.contains("matched")) return;
         card.classList.add("flipped");
@@ -2232,18 +2300,35 @@
           if (a.dataset.icon === b.dataset.icon) {
             a.classList.add("matched"); b.classList.add("matched");
             flipped = []; busy = false; matched++;
-            if (matched === icons.length) endGame();
+            if (matched === PAIR_COUNT) endGame(false);
           } else {
             setTimeout(() => {
               a.classList.remove("flipped"); a.textContent = "";
               b.classList.remove("flipped"); b.textContent = "";
               flipped = []; busy = false;
-            }, 700);
+            }, 600);
           }
         }
       };
       grid.appendChild(card);
+      return card;
     });
+
+    const banner = el(`<div class="game-countdown" style="font-size:2.1rem">Memorize! 👀</div>`);
+    wrap.appendChild(banner);
+
+    routeCleanup = () => clearInterval(tickTimer);
+
+    setTimeout(() => {
+      cards.forEach(c => { c.classList.remove("flipped"); c.textContent = ""; });
+      banner.textContent = "GO!";
+      setTimeout(() => {
+        banner.remove();
+        busy = false;
+        updateHud();
+        tickTimer = setInterval(() => { timeLeft--; updateHud(); if (timeLeft <= 0) endGame(true); }, 1000);
+      }, 500);
+    }, 2500);
   };
 
   // ---------------------------------------------------------------- Field builders
