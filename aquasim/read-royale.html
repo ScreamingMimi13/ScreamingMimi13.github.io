@@ -1,0 +1,1473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Read Royale — Hard Questions, Real Prizes</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --purple: #7e57c2;
+    --purple-dark: #5e35b1;
+    --teal: #26c6da;
+    --orange: #ffa726;
+    --pink: #ec407a;
+    --blue: #42a5f5;
+    --red: #ef5350;
+    --green: #66bb6a;
+    --gold: #ffd54f;
+    --ink: #2b2838;
+    --muted: #8a80a8;
+    --card: #ffffff;
+    --paper: #f6f2ff;
+  }
+
+  html, body { height: 100%; }
+
+  body {
+    font-family: "Comic Sans MS", "Chalkboard SE", "Segoe UI", sans-serif;
+    color: var(--ink);
+    background: linear-gradient(180deg, #b3a5ec 0%, #8fc7f0 55%, #ffe2b0 100%);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow-x: hidden;
+  }
+
+  /* ---------- Header / HUD ---------- */
+  header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 14px;
+    background: rgba(255,255,255,0.92);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.12);
+    z-index: 40;
+    flex-wrap: wrap;
+    position: sticky;
+    top: 0;
+  }
+  .logo {
+    display: flex; align-items: center; gap: 8px;
+    font-weight: bold; font-size: 1.15rem; color: var(--purple-dark);
+    white-space: nowrap;
+  }
+  .logo .ico { font-size: 1.5rem; }
+  .hud {
+    display: flex; align-items: center; gap: 10px;
+    flex: 1; justify-content: flex-end; flex-wrap: wrap; font-size: 0.92rem;
+  }
+  .stat {
+    display: flex; align-items: center; gap: 5px;
+    background: var(--paper); border-radius: 999px; padding: 4px 12px;
+    font-weight: bold; white-space: nowrap;
+  }
+  .stat .lbl { color: var(--muted); font-weight: normal; font-size: 0.76rem; }
+  #hudCoins { background: #fff7dc; color: #b8860b; }
+  #hudStreak.hot { background: #fff1dc; color: #e65100; animation: pulse 0.6s infinite alternate; }
+  @keyframes pulse { from { transform: scale(1); } to { transform: scale(1.08); } }
+  .btn {
+    border: none; border-radius: 999px; padding: 6px 14px;
+    font-family: inherit; font-weight: bold; font-size: 0.9rem;
+    cursor: pointer; background: var(--purple); color: #fff;
+    box-shadow: 0 3px 0 rgba(0,0,0,0.15); transition: transform 0.08s;
+  }
+  .btn:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0,0,0,0.15); }
+  .btn.ghost { background: var(--paper); color: var(--purple-dark); }
+  .btn.gold { background: var(--gold); color: #6b4f00; }
+  .btn.green { background: var(--green); }
+  .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+  #muteBtn { background: var(--paper); color: var(--purple-dark); padding: 6px 10px; }
+
+  /* ---------- Layout ---------- */
+  main { flex: 1; width: 100%; max-width: 920px; margin: 0 auto; padding: 14px; }
+  .screen { display: none; }
+  .screen.on { display: block; animation: fade 0.25s; }
+  @keyframes fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+  .card {
+    background: var(--card); border-radius: 20px; padding: 20px;
+    box-shadow: 0 8px 24px rgba(80,60,140,0.18); margin-bottom: 14px;
+  }
+  h1 { font-size: 1.9rem; color: var(--purple-dark); margin-bottom: 6px; }
+  h2 { font-size: 1.3rem; color: var(--purple-dark); margin-bottom: 8px; }
+  p.lead { color: var(--muted); line-height: 1.5; margin-bottom: 12px; }
+
+  /* ---------- Start ---------- */
+  #startScreen .hero { text-align: center; }
+  .modechips { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin: 14px 0; }
+  .chip {
+    border: 3px solid #e4defa; background: #fff; border-radius: 16px;
+    padding: 10px 16px; cursor: pointer; font-weight: bold; font-family: inherit;
+    color: var(--purple-dark); transition: all 0.12s;
+  }
+  .chip.sel { border-color: var(--purple); background: var(--paper); transform: translateY(-2px); }
+  .chip small { display: block; color: var(--muted); font-weight: normal; font-size: 0.72rem; margin-top: 2px; }
+
+  /* ---------- Quiz ---------- */
+  .qtop { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 8px; }
+  .qtag {
+    display: inline-block; font-size: 0.72rem; font-weight: bold; text-transform: uppercase;
+    letter-spacing: 0.06em; padding: 3px 10px; border-radius: 999px; background: var(--paper); color: var(--purple-dark);
+  }
+  .qtag.diff { background: #ffe0e6; color: var(--pink); }
+  .progressdots { display: flex; gap: 6px; }
+  .pdot { width: 12px; height: 12px; border-radius: 50%; background: #e4defa; }
+  .pdot.done { background: var(--green); }
+  .pdot.cur { background: var(--gold); transform: scale(1.2); }
+  .passage {
+    background: var(--paper); border-left: 5px solid var(--purple);
+    border-radius: 10px; padding: 12px 14px; margin: 10px 0; line-height: 1.55;
+    font-size: 0.98rem; white-space: pre-wrap;
+  }
+  .qtext { font-size: 1.15rem; line-height: 1.45; margin: 8px 0 14px; font-weight: bold; }
+  .options { display: grid; gap: 10px; }
+  .opt {
+    text-align: left; border: 3px solid #e4defa; background: #fff; border-radius: 14px;
+    padding: 12px 16px; cursor: pointer; font-family: inherit; font-size: 1rem; color: var(--ink);
+    display: flex; gap: 10px; align-items: flex-start; transition: all 0.1s;
+  }
+  .opt:hover:not(:disabled) { border-color: var(--purple); background: var(--paper); }
+  .opt .key { font-weight: bold; color: var(--purple); flex-shrink: 0; }
+  .opt.correct { border-color: var(--green); background: #eafbe7; }
+  .opt.wrong { border-color: var(--red); background: #ffecec; }
+  .opt:disabled { cursor: default; }
+  .feedback { margin-top: 14px; padding: 12px 14px; border-radius: 12px; display: none; line-height: 1.5; }
+  .feedback.on { display: block; }
+  .feedback.good { background: #eafbe7; color: #2e7d32; }
+  .feedback.bad { background: #ffecec; color: #c62828; }
+  .feedback .why { color: var(--ink); font-weight: normal; margin-top: 6px; font-size: 0.95rem; }
+  .qfooter { display: flex; justify-content: space-between; align-items: center; margin-top: 14px; flex-wrap: wrap; gap: 8px; }
+  .coinfly {
+    position: fixed; font-weight: bold; color: #b8860b; pointer-events: none; z-index: 60;
+    animation: fly 0.9s ease-out forwards; text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+  }
+  @keyframes fly { from { opacity: 1; transform: translateY(0) scale(1); } to { opacity: 0; transform: translateY(-60px) scale(1.5); } }
+
+  /* ---------- Break / minigame ---------- */
+  #breakScreen .card { text-align: center; }
+  .ownedgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; margin-top: 12px; }
+  .mgtile {
+    border: 3px solid #e4defa; border-radius: 14px; background: #fff; padding: 12px 8px;
+    cursor: pointer; text-align: center; transition: all 0.1s;
+  }
+  .mgtile:hover { border-color: var(--purple); transform: translateY(-2px); }
+  .mgtile .emoji { font-size: 1.8rem; }
+  .mgtile .nm { font-weight: bold; font-size: 0.82rem; margin-top: 4px; }
+  .mgtile .ty { font-size: 0.68rem; color: var(--muted); }
+
+  #playScreen { text-align: center; }
+  #mgFrame {
+    position: relative; margin: 0 auto; max-width: 560px;
+  }
+  #mgCanvas {
+    width: 100%; max-width: 560px; height: auto; background: #141034; border-radius: 16px;
+    touch-action: none; display: block; box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+  }
+  #mgHud { display: flex; justify-content: space-between; align-items: center; margin: 8px 0; font-weight: bold; }
+  #mgTitle { color: var(--purple-dark); }
+  #mgTimer { color: var(--pink); }
+  #mgScore { color: var(--green); }
+  .mginstr { color: var(--muted); font-size: 0.88rem; margin: 6px 0 10px; }
+
+  /* ---------- Shop ---------- */
+  .shopbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
+  .filterchip {
+    border: 2px solid #e4defa; background: #fff; border-radius: 999px; padding: 4px 12px;
+    cursor: pointer; font-family: inherit; font-size: 0.82rem; font-weight: bold; color: var(--purple-dark);
+  }
+  .filterchip.sel { background: var(--purple); color: #fff; border-color: var(--purple); }
+  .shopgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+  .shopcard {
+    border: 3px solid #e4defa; border-radius: 16px; background: #fff; padding: 12px; text-align: center;
+    display: flex; flex-direction: column; align-items: center; gap: 4px; position: relative;
+  }
+  .shopcard.owned { border-color: var(--green); background: #f3fdf1; }
+  .shopcard .emoji { font-size: 2rem; }
+  .shopcard .nm { font-weight: bold; font-size: 0.86rem; line-height: 1.15; min-height: 2.2em; display: flex; align-items: center; }
+  .shopcard .ty { font-size: 0.68rem; color: var(--muted); }
+  .shopcard .price { font-weight: bold; color: #b8860b; font-size: 0.9rem; }
+  .shopcard .ownedtag { color: var(--green); font-weight: bold; font-size: 0.82rem; }
+  .shopcard .buy { margin-top: 4px; width: 100%; }
+  .shopcard .buy:disabled { opacity: 0.5; }
+
+  /* ---------- Results / toast ---------- */
+  .bigstat { font-size: 2.4rem; font-weight: bold; color: var(--purple-dark); }
+  .row2 { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+  .minicard { background: var(--paper); border-radius: 14px; padding: 12px 18px; text-align: center; min-width: 110px; }
+  .minicard .n { font-size: 1.5rem; font-weight: bold; color: var(--purple-dark); }
+  .minicard .l { font-size: 0.76rem; color: var(--muted); }
+  #toast {
+    position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%);
+    background: var(--ink); color: #fff; padding: 10px 18px; border-radius: 999px;
+    font-weight: bold; opacity: 0; pointer-events: none; transition: opacity 0.25s, transform 0.25s; z-index: 80;
+    max-width: 90vw; text-align: center;
+  }
+  #toast.on { opacity: 1; transform: translateX(-50%) translateY(-6px); }
+  .center { text-align: center; }
+  .spacer { height: 6px; }
+  .barnav { display: flex; gap: 8px; justify-content: center; margin-top: 10px; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+  <header>
+    <div class="logo"><span class="ico">📚</span> Read Royale</div>
+    <div class="hud">
+      <div class="stat" id="hudCoins"><span class="lbl">coins</span> <span id="coinVal">0</span></div>
+      <div class="stat" id="hudStreak"><span class="lbl">streak</span> <span id="streakVal">0</span></div>
+      <div class="stat"><span class="lbl">to break</span> <span id="breakVal">5</span></div>
+      <div class="stat"><span class="lbl">owned</span> <span id="ownedVal">0</span>/100</div>
+      <button class="btn ghost" id="shopBtn">🛍 Shop</button>
+      <button id="muteBtn" class="btn">🔊</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- START -->
+    <section class="screen on" id="startScreen">
+      <div class="card hero">
+        <h1>📚 Read Royale</h1>
+        <p class="lead">Answer <b>brutally hard</b> reading questions built for high-schoolers. Every right answer
+          pays out <b>coins</b>. Spend them in a shop of <b>100 arcade mini-games</b> — then cash them in as a
+          <b>break</b> after every 5 quizzes. The harder the question, the fatter the reward.</p>
+        <h2>Pick your difficulty</h2>
+        <div class="modechips" id="modeChips">
+          <div class="chip" data-mode="scholar">Scholar <small>hard · ×1 coins</small></div>
+          <div class="chip sel" data-mode="prodigy">Prodigy <small>brutal · ×1.5 coins</small></div>
+          <div class="chip" data-mode="legend">Legend <small>merciless · ×2 coins</small></div>
+        </div>
+        <div class="barnav">
+          <button class="btn green" id="startBtn">▶ Start Reading</button>
+          <button class="btn ghost" id="startShopBtn">🛍 Browse the Prize Shop</button>
+        </div>
+        <div class="spacer"></div>
+        <p class="lead" style="font-size:0.82rem">Tip: press <b>1–4</b> to answer, <b>Enter</b> for next. No sign-in, no saving — it's one focused session.</p>
+      </div>
+    </section>
+
+    <!-- QUIZ -->
+    <section class="screen" id="quizScreen">
+      <div class="card">
+        <div class="qtop">
+          <div>
+            <span class="qtag" id="qCat">Vocabulary</span>
+            <span class="qtag diff" id="qDiff">Merciless</span>
+          </div>
+          <div class="progressdots" id="qDots"></div>
+        </div>
+        <div id="qPassageWrap"></div>
+        <div class="qtext" id="qText">Question…</div>
+        <div class="options" id="qOptions"></div>
+        <div class="feedback" id="qFeedback"></div>
+        <div class="qfooter">
+          <div class="qtag" id="qReward">+0 coins on correct</div>
+          <button class="btn" id="nextBtn" style="display:none">Next ▶</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- BREAK: choose owned minigame -->
+    <section class="screen" id="breakScreen">
+      <div class="card">
+        <h1>🎉 Break Time!</h1>
+        <p class="lead" id="breakMsg">You cleared 5 quizzes. Pick one of your mini-games to blow off steam and earn bonus coins.</p>
+        <div id="ownedEmpty" class="center" style="display:none">
+          <p class="lead">You don't own any mini-games yet. Buy some in the shop with the coins you've earned!</p>
+          <button class="btn gold" id="breakShopBtn">🛍 Open Shop</button>
+        </div>
+        <div class="ownedgrid" id="ownedGrid"></div>
+        <div class="barnav">
+          <button class="btn ghost" id="skipBreakBtn">Skip break → keep reading</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- PLAY: minigame -->
+    <section class="screen" id="playScreen">
+      <div class="card">
+        <div id="mgHud">
+          <span id="mgTitle">Mini-game</span>
+          <span id="mgTimer">⏱ 30</span>
+          <span id="mgScore">★ 0</span>
+        </div>
+        <div class="mginstr" id="mgInstr"></div>
+        <div id="mgFrame">
+          <canvas id="mgCanvas" width="560" height="420"></canvas>
+        </div>
+        <div class="barnav">
+          <button class="btn ghost" id="quitMgBtn">Quit mini-game</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- SHOP -->
+    <section class="screen" id="shopScreen">
+      <div class="card">
+        <div class="qtop">
+          <h2>🛍 Prize Shop — 100 Mini-Games</h2>
+          <button class="btn ghost" id="shopBackBtn">◀ Back</button>
+        </div>
+        <p class="lead">Buy mini-games with coins earned from quizzes. Owned games become playable on every break.
+          Prices climb with power — cheap warm-ups up front, legendary time-sinks at the end.</p>
+        <div class="shopbar" id="shopFilters"></div>
+        <div class="shopgrid" id="shopGrid"></div>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast"></div>
+
+<script>
+(function () {
+  "use strict";
+  const $ = (id) => document.getElementById(id);
+  const rand = (a, b) => a + Math.random() * (b - a);
+  const randInt = (a, b) => Math.floor(rand(a, b + 1));
+  const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+  const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+
+  // -------------------------------------------------------------
+  // Sound (tiny WebAudio, no assets)
+  // -------------------------------------------------------------
+  let audioCtx = null, muted = false;
+  function beep(freq, dur, type = 'square', vol = 0.05, slide = 0) {
+    if (muted) return;
+    try {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+      o.type = type;
+      o.frequency.setValueAtTime(freq, audioCtx.currentTime);
+      if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(40, freq + slide), audioCtx.currentTime + dur);
+      g.gain.setValueAtTime(vol, audioCtx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + dur);
+      o.connect(g).connect(audioCtx.destination);
+      o.start(); o.stop(audioCtx.currentTime + dur);
+    } catch (e) {}
+  }
+  const sfx = {
+    right:   () => { [660, 880, 1100].forEach((f,i)=>setTimeout(()=>beep(f,0.1,'triangle',0.05),i*70)); },
+    wrong:   () => beep(150, 0.3, 'sawtooth', 0.06, -60),
+    coin:    () => beep(988, 0.08, 'sine', 0.045),
+    buy:     () => { beep(523,0.1,'square',0.05); beep(784,0.12,'square',0.05); },
+    tick:    () => beep(720 + Math.random()*80, 0.04, 'square', 0.03),
+    pop:     () => beep(520, 0.09, 'square', 0.05, -220),
+    hit:     () => beep(300, 0.1, 'triangle', 0.05, -80),
+    bad:     () => beep(120, 0.18, 'sawtooth', 0.06),
+    win:     () => { [523,659,784,1047].forEach((f,i)=>setTimeout(()=>beep(f,0.14,'triangle',0.06),i*90)); }
+  };
+  $('muteBtn').addEventListener('click', () => {
+    muted = !muted;
+    $('muteBtn').textContent = muted ? '🔇' : '🔊';
+  });
+
+  function toast(msg) {
+    const t = $('toast'); t.textContent = msg; t.classList.add('on');
+    clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('on'), 1900);
+  }
+  function coinFly(text, x, y) {
+    const el = document.createElement('div');
+    el.className = 'coinfly'; el.textContent = text;
+    el.style.left = (x || window.innerWidth/2) + 'px';
+    el.style.top = (y || 90) + 'px';
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 900);
+  }
+
+  // -------------------------------------------------------------
+  // Global state
+  // -------------------------------------------------------------
+  const G = {
+    mode: 'prodigy',
+    coins: 0,
+    streak: 0,
+    bestStreak: 0,
+    quizzesInBlock: 0,   // counts up to 5, then break
+    totalQuizzes: 0,
+    correct: 0,
+    owned: {},           // id -> true
+    curScreen: 'start'
+  };
+  const MODE_MULT = { scholar: 1, prodigy: 1.5, legend: 2 };
+  const QUIZZES_PER_BREAK = 5;
+
+  function setScreen(name) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('on'));
+    const map = { start:'startScreen', quiz:'quizScreen', break:'breakScreen', play:'playScreen', shop:'shopScreen' };
+    $(map[name]).classList.add('on');
+    G.curScreen = name;
+    window.scrollTo(0, 0);
+  }
+  function refreshHud() {
+    $('coinVal').textContent = G.coins;
+    $('streakVal').textContent = G.streak;
+    $('breakVal').textContent = QUIZZES_PER_BREAK - G.quizzesInBlock;
+    $('ownedVal').textContent = Object.keys(G.owned).length;
+    $('hudStreak').classList.toggle('hot', G.streak >= 3);
+  }
+  function addCoins(n, x, y) {
+    G.coins += n;
+    if (n > 0) { sfx.coin(); coinFly('+' + n + ' 🪙', x, y); }
+    refreshHud();
+  }
+
+  // =============================================================
+  // QUESTION BANK — genuinely hard, high-school+ level
+  // Each: { cat, q, passage?, opts:[...], answer:index, why }
+  // =============================================================
+  const QUESTIONS = [
+    // ---- Vocabulary (SAT/GRE-level) ----
+    { cat:'Vocabulary', q:'The critic\'s <b>trenchant</b> review left no ambiguity about the film\'s flaws. "Trenchant" most nearly means:',
+      opts:['Vague and rambling','Sharply incisive','Cautiously neutral','Warmly forgiving'], answer:1,
+      why:'"Trenchant" means keen, penetrating, and forceful — the opposite of vague.' },
+    { cat:'Vocabulary', q:'A leader described as <b>pusillanimous</b> is best characterized by:',
+      opts:['Timid cowardice','Reckless bravado','Quiet generosity','Rigid stubbornness'], answer:0,
+      why:'"Pusillanimous" means showing a lack of courage or determination — cowardly.' },
+    { cat:'Vocabulary', q:'Her <b>perfunctory</b> apology satisfied no one. "Perfunctory" means:',
+      opts:['Heartfelt and thorough','Done carelessly as a routine duty','Delayed and reluctant','Loud and theatrical'], answer:1,
+      why:'"Perfunctory" describes an action carried out with minimal effort or reflection.' },
+    { cat:'Vocabulary', q:'To <b>obviate</b> a problem is to:',
+      opts:['Make it obvious','Prevent or remove the need for it','Deliberately worsen it','Argue about it endlessly'], answer:1,
+      why:'"Obviate" means to anticipate and prevent, rendering something unnecessary.' },
+    { cat:'Vocabulary', q:'An argument called <b>specious</b> is:',
+      opts:['Superficially plausible but actually false','Rare and valuable','Emotionally overwhelming','Clearly and honestly true'], answer:0,
+      why:'"Specious" means seemingly reasonable but in fact wrong or deceptive.' },
+    { cat:'Vocabulary', q:'A person of <b>sanguine</b> temperament is:',
+      opts:['Gloomy and fatalistic','Cheerfully optimistic','Coldly analytical','Prone to violence'], answer:1,
+      why:'"Sanguine" means optimistic or positive, especially in a difficult situation.' },
+    { cat:'Vocabulary', q:'To <b>inveigh</b> against something is to:',
+      opts:['Quietly endorse it','Protest against it vehemently','Secretly copy it','Grow accustomed to it'], answer:1,
+      why:'"Inveigh against" means to speak or write about with great hostility.' },
+    { cat:'Vocabulary', q:'The professor\'s <b>abstruse</b> lecture baffled the class. "Abstruse" means:',
+      opts:['Difficult to understand','Deliberately insulting','Refreshingly simple','Excessively long'], answer:0,
+      why:'"Abstruse" means hard to comprehend; obscure.' },
+    { cat:'Vocabulary', q:'A <b>laconic</b> reply is one that is:',
+      opts:['Angry and cutting','Using very few words','Full of flattery','Confusing and evasive'], answer:1,
+      why:'"Laconic" means concise to the point of seeming terse.' },
+    { cat:'Vocabulary', q:'Something described as <b>ephemeral</b> is:',
+      opts:['Lasting a very short time','Impossible to destroy','Morally corrupt','Extremely heavy'], answer:0,
+      why:'"Ephemeral" means fleeting, lasting for a markedly brief time.' },
+
+    // ---- Literary devices ----
+    { cat:'Literary Analysis', q:'"The wind whispered secrets through the trees." This line primarily employs:',
+      opts:['Hyperbole','Personification','Onomatopoeia','Metonymy'], answer:1,
+      why:'Giving the wind the human ability to "whisper secrets" is personification.' },
+    { cat:'Literary Analysis', q:'A story\'s narrator repeatedly assures us he is "perfectly sane" while describing an irrational murder. This is an example of:',
+      opts:['Dramatic irony via an unreliable narrator','A flashback','An extended metaphor','Iambic pentameter'], answer:0,
+      why:'The gap between what the narrator claims and what the reader perceives = an unreliable narrator producing dramatic irony.' },
+    { cat:'Literary Analysis', q:'"The crown fell to a lesser man." Using "the crown" to mean the monarchy is:',
+      opts:['Simile','Metonymy','Allusion','Zeugma'], answer:1,
+      why:'Metonymy substitutes a closely associated thing (the crown) for the concept (royal power).' },
+    { cat:'Literary Analysis', q:'When an early detail — a loaded gun on the mantel — signals an event that occurs later, the technique is:',
+      opts:['Foreshadowing','Catharsis','Anaphora','Synecdoche'], answer:0,
+      why:'Foreshadowing plants hints that prepare the reader for later developments.' },
+    { cat:'Literary Analysis', q:'"All hands on deck" uses "hands" to mean sailors. This device is:',
+      opts:['Synecdoche','Hyperbole','Allegory','Apostrophe'], answer:0,
+      why:'Synecdoche uses a part (hands) to represent the whole (sailors/people).' },
+    { cat:'Literary Analysis', q:'A poem addresses Death directly: "Death, be not proud." This rhetorical move is:',
+      opts:['Apostrophe','Euphemism','Assonance','Paradox'], answer:0,
+      why:'Apostrophe addresses an absent person, abstraction, or thing as if it could respond.' },
+    { cat:'Literary Analysis', q:'"It was the best of times, it was the worst of times." The balanced, contrasting structure is an example of:',
+      opts:['Antithesis','Alliteration','Hyperbole','Malapropism'], answer:0,
+      why:'Antithesis places contrasting ideas in parallel grammatical structure.' },
+    { cat:'Literary Analysis', q:'A novel in which animals on a farm clearly stand for figures in a political revolution is functioning as:',
+      opts:['An allegory','A eulogy','A soliloquy','A limerick'], answer:0,
+      why:'An allegory is an extended narrative whose characters and events symbolize a deeper meaning.' },
+
+    // ---- Reading comprehension / inference ----
+    { cat:'Reading Comprehension',
+      passage:'Marisol had rehearsed the resignation speech for a week, but standing in her manager\'s doorway she found the paper trembling in her hand. She thought of the mortgage, of Danny\'s tuition, of the fifteen years she had given the firm. "Come in," her manager said warmly. Marisol folded the paper, slid it back into her pocket, and forced a smile. "I just wanted to say the quarterly numbers look great."',
+      q:'What can most reasonably be inferred about Marisol at the end of the passage?',
+      opts:['She has decided the numbers matter more than her happiness','She lost her nerve and did not resign','She was never actually planning to quit','She is about to be promoted'], answer:1,
+      why:'She had prepared to resign but, weighed down by financial fears, abandons the plan and invents a pretext — she lost her nerve.' },
+    { cat:'Reading Comprehension',
+      passage:'The committee praised the new policy as a triumph of transparency. Yet the 400-page document was released at 4:58 p.m. on the Friday before a national holiday, and public comment closed the following Tuesday. Local reporters noted that no summary was provided, and the online portal for feedback required an account that took three business days to approve.',
+      q:'The passage most strongly implies that the policy\'s "transparency" was:',
+      opts:['Genuine and well executed','Undermined by the way it was released','Illegal under current law','Universally welcomed by reporters'], answer:1,
+      why:'Every concrete detail (holiday timing, no summary, unusable feedback portal) contradicts the label "transparency," implying it was undermined in practice.' },
+    { cat:'Reading Comprehension',
+      passage:'For decades the river had defined the town: mills lined its banks, children learned to swim in its shallows, and the annual regatta drew visitors from three counties. When the factory upstream closed, the water ran clear again for the first time in a generation — and the town, oddly, grew quieter, its Main Street shops shuttering one by one.',
+      q:'The passage suggests that the factory\'s closure had which paradoxical effect?',
+      opts:['It cleaned the river but harmed the town\'s economy','It polluted the river further','It increased the town\'s population','It had no measurable effect at all'], answer:0,
+      why:'The clean water is presented as a good outcome ("clear again") set against economic decline ("shops shuttering") — a paradox the word "oddly" signals.' },
+    { cat:'Reading Comprehension',
+      passage:'Critics of the study argue that its sample — 200 college sophomores from a single university — cannot support the sweeping claims made in the press release, which announced that "humans" behave a certain way under stress. The authors respond that their findings are "consistent with prior work," but decline to say whether they would expect the same result in, say, a rural population of retirees.',
+      q:'The critics\' central objection is best described as a concern about:',
+      opts:['The math used in the analysis','Whether the sample can be generalized to all humans','The authors\' funding sources','The ethics of studying students'], answer:1,
+      why:'The complaint targets generalizability: a narrow, homogeneous sample being stretched to claims about "humans" in general.' },
+    { cat:'Reading Comprehension',
+      passage:'"I\'m not angry," Theo said, setting the cup down so hard the coffee leapt over the rim. He smiled, straightened the already-straight stack of papers, and asked — in a level voice, each word clipped and precise — whether anyone else had "an opinion they\'d like to share."',
+      q:'The passage uses the contrast between Theo\'s words and his actions primarily to show that he is:',
+      opts:['Genuinely calm','Suppressing obvious anger','Confused about his feelings','Physically unwell'], answer:1,
+      why:'His denial of anger is contradicted by the slammed cup, forced smile, and clipped speech — classic suppressed anger conveyed through behavior.' },
+    { cat:'Reading Comprehension',
+      passage:'The essay opens by conceding that its opponents "raise fair concerns" and "argue in good faith." Only after this generous framing does the author methodically dismantle each of their points, one by one, quoting them accurately before showing where the logic fails.',
+      q:'The author\'s opening concession functions rhetorically to:',
+      opts:['Signal that the author agrees with the opponents','Establish fairness and credibility before rebutting','Pad the essay to meet a word count','Change the subject entirely'], answer:1,
+      why:'Acknowledging opponents as fair and good-faith builds ethos, making the subsequent rebuttal seem measured rather than hostile.' },
+
+    // ---- Grammar / usage ----
+    { cat:'Grammar & Usage', q:'Choose the sentence with correct usage:',
+      opts:['The data suggests the trend is reversing, but its effects are unclear.','The data suggest the trend is reversing, but their effects are unclear.','The data suggests the trend is reversing, but their effects are unclear.','The data suggest the trend is reversing, but its effects are unclear.'], answer:3,
+      why:'In formal usage "data" is plural (datum sing.), taking "suggest" and the plural "their."' },
+    { cat:'Grammar & Usage', q:'Which sentence correctly places the modifier?',
+      opts:['Walking to school, the rain soaked Jenna.','Walking to school, Jenna was soaked by the rain.','The rain, walking to school, soaked Jenna.','Soaked by the rain walking to school.'], answer:1,
+      why:'The introductory participle "Walking" must modify the person doing the walking (Jenna), or it dangles.' },
+    { cat:'Grammar & Usage', q:'Select the sentence using "whom" correctly:',
+      opts:['Whom shall I say is calling?','The runner whom won the race collapsed.','To whom should I address the letter?','Whom is going to the store?'], answer:2,
+      why:'"Whom" is the object of the preposition "to"; the others require the subject "who."' },
+    { cat:'Grammar & Usage', q:'Which sentence is free of a comma splice?',
+      opts:['She studied all night, she still failed.','She studied all night; she still failed.','She studied all night, and, she still failed.','She studied all night she still failed.'], answer:1,
+      why:'Two independent clauses need a semicolon (or a conjunction) — a comma alone creates a splice, and no punctuation creates a run-on.' },
+    { cat:'Grammar & Usage', q:'Choose the correct pronoun case: "The award went to Priya and ___."',
+      opts:['I','me','myself','she'], answer:1,
+      why:'The pronoun is the object of the preposition "to," requiring the objective "me."' },
+    { cat:'Grammar & Usage', q:'Which sentence uses the subjunctive mood correctly?',
+      opts:['If I was rich, I would travel.','If I were rich, I would travel.','If I am rich, I would travel.','If I be rich, I would travel.'], answer:1,
+      why:'A contrary-to-fact conditional takes the subjunctive "were," not "was."' },
+
+    // ---- Logic / argument ----
+    { cat:'Argument & Logic', q:'"Every time I wash my car, it rains the next day. Washing my car causes rain." This reasoning commits which fallacy?',
+      opts:['Ad hominem','Post hoc / false cause','Straw man','Appeal to authority'], answer:1,
+      why:'Assuming that because B follows A, A caused B, is the post hoc ergo propter hoc (false cause) fallacy.' },
+    { cat:'Argument & Logic', q:'A debater responds to a proposal to fund libraries by saying, "So my opponent thinks we should just throw money at everything." This is a:',
+      opts:['Straw man','Slippery slope','Red herring','Circular argument'], answer:0,
+      why:'Misrepresenting the opponent\'s actual position (funding libraries) as an absurd exaggeration is a straw man.' },
+    { cat:'Argument & Logic', q:'"We must ban the app; if we allow it, next we\'ll allow all apps, and soon children will never sleep again." This argument relies on:',
+      opts:['A false dilemma','A slippery slope','An appeal to pity','Begging the question'], answer:1,
+      why:'A chain of increasingly dire consequences with no justification for each step is a slippery slope.' },
+    { cat:'Argument & Logic', q:'"You can\'t trust her economic analysis — she\'s never even run a business." This attack is a(n):',
+      opts:['Ad hominem','Hasty generalization','Appeal to authority','Equivocation'], answer:0,
+      why:'Dismissing the argument by attacking the person rather than the reasoning is ad hominem.' },
+    { cat:'Argument & Logic', q:'"The Bible is true because it is the word of God, and we know it is the word of God because the Bible says so." This is an example of:',
+      opts:['Circular reasoning','Post hoc','False analogy','Appeal to novelty'], answer:0,
+      why:'The conclusion is used as its own premise — the argument goes in a circle (begs the question).' },
+    { cat:'Argument & Logic', q:'"Either we cut the arts program or we go bankrupt." Presenting only two options when more exist is a:',
+      opts:['False dilemma','Slippery slope','Straw man','Tu quoque'], answer:0,
+      why:'A false dilemma (false dichotomy) forces a choice between two options while ignoring others.' },
+
+    // ---- Poetry / meter ----
+    { cat:'Poetry', q:'A line with the rhythm da-DUM da-DUM da-DUM da-DUM da-DUM is written in:',
+      opts:['Trochaic tetrameter','Iambic pentameter','Dactylic hexameter','Free verse'], answer:1,
+      why:'Five iambs (unstressed-stressed) per line is iambic pentameter, the meter of Shakespeare\'s sonnets.' },
+    { cat:'Poetry', q:'A 14-line poem in iambic pentameter ending in a rhymed couplet is most likely a:',
+      opts:['Villanelle','Shakespearean sonnet','Haiku','Ode'], answer:1,
+      why:'The Shakespearean (English) sonnet is 14 lines of iambic pentameter rhyming abab cdcd efef gg.' },
+    { cat:'Poetry', q:'The repetition of initial consonant sounds, as in "wild and windy," is:',
+      opts:['Assonance','Consonance','Alliteration','Enjambment'], answer:2,
+      why:'Alliteration repeats the initial consonant sounds of nearby words.' },
+    { cat:'Poetry', q:'When a line of poetry runs on into the next without a pause, it is called:',
+      opts:['Caesura','Enjambment','Refrain','Meter'], answer:1,
+      why:'Enjambment carries a sentence past the line break; a caesura is a pause *within* a line.' }
+  ];
+
+  // Difficulty label per mode (flavor)
+  const DIFF_LABEL = { scholar: 'Hard', prodigy: 'Brutal', legend: 'Merciless' };
+
+  // Shuffle helper that keeps track of the answer index
+  function shuffledOptions(qObj) {
+    const idx = qObj.opts.map((_, i) => i);
+    for (let i = idx.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [idx[i], idx[j]] = [idx[j], idx[i]];
+    }
+    return {
+      opts: idx.map(i => qObj.opts[i]),
+      answer: idx.indexOf(qObj.answer)
+    };
+  }
+
+  // Question queue — reshuffled bag so we don't repeat until exhausted
+  let qBag = [];
+  function nextQuestion() {
+    if (qBag.length === 0) {
+      qBag = QUESTIONS.slice();
+      for (let i = qBag.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [qBag[i], qBag[j]] = [qBag[j], qBag[i]];
+      }
+    }
+    return qBag.pop();
+  }
+
+  // =============================================================
+  // QUIZ SCREEN LOGIC
+  // =============================================================
+  let curQ = null, curShuffle = null, answered = false;
+
+  function baseReward() {
+    // Harder categories pay more; mode multiplies.
+    return 12;
+  }
+  function questionReward() {
+    const mult = MODE_MULT[G.mode];
+    const streakBonus = Math.min(G.streak, 8) * 3; // up to +24
+    return Math.round((baseReward() + streakBonus) * mult);
+  }
+
+  function renderDots() {
+    const wrap = $('qDots'); wrap.innerHTML = '';
+    for (let i = 0; i < QUIZZES_PER_BREAK; i++) {
+      const d = document.createElement('div');
+      d.className = 'pdot' + (i < G.quizzesInBlock ? ' done' : (i === G.quizzesInBlock ? ' cur' : ''));
+      wrap.appendChild(d);
+    }
+  }
+
+  function loadQuestion() {
+    curQ = nextQuestion();
+    curShuffle = shuffledOptions(curQ);
+    answered = false;
+    $('qCat').textContent = curQ.cat;
+    $('qDiff').textContent = DIFF_LABEL[G.mode];
+    $('qReward').textContent = '+' + questionReward() + ' coins on correct';
+    renderDots();
+
+    // Passage
+    const pw = $('qPassageWrap');
+    pw.innerHTML = '';
+    if (curQ.passage) {
+      const p = document.createElement('div');
+      p.className = 'passage';
+      p.textContent = curQ.passage;
+      pw.appendChild(p);
+    }
+    $('qText').innerHTML = curQ.q;
+
+    // Options
+    const oc = $('qOptions'); oc.innerHTML = '';
+    const keys = ['1','2','3','4'];
+    curShuffle.opts.forEach((text, i) => {
+      const b = document.createElement('button');
+      b.className = 'opt';
+      b.innerHTML = '<span class="key">' + keys[i] + '</span><span>' + text + '</span>';
+      b.addEventListener('click', () => chooseAnswer(i));
+      oc.appendChild(b);
+    });
+
+    const fb = $('qFeedback'); fb.className = 'feedback'; fb.innerHTML = '';
+    $('nextBtn').style.display = 'none';
+    refreshHud();
+  }
+
+  function chooseAnswer(i) {
+    if (answered) return;
+    answered = true;
+    const buttons = Array.from($('qOptions').children);
+    buttons.forEach(b => b.disabled = true);
+    const correct = curShuffle.answer;
+    const isRight = i === correct;
+
+    buttons[correct].classList.add('correct');
+    if (!isRight) buttons[i].classList.add('wrong');
+
+    const fb = $('qFeedback');
+    if (isRight) {
+      G.streak++; G.bestStreak = Math.max(G.bestStreak, G.streak); G.correct++;
+      const reward = questionReward();
+      addCoins(reward);
+      sfx.right();
+      fb.className = 'feedback good on';
+      fb.innerHTML = '<b>Correct! +' + reward + ' coins.</b>' +
+        (G.streak >= 2 ? ' 🔥 Streak ×' + G.streak : '') +
+        '<div class="why">' + curQ.why + '</div>';
+    } else {
+      G.streak = 0;
+      sfx.wrong();
+      fb.className = 'feedback bad on';
+      fb.innerHTML = '<b>Not quite.</b> The answer was <b>' + '1234'[correct] + '</b>.' +
+        '<div class="why">' + curQ.why + '</div>';
+    }
+    G.totalQuizzes++;
+    G.quizzesInBlock++;
+    refreshHud();
+
+    const nb = $('nextBtn');
+    nb.style.display = '';
+    nb.textContent = (G.quizzesInBlock >= QUIZZES_PER_BREAK) ? '🎉 Break Time ▶' : 'Next ▶';
+    nb.focus();
+  }
+
+  function goNext() {
+    if (G.quizzesInBlock >= QUIZZES_PER_BREAK) {
+      G.quizzesInBlock = 0;
+      openBreak();
+    } else {
+      loadQuestion();
+    }
+  }
+
+  $('nextBtn').addEventListener('click', goNext);
+
+  // Keyboard for quiz
+  document.addEventListener('keydown', (e) => {
+    if (G.curScreen === 'quiz') {
+      if (!answered && ['1','2','3','4'].includes(e.key)) {
+        const idx = parseInt(e.key, 10) - 1;
+        if (idx < curShuffle.opts.length) chooseAnswer(idx);
+      } else if (answered && (e.key === 'Enter' || e.key === ' ')) {
+        e.preventDefault(); goNext();
+      }
+    }
+  });
+
+  // =============================================================
+  // MINIGAME CATALOG — 100 entries over a set of real engines
+  // =============================================================
+  // Real engines (each genuinely playable). Catalog entries are
+  // themed variants that tune each engine's parameters.
+  const ENGINES = ['reaction','bubbles','catch','whack','memory','dodge','aim','simon','breakout','runner'];
+  const ENGINE_LABEL = {
+    reaction:'Reaction', bubbles:'Pop', catch:'Catch', whack:'Whack', memory:'Memory',
+    dodge:'Dodge', aim:'Aim', simon:'Sequence', breakout:'Brick', runner:'Runner'
+  };
+  const ENGINE_HOWTO = {
+    reaction:'Tap the glowing targets the instant they appear. Fast taps score more.',
+    bubbles:'Pop rising bubbles before they escape the top. Bigger = worth less.',
+    catch:'Move the basket to catch good drops and dodge the junk.',
+    whack:'Bop the critters as they pop up. Don\'t hit the bombs.',
+    memory:'Flip cards to find matching pairs. Fewer flips = higher score.',
+    dodge:'Steer your ship to dodge the falling asteroids as long as you can.',
+    aim:'Click each target before it shrinks away. Precision pays.',
+    simon:'Watch the color pattern, then repeat it. It grows each round.',
+    breakout:'Bounce the ball with your paddle to smash every brick.',
+    runner:'Jump the obstacles. Tap / Space to jump, hold for higher.'
+  };
+  const ADJ = ['Neon','Cosmic','Turbo','Mega','Pixel','Astro','Laser','Quantum','Retro','Hyper','Galaxy','Volcano',
+    'Frost','Thunder','Shadow','Golden','Crystal','Jungle','Cyber','Diamond','Rocket','Ninja','Aqua','Solar',
+    'Midnight','Rainbow','Iron','Storm','Blaze','Chrome'];
+  const NOUN = {
+    reaction:['Reflex','Spark','Strike','Tapper','Pulse'],
+    bubbles:['Bubbles','Poppers','Fizz','Orbs','Blast'],
+    catch:['Basket','Harvest','Rain','Scramble','Grab'],
+    whack:['Whack','Bop','Moles','Smash','Bonk'],
+    memory:['Match','Recall','Pairs','Memory','Flip'],
+    dodge:['Dodge','Drift','Runner','Escape','Weave'],
+    aim:['Aim','Sniper','Bullseye','Targets','Focus'],
+    simon:['Sequence','Echo','Pattern','Simon','Signal'],
+    breakout:['Breaker','Bricks','Smasher','Rebound','Wall'],
+    runner:['Runner','Dash','Sprint','Hopper','Rush']
+  };
+  const EMOJI = {
+    reaction:['⚡','💥','🎯'], bubbles:['🫧','🎈','🔵'], catch:['🧺','🍎','🌟'], whack:['🔨','🐹','💢'],
+    memory:['🃏','🧠','🔀'], dodge:['🚀','☄️','🛸'], aim:['🎯','🔫','🟢'], simon:['🎵','🟩','🔔'],
+    breakout:['🧱','🏓','⚪'], runner:['🏃','🌵','⬆️']
+  };
+
+  const CATALOG = [];
+  (function buildCatalog() {
+    let id = 0;
+    // Evenly distribute 100 games across engines with rising prices.
+    for (let i = 0; i < 100; i++) {
+      const engine = ENGINES[i % ENGINES.length];
+      const tier = Math.floor(i / ENGINES.length); // 0..9
+      const adj = ADJ[(i * 7 + tier) % ADJ.length];
+      const noun = pick(NOUN[engine]);
+      const name = adj + ' ' + noun;
+      // Price grows: cheap early, legendary late.
+      const price = Math.round(40 + i * i * 1.6 + i * 22);
+      CATALOG.push({
+        id: 'g' + id++,
+        name, engine,
+        emoji: EMOJI[engine][i % EMOJI[engine].length],
+        price,
+        tier
+      });
+    }
+  })();
+
+  // =============================================================
+  // SHOP
+  // =============================================================
+  let shopFilter = 'all';
+  function buildFilters() {
+    const bar = $('shopFilters'); bar.innerHTML = '';
+    const filters = [['all','All'], ['affordable','Affordable'], ['owned','Owned']]
+      .concat(ENGINES.map(e => [e, ENGINE_LABEL[e]]));
+    filters.forEach(([key, label]) => {
+      const c = document.createElement('button');
+      c.className = 'filterchip' + (key === shopFilter ? ' sel' : '');
+      c.textContent = label;
+      c.addEventListener('click', () => { shopFilter = key; buildFilters(); renderShop(); });
+      bar.appendChild(c);
+    });
+  }
+  function renderShop() {
+    const grid = $('shopGrid'); grid.innerHTML = '';
+    const items = CATALOG.filter(it => {
+      if (shopFilter === 'all') return true;
+      if (shopFilter === 'owned') return G.owned[it.id];
+      if (shopFilter === 'affordable') return !G.owned[it.id] && it.price <= G.coins;
+      return it.engine === shopFilter;
+    });
+    if (items.length === 0) {
+      grid.innerHTML = '<p class="lead">Nothing here yet — earn more coins or change the filter.</p>';
+      return;
+    }
+    items.forEach(it => {
+      const owned = !!G.owned[it.id];
+      const card = document.createElement('div');
+      card.className = 'shopcard' + (owned ? ' owned' : '');
+      card.innerHTML =
+        '<div class="emoji">' + it.emoji + '</div>' +
+        '<div class="nm">' + it.name + '</div>' +
+        '<div class="ty">' + ENGINE_LABEL[it.engine] + ' game</div>' +
+        (owned
+          ? '<div class="ownedtag">✓ Owned</div><button class="btn green buy">▶ Play</button>'
+          : '<div class="price">' + it.price + ' 🪙</div><button class="btn buy">Buy</button>');
+      const btn = card.querySelector('.buy');
+      if (owned) {
+        btn.addEventListener('click', () => startMinigame(it, 'shop'));
+      } else {
+        btn.disabled = it.price > G.coins;
+        btn.addEventListener('click', () => buyItem(it));
+      }
+      grid.appendChild(card);
+    });
+  }
+  function buyItem(it) {
+    if (G.owned[it.id]) return;
+    if (G.coins < it.price) { toast('Not enough coins — answer more questions!'); return; }
+    G.coins -= it.price;
+    G.owned[it.id] = true;
+    sfx.buy();
+    toast('Unlocked ' + it.name + '! Play it on your next break.');
+    refreshHud();
+    buildFilters();
+    renderShop();
+  }
+
+  // =============================================================
+  // BREAK SCREEN
+  // =============================================================
+  function openBreak() {
+    setScreen('break');
+    sfx.win();
+    const ownedItems = CATALOG.filter(it => G.owned[it.id]);
+    const grid = $('ownedGrid');
+    const empty = $('ownedEmpty');
+    grid.innerHTML = '';
+    if (ownedItems.length === 0) {
+      empty.style.display = '';
+      grid.style.display = 'none';
+    } else {
+      empty.style.display = 'none';
+      grid.style.display = '';
+      ownedItems.forEach(it => {
+        const t = document.createElement('div');
+        t.className = 'mgtile';
+        t.innerHTML = '<div class="emoji">' + it.emoji + '</div><div class="nm">' + it.name +
+          '</div><div class="ty">' + ENGINE_LABEL[it.engine] + '</div>';
+        t.addEventListener('click', () => startMinigame(it, 'break'));
+        grid.appendChild(t);
+      });
+    }
+    $('breakMsg').textContent = 'You cleared ' + QUIZZES_PER_BREAK + ' quizzes! Total answered: ' +
+      G.totalQuizzes + '. Pick a mini-game for bonus coins, or skip back to reading.';
+  }
+  $('skipBreakBtn').addEventListener('click', () => { setScreen('quiz'); loadQuestion(); });
+  $('breakShopBtn').addEventListener('click', () => openShop('break'));
+
+  // =============================================================
+  // MINIGAME RUNNER
+  // =============================================================
+  const cv = $('mgCanvas');
+  const ctx = cv.getContext('2d');
+  const CW = cv.width, CH = cv.height;
+  let mg = null;              // active minigame instance
+  let mgRAF = null;
+  let mgReturn = 'break';     // where to go when done
+  let mgLast = 0;
+  let mgPointer = { x: 0, y: 0, down: false };
+
+  function canvasPos(e) {
+    const r = cv.getBoundingClientRect();
+    const cx = (e.touches ? e.touches[0].clientX : e.clientX) - r.left;
+    const cy = (e.touches ? e.touches[0].clientY : e.clientY) - r.top;
+    return { x: cx * (CW / r.width), y: cy * (CH / r.height) };
+  }
+  cv.addEventListener('mousedown', (e) => { if (!mg) return; const p = canvasPos(e); mgPointer = { x:p.x, y:p.y, down:true }; mg.pointer && mg.pointer('down', p.x, p.y); });
+  cv.addEventListener('mousemove', (e) => { if (!mg) return; const p = canvasPos(e); mgPointer.x = p.x; mgPointer.y = p.y; mg.pointer && mg.pointer('move', p.x, p.y); });
+  window.addEventListener('mouseup', (e) => { if (!mg) return; mgPointer.down = false; mg.pointer && mg.pointer('up', mgPointer.x, mgPointer.y); });
+  cv.addEventListener('touchstart', (e) => { if (!mg) return; e.preventDefault(); const p = canvasPos(e); mgPointer = { x:p.x, y:p.y, down:true }; mg.pointer && mg.pointer('down', p.x, p.y); }, { passive:false });
+  cv.addEventListener('touchmove', (e) => { if (!mg) return; e.preventDefault(); const p = canvasPos(e); mgPointer.x = p.x; mgPointer.y = p.y; mg.pointer && mg.pointer('move', p.x, p.y); }, { passive:false });
+  cv.addEventListener('touchend', (e) => { if (!mg) return; e.preventDefault(); mgPointer.down = false; mg.pointer && mg.pointer('up', mgPointer.x, mgPointer.y); }, { passive:false });
+  document.addEventListener('keydown', (e) => { if (mg && mg.key) mg.key(e); });
+
+  function startMinigame(item, from) {
+    mgReturn = from;
+    setScreen('play');
+    $('mgTitle').textContent = item.emoji + ' ' + item.name;
+    $('mgInstr').textContent = ENGINE_HOWTO[item.engine];
+    mg = makeEngine(item.engine, item.tier);
+    mg.score = 0;
+    mg.time = mg.duration;
+    mg.over = false;
+    mgLast = performance.now();
+    cancelAnimationFrame(mgRAF);
+    mgLoop(mgLast);
+  }
+  function mgLoop(now) {
+    const dt = Math.min(0.05, (now - mgLast) / 1000);
+    mgLast = now;
+    if (!mg) return;
+    if (!mg.over) {
+      mg.time -= dt;
+      if (mg.time <= 0) { mg.time = 0; endMinigame(); return; }
+      mg.update(dt);
+    }
+    mg.draw(ctx);
+    // HUD
+    $('mgTimer').textContent = '⏱ ' + Math.ceil(mg.time);
+    $('mgScore').textContent = '★ ' + Math.floor(mg.score);
+    if (!mg.over) mgRAF = requestAnimationFrame(mgLoop);
+  }
+  function endMinigame() {
+    if (!mg) return;
+    mg.over = true;
+    const earned = Math.max(0, Math.round(mg.score));
+    // Payout: bonus coins for skill. Break play pays; shop practice pays half.
+    const payout = mgReturn === 'break' ? earned : Math.round(earned * 0.5);
+    addCoins(payout);
+    sfx.win();
+    // Final frame overlay
+    mg.draw(ctx);
+    ctx.fillStyle = 'rgba(20,16,52,0.82)';
+    ctx.fillRect(0, 0, CW, CH);
+    ctx.fillStyle = '#ffd54f';
+    ctx.textAlign = 'center';
+    ctx.font = 'bold 34px "Comic Sans MS", sans-serif';
+    ctx.fillText('Time!', CW/2, CH/2 - 40);
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 24px "Comic Sans MS", sans-serif';
+    ctx.fillText('Score: ' + Math.floor(mg.score), CW/2, CH/2);
+    ctx.fillStyle = '#66bb6a';
+    ctx.fillText('+' + payout + ' coins', CW/2, CH/2 + 36);
+    ctx.fillStyle = '#b0a8d8';
+    ctx.font = '16px "Comic Sans MS", sans-serif';
+    ctx.fillText(mgReturn === 'break' ? 'Nice break! Tap "Back to reading" below.' : 'Practice pays half. Real coins on breaks!', CW/2, CH/2 + 70);
+    // Update quit button to a friendlier label
+    $('quitMgBtn').textContent = mgReturn === 'break' ? '📖 Back to reading' : '◀ Back to shop';
+  }
+  function leaveMinigame() {
+    cancelAnimationFrame(mgRAF);
+    const wasOver = mg ? mg.over : true;
+    // If they quit early (not over), still grant partial for what they scored
+    if (mg && !mg.over) {
+      const earned = Math.max(0, Math.round(mg.score));
+      const payout = mgReturn === 'break' ? earned : Math.round(earned * 0.5);
+      if (payout > 0) addCoins(payout);
+    }
+    mg = null;
+    $('quitMgBtn').textContent = 'Quit mini-game';
+    if (mgReturn === 'break') { setScreen('quiz'); loadQuestion(); }
+    else { openShop('start'); }
+  }
+  $('quitMgBtn').addEventListener('click', leaveMinigame);
+
+  // -------------------------------------------------------------
+  // Engine factory. tier (0..9) scales difficulty/reward.
+  // Every engine object exposes: duration, update(dt), draw(ctx),
+  // optional pointer(type,x,y), optional key(e). Uses mg.score/time.
+  // -------------------------------------------------------------
+  function makeEngine(type, tier) {
+    const T = tier || 0;
+    const speedK = 1 + T * 0.12;      // faster at higher tiers
+    switch (type) {
+      case 'reaction': return engineReaction(speedK);
+      case 'bubbles':  return engineBubbles(speedK);
+      case 'catch':    return engineCatch(speedK);
+      case 'whack':    return engineWhack(speedK);
+      case 'memory':   return engineMemory(T);
+      case 'dodge':    return engineDodge(speedK);
+      case 'aim':      return engineAim(speedK);
+      case 'simon':    return engineSimon();
+      case 'breakout': return engineBreakout(speedK);
+      case 'runner':   return engineRunner(speedK);
+      default:         return engineReaction(speedK);
+    }
+  }
+
+  function bg(ctx, c1, c2) {
+    const g = ctx.createLinearGradient(0, 0, 0, CH);
+    g.addColorStop(0, c1); g.addColorStop(1, c2);
+    ctx.fillStyle = g; ctx.fillRect(0, 0, CW, CH);
+  }
+
+  // ---- Reaction: tap glowing targets ----
+  function engineReaction(k) {
+    let target = null, life = 0, maxLife = 1.1 / k, sinceSpawn = 0;
+    return {
+      duration: 25,
+      update(dt) {
+        if (target) { life -= dt; if (life <= 0) { target = null; sinceSpawn = 0; } }
+        else { sinceSpawn += dt; if (sinceSpawn > rand(0.25, 0.7)) spawn(); }
+      },
+      pointer(t, x, y) {
+        if (t !== 'down' || !target) return;
+        const d = Math.hypot(x - target.x, y - target.y);
+        if (d < target.r) {
+          const speedBonus = Math.round((life / maxLife) * 10);
+          this.score += 5 + speedBonus;
+          sfx.pop();
+          target = null; sinceSpawn = 0;
+        }
+      },
+      draw(ctx) {
+        bg(ctx, '#1b1147', '#2a1f5e');
+        if (target) {
+          const pulse = 0.6 + 0.4 * Math.sin(performance.now()/90);
+          ctx.fillStyle = 'rgba(100,255,218,' + (0.3 * pulse) + ')';
+          ctx.beginPath(); ctx.arc(target.x, target.y, target.r * 1.6, 0, 7); ctx.fill();
+          ctx.fillStyle = '#64ffda';
+          ctx.beginPath(); ctx.arc(target.x, target.y, target.r, 0, 7); ctx.fill();
+          ctx.fillStyle = '#134e42';
+          ctx.beginPath(); ctx.arc(target.x, target.y, target.r * 0.45, 0, 7); ctx.fill();
+        }
+      }
+    };
+    function spawn() {
+      target = { x: rand(50, CW-50), y: rand(50, CH-50), r: rand(26, 40) };
+      life = maxLife;
+    }
+  }
+
+  // ---- Bubbles: pop rising bubbles ----
+  function engineBubbles(k) {
+    const bubbles = []; let t = 0;
+    return {
+      duration: 28,
+      update(dt) {
+        t += dt;
+        if (t > 0.5 / k) { t = 0; bubbles.push({ x: rand(30, CW-30), y: CH+30, r: rand(18, 42), v: rand(50, 90)*k }); }
+        for (const b of bubbles) b.y -= b.v * dt;
+        for (let i = bubbles.length-1; i>=0; i--) if (bubbles[i].y < -40) bubbles.splice(i,1);
+      },
+      pointer(type, x, y) {
+        if (type !== 'down') return;
+        for (let i = bubbles.length-1; i>=0; i--) {
+          const b = bubbles[i];
+          if (Math.hypot(x-b.x, y-b.y) < b.r) {
+            this.score += Math.max(2, Math.round(60 / b.r));
+            sfx.pop(); bubbles.splice(i,1); break;
+          }
+        }
+      },
+      draw(ctx) {
+        bg(ctx, '#0d2f4a', '#12507a');
+        for (const b of bubbles) {
+          ctx.fillStyle = 'rgba(180,230,255,0.25)';
+          ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, 7); ctx.fill();
+          ctx.strokeStyle = 'rgba(255,255,255,0.7)'; ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, 7); ctx.stroke();
+          ctx.fillStyle = 'rgba(255,255,255,0.6)';
+          ctx.beginPath(); ctx.arc(b.x - b.r*0.3, b.y - b.r*0.3, b.r*0.18, 0, 7); ctx.fill();
+        }
+      }
+    };
+  }
+
+  // ---- Catch: basket catches good drops ----
+  function engineCatch(k) {
+    let bx = CW/2; const bw = 90; const drops = []; let t = 0;
+    return {
+      duration: 30,
+      update(dt) {
+        if (mgPointer.down || mgPointer.x) bx = clamp(mgPointer.x, bw/2, CW - bw/2);
+        t += dt;
+        if (t > 0.55 / k) { t = 0;
+          const good = Math.random() > 0.32;
+          drops.push({ x: rand(20, CW-20), y: -20, v: rand(120, 200)*k, good });
+        }
+        for (const d of drops) d.y += d.v * dt;
+        for (let i = drops.length-1; i>=0; i--) {
+          const d = drops[i];
+          if (d.y > CH - 46 && d.y < CH - 10 && Math.abs(d.x - bx) < bw/2 + 12) {
+            if (d.good) { this.score += 5; sfx.coin(); }
+            else { this.score = Math.max(0, this.score - 4); sfx.bad(); }
+            drops.splice(i,1);
+          } else if (d.y > CH + 30) drops.splice(i,1);
+        }
+      },
+      pointer(type, x) { bx = clamp(x, bw/2, CW - bw/2); },
+      key(e) {
+        if (e.key === 'ArrowLeft') bx = clamp(bx - 40, bw/2, CW-bw/2);
+        if (e.key === 'ArrowRight') bx = clamp(bx + 40, bw/2, CW-bw/2);
+      },
+      draw(ctx) {
+        bg(ctx, '#241a4d', '#3a2a6e');
+        for (const d of drops) {
+          ctx.font = '28px serif'; ctx.textAlign = 'center';
+          ctx.fillText(d.good ? '🍎' : '💣', d.x, d.y);
+        }
+        // basket
+        ctx.fillStyle = '#ffa726';
+        ctx.beginPath();
+        ctx.moveTo(bx - bw/2, CH-40); ctx.lineTo(bx + bw/2, CH-40);
+        ctx.lineTo(bx + bw/2 - 12, CH-8); ctx.lineTo(bx - bw/2 + 12, CH-8);
+        ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = '#e65100'; ctx.lineWidth = 3; ctx.stroke();
+      }
+    };
+  }
+
+  // ---- Whack: bop critters, avoid bombs ----
+  function engineWhack(k) {
+    const cols = 3, rows = 3; const holes = [];
+    for (let r=0;r<rows;r++) for (let c=0;c<cols;c++)
+      holes.push({ x: 100 + c*(CW-200)/(cols-1), y: 120 + r*(CH-180)/(rows-1), up:0, bomb:false });
+    let t = 0;
+    return {
+      duration: 28,
+      update(dt) {
+        t += dt;
+        if (t > 0.6 / k) { t = 0;
+          const free = holes.filter(h => h.up <= 0);
+          if (free.length) { const h = pick(free); h.up = rand(0.6, 1.1); h.bomb = Math.random() < 0.22; }
+        }
+        for (const h of holes) if (h.up > 0) h.up -= dt;
+      },
+      pointer(type, x, y) {
+        if (type !== 'down') return;
+        for (const h of holes) {
+          if (h.up > 0 && Math.hypot(x-h.x, y-h.y) < 40) {
+            if (h.bomb) { this.score = Math.max(0, this.score - 5); sfx.bad(); }
+            else { this.score += 6; sfx.hit(); }
+            h.up = 0; break;
+          }
+        }
+      },
+      draw(ctx) {
+        bg(ctx, '#20351a', '#33532a');
+        for (const h of holes) {
+          ctx.fillStyle = '#1a2913'; ctx.beginPath(); ctx.ellipse(h.x, h.y+18, 42, 16, 0, 0, 7); ctx.fill();
+          if (h.up > 0) {
+            ctx.font = '40px serif'; ctx.textAlign = 'center';
+            ctx.fillText(h.bomb ? '💣' : '🐹', h.x, h.y+14);
+          }
+        }
+      }
+    };
+  }
+
+  // ---- Memory: match pairs ----
+  function engineMemory(T) {
+    const pairs = Math.min(8, 4 + Math.floor(T/2)); // 4..8 pairs
+    const symbols = ['🍎','⭐','🚀','🎈','🐸','🎸','⚽','🍕','👑','🎲','🦋','🍩'];
+    const deck = [];
+    const chosen = symbols.slice(0, pairs);
+    chosen.forEach(s => { deck.push(s); deck.push(s); });
+    for (let i=deck.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[deck[i],deck[j]]=[deck[j],deck[i]];}
+    const cols = pairs <= 6 ? 4 : (pairs*2 <= 12 ? 4 : 4);
+    const rows = Math.ceil(deck.length / 4);
+    const cards = deck.map((s, i) => {
+      const c = i % 4, r = Math.floor(i / 4);
+      const cw = 110, chh = 78, gx = (CW - 4*cw - 3*10)/2, gy = 30;
+      return { s, x: gx + c*(cw+10), y: gy + r*(chh+10), w: cw, h: chh, flipped:false, matched:false };
+    });
+    let first = null, lock = 0, flips = 0;
+    return {
+      duration: 45,
+      update(dt) {
+        if (lock > 0) { lock -= dt; if (lock <= 0) resolve(); }
+        if (cards.every(c => c.matched)) { this.score += 20; mg.over = true; setTimeout(endMinigame, 10); }
+      },
+      pointer(type, x, y) {
+        if (type !== 'down' || lock > 0) return;
+        for (const c of cards) {
+          if (!c.matched && !c.flipped && x>c.x && x<c.x+c.w && y>c.y && y<c.y+c.h) {
+            c.flipped = true; sfx.tick(); flips++;
+            if (!first) first = c;
+            else {
+              lock = 0.6;
+              if (first.s === c.s) { first._pending = c; }
+              else { first._miss = c; }
+            }
+            break;
+          }
+        }
+      },
+      draw(ctx) {
+        bg(ctx, '#2a1f5e', '#1b1147');
+        for (const c of cards) {
+          if (c.matched) { ctx.globalAlpha = 0.35; }
+          ctx.fillStyle = c.flipped || c.matched ? '#fff7dc' : '#7e57c2';
+          roundRect(ctx, c.x, c.y, c.w, c.h, 12); ctx.fill();
+          ctx.globalAlpha = 1;
+          if (c.flipped || c.matched) {
+            ctx.font = '40px serif'; ctx.textAlign = 'center'; ctx.fillStyle = '#000';
+            ctx.fillText(c.s, c.x + c.w/2, c.y + c.h/2 + 15);
+          } else {
+            ctx.fillStyle = '#b39ddb'; ctx.font = 'bold 28px serif'; ctx.textAlign='center';
+            ctx.fillText('?', c.x + c.w/2, c.y + c.h/2 + 10);
+          }
+        }
+        ctx.fillStyle = '#b0a8d8'; ctx.font = '14px sans-serif'; ctx.textAlign = 'left';
+        ctx.fillText('Flips: ' + flips, 10, CH - 12);
+      }
+    };
+    function resolve() {
+      if (first && first._pending) {
+        first.matched = true; first._pending.matched = true;
+        mg.score += 8; sfx.right();
+      } else if (first && first._miss) {
+        first.flipped = false; first._miss.flipped = false;
+      }
+      if (first) { delete first._pending; delete first._miss; }
+      first = null;
+    }
+  }
+
+  // ---- Dodge: avoid falling asteroids ----
+  function engineDodge(k) {
+    let px = CW/2; const pw = 34; const rocks = []; let t = 0; let alive = 0;
+    return {
+      duration: 35,
+      update(dt) {
+        if (mgPointer.x) px = clamp(mgPointer.x, pw, CW-pw);
+        alive += dt; this.score += dt * 6 * k;
+        t += dt;
+        if (t > 0.35 / k) { t = 0; rocks.push({ x: rand(20,CW-20), y:-20, r: rand(14,28), v: rand(150,240)*k }); }
+        for (const r of rocks) r.y += r.v * dt;
+        for (let i=rocks.length-1;i>=0;i--){
+          const r = rocks[i];
+          if (r.y > CH+30) rocks.splice(i,1);
+          else if (Math.hypot(r.x-px, r.y-(CH-40)) < r.r + pw*0.6) { sfx.bad(); mg.over = true; setTimeout(endMinigame,10); }
+        }
+      },
+      pointer(type, x) { px = clamp(x, pw, CW-pw); },
+      key(e) {
+        if (e.key==='ArrowLeft') px = clamp(px-36, pw, CW-pw);
+        if (e.key==='ArrowRight') px = clamp(px+36, pw, CW-pw);
+      },
+      draw(ctx) {
+        bg(ctx, '#05060f', '#141034');
+        for (const r of rocks) {
+          ctx.fillStyle = '#9e8a6a'; ctx.beginPath(); ctx.arc(r.x, r.y, r.r, 0, 7); ctx.fill();
+          ctx.fillStyle = '#6d5c42'; ctx.beginPath(); ctx.arc(r.x-r.r*0.3, r.y-r.r*0.2, r.r*0.3, 0,7); ctx.fill();
+        }
+        ctx.font = '30px serif'; ctx.textAlign='center'; ctx.fillText('🚀', px, CH-26);
+      }
+    };
+  }
+
+  // ---- Aim: click shrinking targets ----
+  function engineAim(k) {
+    const targets = []; let t = 0;
+    return {
+      duration: 26,
+      update(dt) {
+        t += dt;
+        if (t > 0.7 / k) { t = 0; targets.push({ x: rand(40,CW-40), y: rand(40,CH-40), r: 40, life: 1.4/k }); }
+        for (const tg of targets) { tg.life -= dt; tg.r = 12 + 28 * clamp(tg.life/(1.4/k),0,1); }
+        for (let i=targets.length-1;i>=0;i--) if (targets[i].life <= 0) targets.splice(i,1);
+      },
+      pointer(type, x, y) {
+        if (type !== 'down') return;
+        for (let i=targets.length-1;i>=0;i--){
+          const tg = targets[i];
+          if (Math.hypot(x-tg.x, y-tg.y) < tg.r) {
+            this.score += 5 + Math.round((1 - tg.r/40) * 8);
+            sfx.pop(); targets.splice(i,1); break;
+          }
+        }
+      },
+      draw(ctx) {
+        bg(ctx, '#3a1030', '#5e1550');
+        for (const tg of targets) {
+          ctx.strokeStyle = '#ff6ec7'; ctx.lineWidth = 4;
+          ctx.beginPath(); ctx.arc(tg.x, tg.y, tg.r, 0, 7); ctx.stroke();
+          ctx.fillStyle = 'rgba(255,110,199,0.35)';
+          ctx.beginPath(); ctx.arc(tg.x, tg.y, tg.r*0.6, 0, 7); ctx.fill();
+          ctx.fillStyle = '#fff';
+          ctx.beginPath(); ctx.arc(tg.x, tg.y, 4, 0, 7); ctx.fill();
+        }
+      }
+    };
+  }
+
+  // ---- Simon: repeat growing color sequence ----
+  function engineSimon() {
+    const pads = [
+      { x: CW/2-110, y: CH/2-110, c:'#ef5350', lit:0 },
+      { x: CW/2+10,  y: CH/2-110, c:'#66bb6a', lit:0 },
+      { x: CW/2-110, y: CH/2+10,  c:'#42a5f5', lit:0 },
+      { x: CW/2+10,  y: CH/2+10,  c:'#ffd54f', lit:0 }
+    ];
+    const size = 100;
+    let seq = [], playerIdx = 0, phase = 'show', showIdx = 0, showT = 0, round = 0, msg = 'Watch!';
+    function grow() { seq.push(randInt(0,3)); round++; phase='show'; showIdx=0; showT=0; playerIdx=0; msg='Watch!'; }
+    grow();
+    return {
+      duration: 40,
+      update(dt) {
+        if (phase === 'show') {
+          showT += dt;
+          if (showT > 0.55) {
+            showT = 0;
+            if (showIdx < seq.length) { pads[seq[showIdx]].lit = 0.4; sfx.tick(); showIdx++; }
+            else { phase = 'input'; msg = 'Your turn!'; }
+          }
+        }
+        for (const p of pads) if (p.lit > 0) p.lit -= dt;
+      },
+      pointer(type, x, y) {
+        if (type !== 'down' || phase !== 'input') return;
+        for (let i=0;i<4;i++){
+          const p = pads[i];
+          if (x>p.x && x<p.x+size && y>p.y && y<p.y+size) {
+            p.lit = 0.4;
+            if (i === seq[playerIdx]) {
+              sfx.pop(); playerIdx++;
+              if (playerIdx >= seq.length) { this.score += seq.length * 4; msg='Nice!'; phase='wait'; setTimeout(()=>{ if(mg&&!mg.over) grow(); }, 500); }
+            } else { sfx.bad(); this.score = Math.max(0, this.score-2); msg='Oops! Restart pattern'; playerIdx = 0; phase='show'; showIdx=0; showT=0; }
+            break;
+          }
+        }
+      },
+      draw(ctx) {
+        bg(ctx, '#141034', '#241a4d');
+        for (const p of pads) {
+          ctx.globalAlpha = 0.5 + p.lit;
+          ctx.fillStyle = p.c; roundRect(ctx, p.x, p.y, size, size, 16); ctx.fill();
+          ctx.globalAlpha = 1;
+        }
+        ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.font = 'bold 20px "Comic Sans MS", sans-serif';
+        ctx.fillText(msg + '  (round ' + round + ')', CW/2, 34);
+      }
+    };
+  }
+
+  // ---- Breakout: paddle + ball + bricks ----
+  function engineBreakout(k) {
+    let px = CW/2; const pw = 100, ph = 14;
+    const ball = { x: CW/2, y: CH-60, vx: rand(-120,120), vy: -200*k, r: 8 };
+    const bricks = []; const cols = 8, rows = 4;
+    const bw = (CW - 40) / cols, bh = 22;
+    for (let r=0;r<rows;r++) for (let c=0;c<cols;c++)
+      bricks.push({ x: 20 + c*bw, y: 40 + r*(bh+6), w: bw-6, h: bh, alive:true, c: ['#ef5350','#ffa726','#66bb6a','#42a5f5'][r] });
+    return {
+      duration: 45,
+      update(dt) {
+        if (mgPointer.x) px = clamp(mgPointer.x - pw/2, 0, CW-pw);
+        ball.x += ball.vx * dt; ball.y += ball.vy * dt;
+        if (ball.x < ball.r || ball.x > CW-ball.r) ball.vx *= -1;
+        if (ball.y < ball.r) ball.vy *= -1;
+        // paddle
+        if (ball.y > CH-30-ph && ball.y < CH-20 && ball.x > px && ball.x < px+pw && ball.vy > 0) {
+          ball.vy *= -1; ball.vx += (ball.x - (px+pw/2)) * 2.5; sfx.hit();
+        }
+        if (ball.y > CH + 20) { // lost ball, respawn with small penalty
+          ball.x = CW/2; ball.y = CH-60; ball.vx = rand(-120,120); ball.vy = -200*k;
+          this.score = Math.max(0, this.score - 3);
+        }
+        for (const b of bricks) {
+          if (!b.alive) continue;
+          if (ball.x > b.x && ball.x < b.x+b.w && ball.y > b.y && ball.y < b.y+b.h) {
+            b.alive = false; ball.vy *= -1; this.score += 4; sfx.pop(); break;
+          }
+        }
+        if (bricks.every(b => !b.alive)) { this.score += 25; mg.over = true; setTimeout(endMinigame, 10); }
+      },
+      pointer(type, x) { px = clamp(x - pw/2, 0, CW-pw); },
+      key(e) {
+        if (e.key==='ArrowLeft') px = clamp(px-40, 0, CW-pw);
+        if (e.key==='ArrowRight') px = clamp(px+40, 0, CW-pw);
+      },
+      draw(ctx) {
+        bg(ctx, '#101a30', '#1c2c50');
+        for (const b of bricks) if (b.alive) { ctx.fillStyle = b.c; roundRect(ctx, b.x, b.y, b.w, b.h, 5); ctx.fill(); }
+        ctx.fillStyle = '#64ffda'; roundRect(ctx, px, CH-24, pw, ph, 7); ctx.fill();
+        ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(ball.x, ball.y, ball.r, 0, 7); ctx.fill();
+      }
+    };
+  }
+
+  // ---- Runner: jump obstacles ----
+  function engineRunner(k) {
+    const groundY = CH - 60;
+    const player = { x: 80, y: groundY, vy: 0, w: 30, h: 40, onGround: true };
+    const obstacles = []; let t = 0; let held = false; const GRAV = 1500;
+    return {
+      duration: 35,
+      update(dt) {
+        this.score += dt * 8 * k;
+        player.vy += GRAV * dt;
+        if (held && player.onGround) { player.vy = -520; player.onGround = false; }
+        player.y += player.vy * dt;
+        if (player.y >= groundY) { player.y = groundY; player.vy = 0; player.onGround = true; }
+        t += dt;
+        if (t > rand(0.9, 1.5) / k) { t = 0; obstacles.push({ x: CW+20, w: rand(20,34), h: rand(30,52) }); }
+        for (const o of obstacles) o.x -= 260 * k * dt;
+        for (let i=obstacles.length-1;i>=0;i--){
+          const o = obstacles[i];
+          if (o.x < -40) { obstacles.splice(i,1); this.score += 3; continue; }
+          if (player.x + player.w > o.x && player.x < o.x + o.w && player.y > groundY - o.h) {
+            sfx.bad(); mg.over = true; setTimeout(endMinigame, 10);
+          }
+        }
+      },
+      pointer(type) { if (type === 'down') { held = true; if (player.onGround) { player.vy = -520; player.onGround = false; } } if (type==='up') held = false; },
+      key(e) { if (e.key === ' ' || e.key === 'ArrowUp') { if (player.onGround) { player.vy = -520; player.onGround = false; } } },
+      draw(ctx) {
+        bg(ctx, '#2a1f5e', '#4a2c6e');
+        ctx.fillStyle = '#3a2a5e'; ctx.fillRect(0, groundY+4, CW, CH-groundY);
+        ctx.strokeStyle = '#66bb6a'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(0, groundY+4); ctx.lineTo(CW, groundY+4); ctx.stroke();
+        ctx.font = '30px serif'; ctx.textAlign='center';
+        ctx.fillText('🏃', player.x + player.w/2, player.y);
+        for (const o of obstacles) { ctx.font = (o.h) + 'px serif'; ctx.fillText('🌵', o.x + o.w/2, groundY); }
+      }
+    };
+  }
+
+  function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x+r, y);
+    ctx.arcTo(x+w, y, x+w, y+h, r);
+    ctx.arcTo(x+w, y+h, x, y+h, r);
+    ctx.arcTo(x, y+h, x, y, r);
+    ctx.arcTo(x, y, x+w, y, r);
+    ctx.closePath();
+  }
+
+  // =============================================================
+  // SHOP open/close wiring
+  // =============================================================
+  let shopReturn = 'start';
+  function openShop(from) {
+    shopReturn = from || 'quiz';
+    buildFilters();
+    renderShop();
+    setScreen('shop');
+  }
+  $('shopBtn').addEventListener('click', () => openShop(G.curScreen === 'start' ? 'start' : 'quiz'));
+  $('startShopBtn').addEventListener('click', () => openShop('start'));
+  $('shopBackBtn').addEventListener('click', () => {
+    if (shopReturn === 'start') setScreen('start');
+    else if (shopReturn === 'break') openBreak();
+    else if (shopReturn === 'quiz' && curQ) setScreen('quiz');
+    else setScreen('start');
+  });
+
+  // =============================================================
+  // START wiring
+  // =============================================================
+  document.querySelectorAll('#modeChips .chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      document.querySelectorAll('#modeChips .chip').forEach(c => c.classList.remove('sel'));
+      chip.classList.add('sel');
+      G.mode = chip.dataset.mode;
+    });
+  });
+  $('startBtn').addEventListener('click', () => {
+    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+    G.quizzesInBlock = 0;
+    setScreen('quiz');
+    loadQuestion();
+  });
+
+  refreshHud();
+})();
+</script>
+</body>
+</html>
