@@ -480,58 +480,67 @@
   // A cute cartoon seal wearing round nerd glasses. `cap` (grad cap)
   // is drawn on its head when the "scholar" action is picked.
   function sealSVG(cap) {
-    // A cute harp-seal pup sitting up and facing us: plump pale body, a rear-flipper
-    // fan at the bottom, two front flippers, and big glossy black eyes (the iconic
-    // baby-seal look) framed by little nerd glasses.
-    return '<svg class="cel-seal" viewBox="0 0 220 224" xmlns="http://www.w3.org/2000/svg">' +
-      // rear-flipper fan at the base (drawn behind the body)
-      '<path d="M104 190 C 82 190, 58 202, 64 218 C 80 224, 100 216, 108 200 Z" fill="#c7ccd6"/>' +
-      '<path d="M116 190 C 138 190, 162 202, 156 218 C 140 224, 120 216, 112 200 Z" fill="#c7ccd6"/>' +
-      '<g stroke="#aeb4c1" stroke-width="1.6" fill="none" stroke-linecap="round">' +
-        '<line x1="84" y1="200" x2="80" y2="214"/><line x1="94" y1="199" x2="93" y2="214"/>' +
-        '<line x1="136" y1="200" x2="140" y2="214"/><line x1="126" y1="199" x2="127" y2="214"/>' +
+    // A cute harp-seal pup facing us. Distinct round HEAD over a wider BODY with a
+    // gentle neck pinch (so the silhouette reads as an animal, not one smooth blob),
+    // flippers that poke out past the body edge, big glossy black eyes, nerd glasses.
+    return '<svg class="cel-seal" viewBox="0 0 220 234" xmlns="http://www.w3.org/2000/svg">' +
+      // rear flippers splaying out past the body at the base
+      '<path d="M104 196 C 82 198, 58 210, 66 226 C 84 232, 104 224, 110 206 Z" fill="#bcc6d6"/>' +
+      '<path d="M116 196 C 138 198, 162 210, 154 226 C 136 232, 116 224, 110 206 Z" fill="#bcc6d6"/>' +
+      '<g stroke="#9aa6ba" stroke-width="1.6" fill="none" stroke-linecap="round">' +
+        '<line x1="84" y1="206" x2="80" y2="222"/><line x1="95" y1="205" x2="94" y2="222"/>' +
+        '<line x1="136" y1="206" x2="140" y2="222"/><line x1="125" y1="205" x2="126" y2="222"/>' +
       '</g>' +
-      // plump pale pup body (wide at the bottom)
-      '<path d="M110 42 C 62 42, 46 96, 50 142 C 54 190, 80 210, 110 210 C 140 210, 166 190, 170 142 C 174 96, 158 42, 110 42 Z" fill="#eef1f6" stroke="#d9dee7" stroke-width="2.5"/>' +
+      // one continuous head+body outline with a neck pinch (round head, wide body)
+      '<path d="M110 30 ' +
+        'C 144 30, 158 56, 156 84 ' +          // right of head down to cheek
+        'C 155 104, 148 112, 152 124 ' +       // neck pinch in, then shoulder out
+        'C 162 142, 172 172, 158 200 ' +       // body right side
+        'C 148 214, 128 218, 110 218 ' +       // to bottom center
+        'C 92 218, 72 214, 62 200 ' +          // bottom left
+        'C 48 172, 58 142, 68 124 ' +          // body left side up
+        'C 72 112, 65 104, 64 84 ' +           // shoulder to neck pinch
+        'C 62 56, 76 30, 110 30 Z" ' +         // left of head back to top
+        'fill="#d7dfeb" stroke="#a3aec2" stroke-width="3"/>' +
       // soft belly highlight
-      '<ellipse cx="110" cy="150" rx="42" ry="52" fill="#f9fbfe"/>' +
-      // front flippers resting on the belly
-      '<path d="M84 128 C 70 138, 66 166, 76 190 C 88 188, 95 160, 96 132 Z" fill="#e2e7f0" stroke="#d3d9e3" stroke-width="2"/>' +
-      '<path d="M136 128 C 150 138, 154 166, 144 190 C 132 188, 125 160, 124 132 Z" fill="#e2e7f0" stroke="#d3d9e3" stroke-width="2"/>' +
+      '<ellipse cx="110" cy="162" rx="40" ry="46" fill="#eef3fb"/>' +
+      // front flippers poking out from the shoulders onto the belly
+      '<path d="M80 122 C 58 132, 44 160, 52 188 C 68 186, 92 152, 92 126 Z" fill="#c9d2e0" stroke="#a3aec2" stroke-width="2.2"/>' +
+      '<path d="M140 122 C 162 132, 176 160, 168 188 C 152 186, 128 152, 128 126 Z" fill="#c9d2e0" stroke="#a3aec2" stroke-width="2.2"/>' +
       // rosy blush
-      '<ellipse cx="66" cy="98" rx="13" ry="8" fill="#ffb4c6" opacity="0.8"/>' +
-      '<ellipse cx="154" cy="98" rx="13" ry="8" fill="#ffb4c6" opacity="0.8"/>' +
+      '<ellipse cx="66" cy="96" rx="13" ry="8" fill="#ffb4c6" opacity="0.8"/>' +
+      '<ellipse cx="154" cy="96" rx="13" ry="8" fill="#ffb4c6" opacity="0.8"/>' +
       // big glossy black seal eyes (the iconic part)
-      '<ellipse cx="85" cy="82" rx="13" ry="15.5" fill="#241f2e"/>' +
-      '<ellipse cx="135" cy="82" rx="13" ry="15.5" fill="#241f2e"/>' +
-      '<circle cx="89" cy="76" r="4.6" fill="#fff"/><circle cx="139" cy="76" r="4.6" fill="#fff"/>' +
-      '<circle cx="81" cy="88" r="2.4" fill="#fff"/><circle cx="131" cy="88" r="2.4" fill="#fff"/>' +
+      '<ellipse cx="85" cy="80" rx="13.5" ry="16" fill="#241f2e"/>' +
+      '<ellipse cx="135" cy="80" rx="13.5" ry="16" fill="#241f2e"/>' +
+      '<circle cx="89" cy="74" r="4.8" fill="#fff"/><circle cx="139" cy="74" r="4.8" fill="#fff"/>' +
+      '<circle cx="81" cy="86" r="2.5" fill="#fff"/><circle cx="131" cy="86" r="2.5" fill="#fff"/>' +
       // snout: muzzle pad, nose, and a little "w" seal mouth
-      '<ellipse cx="110" cy="108" rx="24" ry="18" fill="#fbfcff"/>' +
-      '<path d="M110 96 q-9 0 -9 6 q0 6 9 9 q9 -3 9 -9 q0 -6 -9 -6 Z" fill="#37323f"/>' +
-      '<path d="M110 111 v5" stroke="#37323f" stroke-width="2.4" stroke-linecap="round"/>' +
-      '<path d="M95 115 q8 9 15 2 q7 7 15 -2" stroke="#37323f" stroke-width="2.8" fill="none" stroke-linecap="round"/>' +
+      '<ellipse cx="110" cy="106" rx="24" ry="18" fill="#f4f8fe"/>' +
+      '<path d="M110 94 q-9 0 -9 6 q0 6 9 9 q9 -3 9 -9 q0 -6 -9 -6 Z" fill="#37323f"/>' +
+      '<path d="M110 109 v5" stroke="#37323f" stroke-width="2.4" stroke-linecap="round"/>' +
+      '<path d="M95 113 q8 9 15 2 q7 7 15 -2" stroke="#37323f" stroke-width="2.8" fill="none" stroke-linecap="round"/>' +
       // prominent whiskers from the muzzle
-      '<g stroke="#c2c8d2" stroke-width="2" stroke-linecap="round">' +
-        '<line x1="88" y1="106" x2="54" y2="100"/><line x1="88" y1="112" x2="54" y2="114"/><line x1="90" y1="118" x2="58" y2="128"/>' +
-        '<line x1="132" y1="106" x2="166" y2="100"/><line x1="132" y1="112" x2="166" y2="114"/><line x1="130" y1="118" x2="162" y2="128"/>' +
+      '<g stroke="#aab4c4" stroke-width="2" stroke-linecap="round">' +
+        '<line x1="88" y1="104" x2="54" y2="98"/><line x1="88" y1="110" x2="54" y2="112"/><line x1="90" y1="116" x2="58" y2="126"/>' +
+        '<line x1="132" y1="104" x2="166" y2="98"/><line x1="132" y1="110" x2="166" y2="112"/><line x1="130" y1="116" x2="162" y2="126"/>' +
       '</g>' +
       // little nerd glasses framing the eyes
       '<g stroke="#514a68" stroke-width="3.4" fill="none" stroke-linecap="round">' +
-        '<circle cx="85" cy="82" r="19"/><circle cx="135" cy="82" r="19"/>' +
-        '<path d="M104 80 q6 -5 12 0"/>' +
-        '<path d="M66 78 q-9 -3 -14 -6"/><path d="M154 78 q9 -3 14 -6"/>' +
+        '<circle cx="85" cy="80" r="19.5"/><circle cx="135" cy="80" r="19.5"/>' +
+        '<path d="M104 78 q6 -5 12 0"/>' +
+        '<path d="M65 76 q-9 -3 -14 -6"/><path d="M155 76 q9 -3 14 -6"/>' +
       '</g>' +
       // glasses glint
-      '<path d="M75 74 l9 9" stroke="#fff" stroke-width="3" opacity="0.5" stroke-linecap="round"/>' +
-      '<path d="M125 74 l9 9" stroke="#fff" stroke-width="3" opacity="0.35" stroke-linecap="round"/>' +
+      '<path d="M75 72 l9 9" stroke="#fff" stroke-width="3" opacity="0.5" stroke-linecap="round"/>' +
+      '<path d="M125 72 l9 9" stroke="#fff" stroke-width="3" opacity="0.35" stroke-linecap="round"/>' +
       // optional graduation cap, perched on top of the head
       (cap ?
-        '<g><ellipse cx="110" cy="46" rx="26" ry="6" fill="#2b2838"/>' +
-        '<polygon points="110,24 150,40 110,48 70,40" fill="#3a2f5e"/>' +
-        '<circle cx="110" cy="33" r="3" fill="#ffd54f"/>' +
-        '<path d="M110 33 q30 3 32 9" stroke="#ffd54f" stroke-width="2" fill="none"/>' +
-        '<circle cx="143" cy="44" r="4" fill="#ffd54f"/></g>' : '') +
+        '<g><ellipse cx="110" cy="34" rx="26" ry="6" fill="#2b2838"/>' +
+        '<polygon points="110,12 150,28 110,36 70,28" fill="#3a2f5e"/>' +
+        '<circle cx="110" cy="21" r="3" fill="#ffd54f"/>' +
+        '<path d="M110 21 q30 3 32 9" stroke="#ffd54f" stroke-width="2" fill="none"/>' +
+        '<circle cx="143" cy="32" r="4" fill="#ffd54f"/></g>' : '') +
       '</svg>';
   }
   const SEAL_ACTIONS = [
@@ -1539,7 +1548,7 @@
   // ---- Breakout: paddle + ball + bricks ----
   function engineBreakout(k) {
     let px = CW/2; const pw = 100, ph = 14;
-    const ball = { x: CW/2, y: CH-60, vx: rand(-120,120), vy: -200*k, r: 8 };
+    const ball = { x: CW/2, y: CH-60, vx: rand(-170,170), vy: -320*k, r: 8 };
     const bricks = []; const cols = 8, rows = 4;
     const bw = (CW - 40) / cols, bh = 22;
     for (let r=0;r<rows;r++) for (let c=0;c<cols;c++)
@@ -1556,7 +1565,7 @@
           ball.vy *= -1; ball.vx += (ball.x - (px+pw/2)) * 2.5; sfx.hit();
         }
         if (ball.y > CH + 20) { // lost ball, respawn with small penalty
-          ball.x = CW/2; ball.y = CH-60; ball.vx = rand(-120,120); ball.vy = -200*k;
+          ball.x = CW/2; ball.y = CH-60; ball.vx = rand(-170,170); ball.vy = -320*k;
           this.score = Math.max(0, this.score - 3);
         }
         for (const b of bricks) {
