@@ -120,19 +120,20 @@ const SPEAKER_COLORS = {
 };
 
 // ---------- voices ----------
-// Everyone shares the browser's speech voice, told apart by pitch and speed.
+// Each character is cast a real installed voice: g picks the female or male
+// pool, slot picks WHICH voice in that pool, and pitch/rate fine-tune on top.
 const VOICE = {
-  'DELPHI': { pitch: 1.7, rate: 1.15 },
-  'MOM':    { pitch: 1.3, rate: 1.0 },
-  'DAD':    { pitch: 0.6, rate: 0.95 },
-  'MEME':   { pitch: 1.9, rate: 1.2 },
-  'MEDUSA': { pitch: 1.9, rate: 1.2 },
-  'SEO':    { pitch: 1.4, rate: 1.05 },
-  'HERMES': { pitch: 1.2, rate: 1.5 },
-  'ARES':   { pitch: 0.3, rate: 0.9 },
-  'THE GANG': { pitch: 1.1, rate: 1.25 },
-  'STHENO': { pitch: 1.5, rate: 0.9 },
-  'THE NOTE': { pitch: 1.9, rate: 1.0 }
+  'DELPHI':   { g: 'f', slot: 0, pitch: 1.5, rate: 1.15 },
+  'MOM':      { g: 'f', slot: 1, pitch: 1.0, rate: 1.0 },
+  'MEME':     { g: 'f', slot: 2, pitch: 1.8, rate: 1.2 },
+  'MEDUSA':   { g: 'f', slot: 2, pitch: 1.8, rate: 1.2 },
+  'STHENO':   { g: 'f', slot: 3, pitch: 1.2, rate: 0.9 },
+  'THE NOTE': { g: 'f', slot: 2, pitch: 1.8, rate: 1.0 },
+  'DAD':      { g: 'm', slot: 0, pitch: 0.8, rate: 0.95 },
+  'SEO':      { g: 'm', slot: 1, pitch: 1.5, rate: 1.05 },
+  'HERMES':   { g: 'm', slot: 2, pitch: 1.3, rate: 1.5 },
+  'ARES':     { g: 'm', slot: 3, pitch: 0.3, rate: 0.85 },
+  'THE GANG': { g: 'm', slot: 1, pitch: 1.4, rate: 1.3 }
 };
 // Which actor's mouth moves for each speaker
 const MOUTH_OF = {
@@ -141,23 +142,32 @@ const MOUTH_OF = {
   'ARES': ['ares'], 'THE GANG': ['goon1', 'goon2'], 'STHENO': ['stheno']
 };
 let voiceOn = true;
-let voicePick = null;
-function pickVoice() {
-  const vs = speechSynthesis.getVoices();
-  voicePick = vs.find(v => v.lang && v.lang.indexOf('en') === 0) || null;
+let femVoices = [], mascVoices = [];
+function pickVoices() {
+  const vs = speechSynthesis.getVoices().filter(v => v.lang && v.lang.indexOf('en') === 0);
+  const isF = v => /zira|aria|jenny|michelle|ana|emma|hazel|libby|sonia|susan|linda|heather|eva|catherine|samantha|victoria|karen|moira|tessa|fiona|natasha|clara|salli|joanna|kimberly|ivy|female|woman|girl/i.test(v.name);
+  const isM = v => !isF(v) && /david|mark|guy|george|james|richard|ryan|davis|tony|jason|daniel|alex|fred|eric|christopher|liam|william|thomas|matthew|joey|justin|male|man\b|boy/i.test(v.name);
+  femVoices = vs.filter(isF);
+  mascVoices = vs.filter(isM);
+  // Voices we couldn't tell apart by name: deal them out so pools still differ
+  const rest = vs.filter(v => femVoices.indexOf(v) < 0 && mascVoices.indexOf(v) < 0);
+  rest.forEach((v, i) => (i % 2 === 0 ? femVoices : mascVoices).push(v));
+  if (!femVoices.length) femVoices = mascVoices.slice().reverse();
+  if (!mascVoices.length) mascVoices = femVoices.slice().reverse();
 }
 if (window.speechSynthesis) {
-  pickVoice();
-  speechSynthesis.onvoiceschanged = pickVoice;
+  pickVoices();
+  speechSynthesis.onvoiceschanged = pickVoices;
 }
 function speak(line) {
   if (!voiceOn || !window.speechSynthesis || !line.s) return;
   try {
     speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(line.t);
-    const v = VOICE[line.s] || { pitch: 1, rate: 1 };
+    const v = VOICE[line.s] || { pitch: 1, rate: 1, slot: 0 };
     u.pitch = v.pitch; u.rate = v.rate;
-    if (voicePick) u.voice = voicePick;
+    const pool = v.g === 'f' ? femVoices : mascVoices;
+    if (pool.length) u.voice = pool[(v.slot || 0) % pool.length];
     speechSynthesis.speak(u);
   } catch (e) { /* speech is a bonus; never break the movie */ }
 }
