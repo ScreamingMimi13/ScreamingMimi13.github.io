@@ -1,0 +1,1105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Broken Chain — A Movie</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html,body {
+    width:100%; height:100%; background:#07070d; overflow:hidden;
+    font-family: Georgia, 'Times New Roman', serif;
+    -webkit-user-select:none; user-select:none; touch-action:manipulation;
+  }
+  #stage {
+    position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+    background:#000; box-shadow:0 0 60px rgba(0,0,0,.9);
+  }
+  canvas { display:block; width:100%; height:100%; cursor:pointer; }
+  #dlg {
+    position:absolute; left:3%; right:3%; bottom:2.5%;
+    background:rgba(12,10,22,.92);
+    border:2px solid #c9a227; border-radius:10px;
+    padding:1.6% 2.2% 1.2% 2.2%;
+    min-height:19%;
+    pointer-events:none;
+    display:none;
+  }
+  #dlg::before {
+    content:''; position:absolute; left:8px; right:8px; top:4px; height:3px;
+    background:repeating-linear-gradient(90deg,#c9a227 0 10px,transparent 10px 16px);
+    opacity:.5; border-radius:2px;
+  }
+  #speaker {
+    font-weight:bold; letter-spacing:2px; font-size:15px;
+    color:#f4d35e; margin-bottom:5px; text-transform:uppercase;
+  }
+  #text { color:#f2ecdd; font-size:19px; line-height:1.45; min-height:2.9em; }
+  #hint {
+    position:absolute; right:14px; bottom:8px; color:#c9a227;
+    font-size:12px; letter-spacing:1px; opacity:.85;
+    animation:pulse 1.2s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:.35} 50%{opacity:.95} }
+  #progress {
+    position:absolute; top:10px; right:14px; color:#8a7f66; font-size:12px;
+    letter-spacing:2px; pointer-events:none;
+  }
+  #replay {
+    position:absolute; left:50%; top:72%; transform:translateX(-50%);
+    display:none; background:#c9a227; color:#1b1408; border:none;
+    font-family:Georgia,serif; font-size:20px; font-weight:bold;
+    padding:12px 34px; border-radius:30px; cursor:pointer; letter-spacing:1px;
+    box-shadow:0 4px 18px rgba(201,162,39,.45);
+  }
+  #replay:hover { background:#f4d35e; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="cv" width="960" height="540"></canvas>
+  <div id="dlg">
+    <div id="speaker"></div>
+    <div id="text"></div>
+    <div id="hint">click &#9654;</div>
+  </div>
+  <div id="progress"></div>
+  <button id="replay">Play Again</button>
+</div>
+<script>
+(() => {
+'use strict';
+
+const W = 960, H = 540;
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+const stage = document.getElementById('stage');
+const dlg = document.getElementById('dlg');
+const speakerEl = document.getElementById('speaker');
+const textEl = document.getElementById('text');
+const hintEl = document.getElementById('hint');
+const progEl = document.getElementById('progress');
+const replayBtn = document.getElementById('replay');
+
+function fit() {
+  const vw = window.innerWidth, vh = window.innerHeight;
+  let w = vw, h = vw * (H / W);
+  if (h > vh) { h = vh; w = vh * (W / H); }
+  stage.style.width = w + 'px';
+  stage.style.height = h + 'px';
+}
+window.addEventListener('resize', fit);
+fit();
+
+// ---------- utilities ----------
+const rand = (a, b) => a + Math.random() * (b - a);
+function rr(x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+// ---------- speaker colors ----------
+const SPEAKER_COLORS = {
+  'DELPHI': '#c7a6ff', 'MOM': '#ffb3c1', 'DAD': '#9ad1ff',
+  'MEME': '#7dffb0', 'MEDUSA': '#7dffb0', 'SEO': '#7fd4ff',
+  'HERMES': '#ffe28a', 'ARES': '#ff6b52', 'THE GANG': '#ff9a76',
+  'STHENO': '#a8ffcf', 'THE NOTE': '#f4d35e'
+};
+
+// ---------- character drawing ----------
+// All characters are drawn anchored at their feet (0,0), facing right.
+function person(t, o) {
+  const h = o.h || 120;
+  const bob = Math.sin(t * 2 + (o.seed || 0)) * 2.2;
+  const headR = h * 0.165;
+  const hemY = -h * 0.16;
+  const shoulderY = -h * 0.62 + bob;
+  const hipW = h * 0.21, shW = h * 0.13;
+
+  // feet / sandals
+  ctx.fillStyle = o.skin;
+  ctx.beginPath(); ctx.ellipse(-hipW * 0.45, -3, 8, 4, 0, 0, 7); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(hipW * 0.45, -3, 8, 4, 0, 0, 7); ctx.fill();
+  if (o.wingFeet) {
+    ctx.fillStyle = '#fff';
+    for (const s of [-1, 1]) {
+      const flap = Math.sin(t * 10) * 3;
+      ctx.beginPath();
+      ctx.moveTo(s * hipW * 0.45, -5);
+      ctx.quadraticCurveTo(s * (hipW * 0.45 + 16), -14 - flap, s * (hipW * 0.45 + 20), -4);
+      ctx.quadraticCurveTo(s * (hipW * 0.45 + 10), -2, s * hipW * 0.45, -5);
+      ctx.fill();
+    }
+  }
+  // legs
+  ctx.strokeStyle = o.skin; ctx.lineWidth = 5; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(-hipW * 0.42, -4); ctx.lineTo(-hipW * 0.35, hemY + bob * 0.4); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(hipW * 0.42, -4); ctx.lineTo(hipW * 0.35, hemY + bob * 0.4); ctx.stroke();
+  // chiton (dress)
+  ctx.fillStyle = o.dress;
+  ctx.beginPath();
+  ctx.moveTo(-shW, shoulderY);
+  ctx.lineTo(shW, shoulderY);
+  ctx.lineTo(hipW, hemY + bob * 0.4);
+  ctx.lineTo(-hipW, hemY + bob * 0.4);
+  ctx.closePath(); ctx.fill();
+  // belt
+  ctx.fillStyle = o.belt || '#c9a227';
+  ctx.fillRect(-shW * 1.15, shoulderY + (hemY - shoulderY) * 0.52, shW * 2.3, 4);
+  // arms
+  ctx.strokeStyle = o.skin; ctx.lineWidth = 5;
+  const armSwing = Math.sin(t * 2 + (o.seed || 0)) * 0.08;
+  for (const s of [-1, 1]) {
+    ctx.beginPath();
+    ctx.moveTo(s * shW * 0.9, shoulderY + 5);
+    ctx.lineTo(s * (shW * 0.9 + h * 0.1), shoulderY + h * 0.24 + s * armSwing * 20);
+    ctx.stroke();
+  }
+  // head
+  const headY = shoulderY - headR - 3;
+  ctx.fillStyle = o.skin;
+  ctx.beginPath(); ctx.arc(0, headY, headR, 0, 7); ctx.fill();
+  // hair
+  if (o.snakes) {
+    ctx.strokeStyle = o.hair; ctx.lineWidth = 4; ctx.lineCap = 'round';
+    for (let i = 0; i < 7; i++) {
+      const a = -Math.PI * 0.95 + (i / 6) * Math.PI * 0.9;
+      const bx = Math.cos(a) * headR * 0.95, by = headY + Math.sin(a) * headR * 0.95;
+      const wig = Math.sin(t * 4 + i * 1.7) * 6;
+      ctx.beginPath();
+      ctx.moveTo(bx, by);
+      ctx.quadraticCurveTo(bx * 1.9 + wig, by - headR * 0.9, bx * 2.1 + wig * 1.4, by - headR * 1.5 + Math.cos(t * 3 + i) * 3);
+      ctx.stroke();
+      ctx.fillStyle = '#3e8e5a';
+      ctx.beginPath();
+      ctx.arc(bx * 2.1 + wig * 1.4, by - headR * 1.5 + Math.cos(t * 3 + i) * 3, 2.6, 0, 7);
+      ctx.fill();
+    }
+  } else if (o.hair) {
+    ctx.fillStyle = o.hair;
+    ctx.beginPath();
+    ctx.arc(0, headY - headR * 0.18, headR * 1.04, Math.PI * 0.95, Math.PI * 2.05);
+    ctx.fill();
+    if (o.longHair) {
+      ctx.beginPath();
+      ctx.moveTo(-headR, headY);
+      ctx.quadraticCurveTo(-headR * 1.35, headY + headR * 1.6, -headR * 0.7, shoulderY + 12);
+      ctx.lineTo(-headR * 0.35, shoulderY);
+      ctx.quadraticCurveTo(-headR * 0.9, headY + headR * 0.6, -headR * 0.8, headY);
+      ctx.fill();
+    }
+  }
+  if (o.laurel) {
+    ctx.fillStyle = '#6fbf73';
+    for (let i = -3; i <= 3; i++) {
+      const a = -Math.PI / 2 + i * 0.28;
+      const lx = Math.cos(a) * headR * 1.02, ly = headY + Math.sin(a) * headR * 1.02;
+      ctx.save(); ctx.translate(lx, ly); ctx.rotate(a + Math.PI / 2);
+      ctx.beginPath(); ctx.ellipse(0, 0, 5, 2.2, 0, 0, 7); ctx.fill();
+      ctx.restore();
+    }
+  }
+  if (o.warHelm) {
+    // bronze war helmet with a red plume
+    ctx.fillStyle = '#b08d3e';
+    ctx.beginPath(); ctx.arc(0, headY - headR * 0.15, headR * 1.06, Math.PI, Math.PI * 2); ctx.fill();
+    ctx.fillRect(-headR * 1.06, headY - headR * 0.2, headR * 0.32, headR * 0.75);
+    ctx.fillStyle = '#c62828';
+    ctx.beginPath();
+    ctx.moveTo(-headR * 0.9, headY - headR * 0.7);
+    ctx.quadraticCurveTo(0, headY - headR * 2.2 + Math.sin(t * 3) * 2, headR * 0.9, headY - headR * 0.7);
+    ctx.quadraticCurveTo(0, headY - headR * 1.5, -headR * 0.9, headY - headR * 0.7);
+    ctx.fill();
+  }
+  if (o.wingHelm) {
+    ctx.fillStyle = '#f4d35e';
+    ctx.beginPath(); ctx.arc(0, headY - headR * 0.25, headR * 1.02, Math.PI, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#fff';
+    for (const s of [-1, 1]) {
+      const flap = Math.sin(t * 8) * 4;
+      ctx.beginPath();
+      ctx.moveTo(s * headR * 0.9, headY - headR * 0.4);
+      ctx.quadraticCurveTo(s * headR * 2, headY - headR * 1.4 - flap, s * headR * 2.3, headY - headR * 0.3);
+      ctx.quadraticCurveTo(s * headR * 1.4, headY - headR * 0.2, s * headR * 0.9, headY - headR * 0.4);
+      ctx.fill();
+    }
+  }
+  // face (faces right)
+  const ex = headR * 0.42, ey = headY - headR * 0.1;
+  if (o.glowEyes) {
+    ctx.fillStyle = '#ffe37a';
+    ctx.shadowColor = '#ffd23f'; ctx.shadowBlur = 12;
+    ctx.beginPath(); ctx.arc(ex, ey, 3.4, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.arc(ex - headR * 0.62, ey, 3.4, 0, 7); ctx.fill();
+    ctx.shadowBlur = 0;
+  } else {
+    ctx.fillStyle = '#2a2118';
+    ctx.beginPath(); ctx.arc(ex, ey, 2.4, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.arc(ex - headR * 0.62, ey, 2.4, 0, 7); ctx.fill();
+  }
+  ctx.strokeStyle = '#2a2118'; ctx.lineWidth = 1.8;
+  ctx.beginPath();
+  const my = headY + headR * 0.42;
+  if (o.sad) ctx.arc(ex - headR * 0.3, my + 4, headR * 0.28, Math.PI * 1.15, Math.PI * 1.85);
+  else ctx.arc(ex - headR * 0.3, my, headR * 0.3, Math.PI * 0.15, Math.PI * 0.85);
+  ctx.stroke();
+  // held sword
+  if (o.sword) {
+    ctx.save();
+    ctx.translate(shW * 0.9 + h * 0.1, shoulderY + h * 0.24);
+    ctx.rotate(-0.5);
+    ctx.fillStyle = '#cfd8dc'; ctx.fillRect(-2, -34, 4, 34);
+    ctx.fillStyle = '#c9a227'; ctx.fillRect(-7, -2, 14, 4);
+    ctx.restore();
+  }
+}
+
+const CHAR = {
+  delphi: o => person(o.t, { h: 112, skin: '#e8b98d', dress: '#b39ddb', hair: '#5d4030', longHair: true, laurel: true, seed: 1, ...o }),
+  mom:    o => person(o.t, { h: 150, skin: '#e8b98d', dress: '#f48fb1', hair: '#3e2c20', longHair: true, seed: 2, ...o }),
+  dad:    o => person(o.t, { h: 156, skin: '#d9a06f', dress: '#90caf9', hair: '#2c2118', seed: 3, ...o }),
+  medusa: o => person(o.t, { h: 126, skin: '#a5d6a7', dress: '#69f0ae', belt: '#fff', hair: '#2e7d4f', snakes: true, seed: 4, ...o }),
+  seo:    o => person(o.t, { h: 118, skin: '#e0ac7e', dress: '#4fc3f7', hair: '#1f1a14', seed: 5, ...o }),
+  hermes: o => person(o.t, { h: 190, skin: '#f0c27a', dress: '#fff8e1', hair: '#c9a227', wingHelm: true, wingFeet: true, seed: 6, ...o }),
+  ares:   o => person(o.t, { h: 152, skin: '#c98d5f', dress: '#c62828', belt: '#b08d3e', hair: '#33251a', warHelm: true, seed: 7, ...o }),
+  goon1:  o => person(o.t, { h: 128, skin: '#f0c9a0', dress: '#8d6e63', hair: '#111', seed: 8, ...o }),
+  goon2:  o => person(o.t, { h: 122, skin: '#d9a06f', dress: '#607d8b', hair: '#4a3423', seed: 11, ...o }),
+  stheno: o => person(o.t, { h: 128, skin: '#a5d6a7', dress: '#4dd0e1', snakes: true, hair: '#2e7d4f', seed: 9, ...o }),
+  euryale:o => person(o.t, { h: 124, skin: '#b9e4b0', dress: '#ce93d8', snakes: true, hair: '#2e7d4f', seed: 10, ...o })
+};
+
+function medusaDown(t) {
+  // Medusa lying on the sand, snakes limp
+  ctx.save();
+  ctx.globalAlpha = 0.92;
+  ctx.fillStyle = '#69f0ae';
+  ctx.beginPath(); ctx.ellipse(30, -12, 46, 13, 0, 0, 7); ctx.fill();
+  ctx.fillStyle = '#a5d6a7';
+  ctx.beginPath(); ctx.arc(-28, -16, 17, 0, 7); ctx.fill();
+  ctx.strokeStyle = '#2e7d4f'; ctx.lineWidth = 3.6; ctx.lineCap = 'round';
+  for (let i = 0; i < 6; i++) {
+    ctx.beginPath();
+    ctx.moveTo(-38 - i * 1.5, -22 + i * 2);
+    ctx.quadraticCurveTo(-58 - i * 5, -20 + i * 3, -66 - i * 6, -6 + i * 1.5);
+    ctx.stroke();
+  }
+  ctx.strokeStyle = '#2a2118'; ctx.lineWidth = 1.6;
+  // closed eyes
+  ctx.beginPath(); ctx.moveTo(-34, -18); ctx.lineTo(-28, -18); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-24, -18); ctx.lineTo(-18, -18); ctx.stroke();
+  ctx.restore();
+}
+
+function momInBed(t) {
+  // hospital bed, anchored at floor
+  ctx.fillStyle = '#8d6e63';
+  ctx.fillRect(-90, -46, 8, 46); ctx.fillRect(82, -46, 8, 46);
+  ctx.fillStyle = '#eceff1'; rr(-90, -60, 180, 22, 8); ctx.fill();
+  ctx.fillStyle = '#b3d4f5'; rr(-86, -56, 150, 14, 6); ctx.fill();
+  ctx.fillStyle = '#fff';
+  ctx.beginPath(); ctx.ellipse(66, -62, 18, 9, 0, 0, 7); ctx.fill();
+  ctx.fillStyle = '#e8b98d';
+  ctx.beginPath(); ctx.arc(62, -70, 11, 0, 7); ctx.fill();
+  ctx.fillStyle = '#3e2c20';
+  ctx.beginPath(); ctx.arc(62, -74, 11, Math.PI, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#2a2118';
+  ctx.beginPath(); ctx.arc(58, -69, 1.6, 0, 7); ctx.fill();
+  ctx.beginPath(); ctx.arc(64, -69, 1.6, 0, 7); ctx.fill();
+  ctx.strokeStyle = '#2a2118'; ctx.lineWidth = 1.4;
+  ctx.beginPath(); ctx.arc(61, -65, 3.2, Math.PI * 0.15, Math.PI * 0.85); ctx.stroke();
+}
+
+function chariot(t, crashed) {
+  ctx.save();
+  if (crashed) ctx.rotate(-0.18);
+  // horse
+  ctx.fillStyle = '#795548';
+  ctx.beginPath(); ctx.ellipse(-95, -34, 34, 16, 0, 0, 7); ctx.fill();
+  ctx.beginPath(); ctx.arc(-126, -52, 11, 0, 7); ctx.fill();
+  ctx.strokeStyle = '#795548'; ctx.lineWidth = 6; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(-112, -24); ctx.lineTo(-114, 0); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-80, -24); ctx.lineTo(-78, 0); ctx.stroke();
+  ctx.fillStyle = '#4e342e';
+  ctx.beginPath(); ctx.moveTo(-63, -40); ctx.quadraticCurveTo(-50, -30, -60, -22); ctx.quadraticCurveTo(-66, -32, -63, -40); ctx.fill();
+  // cart
+  ctx.fillStyle = '#c9a227';
+  ctx.beginPath();
+  ctx.moveTo(-30, -50); ctx.quadraticCurveTo(40, -58, 44, -20);
+  ctx.lineTo(-26, -20); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = '#8d6e63'; ctx.lineWidth = 4;
+  ctx.beginPath(); ctx.moveTo(-30, -34); ctx.lineTo(-90, -34); ctx.stroke();
+  // wheel
+  ctx.strokeStyle = '#5d4037'; ctx.lineWidth = 5;
+  const wx = crashed ? 34 : 8, wy = crashed ? -8 : -14;
+  ctx.beginPath(); ctx.arc(wx, wy, 14, 0, 7); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(wx - 14, wy); ctx.lineTo(wx + 14, wy); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(wx, wy - 14); ctx.lineTo(wx, wy + 14); ctx.stroke();
+  ctx.restore();
+}
+
+function palm(x, y, s, t) {
+  ctx.save(); ctx.translate(x, y); ctx.scale(s, s);
+  ctx.strokeStyle = '#8d6e4c'; ctx.lineWidth = 10; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(0, 0); ctx.quadraticCurveTo(14, -70, 4, -130); ctx.stroke();
+  ctx.strokeStyle = '#4c9e57'; ctx.lineWidth = 7;
+  for (let i = 0; i < 6; i++) {
+    const a = -Math.PI + (i / 5) * Math.PI;
+    const sway = Math.sin(t * 1.4 + i) * 4;
+    ctx.beginPath();
+    ctx.moveTo(4, -130);
+    ctx.quadraticCurveTo(4 + Math.cos(a) * 40, -150 + Math.sin(a) * 18 + sway, 4 + Math.cos(a) * 62, -122 + Math.sin(a) * 30 + sway);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function column(x, y, h, w) {
+  ctx.fillStyle = '#e8e0ce';
+  ctx.fillRect(x - w / 2, y - h, w, h);
+  ctx.fillStyle = '#d5cbb4';
+  for (let i = 1; i < 4; i++) ctx.fillRect(x - w / 2 + (w / 4) * i - 1, y - h + 8, 2, h - 16);
+  ctx.fillStyle = '#efe8d8';
+  ctx.fillRect(x - w / 2 - 6, y - h - 10, w + 12, 10);
+  ctx.fillRect(x - w / 2 - 6, y - 8, w + 12, 8);
+}
+
+// ---------- backgrounds ----------
+function skyGrad(top, bottom, hEnd) {
+  const g = ctx.createLinearGradient(0, 0, 0, hEnd || H);
+  g.addColorStop(0, top); g.addColorStop(1, bottom);
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, hEnd || H);
+}
+const stars = [];
+for (let i = 0; i < 90; i++) stars.push({ x: rand(0, W), y: rand(0, H * 0.7), r: rand(0.5, 1.8), p: rand(0, 7) });
+
+const BG = {
+  night(t) {
+    skyGrad('#0a0a2a', '#1c1440');
+    ctx.fillStyle = '#fff';
+    for (const s of stars) {
+      ctx.globalAlpha = 0.4 + 0.6 * Math.abs(Math.sin(t + s.p));
+      ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, 7); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = '#f5f0dc';
+    ctx.beginPath(); ctx.arc(790, 90, 34, 0, 7); ctx.fill();
+    ctx.fillStyle = '#0a0a2a';
+    ctx.beginPath(); ctx.arc(778, 82, 30, 0, 7); ctx.fill();
+    // temple silhouette
+    ctx.fillStyle = '#0d0d22';
+    ctx.fillRect(0, 470, W, 70);
+    ctx.beginPath(); ctx.moveTo(330, 470); ctx.lineTo(480, 380); ctx.lineTo(630, 470); ctx.closePath(); ctx.fill();
+    for (let i = 0; i < 5; i++) ctx.fillRect(360 + i * 60, 400, 18, 70);
+    ctx.fillRect(340, 388, 280, 14);
+  },
+  home(t) {
+    skyGrad('#5a4632', '#3c2f22');
+    ctx.fillStyle = '#6d5741'; ctx.fillRect(0, 0, W, 60);
+    // window with night sky
+    ctx.fillStyle = '#141438'; rr(700, 90, 170, 200, 12); ctx.fill();
+    ctx.fillStyle = '#fff';
+    for (let i = 0; i < 12; i++) {
+      ctx.globalAlpha = 0.5 + 0.5 * Math.sin(t * 2 + i);
+      ctx.beginPath(); ctx.arc(720 + (i * 37) % 130, 110 + (i * 53) % 160, 1.4, 0, 7); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = '#8d6e4c'; ctx.lineWidth = 8; rr(700, 90, 170, 200, 12); ctx.stroke();
+    column(80, 470, 330, 42);
+    // couch
+    ctx.fillStyle = '#7b3f4f'; rr(430, 400, 240, 66, 14); ctx.fill();
+    ctx.fillStyle = '#94506b'; rr(440, 380, 60, 40, 10); ctx.fill(); rr(570, 380, 60, 40, 10); ctx.fill();
+    // marble tablet on a stand (iMortal)
+    ctx.fillStyle = '#8d6e4c'; ctx.fillRect(200, 400, 10, 70);
+    ctx.fillStyle = '#1a1a24'; rr(150, 300, 110, 100, 8); ctx.fill();
+    const glow = 0.5 + 0.3 * Math.sin(t * 3);
+    ctx.fillStyle = `rgba(125,255,176,${glow * 0.35})`; rr(155, 305, 100, 90, 6); ctx.fill();
+    // MeMe silhouette on screen: sparkly gorgon shape
+    ctx.fillStyle = '#0f3d2a';
+    ctx.beginPath(); ctx.arc(205, 355, 16, 0, 7); ctx.fill();
+    ctx.strokeStyle = '#0f3d2a'; ctx.lineWidth = 3;
+    for (let i = 0; i < 5; i++) {
+      const a = -Math.PI * 0.9 + i * 0.45;
+      ctx.beginPath();
+      ctx.moveTo(205 + Math.cos(a) * 15, 355 + Math.sin(a) * 15);
+      ctx.quadraticCurveTo(205 + Math.cos(a) * 30, 340 + Math.sin(a) * 26 + Math.sin(t * 4 + i) * 3, 205 + Math.cos(a) * 34, 332 + Math.sin(a) * 30);
+      ctx.stroke();
+    }
+    ctx.fillStyle = '#7dffb0';
+    ctx.font = 'bold 11px Georgia';
+    ctx.textAlign = 'center';
+    ctx.fillText('iMortal LIVE', 205, 390);
+    ctx.textAlign = 'left';
+    // floor
+    ctx.fillStyle = '#a1887f'; ctx.fillRect(0, 470, W, 70);
+    ctx.fillStyle = '#8d7268';
+    for (let i = 0; i < 8; i++) ctx.fillRect(i * 130, 470, 2, 70);
+  },
+  road(t) {
+    skyGrad('#8ecae6', '#d7ecf5', 400);
+    ctx.fillStyle = '#ffd23f';
+    ctx.beginPath(); ctx.arc(840, 80, 38, 0, 7); ctx.fill();
+    // hills
+    ctx.fillStyle = '#a5c8a2';
+    ctx.beginPath(); ctx.moveTo(0, 400);
+    ctx.quadraticCurveTo(240, 300, 480, 395);
+    ctx.quadraticCurveTo(720, 310, 960, 400);
+    ctx.lineTo(960, 400); ctx.lineTo(0, 400); ctx.fill();
+    // olive trees
+    for (const [ox, os] of [[120, 1], [820, 0.8], [560, 0.65]]) {
+      ctx.save(); ctx.translate(ox, 400); ctx.scale(os, os);
+      ctx.fillStyle = '#8d6e4c'; ctx.fillRect(-5, -42, 10, 42);
+      ctx.fillStyle = '#7c9d6f';
+      ctx.beginPath(); ctx.ellipse(0, -60, 34, 24, 0, 0, 7); ctx.fill();
+      ctx.restore();
+    }
+    // road
+    ctx.fillStyle = '#d8c49a'; ctx.fillRect(0, 400, W, 140);
+    ctx.fillStyle = '#c4ad82';
+    for (let i = 0; i < 12; i++) ctx.beginPath(), ctx.ellipse(60 + i * 85, 430 + (i % 3) * 34, 16, 5, 0, 0, 7), ctx.fill();
+  },
+  hospital(t) {
+    skyGrad('#e8f1f5', '#d3e3ea');
+    ctx.fillStyle = '#bcd8e3'; ctx.fillRect(0, 0, W, 50);
+    ctx.fillStyle = '#9dc9db'; rr(660, 80, 200, 180, 10); ctx.fill();
+    skyish(660, 80, 200, 180);
+    function skyish(x, y, w, h) {
+      const g = ctx.createLinearGradient(0, y, 0, y + h);
+      g.addColorStop(0, '#8ecae6'); g.addColorStop(1, '#cfe9f3');
+      ctx.fillStyle = g; ctx.fillRect(x + 6, y + 6, w - 12, h - 12);
+      ctx.fillStyle = '#fff';
+      ctx.beginPath(); ctx.ellipse(x + 60, y + 50, 26, 12, 0, 0, 7); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(x + 130, y + 90, 32, 13, 0, 0, 7); ctx.fill();
+    }
+    // red-cross style sign (circle + plus, Greek style)
+    ctx.fillStyle = '#e5735f';
+    rr(120, 100, 26, 78, 6); ctx.fill();
+    rr(94, 126, 78, 26, 6); ctx.fill();
+    ctx.fillStyle = '#f4fbfd'; ctx.fillRect(0, 470, W, 70);
+    ctx.fillStyle = '#d9e8ee';
+    for (let i = 0; i < 8; i++) ctx.fillRect(i * 130, 470, 2, 70);
+  },
+  school(t) {
+    skyGrad('#8ecae6', '#dff0f7', 420);
+    ctx.fillStyle = '#ffd23f';
+    ctx.beginPath(); ctx.arc(110, 80, 34, 0, 7); ctx.fill();
+    // temple school facade
+    ctx.fillStyle = '#efe8d8';
+    ctx.beginPath(); ctx.moveTo(180, 200); ctx.lineTo(480, 90); ctx.lineTo(780, 200); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#e0d6c0'; ctx.fillRect(190, 200, 580, 22);
+    for (let i = 0; i < 6; i++) column(250 + i * 92, 470, 248, 34);
+    ctx.fillStyle = '#8a7048';
+    ctx.font = 'bold 26px Georgia';
+    ctx.textAlign = 'center';
+    ctx.fillText('SCHOOL FOR IMMORTALS', 480, 178);
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#cabd9e'; ctx.fillRect(0, 470, W, 70);
+  },
+  glam(t) {
+    skyGrad('#3d1f47', '#241228');
+    // fairy lights
+    for (let i = 0; i < 14; i++) {
+      const lx = 40 + i * 68, ly = 60 + Math.sin(i * 1.2) * 18;
+      ctx.fillStyle = `rgba(255,226,138,${0.55 + 0.45 * Math.sin(t * 3 + i)})`;
+      ctx.beginPath(); ctx.arc(lx, ly, 4.5, 0, 7); ctx.fill();
+    }
+    ctx.strokeStyle = 'rgba(255,255,255,.18)'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(20, 55);
+    for (let i = 0; i < 14; i++) ctx.lineTo(40 + i * 68, 60 + Math.sin(i * 1.2) * 18);
+    ctx.stroke();
+    // gold records
+    for (const [gx, gy] of [[150, 180], [260, 150], [370, 190]]) {
+      ctx.fillStyle = '#c9a227'; ctx.beginPath(); ctx.arc(gx, gy, 30, 0, 7); ctx.fill();
+      ctx.fillStyle = '#3d1f47'; ctx.beginPath(); ctx.arc(gx, gy, 8, 0, 7); ctx.fill();
+      ctx.strokeStyle = '#f4d35e'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(gx, gy, 30, 0, 7); ctx.stroke();
+    }
+    // very realistic garden statues
+    ctx.fillStyle = '#9e9e9e';
+    for (const sx of [720, 830]) {
+      ctx.beginPath(); ctx.arc(sx, 330, 13, 0, 7); ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(sx - 14, 470); ctx.lineTo(sx - 8, 344); ctx.lineTo(sx + 8, 344); ctx.lineTo(sx + 14, 470);
+      ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#8a8a8a'; ctx.fillRect(sx - 22, 462, 44, 10); ctx.fillStyle = '#9e9e9e';
+    }
+    ctx.fillStyle = '#efd7f5'; ctx.font = 'italic 13px Georgia';
+    ctx.fillText('(very realistic statues)', 690, 500);
+    // plush rug floor
+    ctx.fillStyle = '#5e2a52'; ctx.fillRect(0, 470, W, 70);
+    ctx.fillStyle = '#7b3a6b';
+    ctx.beginPath(); ctx.ellipse(400, 500, 260, 26, 0, 0, 7); ctx.fill();
+  },
+  island(t) {
+    skyGrad('#7fd0e8', '#ffe9c9', 380);
+    ctx.fillStyle = '#ffd23f';
+    ctx.beginPath(); ctx.arc(140, 90, 36, 0, 7); ctx.fill();
+    // sea
+    const g = ctx.createLinearGradient(0, 330, 0, 430);
+    g.addColorStop(0, '#2f8fbf'); g.addColorStop(1, '#1f6f9f');
+    ctx.fillStyle = g; ctx.fillRect(0, 330, W, 100);
+    ctx.strokeStyle = 'rgba(255,255,255,.35)'; ctx.lineWidth = 2;
+    for (let i = 0; i < 5; i++) {
+      ctx.beginPath();
+      for (let x = 0; x <= W; x += 20) {
+        const y = 345 + i * 16 + Math.sin(x * 0.03 + t * 2 + i) * 3;
+        x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+    }
+    // sand
+    ctx.fillStyle = '#f2dfae';
+    ctx.beginPath(); ctx.moveTo(0, 430);
+    ctx.quadraticCurveTo(480, 400, 960, 432);
+    ctx.lineTo(960, 540); ctx.lineTo(0, 540); ctx.fill();
+    palm(120, 452, 1.15, t);
+    palm(840, 448, 1.0, t);
+    palm(760, 456, 0.7, t);
+  },
+  shore(t) {
+    skyGrad('#f9b487', '#ffe3ba', 340);
+    ctx.fillStyle = '#ffb35c';
+    ctx.beginPath(); ctx.arc(480, 300, 46, 0, 7); ctx.fill();
+    const g = ctx.createLinearGradient(0, 300, 0, 460);
+    g.addColorStop(0, '#e08f5f'); g.addColorStop(0.35, '#3a7fae'); g.addColorStop(1, '#1f5f8f');
+    ctx.fillStyle = g; ctx.fillRect(0, 300, W, 160);
+    ctx.strokeStyle = 'rgba(255,255,255,.4)'; ctx.lineWidth = 2;
+    for (let i = 0; i < 6; i++) {
+      ctx.beginPath();
+      for (let x = 0; x <= W; x += 20) {
+        const y = 330 + i * 20 + Math.sin(x * 0.025 + t * 1.8 + i * 2) * 4;
+        x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+    }
+    ctx.fillStyle = '#e9cf9d';
+    ctx.beginPath(); ctx.moveTo(0, 455);
+    ctx.quadraticCurveTo(480, 430, 960, 458);
+    ctx.lineTo(960, 540); ctx.lineTo(0, 540); ctx.fill();
+  }
+};
+
+// ---------- particles ----------
+let sparkles = [];
+function burstSparkles(x, y, n, col) {
+  for (let i = 0; i < n; i++) {
+    sparkles.push({
+      x: x + rand(-40, 40), y: y + rand(-60, 20),
+      vx: rand(-30, 30), vy: rand(-70, -20),
+      life: rand(0.7, 1.6), age: 0, col: col || '#ffe37a', r: rand(1.5, 3.5)
+    });
+  }
+}
+function drawSparkles(dt) {
+  sparkles = sparkles.filter(p => (p.age += dt) < p.life);
+  for (const p of sparkles) {
+    p.x += p.vx * dt; p.y += p.vy * dt;
+    const a = 1 - p.age / p.life;
+    ctx.fillStyle = p.col;
+    ctx.globalAlpha = a;
+    ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.age * 4);
+    ctx.fillRect(-p.r, -0.8, p.r * 2, 1.6);
+    ctx.fillRect(-0.8, -p.r, 1.6, p.r * 2);
+    ctx.restore();
+  }
+  ctx.globalAlpha = 1;
+}
+
+// ---------- the movie ----------
+// line fields: s=speaker, t=text, fx=effect, set={actor:{...patch}}, flag={key:val}
+const SCENES = [
+  { // 1 — title
+    bg: 'night', title: 'BROKEN CHAIN',
+    subtitle: 'a movie - click to begin',
+    cast: {},
+    lines: []
+  },
+  { // 2 — home / iMortal contest
+    bg: 'home',
+    cast: {
+      delphi: { x: 330, y: 470 },
+      mom: { x: 560, y: 470 },
+      dad: { x: 650, y: 470 }
+    },
+    lines: [
+      { s: 'DELPHI', t: 'Mom. Dad. Tomorrow you\'re going to tell me to clean my room. I have SEEN it. That\'s how being an oracle works - no surprises, ever.' },
+      { s: 'MOM', t: 'And yet somehow your room stays messy in every possible future.' },
+      { s: 'DELPHI', t: 'Shhh, everyone! MeMe is live on iMortal! MeMe is only the BIGGEST star on the whole app!' },
+      { s: 'MEME', t: 'HEY, IMMORTALS! Nobody has ever seen my face. So here\'s the game... GUESS WHAT I AM!', fx: 'sparkle' },
+      { s: 'MEME', t: 'First correct guess wins ONE MILLION DOLLARS - and gets to make videos with me on iMortal!' },
+      { s: 'DELPHI', t: 'Mom! Dad! Can I enter?! Please please PLEASE?' },
+      { s: 'DAD', t: 'Fine. But if you win a million dollars, you are STILL cleaning your room.' },
+      { s: 'DELPHI', t: 'Okay. Closing my eyes. Focusing. Here comes the future...', fx: 'vision' },
+      { s: 'DELPHI', t: 'I see snakes... I see stone... I see... a GORGON!', fx: 'vision' },
+      { s: 'DELPHI', t: 'Typing it in... aaaaand... SEND.' },
+      { s: 'MEME', t: 'WE HAVE A WINNER! Delphi! Come to my house tomorrow! And maybe don\'t look directly at me. Kidding! ...Mostly kidding.', fx: 'sparkle' }
+    ]
+  },
+  { // 3 — the accident
+    bg: 'road',
+    cast: {
+      chariot: { x: 640, y: 470 },
+      delphi: { x: 420, y: 470 },
+      mom: { x: 505, y: 470 }
+    },
+    lines: [
+      { s: 'DELPHI', t: 'Faster, Mom! MeMe\'s house awaits! We can\'t be late!' },
+      { s: 'MOM', t: 'Sweetheart, this chariot has exactly one horsepower. Literally. It is one horse.' },
+      { s: 'MOM', t: 'Wait. That chariot. THAT CHARIOT - LOOK OUT!!!', fx: 'crash' },
+      { s: 'DELPHI', t: 'Mom?! MOM! Are you okay?!', set: { mom: { sad: true }, delphi: { sad: true } } },
+      { s: 'MOM', t: 'I\'m okay, I\'m okay. But the healers want to check me over at the hospital, just to be safe. I\'m so sorry, honey... no MeMe today.' },
+      { s: 'DELPHI', t: 'MeMe can wait. Mom can\'t.' }
+    ]
+  },
+  { // 4 — hospital 1
+    bg: 'hospital',
+    cast: {
+      bed: { x: 620, y: 470 },
+      delphi: { x: 400, y: 470, sad: true }
+    },
+    lines: [
+      { s: 'MOM', t: 'I\'m fine, honey. The healers just want to keep an eye on me for a few days.' },
+      { s: 'DELPHI', t: 'Then I\'m not going to MeMe\'s without you.' },
+      { s: 'MOM', t: 'You ARE going to school tomorrow, though. No visions required to predict THAT.' }
+    ]
+  },
+  { // 5 — Ares and his gang of total jerks
+    bg: 'school',
+    cast: {
+      delphi: { x: 300, y: 470 },
+      ares: { x: 600, y: 470, flip: true },
+      goon1: { x: 710, y: 470, flip: true },
+      goon2: { x: 790, y: 470, flip: true }
+    },
+    lines: [
+      { s: 'ARES', t: 'Well, well. The little fortune teller. Hey Delphi - predict THIS: you\'re gonna eat lunch alone. FOREVER.' },
+      { s: 'THE GANG', t: 'HA HA HA! Good one, boss!' },
+      { s: 'DELPHI', t: 'Ares. God of war. King of the hallway. Leader of a gang of total jerks who laugh at literally everything he says.' },
+      { s: 'THE GANG', t: 'HA HA HA! ...Wait.' },
+      { s: 'DELPHI', t: 'Whoa. Whoa whoa whoa. Gold... light... it\'s a vision...', fx: 'vision' },
+      { s: 'DELPHI', t: 'Laugh all you want, Ares. I just saw VICTORY in my future.', fx: 'vision' },
+      { s: 'ARES', t: '...Victory at WHAT?' },
+      { s: 'DELPHI', t: 'No idea. But it\'s going to be AMAZING.' },
+      { s: 'THE GANG', t: 'HA HA H- hold on, are we laughing at her or him?' }
+    ]
+  },
+  { // 6 — meeting Medusa + sleepover
+    bg: 'glam',
+    cast: {
+      dad: { x: 210, y: 470 },
+      delphi: { x: 320, y: 470 },
+      medusa: { x: 620, y: 470, flip: true }
+    },
+    lines: [
+      { s: 'DAD', t: 'Well, this is the address. Mom says hi from the hospital, and she told me to tell you: behave.' },
+      { s: 'DELPHI', t: 'Dad. Dad. The door is opening. THE DOOR IS OPENING.', fx: 'sparkle' },
+      { s: 'MEDUSA', t: 'Hiiiii! I\'m MeMe! Real name: Medusa. You\'re the first person EVER to guess right and not run away screaming.' },
+      { s: 'DELPHI', t: 'Your hair is SNAKES. That is the coolest thing I have ever seen in my entire life.' },
+      { s: 'MEDUSA', t: 'RIGHT?! Everyone panics about the whole turning-people-to-stone thing, but honestly? The snakes are the best part. This one\'s named Kevin.' },
+      { s: 'DAD', t: 'Well, I can see this friendship is happening whether I like it or not. Delphi, want to sleep over? I\'ll come get you tomorrow.' },
+      { s: 'MEDUSA', t: 'BEST! NIGHT! EVER! Karaoke! Snacks! You can braid my snakes! And we are SO filming an iMortal video together!', fx: 'sparkle' },
+      { s: 'MEDUSA', t: 'Delphi... you\'re my first real friend. You know that?' },
+      { s: 'DELPHI', t: 'Same. And don\'t tell anyone, but this beats a million dollars.' }
+    ]
+  },
+  { // 7 — the note
+    bg: 'glam',
+    cast: { delphi: { x: 400, y: 470 } },
+    lines: [
+      { s: 'DELPHI', t: 'Morning, MeMe! What\'s for breakfa- ...MeMe?', set: { delphi: { sad: true } } },
+      { s: 'DELPHI', t: 'MeMe?! Hello?! She\'s GONE. There\'s just a note, in her glittery handwriting...', flag: { note: true } },
+      { s: 'THE NOTE', t: '"Find me in a palm tree / Help me get to victory / On an island you will find / Me with my own kind. - MeMe"', flag: { note: true } },
+      { s: 'DELPHI', t: 'An island... palm trees... her own kind. The gorgons\' island! Hold on, MeMe. I\'m coming.', flag: { note: false } }
+    ]
+  },
+  { // 8 — Seo and Hermes
+    bg: 'road',
+    cast: {
+      delphi: { x: 300, y: 470 },
+      seo: { x: 620, y: 470, flip: true, sword: true }
+    },
+    lines: [
+      { s: 'DELPHI', t: 'Excuse me! Boy with the shiny sword looking VERY dramatic! Which way to the gorgons\' island?' },
+      { s: 'SEO', t: 'Out of my way. I\'m the son of Poseidon. Don\'t fight me.' },
+      { s: 'DELPHI', t: 'I literally just asked where you\'re going.' },
+      { s: 'SEO', t: 'Winged sandals... GO!', set: { seo: { hidden: true } } },
+      { s: 'DELPHI', t: 'Weirdo.' },
+      { s: 'DELPHI', t: 'Wait. What is that big shape in the sky?! Is that... HERMES?!', set: { hermes: { x: 620, y: 300, flip: true, unhide: true } } },
+      { s: 'HERMES', t: 'Hi, Delphi! Special delivery! One pair of winged sandals! Byeeeee!' },
+      { s: 'DELPHI', t: 'And he\'s gone. ...Thanks?! Okay. Note to self: gods are weirdos too.', set: { hermes: { hidden: true }, delphi: { wingFeet: true } }, fx: 'sparkle' },
+      { s: 'DELPHI', t: 'Alright, magic sandals. Follow that weirdo. TO THE ISLAND!' }
+    ]
+  },
+  { // 9 — Medusa found
+    bg: 'island',
+    cast: {
+      delphi: { x: 340, y: 476, wingFeet: true },
+      medusadown: { x: 600, y: 490 }
+    },
+    lines: [
+      { s: 'DELPHI', t: 'MeMe! MeMe, I found you! I flew across the whole entire sea and- ...MeMe?', set: { delphi: { sad: true } } },
+      { s: 'DELPHI', t: 'Why aren\'t your snakes dancing? Your snakes are ALWAYS dancing.' },
+      { s: 'MEDUSA', t: 'Perseus... destroy... bye...' },
+      { s: 'DELPHI', t: 'No no no no no. MeMe? MeMe!! Wake up!!' },
+      { s: 'DELPHI', t: 'Perseus. PERSEUS! Whoever you are - I am going to FIND you!' }
+    ]
+  },
+  { // 10 — confronting Seo
+    bg: 'shore',
+    cast: {
+      delphi: { x: 330, y: 476, wingFeet: true },
+      seo: { x: 610, y: 476, flip: true, sad: true }
+    },
+    lines: [
+      { s: 'DELPHI', t: '"Seo." Per-SEO-s. PERSEUS! It didn\'t even take an oracle to figure that one out. YOU.' },
+      { s: 'DELPHI', t: 'WHAT DID SHE EVER DO TO YOU?!?!' },
+      { s: 'SEO', t: 'N-nothing... m-my m-mom was gonna d-die if I didn\'t do it.' },
+      { s: 'SEO', t: 'There\'s an evil king back home. He said if I didn\'t bring him Medusa\'s head, he\'d marry my mom - or worse - and lock me up in chains forever.' },
+      { s: 'DELPHI', t: 'You\'re... you\'re not a monster. You\'re just a scared kid trying to save his mom. And I know EXACTLY how that feels.', set: { delphi: { sad: true } } },
+      { s: 'SEO', t: 'Here. Take the bag. You were her friend - you decide what happens now. And... lean in. There\'s something I need to whisper. Just for you.' },
+      { s: 'DELPHI', t: '...Okay. Okay. One hug, and then you GO, Seo. Go save your mom.', set: { seo: { hidden: true } } }
+    ]
+  },
+  { // 11 — the gift to Poseidon
+    bg: 'shore',
+    cast: { delphi: { x: 330, y: 476, wingFeet: true, sad: true } },
+    lines: [
+      { s: 'DELPHI', t: 'Wait. Seo still NEEDS this to save his mom from the king. Ugh, I feel SO guilty. Okay... onto the waves it goes.', flag: { headFloat: true } },
+      { s: 'DELPHI', t: 'Poseidon? It\'s Delphi. Your son needs this more than I do. Please... make sure it gets to him.' },
+      { s: 'DELPHI', t: 'Whoa. The sea is GLOWING. It\'s carrying it home - like a great gentle hand. Thank you, Poseidon.', fx: 'seaglow' }
+    ]
+  },
+  { // 12 — Medusa lives!
+    bg: 'island',
+    cast: {
+      delphi: { x: 280, y: 476, wingFeet: true, sad: true },
+      medusa: { x: 560, y: 476, flip: true },
+      stheno: { x: 690, y: 476, flip: true },
+      euryale: { x: 790, y: 476, flip: true }
+    },
+    lines: [
+      { s: 'DELPHI', t: 'Okay, Delphi. Deep breath. You are going to give MeMe the most beautiful burial this island has ever se- ...WHAT.' },
+      { s: 'MEDUSA', t: 'DELPHIIIII! Oh my gods, don\'t look so shocked. Gorgon thing - we grow back! Brand! New! Head! Stheno has lost hers TWICE.', fx: 'sparkle', set: { delphi: { sad: false } } },
+      { s: 'STHENO', t: 'Once was just a haircut that went very, very wrong.' },
+      { s: 'MEDUSA', t: 'Stay with us! Forever! Free food, bunk beds, and my sisters know ALL the gossip on Mount Olympus.' },
+      { s: 'DELPHI', t: 'That is a REALLY great deal. Free food AND bunk beds?! But... my mom. My mom is still in the hospital.' },
+      { s: 'DELPHI', t: 'I can\'t stay. But listen close, because this is a real prophecy: you and your sisters are going to live a good, LONG life. That\'s not a guess. I\'ve SEEN it.', fx: 'vision' },
+      { s: 'MEDUSA', t: 'Best. Friend. EVER. Now GO - your mom is waiting!' }
+    ]
+  },
+  { // 13 — mom is OK / the real victory
+    bg: 'hospital',
+    cast: {
+      delphi: { x: 380, y: 470, wingFeet: true },
+      mom: { x: 560, y: 470 }
+    },
+    lines: [
+      { s: 'DELPHI', t: 'Mom?! MOM! Please be okay, please be okay, please be-' },
+      { s: 'MOM', t: 'Sweetheart! They\'re letting me out today. Good as new!', fx: 'sparkle' },
+      { s: 'DELPHI', t: 'You\'re okay. You\'re ALIVE and you\'re okay!' },
+      { s: 'DELPHI', t: 'Wait. WAIT. The vision! THIS is what I saw!' },
+      { s: 'DELPHI', t: 'The victory was never the contest. It wasn\'t the million dollars, or Ares, or even the island.' },
+      { s: 'DELPHI', t: 'It was YOU being okay, Mom. That was the victory. All along.' }
+    ]
+  },
+  { // 14 — the end
+    bg: 'night', title: 'THE END', subtitle: '',
+    cast: {
+      delphi: { x: 400, y: 500, wingFeet: true },
+      medusa: { x: 560, y: 500, flip: true }
+    },
+    lines: [
+      { s: 'MEDUSA', t: 'Update for all my iMortal followers: my sisters and I are living a good, LONG life - just like a certain oracle promised!' },
+      { s: 'DELPHI', t: 'And Seo saved his mom from the evil king! No wedding. No dungeon. The chains stayed broken - FOREVER.' },
+      { s: 'MEDUSA', t: 'And every single weekend, my best friend flies her winged sandals out to my island... and we film iMortal videos together!' },
+      { s: 'DELPHI', t: 'Say bye to the camera, MeMe!' },
+      { s: 'MEDUSA', t: 'BYE! This has been BROKEN CHAIN. THE END!', fx: 'sparkle' }
+    ]
+  }
+];
+
+// ---------- scene state ----------
+let sceneIdx = 0, lineIdx = -1;
+let cast = {};
+let flags = {};
+let sceneT = 0;
+let fade = 1, fadeDir = -1, pendingScene = -1;
+let typing = false, typeProgress = 0, fullText = '';
+let finished = false;
+
+function deepCopyCast(c) {
+  const out = {};
+  for (const k in c) out[k] = { ...c[k] };
+  return out;
+}
+
+function startScene(i) {
+  sceneIdx = i;
+  lineIdx = -1;
+  sceneT = 0;
+  flags = {};
+  sparkles = [];
+  cast = deepCopyCast(SCENES[i].cast);
+  progEl.textContent = 'SCENE ' + (i + 1) + ' / ' + SCENES.length;
+  if (SCENES[i].lines.length === 0) { dlg.style.display = 'none'; typing = false; }
+  else nextLine();
+}
+
+function nextLine() {
+  const scene = SCENES[sceneIdx];
+  lineIdx++;
+  if (lineIdx >= scene.lines.length) {
+    if (sceneIdx + 1 < SCENES.length) {
+      pendingScene = sceneIdx + 1;
+      fadeDir = 1;
+    } else {
+      finished = true;
+      dlg.style.display = 'none';
+      replayBtn.style.display = 'block';
+    }
+    return;
+  }
+  const line = scene.lines[lineIdx];
+  if (line.set) {
+    for (const k in line.set) {
+      const patch = line.set[k];
+      if (patch.unhide) { cast[k] = { ...patch }; delete cast[k].unhide; }
+      else if (cast[k]) Object.assign(cast[k], patch);
+      else cast[k] = { ...patch };
+    }
+  }
+  if (line.flag) Object.assign(flags, line.flag);
+  if (line.fx === 'crash') {
+    flags.crashed = true;
+    flags.shake = 0.7;
+    flags.flash = 0.5;
+  }
+  if (line.fx === 'vision') {
+    flags.vision = 1.6;
+    if (cast.delphi) burstSparkles(cast.delphi.x, cast.delphi.y - 80, 14, '#ffe37a');
+  }
+  if (line.fx === 'sparkle') {
+    burstSparkles(W / 2, H / 2 - 40, 26, '#7dffb0');
+    burstSparkles(W / 2 - 200, H / 2, 14, '#ffe37a');
+    burstSparkles(W / 2 + 200, H / 2, 14, '#f48fb1');
+  }
+  if (line.fx === 'seaglow') flags.seaglow = 2.5;
+
+  speakerEl.textContent = line.s || '';
+  speakerEl.style.color = SPEAKER_COLORS[line.s] || '#f4d35e';
+  speakerEl.style.display = line.s ? 'block' : 'none';
+  textEl.style.fontStyle = line.s ? 'normal' : 'italic';
+  textEl.style.color = line.s ? '#f2ecdd' : '#cfc4a8';
+  fullText = line.t;
+  typeProgress = 0;
+  typing = true;
+  dlg.style.display = 'block';
+  hintEl.style.visibility = 'hidden';
+}
+
+function advance() {
+  if (finished || fadeDir !== 0 && fade > 0.05) return;
+  if (typing) {
+    typeProgress = fullText.length;
+    typing = false;
+    textEl.textContent = fullText;
+    hintEl.style.visibility = 'visible';
+  } else {
+    nextLine();
+  }
+}
+
+stage.addEventListener('pointerdown', e => {
+  if (e.target === replayBtn) return;
+  advance();
+});
+window.addEventListener('keydown', e => {
+  if (e.code === 'Space' || e.code === 'Enter' || e.code === 'ArrowRight') {
+    e.preventDefault();
+    advance();
+  }
+});
+replayBtn.addEventListener('click', () => {
+  finished = false;
+  replayBtn.style.display = 'none';
+  fade = 1; fadeDir = -1;
+  startScene(0);
+});
+
+// ---------- drawing extras ----------
+function drawNote() {
+  ctx.save();
+  ctx.translate(480, 240);
+  ctx.rotate(-0.03);
+  ctx.fillStyle = 'rgba(0,0,0,.35)';
+  rr(-165, -125, 340, 260, 8); ctx.fill();
+  ctx.fillStyle = '#f6ecd4';
+  rr(-170, -130, 340, 260, 8); ctx.fill();
+  ctx.strokeStyle = '#c9a227'; ctx.lineWidth = 2;
+  rr(-158, -118, 316, 236, 6); ctx.stroke();
+  ctx.fillStyle = '#6d5a2e';
+  ctx.textAlign = 'center';
+  ctx.font = 'italic 22px Georgia';
+  const linesTxt = [
+    'Find me in a palm tree',
+    'Help me get to victory',
+    'On an island you will find',
+    'Me with my own kind',
+    '',
+    '- MeMe'
+  ];
+  linesTxt.forEach((l, i) => ctx.fillText(l, 0, -70 + i * 34));
+  ctx.textAlign = 'left';
+  ctx.restore();
+}
+
+function drawFloatBag(t) {
+  // glowing satchel drifting out to sea
+  const p = Math.min(1, (flags.floatT || 0) / 6);
+  const x = 430 + p * 560;
+  const y = 400 - p * 60 + Math.sin(t * 2) * 4;
+  const s = 1 - p * 0.55;
+  ctx.save();
+  ctx.translate(x, y); ctx.scale(s, s);
+  ctx.shadowColor = '#7de3ff'; ctx.shadowBlur = 18;
+  ctx.fillStyle = '#8d6e4c';
+  ctx.beginPath(); ctx.arc(0, 0, 16, 0, 7); ctx.fill();
+  ctx.fillStyle = '#6d5238';
+  ctx.beginPath(); ctx.ellipse(0, -13, 9, 4, 0, 0, 7); ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.restore();
+}
+
+function drawTitleCard(scene, t) {
+  ctx.fillStyle = '#f4d35e';
+  ctx.textAlign = 'center';
+  ctx.font = 'bold 72px Georgia';
+  ctx.shadowColor = '#c9a227'; ctx.shadowBlur = 24;
+  ctx.fillText(scene.title, W / 2, 220);
+  ctx.shadowBlur = 0;
+  if (scene.subtitle) {
+    ctx.font = 'italic 24px Georgia';
+    ctx.fillStyle = '#cfc4a8';
+    ctx.fillText(scene.subtitle, W / 2, 264);
+  }
+  // broken chain emblem
+  ctx.strokeStyle = '#c9a227'; ctx.lineWidth = 5;
+  for (let i = 0; i < 3; i++) {
+    ctx.beginPath(); ctx.ellipse(W / 2 - 110 + i * 44, 320, 20, 13, 0.5, 0, 7); ctx.stroke();
+  }
+  const gap = 6 + Math.sin(t * 2) * 2;
+  for (let i = 0; i < 3; i++) {
+    ctx.beginPath(); ctx.ellipse(W / 2 + 40 + gap + i * 44, 320, 20, 13, -0.5, 0, 7); ctx.stroke();
+  }
+  ctx.textAlign = 'left';
+}
+
+// ---------- main loop ----------
+let last = performance.now();
+function loop(now) {
+  const dt = Math.max(0, Math.min(0.05, (now - last) / 1000));
+  last = now;
+  sceneT += dt;
+
+  // fade transitions
+  if (fadeDir === 1) {
+    fade += dt * 2.2;
+    if (fade >= 1) { fade = 1; fadeDir = -1; startScene(pendingScene); }
+  } else if (fadeDir === -1) {
+    fade -= dt * 1.6;
+    if (fade <= 0) { fade = 0; fadeDir = 0; }
+  }
+
+  // typewriter (time-based)
+  if (typing) {
+    typeProgress += dt * 42;
+    if (typeProgress >= fullText.length) {
+      typeProgress = fullText.length;
+      typing = false;
+      hintEl.style.visibility = 'visible';
+    }
+    textEl.textContent = fullText.slice(0, Math.floor(typeProgress));
+  }
+
+  // effect timers
+  if (flags.shake > 0) flags.shake -= dt;
+  if (flags.flash > 0) flags.flash -= dt;
+  if (flags.vision > 0) flags.vision -= dt;
+  if (flags.seaglow > 0) flags.seaglow -= dt;
+  if (flags.headFloat) flags.floatT = (flags.floatT || 0) + dt;
+
+  const scene = SCENES[sceneIdx];
+
+  ctx.save();
+  if (flags.shake > 0) {
+    ctx.translate(rand(-1, 1) * flags.shake * 14, rand(-1, 1) * flags.shake * 10);
+  }
+
+  BG[scene.bg](sceneT);
+
+  // actors (sorted so bigger y draws later = in front)
+  const order = Object.keys(cast).filter(k => !cast[k].hidden)
+    .sort((a, b) => (cast[a].y || 0) - (cast[b].y || 0));
+  for (const k of order) {
+    const a = cast[k];
+    ctx.save();
+    ctx.translate(a.x, a.y);
+    if (a.flip) ctx.scale(-1, 1);
+    if (k === 'chariot') chariot(sceneT, flags.crashed);
+    else if (k === 'medusadown') medusaDown(sceneT);
+    else if (k === 'bed') momInBed(sceneT);
+    else if (CHAR[k]) {
+      const glow = (flags.vision > 0 && k === 'delphi');
+      CHAR[k]({ t: sceneT, flip: false, glowEyes: glow, sad: a.sad, wingFeet: a.wingFeet, sword: a.sword });
+    }
+    ctx.restore();
+  }
+
+  if (flags.headFloat) drawFloatBag(sceneT);
+  drawSparkles(dt);
+  if (flags.note) drawNote();
+  if (scene.title) drawTitleCard(scene, sceneT);
+
+  // vision vignette
+  if (flags.vision > 0) {
+    const a = Math.min(0.5, flags.vision * 0.4);
+    const g = ctx.createRadialGradient(W / 2, H / 2, 160, W / 2, H / 2, 560);
+    g.addColorStop(0, 'rgba(255,210,63,0)');
+    g.addColorStop(1, `rgba(255,190,40,${a})`);
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  }
+  if (flags.seaglow > 0) {
+    const a = Math.min(0.3, flags.seaglow * 0.15);
+    ctx.fillStyle = `rgba(90,200,255,${a})`;
+    ctx.fillRect(0, 300, W, 240);
+  }
+  if (flags.flash > 0) {
+    ctx.fillStyle = `rgba(255,255,255,${Math.min(1, flags.flash * 2)})`;
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  ctx.restore();
+
+  // letterbox bars
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, W, 14);
+  ctx.fillRect(0, H - 14, W, 14);
+
+  // fade overlay
+  if (fade > 0) {
+    ctx.fillStyle = `rgba(0,0,0,${fade})`;
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  requestAnimationFrame(loop);
+}
+
+startScene(0);
+requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
