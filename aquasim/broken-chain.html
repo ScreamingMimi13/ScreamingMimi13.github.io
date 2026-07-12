@@ -45,6 +45,13 @@
     position:absolute; top:10px; right:14px; color:#8a7f66; font-size:12px;
     letter-spacing:2px; pointer-events:none;
   }
+  #voiceBtn {
+    position:absolute; top:8px; left:12px; background:rgba(12,10,22,.7);
+    color:#c9a227; border:1px solid #c9a227; border-radius:14px;
+    font-family:Georgia,serif; font-size:11px; letter-spacing:1px;
+    padding:4px 12px; cursor:pointer;
+  }
+  #voiceBtn:hover { background:rgba(201,162,39,.25); }
   #replay {
     position:absolute; left:50%; top:72%; transform:translateX(-50%);
     display:none; background:#c9a227; color:#1b1408; border:none;
@@ -64,6 +71,7 @@
     <div id="hint">click &#9654;</div>
   </div>
   <div id="progress"></div>
+  <button id="voiceBtn">VOICE ON</button>
   <button id="replay">Play Again</button>
 </div>
 <script>
@@ -111,20 +119,69 @@ const SPEAKER_COLORS = {
   'STHENO': '#a8ffcf', 'THE NOTE': '#f4d35e'
 };
 
+// ---------- voices ----------
+// Everyone shares the browser's speech voice, told apart by pitch and speed.
+const VOICE = {
+  'DELPHI': { pitch: 1.7, rate: 1.15 },
+  'MOM':    { pitch: 1.3, rate: 1.0 },
+  'DAD':    { pitch: 0.6, rate: 0.95 },
+  'MEME':   { pitch: 1.9, rate: 1.2 },
+  'MEDUSA': { pitch: 1.9, rate: 1.2 },
+  'SEO':    { pitch: 1.4, rate: 1.05 },
+  'HERMES': { pitch: 1.2, rate: 1.5 },
+  'ARES':   { pitch: 0.3, rate: 0.9 },
+  'THE GANG': { pitch: 1.1, rate: 1.25 },
+  'STHENO': { pitch: 1.5, rate: 0.9 },
+  'THE NOTE': { pitch: 1.9, rate: 1.0 }
+};
+// Which actor's mouth moves for each speaker
+const MOUTH_OF = {
+  'DELPHI': ['delphi'], 'MOM': ['mom', 'bed'], 'DAD': ['dad'],
+  'MEDUSA': ['medusa'], 'MEME': ['medusa'], 'SEO': ['seo'], 'HERMES': ['hermes'],
+  'ARES': ['ares'], 'THE GANG': ['goon1', 'goon2'], 'STHENO': ['stheno']
+};
+let voiceOn = true;
+let voicePick = null;
+function pickVoice() {
+  const vs = speechSynthesis.getVoices();
+  voicePick = vs.find(v => v.lang && v.lang.indexOf('en') === 0) || null;
+}
+if (window.speechSynthesis) {
+  pickVoice();
+  speechSynthesis.onvoiceschanged = pickVoice;
+}
+function speak(line) {
+  if (!voiceOn || !window.speechSynthesis || !line.s) return;
+  try {
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(line.t);
+    const v = VOICE[line.s] || { pitch: 1, rate: 1 };
+    u.pitch = v.pitch; u.rate = v.rate;
+    if (voicePick) u.voice = voicePick;
+    speechSynthesis.speak(u);
+  } catch (e) { /* speech is a bonus; never break the movie */ }
+}
+
 // ---------- character drawing ----------
 // All characters are drawn anchored at their feet (0,0), facing right.
 function person(t, o) {
   const h = o.h || 120;
-  const bob = Math.sin(t * 2 + (o.seed || 0)) * 2.2;
+  const bob = o.walk
+    ? -Math.abs(Math.sin(t * 9 + (o.seed || 0))) * 3
+    : Math.sin(t * 2 + (o.seed || 0)) * 2.2;
   const headR = h * 0.165;
   const hemY = -h * 0.16;
   const shoulderY = -h * 0.62 + bob;
   const hipW = h * 0.21, shW = h * 0.13;
 
-  // feet / sandals
+  // feet / sandals (scissor while walking)
+  const walkP = o.walk ? Math.sin(t * 9 + (o.seed || 0)) : 0;
+  const fOff = walkP * 9, bOff = -walkP * 9;
+  const fLift = o.walk ? Math.max(0, walkP) * 5 : 0;
+  const bLift = o.walk ? Math.max(0, -walkP) * 5 : 0;
   ctx.fillStyle = o.skin;
-  ctx.beginPath(); ctx.ellipse(-hipW * 0.45, -3, 8, 4, 0, 0, 7); ctx.fill();
-  ctx.beginPath(); ctx.ellipse(hipW * 0.45, -3, 8, 4, 0, 0, 7); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(-hipW * 0.45 + bOff, -3 - bLift, 8, 4, 0, 0, 7); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(hipW * 0.45 + fOff, -3 - fLift, 8, 4, 0, 0, 7); ctx.fill();
   if (o.wingFeet) {
     ctx.fillStyle = '#fff';
     for (const s of [-1, 1]) {
@@ -138,8 +195,8 @@ function person(t, o) {
   }
   // legs
   ctx.strokeStyle = o.skin; ctx.lineWidth = 5; ctx.lineCap = 'round';
-  ctx.beginPath(); ctx.moveTo(-hipW * 0.42, -4); ctx.lineTo(-hipW * 0.35, hemY + bob * 0.4); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(hipW * 0.42, -4); ctx.lineTo(hipW * 0.35, hemY + bob * 0.4); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-hipW * 0.42 + bOff, -4 - bLift); ctx.lineTo(-hipW * 0.35, hemY + bob * 0.4); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(hipW * 0.42 + fOff, -4 - fLift); ctx.lineTo(hipW * 0.35, hemY + bob * 0.4); ctx.stroke();
   // chiton (dress)
   ctx.fillStyle = o.dress;
   ctx.beginPath();
@@ -153,7 +210,9 @@ function person(t, o) {
   ctx.fillRect(-shW * 1.15, shoulderY + (hemY - shoulderY) * 0.52, shW * 2.3, 4);
   // arms
   ctx.strokeStyle = o.skin; ctx.lineWidth = 5;
-  const armSwing = Math.sin(t * 2 + (o.seed || 0)) * 0.08;
+  const armSwing = o.walk
+    ? Math.sin(t * 9 + (o.seed || 0)) * 0.45
+    : Math.sin(t * 2 + (o.seed || 0)) * 0.08;
   for (const s of [-1, 1]) {
     ctx.beginPath();
     ctx.moveTo(s * shW * 0.9, shoulderY + 5);
@@ -242,12 +301,19 @@ function person(t, o) {
     ctx.beginPath(); ctx.arc(ex, ey, 2.4, 0, 7); ctx.fill();
     ctx.beginPath(); ctx.arc(ex - headR * 0.62, ey, 2.4, 0, 7); ctx.fill();
   }
-  ctx.strokeStyle = '#2a2118'; ctx.lineWidth = 1.8;
-  ctx.beginPath();
   const my = headY + headR * 0.42;
-  if (o.sad) ctx.arc(ex - headR * 0.3, my + 4, headR * 0.28, Math.PI * 1.15, Math.PI * 1.85);
-  else ctx.arc(ex - headR * 0.3, my, headR * 0.3, Math.PI * 0.15, Math.PI * 0.85);
-  ctx.stroke();
+  if (o.talking) {
+    // mouth opens and closes while speaking
+    ctx.fillStyle = '#2a2118';
+    const open = 1.2 + Math.abs(Math.sin(t * 13 + (o.seed || 0))) * 3.2;
+    ctx.beginPath(); ctx.ellipse(ex - headR * 0.3, my, headR * 0.2, open, 0, 0, 7); ctx.fill();
+  } else {
+    ctx.strokeStyle = '#2a2118'; ctx.lineWidth = 1.8;
+    ctx.beginPath();
+    if (o.sad) ctx.arc(ex - headR * 0.3, my + 4, headR * 0.28, Math.PI * 1.15, Math.PI * 1.85);
+    else ctx.arc(ex - headR * 0.3, my, headR * 0.3, Math.PI * 0.15, Math.PI * 0.85);
+    ctx.stroke();
+  }
   // held sword
   if (o.sword) {
     ctx.save();
@@ -295,7 +361,7 @@ function medusaDown(t) {
   ctx.restore();
 }
 
-function momInBed(t) {
+function momInBed(t, talking) {
   // hospital bed, anchored at floor
   ctx.fillStyle = '#8d6e63';
   ctx.fillRect(-90, -46, 8, 46); ctx.fillRect(82, -46, 8, 46);
@@ -310,8 +376,13 @@ function momInBed(t) {
   ctx.fillStyle = '#2a2118';
   ctx.beginPath(); ctx.arc(58, -69, 1.6, 0, 7); ctx.fill();
   ctx.beginPath(); ctx.arc(64, -69, 1.6, 0, 7); ctx.fill();
-  ctx.strokeStyle = '#2a2118'; ctx.lineWidth = 1.4;
-  ctx.beginPath(); ctx.arc(61, -65, 3.2, Math.PI * 0.15, Math.PI * 0.85); ctx.stroke();
+  if (talking) {
+    ctx.fillStyle = '#2a2118';
+    ctx.beginPath(); ctx.ellipse(61, -65, 2.2, 1 + Math.abs(Math.sin(t * 13)) * 2.4, 0, 0, 7); ctx.fill();
+  } else {
+    ctx.strokeStyle = '#2a2118'; ctx.lineWidth = 1.4;
+    ctx.beginPath(); ctx.arc(61, -65, 3.2, Math.PI * 0.15, Math.PI * 0.85); ctx.stroke();
+  }
 }
 
 function chariot(t, crashed) {
@@ -627,10 +698,10 @@ const SCENES = [
     lines: [
       { s: 'DELPHI', t: 'Mom. Dad. Tomorrow you\'re going to tell me to clean my room. I have SEEN it. That\'s how being an oracle works - no surprises, ever.' },
       { s: 'MOM', t: 'And yet somehow your room stays messy in every possible future.' },
-      { s: 'DELPHI', t: 'Shhh, everyone! MeMe is live on iMortal! MeMe is only the BIGGEST star on the whole app!' },
+      { s: 'DELPHI', t: 'Shhh, everyone! MeMe is live on iMortal! MeMe is only the BIGGEST star on the whole app!', move: { delphi: 260 } },
       { s: 'MEME', t: 'HEY, IMMORTALS! Nobody has ever seen my face. So here\'s the game... GUESS WHAT I AM!', fx: 'sparkle' },
       { s: 'MEME', t: 'First correct guess wins ONE MILLION DOLLARS - and gets to make videos with me on iMortal!' },
-      { s: 'DELPHI', t: 'Mom! Dad! Can I enter?! Please please PLEASE?' },
+      { s: 'DELPHI', t: 'Mom! Dad! Can I enter?! Please please PLEASE?', move: { delphi: 480 } },
       { s: 'DAD', t: 'Fine. But if you win a million dollars, you are STILL cleaning your room.' },
       { s: 'DELPHI', t: 'Okay. Closing my eyes. Focusing. Here comes the future...', fx: 'vision' },
       { s: 'DELPHI', t: 'I see snakes... I see stone... I see... a GORGON!', fx: 'vision' },
@@ -649,7 +720,7 @@ const SCENES = [
       { s: 'DELPHI', t: 'Faster, Mom! MeMe\'s house awaits! We can\'t be late!' },
       { s: 'MOM', t: 'Sweetheart, this chariot has exactly one horsepower. Literally. It is one horse.' },
       { s: 'MOM', t: 'Wait. That chariot. THAT CHARIOT - LOOK OUT!!!', fx: 'crash' },
-      { s: 'DELPHI', t: 'Mom?! MOM! Are you okay?!', set: { mom: { sad: true }, delphi: { sad: true } } },
+      { s: 'DELPHI', t: 'Mom?! MOM! Are you okay?!', set: { mom: { sad: true }, delphi: { sad: true } }, move: { delphi: 470 } },
       { s: 'MOM', t: 'I\'m okay, I\'m okay. But the healers want to check me over at the hospital, just to be safe. I\'m so sorry, honey... no MeMe today.' },
       { s: 'DELPHI', t: 'MeMe can wait. Mom can\'t.' }
     ]
@@ -662,7 +733,7 @@ const SCENES = [
     },
     lines: [
       { s: 'MOM', t: 'I\'m fine, honey. The healers just want to keep an eye on me for a few days.' },
-      { s: 'DELPHI', t: 'Then I\'m not going to MeMe\'s without you.' },
+      { s: 'DELPHI', t: 'Then I\'m not going to MeMe\'s without you.', move: { delphi: 500 } },
       { s: 'MOM', t: 'You ARE going to school tomorrow, though. No visions required to predict THAT.' }
     ]
   },
@@ -675,12 +746,12 @@ const SCENES = [
       goon2: { x: 790, y: 470, flip: true }
     },
     lines: [
-      { s: 'ARES', t: 'Well, well. The little fortune teller. Hey Delphi - predict THIS: you\'re gonna eat lunch alone. FOREVER.' },
+      { s: 'ARES', t: 'Well, well. The little fortune teller. Hey Delphi - predict THIS: you\'re gonna eat lunch alone. FOREVER.', move: { ares: 500 } },
       { s: 'THE GANG', t: 'HA HA HA! Good one, boss!' },
       { s: 'DELPHI', t: 'Ares. God of war. King of the hallway. Leader of a gang of total jerks who laugh at literally everything he says.' },
       { s: 'THE GANG', t: 'HA HA HA! ...Wait.' },
       { s: 'DELPHI', t: 'Whoa. Whoa whoa whoa. Gold... light... it\'s a vision...', fx: 'vision' },
-      { s: 'DELPHI', t: 'Laugh all you want, Ares. I just saw VICTORY in my future.', fx: 'vision' },
+      { s: 'DELPHI', t: 'Laugh all you want, Ares. I just saw VICTORY in my future.', fx: 'vision', move: { delphi: 380 } },
       { s: 'ARES', t: '...Victory at WHAT?' },
       { s: 'DELPHI', t: 'No idea. But it\'s going to be AMAZING.' },
       { s: 'THE GANG', t: 'HA HA H- hold on, are we laughing at her or him?' }
@@ -691,13 +762,13 @@ const SCENES = [
     cast: {
       dad: { x: 210, y: 470 },
       delphi: { x: 320, y: 470 },
-      medusa: { x: 620, y: 470, flip: true }
+      medusa: { x: 1010, y: 470, flip: true }
     },
     lines: [
       { s: 'DAD', t: 'Well, this is the address. Mom says hi from the hospital, and she told me to tell you: behave.' },
       { s: 'DELPHI', t: 'Dad. Dad. The door is opening. THE DOOR IS OPENING.', fx: 'sparkle' },
-      { s: 'MEDUSA', t: 'Hiiiii! I\'m MeMe! Real name: Medusa. You\'re the first person EVER to guess right and not run away screaming.' },
-      { s: 'DELPHI', t: 'Your hair is SNAKES. That is the coolest thing I have ever seen in my entire life.' },
+      { s: 'MEDUSA', t: 'Hiiiii! I\'m MeMe! Real name: Medusa. You\'re the first person EVER to guess right and not run away screaming.', move: { medusa: 620 } },
+      { s: 'DELPHI', t: 'Your hair is SNAKES. That is the coolest thing I have ever seen in my entire life.', move: { delphi: 430 } },
       { s: 'MEDUSA', t: 'RIGHT?! Everyone panics about the whole turning-people-to-stone thing, but honestly? The snakes are the best part. This one\'s named Kevin.' },
       { s: 'DAD', t: 'Well, I can see this friendship is happening whether I like it or not. Delphi, want to sleep over? I\'ll come get you tomorrow.' },
       { s: 'MEDUSA', t: 'BEST! NIGHT! EVER! Karaoke! Snacks! You can braid my snakes! And we are SO filming an iMortal video together!', fx: 'sparkle' },
@@ -710,7 +781,7 @@ const SCENES = [
     cast: { delphi: { x: 400, y: 470 } },
     lines: [
       { s: 'DELPHI', t: 'Morning, MeMe! What\'s for breakfa- ...MeMe?', set: { delphi: { sad: true } } },
-      { s: 'DELPHI', t: 'MeMe?! Hello?! She\'s GONE. There\'s just a note, in her glittery handwriting...', flag: { note: true } },
+      { s: 'DELPHI', t: 'MeMe?! Hello?! She\'s GONE. There\'s just a note, in her glittery handwriting...', flag: { note: true }, move: { delphi: 560 } },
       { s: 'THE NOTE', t: '"Find me in a palm tree / Help me get to victory / On an island you will find / Me with my own kind. - MeMe"', flag: { note: true } },
       { s: 'DELPHI', t: 'An island... palm trees... her own kind. The gorgons\' island! Hold on, MeMe. I\'m coming.', flag: { note: false } }
     ]
@@ -723,14 +794,14 @@ const SCENES = [
     },
     lines: [
       { s: 'DELPHI', t: 'Excuse me! Boy with the shiny sword looking VERY dramatic! Which way to the gorgons\' island?' },
-      { s: 'SEO', t: 'Out of my way. I\'m the son of Poseidon. Don\'t fight me.' },
+      { s: 'SEO', t: 'Out of my way. I\'m the son of Poseidon. Don\'t fight me.', move: { seo: 500 } },
       { s: 'DELPHI', t: 'I literally just asked where you\'re going.' },
-      { s: 'SEO', t: 'Winged sandals... GO!', set: { seo: { hidden: true } } },
-      { s: 'DELPHI', t: 'Weirdo.' },
+      { s: 'SEO', t: 'Winged sandals... GO!' },
+      { s: 'DELPHI', t: 'Weirdo.', set: { seo: { hidden: true } } },
       { s: 'DELPHI', t: 'Wait. What is that big shape in the sky?! Is that... HERMES?!', set: { hermes: { x: 620, y: 300, flip: true, unhide: true } } },
       { s: 'HERMES', t: 'Hi, Delphi! Special delivery! One pair of winged sandals! Byeeeee!' },
       { s: 'DELPHI', t: 'And he\'s gone. ...Thanks?! Okay. Note to self: gods are weirdos too.', set: { hermes: { hidden: true }, delphi: { wingFeet: true } }, fx: 'sparkle' },
-      { s: 'DELPHI', t: 'Alright, magic sandals. Follow that weirdo. TO THE ISLAND!' }
+      { s: 'DELPHI', t: 'Alright, magic sandals. Follow that weirdo. TO THE ISLAND!', move: { delphi: 800 } }
     ]
   },
   { // 9 — Medusa found
@@ -740,7 +811,7 @@ const SCENES = [
       medusadown: { x: 600, y: 490 }
     },
     lines: [
-      { s: 'DELPHI', t: 'MeMe! MeMe, I found you! I flew across the whole entire sea and- ...MeMe?', set: { delphi: { sad: true } } },
+      { s: 'DELPHI', t: 'MeMe! MeMe, I found you! I flew across the whole entire sea and- ...MeMe?', set: { delphi: { sad: true } }, move: { delphi: 500 } },
       { s: 'DELPHI', t: 'Why aren\'t your snakes dancing? Your snakes are ALWAYS dancing.' },
       { s: 'MEDUSA', t: 'Perseus... destroy... bye...' },
       { s: 'DELPHI', t: 'No no no no no. MeMe? MeMe!! Wake up!!' },
@@ -755,19 +826,19 @@ const SCENES = [
     },
     lines: [
       { s: 'DELPHI', t: '"Seo." Per-SEO-s. PERSEUS! It didn\'t even take an oracle to figure that one out. YOU.' },
-      { s: 'DELPHI', t: 'WHAT DID SHE EVER DO TO YOU?!?!' },
-      { s: 'SEO', t: 'N-nothing... m-my m-mom was gonna d-die if I didn\'t do it.' },
+      { s: 'DELPHI', t: 'WHAT DID SHE EVER DO TO YOU?!?!', move: { delphi: 480 } },
+      { s: 'SEO', t: 'N-nothing... m-my m-mom was gonna d-die if I didn\'t do it.', move: { seo: 700 } },
       { s: 'SEO', t: 'There\'s an evil king back home. He said if I didn\'t bring him Medusa\'s head, he\'d marry my mom - or worse - and lock me up in chains forever.' },
       { s: 'DELPHI', t: 'You\'re... you\'re not a monster. You\'re just a scared kid trying to save his mom. And I know EXACTLY how that feels.', set: { delphi: { sad: true } } },
       { s: 'SEO', t: 'Here. Take the bag. You were her friend - you decide what happens now. And... lean in. There\'s something I need to whisper. Just for you.' },
-      { s: 'DELPHI', t: '...Okay. Okay. One hug, and then you GO, Seo. Go save your mom.', set: { seo: { hidden: true } } }
+      { s: 'DELPHI', t: '...Okay. Okay. One hug, and then you GO, Seo. Go save your mom.', move: { delphi: 620 } }
     ]
   },
   { // 11 — the gift to Poseidon
     bg: 'shore',
     cast: { delphi: { x: 330, y: 476, wingFeet: true, sad: true } },
     lines: [
-      { s: 'DELPHI', t: 'Wait. Seo still NEEDS this to save his mom from the king. Ugh, I feel SO guilty. Okay... onto the waves it goes.', flag: { headFloat: true } },
+      { s: 'DELPHI', t: 'Wait. Seo still NEEDS this to save his mom from the king. Ugh, I feel SO guilty. Okay... onto the waves it goes.', flag: { headFloat: true }, move: { delphi: 400 } },
       { s: 'DELPHI', t: 'Poseidon? It\'s Delphi. Your son needs this more than I do. Please... make sure it gets to him.' },
       { s: 'DELPHI', t: 'Whoa. The sea is GLOWING. It\'s carrying it home - like a great gentle hand. Thank you, Poseidon.', fx: 'seaglow' }
     ]
@@ -782,7 +853,7 @@ const SCENES = [
     },
     lines: [
       { s: 'DELPHI', t: 'Okay, Delphi. Deep breath. You are going to give MeMe the most beautiful burial this island has ever se- ...WHAT.' },
-      { s: 'MEDUSA', t: 'DELPHIIIII! Oh my gods, don\'t look so shocked. Gorgon thing - we grow back! Brand! New! Head! Stheno has lost hers TWICE.', fx: 'sparkle', set: { delphi: { sad: false } } },
+      { s: 'MEDUSA', t: 'DELPHIIIII! Oh my gods, don\'t look so shocked. Gorgon thing - we grow back! Brand! New! Head! Stheno has lost hers TWICE.', fx: 'sparkle', set: { delphi: { sad: false } }, move: { medusa: 420 } },
       { s: 'STHENO', t: 'Once was just a haircut that went very, very wrong.' },
       { s: 'MEDUSA', t: 'Stay with us! Forever! Free food, bunk beds, and my sisters know ALL the gossip on Mount Olympus.' },
       { s: 'DELPHI', t: 'That is a REALLY great deal. Free food AND bunk beds?! But... my mom. My mom is still in the hospital.' },
@@ -799,7 +870,7 @@ const SCENES = [
     lines: [
       { s: 'DELPHI', t: 'Mom?! MOM! Please be okay, please be okay, please be-' },
       { s: 'MOM', t: 'Sweetheart! They\'re letting me out today. Good as new!', fx: 'sparkle' },
-      { s: 'DELPHI', t: 'You\'re okay. You\'re ALIVE and you\'re okay!' },
+      { s: 'DELPHI', t: 'You\'re okay. You\'re ALIVE and you\'re okay!', move: { delphi: 490 } },
       { s: 'DELPHI', t: 'Wait. WAIT. The vision! THIS is what I saw!' },
       { s: 'DELPHI', t: 'The victory was never the contest. It wasn\'t the million dollars, or Ares, or even the island.' },
       { s: 'DELPHI', t: 'It was YOU being okay, Mom. That was the victory. All along.' }
@@ -872,6 +943,7 @@ function nextLine() {
     }
   }
   if (line.flag) Object.assign(flags, line.flag);
+  if (line.move) for (const k in line.move) if (cast[k]) cast[k].tx = line.move[k];
   if (line.fx === 'crash') {
     flags.crashed = true;
     flags.shake = 0.7;
@@ -898,6 +970,7 @@ function nextLine() {
   typing = true;
   dlg.style.display = 'block';
   hintEl.style.visibility = 'hidden';
+  speak(line);
 }
 
 function advance() {
@@ -913,8 +986,16 @@ function advance() {
 }
 
 stage.addEventListener('pointerdown', e => {
-  if (e.target === replayBtn) return;
+  if (e.target === replayBtn || e.target === voiceBtn) return;
   advance();
+});
+const voiceBtn = document.getElementById('voiceBtn');
+voiceBtn.addEventListener('pointerdown', e => e.stopPropagation());
+voiceBtn.addEventListener('click', e => {
+  e.stopPropagation();
+  voiceOn = !voiceOn;
+  voiceBtn.textContent = voiceOn ? 'VOICE ON' : 'VOICE OFF';
+  if (!voiceOn && window.speechSynthesis) speechSynthesis.cancel();
 });
 window.addEventListener('keydown', e => {
   if (e.code === 'Space' || e.code === 'Enter' || e.code === 'ArrowRight') {
@@ -923,6 +1004,7 @@ window.addEventListener('keydown', e => {
   }
 });
 replayBtn.addEventListener('click', () => {
+  if (window.speechSynthesis) speechSynthesis.cancel();
   finished = false;
   replayBtn.style.display = 'none';
   fade = 1; fadeDir = -1;
@@ -1033,6 +1115,21 @@ function loop(now) {
 
   const scene = SCENES[sceneIdx];
 
+  // walk actors toward their move targets
+  for (const k in cast) {
+    const a = cast[k];
+    if (a.tx != null) {
+      const d = a.tx - a.x;
+      const step = 150 * dt;
+      if (Math.abs(d) <= step) { a.x = a.tx; a.tx = null; a.walking = false; }
+      else { a.x += Math.sign(d) * step; a.walking = true; a.flip = d < 0; }
+    } else a.walking = false;
+  }
+  // whose mouth is moving right now
+  const curLine = (lineIdx >= 0 && lineIdx < scene.lines.length) ? scene.lines[lineIdx] : null;
+  const mouthOpen = typing || (voiceOn && window.speechSynthesis && speechSynthesis.speaking);
+  const mouthKeys = (curLine && curLine.s && mouthOpen) ? (MOUTH_OF[curLine.s] || []) : [];
+
   ctx.save();
   if (flags.shake > 0) {
     ctx.translate(rand(-1, 1) * flags.shake * 14, rand(-1, 1) * flags.shake * 10);
@@ -1050,10 +1147,14 @@ function loop(now) {
     if (a.flip) ctx.scale(-1, 1);
     if (k === 'chariot') chariot(sceneT, flags.crashed);
     else if (k === 'medusadown') medusaDown(sceneT);
-    else if (k === 'bed') momInBed(sceneT);
+    else if (k === 'bed') momInBed(sceneT, mouthKeys.indexOf('bed') !== -1);
     else if (CHAR[k]) {
       const glow = (flags.vision > 0 && k === 'delphi');
-      CHAR[k]({ t: sceneT, flip: false, glowEyes: glow, sad: a.sad, wingFeet: a.wingFeet, sword: a.sword });
+      CHAR[k]({
+        t: sceneT, flip: false, glowEyes: glow, sad: a.sad,
+        wingFeet: a.wingFeet, sword: a.sword,
+        walk: a.walking, talking: mouthKeys.indexOf(k) !== -1
+      });
     }
     ctx.restore();
   }
