@@ -159,16 +159,22 @@ if (window.speechSynthesis) {
   pickVoices();
   speechSynthesis.onvoiceschanged = pickVoices;
 }
+let pendingUtter = null;
 function speak(line) {
   if (!voiceOn || !window.speechSynthesis || !line.s) return;
   try {
+    // voices load late on some browsers - retry the casting if pools are empty
+    if (!femVoices.length && !mascVoices.length) pickVoices();
     speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(line.t);
     const v = VOICE[line.s] || { pitch: 1, rate: 1, slot: 0 };
     u.pitch = v.pitch; u.rate = v.rate;
     const pool = v.g === 'f' ? femVoices : mascVoices;
     if (pool.length) u.voice = pool[(v.slot || 0) % pool.length];
-    speechSynthesis.speak(u);
+    // Chrome bug: speak() right after cancel() can ignore the chosen voice
+    // and fall back to the default one - wait a beat before speaking.
+    pendingUtter = u;
+    setTimeout(() => { if (pendingUtter === u) speechSynthesis.speak(u); }, 60);
   } catch (e) { /* speech is a bonus; never break the movie */ }
 }
 
@@ -995,8 +1001,14 @@ function advance() {
   }
 }
 
+let speechUnlocked = false;
 stage.addEventListener('pointerdown', e => {
   if (e.target === replayBtn || e.target === voiceBtn) return;
+  // iPhones only allow speech after a real tap - unlock with a silent one
+  if (!speechUnlocked && window.speechSynthesis) {
+    try { speechSynthesis.speak(new SpeechSynthesisUtterance('')); } catch (err) {}
+    speechUnlocked = true;
+  }
   advance();
 });
 const voiceBtn = document.getElementById('voiceBtn');
