@@ -230,13 +230,15 @@
     animation: celSweep 0.7s ease-out forwards;
   }
   @keyframes celSweep { 0% { left: -60%; opacity: 0.2; } 60% { opacity: 1; } 100% { left: 130%; opacity: 0; } }
-  /* the seal */
+  /* the seal (real seal emoji + nerdy accessories overlaid) */
   .cel-seal {
     position: absolute; left: 50%; bottom: 8%;
-    width: 250px; max-width: 54vw;
     transform: translateX(-50%);
+    font-size: min(170px, 46vw); line-height: 1; text-align: center;
     filter: drop-shadow(0 8px 14px rgba(0,0,0,0.3));
   }
+  .cel-sealbig { display: block; font-size: 1em; }
+  .cel-cap { position: absolute; top: 0%; left: 50%; transform: translateX(-50%) rotate(-12deg); font-size: 0.52em; }
   .cel-seal.bounce { animation: sealBounce 1.4s cubic-bezier(.2,.8,.2,1) forwards; }
   .cel-seal.wiggle { animation: sealWiggle 1.4s ease-out forwards; }
   .cel-seal.spin   { animation: sealSpin 1.4s ease-out forwards; }
@@ -480,68 +482,13 @@
   // A cute cartoon seal wearing round nerd glasses. `cap` (grad cap)
   // is drawn on its head when the "scholar" action is picked.
   function sealSVG(cap) {
-    // A cute harp-seal pup facing us. Distinct round HEAD over a wider BODY with a
-    // gentle neck pinch (so the silhouette reads as an animal, not one smooth blob),
-    // flippers that poke out past the body edge, big glossy black eyes, nerd glasses.
-    return '<svg class="cel-seal" viewBox="0 0 220 234" xmlns="http://www.w3.org/2000/svg">' +
-      // rear flippers splaying out past the body at the base
-      '<path d="M104 196 C 82 198, 58 210, 66 226 C 84 232, 104 224, 110 206 Z" fill="#bcc6d6"/>' +
-      '<path d="M116 196 C 138 198, 162 210, 154 226 C 136 232, 116 224, 110 206 Z" fill="#bcc6d6"/>' +
-      '<g stroke="#9aa6ba" stroke-width="1.6" fill="none" stroke-linecap="round">' +
-        '<line x1="84" y1="206" x2="80" y2="222"/><line x1="95" y1="205" x2="94" y2="222"/>' +
-        '<line x1="136" y1="206" x2="140" y2="222"/><line x1="125" y1="205" x2="126" y2="222"/>' +
-      '</g>' +
-      // one continuous head+body outline with a neck pinch (round head, wide body)
-      '<path d="M110 30 ' +
-        'C 144 30, 158 56, 156 84 ' +          // right of head down to cheek
-        'C 155 104, 148 112, 152 124 ' +       // neck pinch in, then shoulder out
-        'C 162 142, 172 172, 158 200 ' +       // body right side
-        'C 148 214, 128 218, 110 218 ' +       // to bottom center
-        'C 92 218, 72 214, 62 200 ' +          // bottom left
-        'C 48 172, 58 142, 68 124 ' +          // body left side up
-        'C 72 112, 65 104, 64 84 ' +           // shoulder to neck pinch
-        'C 62 56, 76 30, 110 30 Z" ' +         // left of head back to top
-        'fill="#d7dfeb" stroke="#a3aec2" stroke-width="3"/>' +
-      // soft belly highlight
-      '<ellipse cx="110" cy="162" rx="40" ry="46" fill="#eef3fb"/>' +
-      // front flippers poking out from the shoulders onto the belly
-      '<path d="M80 122 C 58 132, 44 160, 52 188 C 68 186, 92 152, 92 126 Z" fill="#c9d2e0" stroke="#a3aec2" stroke-width="2.2"/>' +
-      '<path d="M140 122 C 162 132, 176 160, 168 188 C 152 186, 128 152, 128 126 Z" fill="#c9d2e0" stroke="#a3aec2" stroke-width="2.2"/>' +
-      // rosy blush
-      '<ellipse cx="66" cy="96" rx="13" ry="8" fill="#ffb4c6" opacity="0.8"/>' +
-      '<ellipse cx="154" cy="96" rx="13" ry="8" fill="#ffb4c6" opacity="0.8"/>' +
-      // big glossy black seal eyes (the iconic part)
-      '<ellipse cx="85" cy="80" rx="13.5" ry="16" fill="#241f2e"/>' +
-      '<ellipse cx="135" cy="80" rx="13.5" ry="16" fill="#241f2e"/>' +
-      '<circle cx="89" cy="74" r="4.8" fill="#fff"/><circle cx="139" cy="74" r="4.8" fill="#fff"/>' +
-      '<circle cx="81" cy="86" r="2.5" fill="#fff"/><circle cx="131" cy="86" r="2.5" fill="#fff"/>' +
-      // snout: muzzle pad, nose, and a little "w" seal mouth
-      '<ellipse cx="110" cy="106" rx="24" ry="18" fill="#f4f8fe"/>' +
-      '<path d="M110 94 q-9 0 -9 6 q0 6 9 9 q9 -3 9 -9 q0 -6 -9 -6 Z" fill="#37323f"/>' +
-      '<path d="M110 109 v5" stroke="#37323f" stroke-width="2.4" stroke-linecap="round"/>' +
-      '<path d="M95 113 q8 9 15 2 q7 7 15 -2" stroke="#37323f" stroke-width="2.8" fill="none" stroke-linecap="round"/>' +
-      // prominent whiskers from the muzzle
-      '<g stroke="#aab4c4" stroke-width="2" stroke-linecap="round">' +
-        '<line x1="88" y1="104" x2="54" y2="98"/><line x1="88" y1="110" x2="54" y2="112"/><line x1="90" y1="116" x2="58" y2="126"/>' +
-        '<line x1="132" y1="104" x2="166" y2="98"/><line x1="132" y1="110" x2="166" y2="112"/><line x1="130" y1="116" x2="162" y2="126"/>' +
-      '</g>' +
-      // little nerd glasses framing the eyes
-      '<g stroke="#514a68" stroke-width="3.4" fill="none" stroke-linecap="round">' +
-        '<circle cx="85" cy="80" r="19.5"/><circle cx="135" cy="80" r="19.5"/>' +
-        '<path d="M104 78 q6 -5 12 0"/>' +
-        '<path d="M65 76 q-9 -3 -14 -6"/><path d="M155 76 q9 -3 14 -6"/>' +
-      '</g>' +
-      // glasses glint
-      '<path d="M75 72 l9 9" stroke="#fff" stroke-width="3" opacity="0.5" stroke-linecap="round"/>' +
-      '<path d="M125 72 l9 9" stroke="#fff" stroke-width="3" opacity="0.35" stroke-linecap="round"/>' +
-      // optional graduation cap, perched on top of the head
-      (cap ?
-        '<g><ellipse cx="110" cy="34" rx="26" ry="6" fill="#2b2838"/>' +
-        '<polygon points="110,12 150,28 110,36 70,28" fill="#3a2f5e"/>' +
-        '<circle cx="110" cy="21" r="3" fill="#ffd54f"/>' +
-        '<path d="M110 21 q30 3 32 9" stroke="#ffd54f" stroke-width="2" fill="none"/>' +
-        '<circle cx="143" cy="32" r="4" fill="#ffd54f"/></g>' : '') +
-      '</svg>';
+    // Use the real seal emoji so it unmistakably reads as a seal on every device,
+    // and perch a graduation cap on top for the nerdy-scholar look. A cap sits on
+    // the head predictably across platforms, unlike glasses on a shifting face.
+    return '<div class="cel-seal">' +
+      '<span class="cel-sealbig">🦭</span>' +
+      '<span class="cel-cap">🎓</span>' +
+      '</div>';
   }
   const SEAL_ACTIONS = [
     { prop: '📖', cap: 'Bookworm!',   anim: 'bounce', gradCap: false },
@@ -585,7 +532,7 @@
   // -------------------------------------------------------------
   const G = {
     mode: 'prodigy',
-    coins: 0,
+    coins: 1000,          // welcome bonus so you can grab a few mini-games right away
     streak: 0,
     bestStreak: 0,
     quizzesInBlock: 0,   // counts up to 5, then break
