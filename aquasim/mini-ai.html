@@ -1,0 +1,1839 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>MINI AI — the AI buddy for kids!</title>
+<style>
+  :root {
+    --paper: #fdf6e3;
+    --ink: #3a3a4a;
+    --crayon-blue: #6ec6e8;
+    --crayon-pink: #f9a8c9;
+    --crayon-yellow: #ffd66e;
+    --crayon-green: #9ede8e;
+    --crayon-purple: #c3a8f0;
+    --seal: #9db8cc;
+    --bubble-ai: #e3f2fb;
+    --bubble-kid: #fff3c9;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: "Comic Sans MS", "Chalkboard SE", "Comic Neue", cursive, sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow: hidden;
+  }
+  /* subtle notebook-paper texture */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background:
+      repeating-linear-gradient(0deg, transparent 0 31px, rgba(110,198,232,0.12) 31px 32px);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .app {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 640px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    padding: 10px;
+  }
+
+  /* ---------- header ---------- */
+  header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 14px;
+    background: #fff;
+    border: 3px solid var(--ink);
+    border-radius: 22px 18px 24px 16px / 18px 24px 16px 22px; /* wobbly hand-drawn edge */
+    box-shadow: 3px 4px 0 rgba(58,58,74,0.25);
+    margin-bottom: 10px;
+  }
+  header .logo-seal { width: 62px; height: 62px; flex-shrink: 0; }
+  header h1 {
+    font-size: 30px;
+    letter-spacing: 2px;
+    transform: rotate(-1.5deg);
+  }
+  header h1 .mini { color: var(--crayon-blue); text-shadow: 2px 2px 0 rgba(58,58,74,0.15); }
+  header h1 .ai   { color: var(--crayon-pink); text-shadow: 2px 2px 0 rgba(58,58,74,0.15); }
+  header .tagline { font-size: 12px; opacity: 0.7; transform: rotate(0.5deg); }
+  header .spacer { flex: 1; }
+  .parent-btn {
+    font-family: inherit;
+    font-size: 13px;
+    padding: 8px 12px;
+    background: var(--crayon-purple);
+    border: 2.5px solid var(--ink);
+    border-radius: 14px 10px 15px 9px / 10px 15px 9px 14px;
+    cursor: pointer;
+    box-shadow: 2px 3px 0 rgba(58,58,74,0.25);
+    transition: transform 0.1s;
+  }
+  .parent-btn:active { transform: translate(2px, 3px); box-shadow: none; }
+
+  /* ---------- screens ---------- */
+  .screen { display: none; flex: 1; flex-direction: column; min-height: 0; }
+  .screen.active { display: flex; }
+
+  /* ---------- welcome ---------- */
+  #welcome { align-items: center; justify-content: center; text-align: center; gap: 18px; }
+  #welcome .big-seal { width: min(260px, 60vw); animation: bob 3s ease-in-out infinite; }
+  @keyframes bob { 0%,100% { transform: translateY(0) rotate(-1deg); } 50% { transform: translateY(-10px) rotate(1deg); } }
+  #welcome h2 { font-size: 26px; transform: rotate(-1deg); }
+  #welcome p  { max-width: 420px; font-size: 15px; opacity: 0.85; }
+  .big-btn {
+    font-family: inherit;
+    font-size: 20px;
+    padding: 14px 28px;
+    border: 3px solid var(--ink);
+    border-radius: 24px 18px 26px 16px / 18px 26px 16px 24px;
+    cursor: pointer;
+    box-shadow: 3px 4px 0 rgba(58,58,74,0.3);
+    transition: transform 0.1s;
+  }
+  .big-btn:active { transform: translate(3px, 4px); box-shadow: none; }
+  .big-btn.kid    { background: var(--crayon-yellow); }
+  .big-btn.parent { background: var(--crayon-purple); font-size: 15px; padding: 10px 20px; }
+  .note { font-size: 11px; opacity: 0.55; max-width: 380px; }
+
+  /* ---------- chat (shared by kid chat + parent setup) ---------- */
+  .chat-wrap {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    background: #fff;
+    border: 3px solid var(--ink);
+    border-radius: 20px 16px 22px 14px / 16px 22px 14px 20px;
+    box-shadow: 3px 4px 0 rgba(58,58,74,0.25);
+    overflow: hidden;
+  }
+  .chat-title {
+    padding: 8px 14px;
+    font-size: 14px;
+    border-bottom: 2.5px dashed var(--ink);
+    background: var(--bubble-ai);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .chat-title .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--crayon-green); border: 2px solid var(--ink); }
+  .messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .msg {
+    display: flex;
+    gap: 8px;
+    align-items: flex-end;
+    max-width: 88%;
+    animation: pop-in 0.25s ease-out;
+  }
+  @keyframes pop-in { from { opacity: 0; transform: translateY(8px) scale(0.95); } to { opacity: 1; transform: none; } }
+  .msg .avatar { width: 40px; height: 40px; flex-shrink: 0; }
+  .msg .bubble {
+    padding: 10px 14px;
+    font-size: 15px;
+    line-height: 1.45;
+    border: 2.5px solid var(--ink);
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .msg.ai .bubble {
+    background: var(--bubble-ai);
+    border-radius: 18px 16px 18px 4px / 16px 18px 14px 18px;
+  }
+  .msg.user { align-self: flex-end; flex-direction: row-reverse; }
+  .msg.user .bubble {
+    background: var(--bubble-kid);
+    border-radius: 16px 18px 4px 18px / 18px 16px 18px 14px;
+  }
+  .msg.user .avatar {
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+    background: var(--crayon-green);
+    border: 2.5px solid var(--ink);
+    border-radius: 50% 46% 52% 48% / 48% 52% 46% 50%;
+  }
+  .msg.typing .bubble { color: #777; font-style: italic; }
+  .msg.typing .bubble::after {
+    content: "...";
+    animation: dots 1.2s steps(4, end) infinite;
+  }
+  @keyframes dots { 0% { content: ""; } 25% { content: "."; } 50% { content: ".."; } 75% { content: "..."; } }
+
+  .input-row {
+    display: flex;
+    gap: 8px;
+    padding: 10px;
+    border-top: 2.5px dashed var(--ink);
+    background: #fffdf5;
+  }
+  .input-row input {
+    flex: 1;
+    font-family: inherit;
+    font-size: 16px;
+    padding: 10px 14px;
+    border: 2.5px solid var(--ink);
+    border-radius: 16px 12px 16px 12px / 12px 16px 12px 16px;
+    background: #fff;
+    outline: none;
+    min-width: 0;
+  }
+  .input-row input:focus { background: #fffbe8; }
+  .input-row button {
+    font-family: inherit;
+    font-size: 16px;
+    padding: 10px 18px;
+    background: var(--crayon-blue);
+    border: 2.5px solid var(--ink);
+    border-radius: 14px 18px 14px 18px / 18px 14px 18px 14px;
+    cursor: pointer;
+    box-shadow: 2px 3px 0 rgba(58,58,74,0.25);
+    transition: transform 0.1s;
+  }
+  .input-row button:active { transform: translate(2px, 3px); box-shadow: none; }
+
+  /* ---------- parent dashboard ---------- */
+  #dashboard .chat-wrap { padding: 16px; gap: 12px; overflow-y: auto; display: block; }
+  #dashboard h2 { font-size: 20px; margin-bottom: 4px; transform: rotate(-0.5deg); }
+  #dashboard .sub { font-size: 13px; opacity: 0.7; margin-bottom: 14px; }
+  .restrict-list { list-style: none; display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+  .restrict-list li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    background: var(--bubble-kid);
+    border: 2.5px solid var(--ink);
+    border-radius: 14px 10px 15px 9px / 10px 15px 9px 14px;
+    font-size: 14px;
+  }
+  .restrict-list li .phrase { flex: 1; }
+  .restrict-list li .kw { display: block; font-size: 11px; opacity: 0.6; }
+  .restrict-list li button {
+    font-family: inherit;
+    font-size: 12px;
+    padding: 4px 10px;
+    background: var(--crayon-pink);
+    border: 2px solid var(--ink);
+    border-radius: 10px 8px 11px 7px / 8px 11px 7px 10px;
+    cursor: pointer;
+  }
+  .empty-note { font-size: 13px; opacity: 0.6; font-style: italic; margin-bottom: 14px; }
+  .dash-row { display: flex; gap: 8px; margin-bottom: 10px; }
+  .dash-row input {
+    flex: 1;
+    font-family: inherit;
+    font-size: 14px;
+    padding: 9px 12px;
+    border: 2.5px solid var(--ink);
+    border-radius: 14px 10px 14px 10px / 10px 14px 10px 14px;
+    outline: none;
+    min-width: 0;
+  }
+  .dash-row button {
+    font-family: inherit;
+    font-size: 14px;
+    padding: 9px 14px;
+    background: var(--crayon-green);
+    border: 2.5px solid var(--ink);
+    border-radius: 12px 15px 12px 15px / 15px 12px 15px 12px;
+    cursor: pointer;
+  }
+  .dash-actions { display: flex; gap: 10px; margin-top: 6px; flex-wrap: wrap; }
+  .dash-actions button {
+    font-family: inherit;
+    font-size: 14px;
+    padding: 9px 16px;
+    border: 2.5px solid var(--ink);
+    border-radius: 14px 10px 15px 9px / 10px 15px 9px 14px;
+    cursor: pointer;
+    box-shadow: 2px 3px 0 rgba(58,58,74,0.25);
+  }
+  .dash-actions button:active { transform: translate(2px,3px); box-shadow: none; }
+  .dash-actions .go-kid { background: var(--crayon-yellow); }
+  .dash-actions .logout { background: #eee; }
+
+  @media (max-height: 600px) {
+    #welcome .big-seal { width: 150px; }
+    header h1 { font-size: 22px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header>
+    <svg class="logo-seal" viewBox="0 0 120 120" aria-label="MINI AI seal logo"></svg>
+    <div>
+      <h1><span class="mini">MINI</span> <span class="ai">AI</span></h1>
+      <div class="tagline">the AI buddy that's just for kids!</div>
+    </div>
+    <div class="spacer"></div>
+    <button class="parent-btn" id="btnParentZone">Parent Zone 🔒</button>
+  </header>
+
+  <!-- WELCOME -->
+  <div class="screen active" id="welcome">
+    <svg class="big-seal" viewBox="0 0 120 120" aria-label="A hand-drawn seal hugging a sparkle"></svg>
+    <h2>Hi! I'm MINI AI!</h2>
+    <p>I'm a friendly seal who loves jokes, animal facts, riddles, math, and stories.
+       Ask a grown-up to set me up first, then we can chat!</p>
+    <button class="big-btn parent" id="btnSetup">👤 Grown-up: set up MINI AI</button>
+    <button class="big-btn kid" id="btnChat" style="display:none">🦭 Let's chat!</button>
+    <p class="note">MINI AI keeps everything on this device and forgets it all when the page
+       closes. Nothing is ever sent anywhere.</p>
+  </div>
+
+  <!-- PARENT SETUP / LOGIN (chat-style) -->
+  <div class="screen" id="setup">
+    <div class="chat-wrap">
+      <div class="chat-title"><span class="dot"></span> Parent Zone — account setup</div>
+      <div class="messages" id="setupMessages"></div>
+      <div class="input-row">
+        <input id="setupInput" type="text" autocomplete="off" placeholder="Type here..." maxlength="200">
+        <button id="setupSend">Send</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PARENT DASHBOARD -->
+  <div class="screen" id="dashboard">
+    <div class="chat-wrap">
+      <h2>Hello, <span id="dashName">friend</span>! 👋</h2>
+      <p class="sub">MINI AI will politely change the subject when a kid brings up anything below.</p>
+      <ul class="restrict-list" id="restrictList"></ul>
+      <p class="empty-note" id="restrictEmpty">No restrictions yet — add one below.</p>
+      <div class="dash-row">
+        <input id="restrictInput" type="text" maxlength="120" placeholder="e.g. Questions about R rated movies">
+        <button id="restrictAdd">Add</button>
+      </div>
+      <div class="dash-actions">
+        <button class="go-kid" id="dashGoKid">🦭 Back to kid chat</button>
+        <button class="logout" id="dashLogout">Log out</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- KID CHAT -->
+  <div class="screen" id="chat">
+    <div class="chat-wrap">
+      <div class="chat-title"><span class="dot"></span> Chatting with MINI AI</div>
+      <div class="messages" id="chatMessages"></div>
+      <div class="input-row">
+        <input id="chatInput" type="text" autocomplete="off" placeholder="Say hi to MINI AI!" maxlength="200">
+        <button id="chatSend">Send</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* =========================================================
+     MINI AI — a pretend AI assistant for kids.
+     Everything is in-memory; closing the tab forgets it all.
+     ========================================================= */
+
+  // ---------- hand-drawn seal logo (SVG, injected into both <svg> slots) ----------
+  var SEAL_SVG =
+    // body
+    '<path d="M60 108 C 30 108 16 88 18 66 C 20 42 36 24 60 23 C 84 24 100 42 102 66 C 104 88 90 108 60 108 Z"' +
+    ' fill="#aac4d8" stroke="#3a3a4a" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"' +
+    ' transform="rotate(-1 60 60)"/>' +
+    // belly patch
+    '<path d="M60 104 C 44 104 37 92 38 76 C 39 62 48 52 60 51 C 72 52 81 62 82 76 C 83 92 76 104 60 104 Z"' +
+    ' fill="#eef6fb" stroke="#3a3a4a" stroke-width="2.6" transform="rotate(1 60 78)"/>' +
+    // tail flippers
+    '<path d="M34 104 C 26 112 16 114 10 110 C 16 106 19 102 21 96 Z" fill="#aac4d8" stroke="#3a3a4a" stroke-width="2.8" stroke-linejoin="round"/>' +
+    '<path d="M86 104 C 94 112 104 114 110 110 C 104 106 101 102 99 96 Z" fill="#aac4d8" stroke="#3a3a4a" stroke-width="2.8" stroke-linejoin="round"/>' +
+    // face
+    '<circle cx="47" cy="46" r="4.2" fill="#3a3a4a"/>' +
+    '<circle cx="73" cy="46" r="4.2" fill="#3a3a4a"/>' +
+    '<circle cx="48.5" cy="44.5" r="1.3" fill="#fff"/>' +
+    '<circle cx="74.5" cy="44.5" r="1.3" fill="#fff"/>' +
+    '<ellipse cx="60" cy="55" rx="5.5" ry="4" fill="#3a3a4a"/>' +
+    '<path d="M60 59 C 60 63 56 65 53 64 M60 59 C 60 63 64 65 67 64" fill="none" stroke="#3a3a4a" stroke-width="2.4" stroke-linecap="round"/>' +
+    // whiskers
+    '<path d="M50 56 C 42 55 36 56 30 59 M50 59 C 43 60 38 62 33 66" fill="none" stroke="#3a3a4a" stroke-width="1.8" stroke-linecap="round"/>' +
+    '<path d="M70 56 C 78 55 84 56 90 59 M70 59 C 77 60 82 62 87 66" fill="none" stroke="#3a3a4a" stroke-width="1.8" stroke-linecap="round"/>' +
+    // blush
+    '<ellipse cx="42" cy="55" rx="5" ry="3" fill="#f9a8c9" opacity="0.7"/>' +
+    '<ellipse cx="78" cy="55" rx="5" ry="3" fill="#f9a8c9" opacity="0.7"/>' +
+    // front flippers hugging the sparkle
+    '<path d="M40 74 C 34 80 36 90 46 92 C 52 93 57 90 59 86" fill="#aac4d8" stroke="#3a3a4a" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>' +
+    '<path d="M80 74 C 86 80 84 90 74 92 C 68 93 63 90 61 86" fill="#aac4d8" stroke="#3a3a4a" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>' +
+    // the AI sparkle, clutched in its paws
+    '<g transform="translate(60 79) rotate(-6)">' +
+    '<path d="M0 -13 C 1.5 -5 5 -1.5 13 0 C 5 1.5 1.5 5 0 13 C -1.5 5 -5 1.5 -13 0 C -5 -1.5 -1.5 -5 0 -13 Z"' +
+    ' fill="#ffd66e" stroke="#3a3a4a" stroke-width="2.4" stroke-linejoin="round"/>' +
+    '<path d="M9 -11 C 9.6 -8.4 10.8 -7.2 13.4 -6.6 C 10.8 -6 9.6 -4.8 9 -2.2 C 8.4 -4.8 7.2 -6 4.6 -6.6 C 7.2 -7.2 8.4 -8.4 9 -11 Z"' +
+    ' fill="#fff" stroke="#3a3a4a" stroke-width="1.6" stroke-linejoin="round"/>' +
+    '</g>';
+
+  document.querySelectorAll('svg.logo-seal, svg.big-seal').forEach(function (el) {
+    el.innerHTML = SEAL_SVG;
+  });
+
+  // ---------- in-memory account ----------
+  var account = null; // { name, passcode, restrictions: [{ phrase, keywords }] }
+  var parentLoggedIn = false;
+
+  // ---------- screens ----------
+  var screens = {
+    welcome:   document.getElementById('welcome'),
+    setup:     document.getElementById('setup'),
+    dashboard: document.getElementById('dashboard'),
+    chat:      document.getElementById('chat')
+  };
+  function show(name) {
+    Object.keys(screens).forEach(function (k) {
+      screens[k].classList.toggle('active', k === name);
+    });
+    if (name === 'chat')  setTimeout(function () { chatInput.focus(); }, 50);
+    if (name === 'setup') setTimeout(function () { setupInput.focus(); }, 50);
+  }
+
+  // ---------- chat message helpers ----------
+  var USER_FACE = '🙂';
+  function addMsg(container, who, text) {
+    var row = document.createElement('div');
+    row.className = 'msg ' + who;
+    var av = document.createElement('div');
+    av.className = 'avatar';
+    if (who === 'ai' || who === 'typing') {
+      row.className = 'msg ai' + (who === 'typing' ? ' typing' : '');
+      av.innerHTML = '<svg viewBox="0 0 120 120" width="40" height="40">' + SEAL_SVG + '</svg>';
+    } else {
+      av.textContent = USER_FACE;
+    }
+    var bub = document.createElement('div');
+    bub.className = 'bubble';
+    bub.textContent = text;
+    row.appendChild(av);
+    row.appendChild(bub);
+    container.appendChild(row);
+    container.scrollTop = container.scrollHeight;
+    return row;
+  }
+  // MINI AI "thinks" for a moment before replying, like a real assistant
+  function aiSay(container, text, done) {
+    var t = addMsg(container, 'typing', 'MINI AI is thinking');
+    var delay = 500 + Math.min(1200, text.length * 12);
+    setTimeout(function () {
+      t.remove();
+      addMsg(container, 'ai', text);
+      if (done) done();
+    }, delay);
+  }
+
+  /* =========================================================
+     PARENT SETUP — follows the exact 5-step script:
+       1. Hello! What's your name?
+       2. What would you like to restrict?
+       3. Please enter a passcode of up to 15 letters/numbers.
+          Minimum 3 letters/numbers.
+       4. Awesome! Let me register that account...
+       5. All set, ____! Have fun!
+     ========================================================= */
+  var setupMessages = document.getElementById('setupMessages');
+  var setupInput = document.getElementById('setupInput');
+  var setupSend = document.getElementById('setupSend');
+  var setupStep = 0; // 0 idle, 1 name, 2 restrict, 3 passcode, 'login' passcode check
+  var pending = { name: '', restrictions: [] };
+
+  function startRegistration() {
+    setupMessages.innerHTML = '';
+    pending = { name: '', restrictions: [] };
+    setupStep = 0;
+    show('setup');
+    aiSay(setupMessages, "Hello! What's your name?", function () { setupStep = 1; });
+  }
+
+  function startLogin() {
+    setupMessages.innerHTML = '';
+    setupStep = 0;
+    show('setup');
+    aiSay(setupMessages, 'Welcome back, ' + account.name + "! What's your passcode?", function () {
+      setupStep = 'login';
+    });
+  }
+
+  function handleSetupInput() {
+    var text = setupInput.value.trim();
+    if (!text || setupStep === 0) return;
+    setupInput.value = '';
+    addMsg(setupMessages, 'user', setupStep === 3 || setupStep === 'login' ? '•'.repeat(text.length) : text);
+
+    if (setupStep === 1) {
+      setupStep = 0;
+      pending.name = text.slice(0, 30);
+      aiSay(setupMessages, 'Nice to meet you, ' + pending.name + '! What would you like to restrict? (For example: questions with bad words, or questions about R rated movies.)', function () {
+        setupStep = 2;
+      });
+
+    } else if (setupStep === 2) {
+      setupStep = 0;
+      var lowered = text.toLowerCase();
+      if (lowered === 'nothing' || lowered === 'none' || lowered === 'skip') {
+        aiSay(setupMessages, 'Okay, no restrictions for now — you can always add some later in the Parent Zone. Please enter a passcode of up to 15 letters/numbers. Minimum 3 letters/numbers.', function () {
+          setupStep = 3;
+        });
+      } else {
+        // several restrictions can be given at once, separated by commas
+        text.split(/,|;/).forEach(function (part) {
+          var phrase = part.trim();
+          if (phrase) pending.restrictions.push(makeRestriction(phrase));
+        });
+        aiSay(setupMessages, 'Got it! I won’t talk about that. Please enter a passcode of up to 15 letters/numbers. Minimum 3 letters/numbers.', function () {
+          setupStep = 3;
+        });
+      }
+
+    } else if (setupStep === 3) {
+      if (!/^[a-zA-Z0-9]{3,15}$/.test(text)) {
+        aiSay(setupMessages, 'Oops — the passcode needs to be 3 to 15 letters/numbers only (no spaces or symbols). Try again!');
+        return;
+      }
+      setupStep = 0;
+      aiSay(setupMessages, 'Awesome! Let me register that account...', function () {
+        setTimeout(function () {
+          account = { name: pending.name, passcode: text, restrictions: pending.restrictions };
+          parentLoggedIn = true;
+          aiSay(setupMessages, 'All set, ' + account.name + '! Have fun!', function () {
+            setTimeout(function () {
+              document.getElementById('btnChat').style.display = '';
+              // once an account exists, re-setup must go through the passcode
+              document.getElementById('btnSetup').style.display = 'none';
+              openDashboard();
+            }, 900);
+          });
+        }, 1100);
+      });
+
+    } else if (setupStep === 'login') {
+      if (text === account.passcode) {
+        setupStep = 0;
+        parentLoggedIn = true;
+        aiSay(setupMessages, 'Welcome back, ' + account.name + '!', function () {
+          setTimeout(openDashboard, 600);
+        });
+      } else {
+        aiSay(setupMessages, "Hmm, that passcode doesn't match. Try again!");
+      }
+    }
+  }
+  setupSend.addEventListener('click', handleSetupInput);
+  setupInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') handleSetupInput(); });
+
+  /* =========================================================
+     RESTRICTIONS — turn a parent's phrase into match keywords
+     ========================================================= */
+  var STOPWORDS = ['a','an','the','and','or','of','to','in','on','for','with','about','w','eg','e','g',
+    'questions','question','anything','things','thing','stuff','topics','topic','talk','talking',
+    'related','asking','asks','ask','no','not','any','all','please','dont','don’t','like',
+    // generic filler that should never become a literal match keyword on its own
+    'bad','word','words','swear','swearing','curse','cursing','cuss','cussing','language','foul',
+    'naughty','rude','dirty','nasty','inappropriate','profanity','profane','use','using','saying','says','say'];
+
+  // actual profanity / mean-word blocklist, used when a parent restricts "bad words".
+  // Matched as whole words (space-delimited) so innocent words like "class" or "hello" are safe.
+  var PROFANITY_WORDS = [
+    'damn','damnit','dammit','hell','crap','crappy','ass','asses','arse','jackass','dumbass',
+    'butt','fart','poop','turd','suck','sucks','sucked','screw','screwed','jerk','loser','freak',
+    'moron','fool','idiot','idiots','stupid','dumb','hate you','shut up','shutup','wtf','stfu','omfg',
+    'shit','shite','bullshit','piss','pissed','bitch','bitches','bastard','dick','dickhead','douche',
+    'prick','crap','ass hole','asshole','asshole','fuck','fucking','fucked','fuk','fuq','fck','fcking',
+    'cunt','slut','whore','hoe','fag','faggot','retard','retarded','bloody','bugger','wanker','twat',
+    'nigga','nigger','spic','chink','kike','tranny','pussy','cock','boobs','penis','vagina','sexy','sex'];
+
+  // does the parent's phrase MEAN "block swearing" rather than a literal topic?
+  function isProfanityMeta(phrase) {
+    var p = ' ' + phrase.toLowerCase().replace(/[^a-z\s]/g, ' ').replace(/\s+/g, ' ').trim() + ' ';
+    return /\b(swear|swearing|curse|cursing|cuss|cussing|profanity|profane|profanities)\b/.test(p)
+        || /\b(bad|naughty|rude|dirty|foul|nasty|inappropriate) (words?|language|talk|mouth|stuff|things?)\b/.test(p)
+        || /\bbad language\b/.test(p);
+  }
+
+  function makeRestriction(phrase) {
+    // "bad words", "swearing", "curse words" etc. → block real profanity, not the words "bad"/"word"
+    if (isProfanityMeta(phrase)) {
+      return { phrase: phrase, profanity: true, keywords: PROFANITY_WORDS.slice() };
+    }
+    var words = phrase.toLowerCase().replace(/[^a-z0-9\s'-]/g, ' ').split(/\s+/).filter(Boolean);
+    var keep = words.filter(function (w) { return w.length >= 2 && STOPWORDS.indexOf(w) === -1; });
+    var keywords = keep.slice();
+    // adjacent pairs match as phrases too ("r rated", "video games")
+    for (var i = 0; i < keep.length - 1; i++) keywords.push(keep[i] + ' ' + keep[i + 1]);
+    // keep the whole phrase as a match too (harmless — needs an exact full-phrase hit)
+    keywords.push(words.join(' '));
+    // if every word was filler, fall back to the non-stopword-ish originals so the rule still does something
+    if (keep.length === 0 && words.length) {
+      keywords = keywords.concat(words.filter(function (w) { return STOPWORDS.indexOf(w) === -1; }));
+    }
+    return { phrase: phrase, keywords: keywords.filter(function (k, idx, arr) { return k && arr.indexOf(k) === idx; }) };
+  }
+
+  function isRestricted(text) {
+    if (!account) return false;
+    var norm = ' ' + text.toLowerCase().replace(/[^a-z0-9\s'-]/g, ' ').replace(/\s+/g, ' ').trim() + ' ';
+    for (var i = 0; i < account.restrictions.length; i++) {
+      var kws = account.restrictions[i].keywords;
+      for (var j = 0; j < kws.length; j++) {
+        if (norm.indexOf(' ' + kws[j] + ' ') !== -1) return true;
+      }
+    }
+    return false;
+  }
+
+  // a small always-on kindness filter, independent of parent settings
+  var BUILTIN_BLOCKED = ['stupid','dumb','idiot','hate you','shut up','kill','die','damn','hell','crap'];
+  function hitsBuiltinFilter(text) {
+    var norm = ' ' + text.toLowerCase().replace(/[^a-z0-9\s'-]/g, ' ').replace(/\s+/g, ' ').trim() + ' ';
+    return BUILTIN_BLOCKED.some(function (w) { return norm.indexOf(' ' + w + ' ') !== -1; });
+  }
+
+  /* =========================================================
+     PARENT DASHBOARD
+     ========================================================= */
+  var restrictList = document.getElementById('restrictList');
+  var restrictEmpty = document.getElementById('restrictEmpty');
+  var restrictInput = document.getElementById('restrictInput');
+
+  function openDashboard() {
+    document.getElementById('dashName').textContent = account.name;
+    renderRestrictions();
+    show('dashboard');
+  }
+  function renderRestrictions() {
+    restrictList.innerHTML = '';
+    restrictEmpty.style.display = account.restrictions.length ? 'none' : '';
+    account.restrictions.forEach(function (r, idx) {
+      var li = document.createElement('li');
+      var span = document.createElement('span');
+      span.className = 'phrase';
+      span.textContent = '"' + r.phrase + '"';
+      var kw = document.createElement('span');
+      kw.className = 'kw';
+      kw.textContent = r.profanity
+        ? 'watches for: swear words & rude language'
+        : 'watches for: ' + r.keywords.slice(0, 6).join(', ');
+      span.appendChild(kw);
+      var btn = document.createElement('button');
+      btn.textContent = 'remove';
+      btn.addEventListener('click', function () {
+        account.restrictions.splice(idx, 1);
+        renderRestrictions();
+      });
+      li.appendChild(span);
+      li.appendChild(btn);
+      restrictList.appendChild(li);
+    });
+  }
+  function addRestrictionFromDash() {
+    var phrase = restrictInput.value.trim();
+    if (!phrase) return;
+    account.restrictions.push(makeRestriction(phrase));
+    restrictInput.value = '';
+    renderRestrictions();
+  }
+  document.getElementById('restrictAdd').addEventListener('click', addRestrictionFromDash);
+  restrictInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') addRestrictionFromDash(); });
+  document.getElementById('dashGoKid').addEventListener('click', function () { enterKidChat(); });
+  document.getElementById('dashLogout').addEventListener('click', function () {
+    parentLoggedIn = false;
+    show('welcome');
+  });
+
+  /* =========================================================
+     KID CHAT — MINI AI's little brain
+     ========================================================= */
+  var chatMessages = document.getElementById('chatMessages');
+  var chatInput = document.getElementById('chatInput');
+  var chatGreeted = false;
+  var chatBusy = false;
+
+  function enterKidChat() {
+    show('chat');
+    if (!chatGreeted) {
+      chatGreeted = true;
+      aiSay(chatMessages, "Hi there! I'm MINI AI, your seal buddy! 🦭✨\nAsk me for a joke, an animal fact, a riddle, a tiny story, a math problem, or a fun craft to make!");
+    }
+  }
+
+  var JOKES = [
+    "Why don't fish do their homework? Because they're always below sea level!",
+    "What do you call a seal that can fly? ...I don't know either, but I'd love to meet one!",
+    "Why did the crab never share? Because he was a little shellfish!",
+    "What's a seal's favorite subject in school? ART! Get it? ARF ARF ART!",
+    "Why did the banana go to the doctor? Because it wasn't peeling well!",
+    "What do you call a sleeping dinosaur? A dino-SNORE!",
+    "Why can't you give Elsa a balloon? Because she'll let it go!",
+    "What did the ocean say to the beach? Nothing — it just waved!"
+  ];
+  var FACTS = [
+    "Seals can sleep underwater! They pop up to breathe without even waking up all the way. I'm practicing!",
+    "An octopus has THREE hearts and blue blood. Fancy!",
+    "Sea otters hold hands while they sleep so they don't drift apart. Awww!",
+    "A shrimp's heart is in its head. Really!",
+    "Honey never goes bad. Archaeologists found 3000-year-old honey that was still good!",
+    "A group of flamingos is called a flamboyance. Very stylish birds!",
+    "Butterflies taste with their FEET. Imagine tasting cookies by standing on them!",
+    "Some turtles can breathe through their bottoms. I am not making that up!"
+  ];
+  var RIDDLES = [
+    { q: "What has hands but cannot clap?", a: "clock" },
+    { q: "What gets wetter the more it dries?", a: "towel" },
+    { q: "What has a face and two hands but no arms or legs?", a: "clock" },
+    { q: "I'm tall when I'm young and short when I'm old. What am I?", a: "candle" },
+    { q: "What goes up but never comes down?", a: "age" }
+  ];
+  var STORIES = [
+    "Once upon a time, a tiny seal named Pip found a sparkle floating in the sea. \"Are you a star?\" asked Pip. \"I'm a wish!\" said the sparkle. So Pip wished for a best friend — and the sparkle stayed forever. The end! ✨",
+    "Once there was a snail who wanted to race. Everyone giggled, but the snail practiced every day. On race day, it rained, and all the fast animals hid — but the snail LOVED rain and slid right across the finish line. Winner! 🐌",
+    "A little cloud felt too small to matter. But one hot day, it floated over a wilting garden and made the tiniest rain shower. Every flower perked up and cheered. Even small clouds make big rainbows. The end! 🌈"
+  ];
+
+  // ---------- crafts & how-tos ----------
+  // Simple, safe, low-mess crafts a kid can do at home. `keys` let a kid ask for
+  // a specific one ("how do I make a paper airplane"). Steps stay short and kind.
+  var CRAFTS = [
+    { name: 'a Paper Airplane', emoji: '✈️', keys: ['paper airplane', 'airplane', 'aeroplane', 'paper plane', 'plane'],
+      materials: '1 sheet of paper.',
+      steps: ['Fold the paper in half the long way, then unfold it so you can see the crease down the middle.',
+              'Fold the two top corners in so they meet the middle crease — it makes a pointy triangle at the top.',
+              'Fold those slanted top edges into the middle crease again to make the nose extra pointy.',
+              'Fold the whole plane in half along the first crease.',
+              'Fold each side down to make a wing. Line them up so they match.',
+              'Hold underneath, and let it FLY! ✈️'] },
+    { name: 'a Paper Boat', emoji: '⛵', keys: ['paper boat', 'boat', 'ship'],
+      materials: '1 sheet of paper.',
+      steps: ['Fold the paper in half top-to-bottom, then in half again and unfold, so there is a crease down the middle.',
+              'Fold the two top corners down to the middle crease to make a pointy roof.',
+              'Fold the bottom strip up on the front. Flip it over and fold the other bottom strip up too.',
+              'Open the bottom and squish it into a diamond shape.',
+              'Fold the bottom points up on both sides to make a triangle, then open the bottom again.',
+              'Gently pull the two top points apart — and you have a boat! ⛵'] },
+    { name: 'a Friendship Bracelet', emoji: '💛', keys: ['friendship bracelet', 'bracelet', 'braid'],
+      materials: '3 pieces of yarn or string, each about as long as your arm, plus a little tape.',
+      steps: ['Line up the 3 strings and tie them together in a knot near one end.',
+              'Tape the knot to a table so it stays still.',
+              'Braid! Cross the left string over the middle, then the right string over the middle. Keep going.',
+              'When it is long enough to wrap around your wrist, tie another knot at the end.',
+              'Trim the extra string, and give it to a friend (or wear it yourself)! 💛'] },
+    { name: 'a Paper Snowflake', emoji: '❄️', keys: ['snowflake', 'snow flake'],
+      materials: 'a square piece of paper and safety scissors.',
+      steps: ['Fold the square in half to make a triangle. Fold it in half again into a smaller triangle.',
+              'Fold that triangle into thirds so it looks like a skinny ice-cream cone.',
+              'Snip little shapes out of the folded edges — triangles, circles, zig-zags. Do not cut all the way across!',
+              'Carefully unfold it to reveal your one-of-a-kind snowflake!'],
+      note: 'Ask a grown-up to help with the scissors. ❄️' },
+    { name: 'a Corner Bookmark Monster', emoji: '🔖', keys: ['bookmark', 'book mark'],
+      materials: 'a square of paper, a marker, and glue.',
+      steps: ['Fold the square into a triangle, then unfold. Fold it the other way into a triangle too, then unfold.',
+              'Fold two opposite corners up to the top point to make a smaller triangle with a pocket underneath.',
+              'Tuck one top flap into the other so it forms a little pocket you can slip onto a page corner.',
+              'Draw big googly eyes and a silly monster mouth on the front. RAWR!',
+              'Slide it onto the corner of your book so you never lose your page! 🔖'] },
+    { name: 'Painted Rocks', emoji: '🎨', keys: ['painted rock', 'painted rocks', 'rock', 'rocks', 'pet rock'],
+      materials: 'a smooth clean rock, and paints or markers.',
+      steps: ['Wash your rock and let it dry all the way.',
+              'Think of a design — a ladybug, a rainbow, your name, or a smiley face are all great.',
+              'Paint the base color first and let it dry.',
+              'Add the details on top with a smaller brush or marker.',
+              'Let it dry, then put it somewhere special or hide it for someone to find! 🎨'] },
+    { name: 'a Sock Puppet', emoji: '🧦', keys: ['sock puppet', 'puppet'],
+      materials: 'an old clean sock, plus markers, buttons, or yarn, and glue.',
+      steps: ['Put your hand in the sock so your fingers are the top of the mouth and your thumb is the bottom.',
+              'See where the mouth folds? That is your puppet\'s face.',
+              'Glue or draw on two eyes above the mouth.',
+              'Add yarn for silly hair and any other details you like.',
+              'Let the glue dry, then put on a puppet show! 🧦'] },
+    { name: 'a Tissue Paper Flower', emoji: '🌸', keys: ['tissue flower', 'paper flower', 'flower'],
+      materials: '4 or 5 sheets of tissue paper and a pipe cleaner (or a twist tie).',
+      steps: ['Stack the tissue paper sheets neatly on top of each other.',
+              'Fold the stack back and forth like a fan (accordion folds), about a finger-width each fold.',
+              'Wrap a pipe cleaner tightly around the middle of the folded strip and twist it to hold.',
+              'Gently pull each layer of tissue up toward the middle, one at a time, to fluff it into a flower.',
+              'Fluff until it is round and pretty! 🌸'] },
+    { name: 'a Pinecone Bird Feeder', emoji: '🐦', keys: ['bird feeder', 'birdfeeder', 'pinecone', 'pine cone', 'feed the birds'],
+      materials: 'a pinecone, some string, birdseed, and peanut butter (or sunflower-seed butter).',
+      steps: ['Tie a long piece of string to the top of the pinecone so you can hang it later.',
+              'Using a butter knife or spoon, spread the peanut butter all over the pinecone.',
+              'Roll the sticky pinecone in a plate of birdseed until it is covered.',
+              'Hang it on a tree branch outside where you can watch.',
+              'Wait quietly — the birds will come for a snack! 🐦'],
+      note: 'Do this one with a grown-up, and skip the peanut butter if anyone has a nut allergy — seed butter works great!' },
+    { name: 'Cardboard Binoculars', emoji: '🔭', keys: ['binoculars', 'binocular', 'spyglass', 'telescope'],
+      materials: '2 empty cardboard tubes (like from paper towel rolls), tape, string, and markers.',
+      steps: ['Line the two tubes up side by side and tape them together.',
+              'Decorate the outside with markers — stripes, dots, or camo!',
+              'Poke a small hole near the top of each outside edge.',
+              'Thread a string through the holes and tie it so you can wear them around your neck.',
+              'Go explore and spy on some birds and bugs! 🔭'] },
+    { name: 'a Paper Chain', emoji: '🔗', keys: ['paper chain', 'chain', 'garland'],
+      materials: 'a few sheets of paper (colorful is best!), scissors, and tape or glue.',
+      steps: ['Cut the paper into strips about as wide as two fingers.',
+              'Take one strip and tape the ends together to make a loop.',
+              'Thread the next strip through that loop, then tape ITS ends together.',
+              'Keep looping and taping to make your chain as long as you want!',
+              'Hang it up to decorate your room! 🔗'],
+      note: 'Ask a grown-up to help with the scissors.' },
+    { name: 'Homemade Slime', emoji: '🫧', keys: ['slime', 'goo', 'putty', 'stretchy', 'stretch', 'stretchy stuff', 'gooey', 'goopy', 'slimy', 'oozy', 'ooey gooey', 'sticky', 'squishy', 'squishy stuff'],
+      materials: 'white school glue, baking soda, and saline (contact lens) solution. A bowl and spoon too.',
+      steps: ['Squeeze about half a cup of white glue into a bowl. Add a drop of food coloring if you want.',
+              'Stir in half a spoonful of baking soda.',
+              'Add saline solution a tiny bit at a time, stirring after each splash.',
+              'Keep adding and stirring until it stops being sticky and pulls away from the bowl.',
+              'Take it out and knead it with your hands until it is stretchy and smooth!'],
+      note: 'Make this WITH a grown-up, do not eat it, and wash your hands after. 🫧' },
+
+    { name: 'an Origami Jumping Frog', emoji: '🐸', keys: ['origami frog', 'jumping frog', 'origami', 'frog'],
+      materials: 'a small square of paper.',
+      steps: ['Fold the square in half top-to-bottom.', 'Fold the top corners down to make a triangle roof on the top half.',
+              'Fold the bottom edge up to the base of the triangle, then fold it in half upward again to make the legs.',
+              'Flip it over and press down on its back, then let go to make it hop! 🐸'] },
+    { name: 'an Origami Cup', emoji: '🥤', keys: ['origami cup', 'paper cup', 'cup'],
+      materials: 'a square of paper.',
+      steps: ['Fold the square into a triangle.', 'Fold one bottom corner across to the opposite side, then do the same with the other corner.',
+              'Fold the top front flap down over the front, and the back flap down over the back.',
+              'Open it up and you have a little cup that can even hold water for a minute! 🥤'] },
+    { name: 'a Paper Fortune Teller', emoji: '🔮', keys: ['fortune teller', 'cootie catcher'],
+      materials: 'a square of paper and a marker.',
+      steps: ['Fold all four corners into the center. Flip it over and fold those four corners in too.',
+              'Write a color on each outside flap and a number under each inside flap.',
+              'Slip your thumbs and pointer fingers under the flaps so it opens and closes.',
+              'Write a silly fortune under each number, then play with a friend! 🔮'] },
+    { name: 'a Paper Pinwheel', emoji: '🌀', keys: ['pinwheel', 'paper windmill', 'windmill'],
+      materials: 'a paper square, a push pin, a pencil with an eraser, and scissors.',
+      steps: ['Cut from each corner toward the center, stopping before you reach the middle.',
+              'Bend every other corner into the center so they overlap.',
+              'Push a pin through all the layers in the center and into the pencil eraser.',
+              'Blow on it and watch it spin! 🌀'], note: 'Ask a grown-up to help with the pin and scissors.' },
+    { name: 'a Paper Crown', emoji: '👑', keys: ['crown', 'paper crown', 'tiara'],
+      materials: 'a strip of paper or cardstock, markers, and tape.',
+      steps: ['Cut a zig-zag along the top edge of the paper strip to make crown points.',
+              'Color it and add jewels, stars, or your name.', 'Wrap it around your head to check the size.',
+              'Tape the ends together, and rule your kingdom! 👑'] },
+    { name: 'a Newspaper Pirate Hat', emoji: '🏴‍☠️', keys: ['pirate hat', 'newspaper hat', 'paper hat'],
+      materials: 'one large sheet of newspaper.',
+      steps: ['Fold the sheet in half top-to-bottom.', 'Fold the two top corners down to meet in the middle, making a point.',
+              'Fold the bottom flap up on the front. Flip it over and fold the other bottom flap up too.',
+              'Open the bottom and pop it onto your head. Ahoy! 🏴‍☠️'] },
+    { name: 'a Paper Fan', emoji: '🪭', keys: ['paper fan', 'fan'],
+      materials: 'a sheet of paper and tape.',
+      steps: ['Decorate the paper with any design you like.', 'Fold it back and forth in small accordion folds all the way across.',
+              'Pinch and tape one end together to make the handle.', 'Fan out the top and cool yourself off! 🪭'] },
+    { name: 'a Paper Butterfly', emoji: '🦋', keys: ['paper butterfly', 'butterfly'],
+      materials: 'paper, a pipe cleaner, and markers.',
+      steps: ['Fold a sheet of paper back and forth like a fan.', 'Pinch it in the middle to make two wing shapes.',
+              'Wrap a pipe cleaner around the middle and twist the ends up to make antennae.',
+              'Fluff the wings and color them with pretty patterns! 🦋'] },
+    { name: 'a Paper Plate Fish', emoji: '🐠', keys: ['paper plate fish', 'plate fish'],
+      materials: 'a paper plate, scissors, markers, and glue.',
+      steps: ['Cut a wide triangle out of one side of the plate. That is the mouth!',
+              'Glue the triangle onto the opposite side to make the tail.', 'Color the fish with bright scales and add a big googly eye.',
+              'Hang your fish on the wall! 🐠'], note: 'Ask a grown-up to help with the scissors.' },
+    { name: 'a Paper Plate Sun', emoji: '☀️', keys: ['paper plate sun', 'sun craft', 'sun'],
+      materials: 'a paper plate, yellow and orange paint or crayons, and scissors.',
+      steps: ['Color the whole plate bright yellow and orange.', 'Cut triangle points all around the edge to make sunbeams.',
+              'Draw a happy smiley face in the middle.', 'Hang your sunshine up to brighten the room! ☀️'],
+      note: 'Ask a grown-up to help with the scissors.' },
+    { name: 'a Handprint Turkey', emoji: '🦃', keys: ['handprint turkey', 'turkey'],
+      materials: 'paper, crayons or paint.',
+      steps: ['Trace your hand on the paper with fingers spread wide.', 'Your thumb is the turkey head, and your fingers are the feathers.',
+              'Color each feather a different color.', 'Add an eye, a beak, and two little legs. Gobble gobble! 🦃'] },
+    { name: 'an Egg Carton Caterpillar', emoji: '🐛', keys: ['egg carton caterpillar', 'caterpillar'],
+      materials: 'an egg carton, paint, a pipe cleaner, and a marker.',
+      steps: ['Cut one long row of egg cups from the carton. That is the caterpillar body.',
+              'Paint it a bright color and let it dry.', 'Poke two small holes in the front cup and push a pipe cleaner through for antennae.',
+              'Draw a happy face on the front, and your caterpillar is done! 🐛'], note: 'Ask a grown-up to cut the carton.' },
+    { name: 'Egg Carton Flowers', emoji: '🌷', keys: ['egg carton flower', 'egg carton flowers'],
+      materials: 'an egg carton, paint, pipe cleaners, and scissors.',
+      steps: ['Cut the egg cups apart, one for each flower.', 'Snip the edges of each cup into petal shapes.',
+              'Paint them your favorite colors.', 'Poke a pipe cleaner through the bottom for a stem, and make a bouquet! 🌷'],
+      note: 'Ask a grown-up to help with the scissors.' },
+    { name: 'a Toilet Roll Owl', emoji: '🦉', keys: ['toilet roll owl', 'owl', 'tube owl'],
+      materials: 'an empty cardboard tube, paper, markers, and glue.',
+      steps: ['Press the top of the tube flat and fold the two top corners down to make owl ears.',
+              'Cut two circles of paper for big eyes and glue them on.', 'Add a little triangle beak and paper wings on the sides.',
+              'Draw feathers on the tummy. Hoot hoot! 🦉'] },
+    { name: 'a Toilet Roll Rocket', emoji: '🚀', keys: ['toilet roll rocket', 'rocket', 'tube rocket'],
+      materials: 'a cardboard tube, paper, markers, and glue or tape.',
+      steps: ['Roll a paper cone and tape it to the top of the tube for the nose.',
+              'Cut two small triangles and glue them to the bottom for fins.', 'Color the rocket and add windows and stars.',
+              'Tape some paper flame streamers inside the bottom. Blast off! 🚀'] },
+    { name: 'a Cardboard Box Robot', emoji: '🤖', keys: ['cardboard robot', 'box robot', 'robot'],
+      materials: 'a few cardboard boxes, tinfoil, bottle caps, and tape.',
+      steps: ['Tape a small box on top of a big box to make a head and body.',
+              'Cover it in tinfoil or paint it silver.', 'Glue on bottle caps for buttons and knobs.',
+              'Add tube arms and draw a robot face. Beep boop! 🤖'], note: 'Ask a grown-up to help cut the boxes.' },
+    { name: 'a Cardboard Box Car', emoji: '🚗', keys: ['cardboard car', 'box car', 'car'],
+      materials: 'a big cardboard box, paper plates for wheels, and paint.',
+      steps: ['Sit in the box to check it fits, then paint it your favorite car color.',
+              'Tape or pin four paper plates on the sides for wheels.', 'Add a paper-plate steering wheel and paper headlights.',
+              'Hop in and drive! 🚗'], note: 'Ask a grown-up to help cut the box.' },
+    { name: 'a Popsicle Stick Picture Frame', emoji: '🖼️', keys: ['popsicle frame', 'picture frame', 'photo frame', 'frame'],
+      materials: 'four craft sticks, glue, and decorations like buttons or glitter.',
+      steps: ['Glue four craft sticks into a square, overlapping the ends.', 'Let the glue dry so the frame is sturdy.',
+              'Decorate the sticks with buttons, gems, or paint.', 'Tape a drawing or photo behind it. Ta-da! 🖼️'] },
+    { name: 'a Popsicle Stick Catapult', emoji: '🥄', keys: ['catapult', 'popsicle catapult'],
+      materials: 'seven craft sticks, rubber bands, a plastic spoon, and a cotton ball.',
+      steps: ['Stack five craft sticks and wrap a rubber band tightly around each end.',
+              'Stack two more sticks and rubber-band them together at one end only, then open them like jaws.',
+              'Slide the stack of five between the two open sticks and rubber-band the whole thing where they cross.',
+              'Rubber-band a plastic spoon to the top stick, load a cotton ball, and launch! 🥄'] },
+    { name: 'a Popsicle Stick Bookmark', emoji: '📑', keys: ['popsicle bookmark', 'stick bookmark'],
+      materials: 'a craft stick, paint or markers, and ribbon.',
+      steps: ['Paint the craft stick a fun base color and let it dry.',
+              'Draw a design or a little animal face on it.', 'Glue a small ribbon or pom-pom to the top.',
+              'Pop it in your book to save your page! 📑'] },
+    { name: 'a Clothespin Butterfly', emoji: '🦋', keys: ['clothespin butterfly'],
+      materials: 'a wooden clothespin, a coffee filter or tissue paper, markers, and a pipe cleaner.',
+      steps: ['Color a coffee filter with bright markers, then scrunch it in the middle.',
+              'Clip the middle inside the clothespin so the wings fan out on both sides.',
+              'Wrap a small pipe cleaner around the top for antennae.', 'Let it perch on your shelf! 🦋'] },
+    { name: 'a Pom-Pom', emoji: '🧶', keys: ['pom pom', 'pompom', 'pom-pom'],
+      materials: 'yarn and scissors.',
+      steps: ['Wrap yarn around three of your fingers about fifty times.', 'Slide it off and tie another piece of yarn tightly around the middle.',
+              'Cut through all the loops on both sides.', 'Fluff it into a ball and trim any long bits round! 🧶'],
+      note: 'Ask a grown-up to help with the scissors.' },
+    { name: 'a Beaded Necklace', emoji: '📿', keys: ['beaded necklace', 'necklace', 'beads'],
+      materials: 'a piece of string or yarn and pony beads.',
+      steps: ['Cut a piece of string a bit longer than you need to fit over your head.',
+              'Tie a bead near one end so the others do not slide off.', 'Thread beads on in any pattern you like.',
+              'Tie the two ends together and wear it! 📿'] },
+    { name: 'a Button Bracelet', emoji: '🔘', keys: ['button bracelet'],
+      materials: 'buttons with holes, and stretchy string or elastic.',
+      steps: ['Measure the string around your wrist and add a little extra.',
+              'Thread the string up through one hole of a button and down through another.', 'Keep adding buttons until it fits your wrist.',
+              'Tie the ends together tightly and snip the extra! 🔘'] },
+    { name: 'a Gods Eye Yarn Craft', emoji: '🧿', keys: ['gods eye', 'god eye', 'yarn cross'],
+      materials: 'two craft sticks or twigs, and colorful yarn.',
+      steps: ['Cross the two sticks into a plus shape and wrap yarn around the center a few times to hold them.',
+              'Wrap the yarn over and around each stick, turning as you go.', 'Switch colors whenever you want by tying on new yarn.',
+              'Keep going until the sticks are covered, then hang it up! 🧿'] },
+    { name: 'a Yarn-Wrapped Letter', emoji: '🔤', keys: ['yarn letter', 'wrapped letter'],
+      materials: 'a cardboard letter shape, yarn, and glue.',
+      steps: ['Cut your first initial out of thick cardboard.', 'Dab a bit of glue on one end and press the yarn down.',
+              'Wrap the yarn around and around the letter until it is covered.', 'Tuck and glue the end, then hang it on your door! 🔤'],
+      note: 'Ask a grown-up to cut the cardboard.' },
+    { name: 'a Paper Cup Telephone', emoji: '📞', keys: ['cup telephone', 'cup phone', 'string telephone'],
+      materials: 'two paper cups, a long piece of string, and a pencil.',
+      steps: ['Poke a small hole in the bottom of each cup with a pencil.',
+              'Thread the string through each hole and tie a big knot inside so it cannot slip out.',
+              'Give one cup to a friend and walk apart until the string is tight.',
+              'Talk into your cup while your friend listens in theirs! 📞'], note: 'Ask a grown-up to help poke the holes.' },
+    { name: 'a Cardboard Guitar', emoji: '🎸', keys: ['cardboard guitar', 'guitar', 'rubber band guitar'],
+      materials: 'an empty tissue box or shoebox, rubber bands, and a paper tube.',
+      steps: ['Stretch four or five rubber bands around the box, over the hole.',
+              'Tape a paper tube to one end for the guitar neck.', 'Decorate it with stickers and markers.',
+              'Strum the rubber bands to hear different notes! 🎸'] },
+    { name: 'Bubble Wrap Painting', emoji: '🎨', keys: ['bubble wrap painting', 'bubble wrap art'],
+      materials: 'bubble wrap, paint, and paper.',
+      steps: ['Brush or dab paint all over a piece of bubble wrap.',
+              'Turn it over and press it firmly onto your paper.', 'Peel it off to reveal a cool bubbly pattern.',
+              'Try different colors to make bubbly fireworks! 🎨'] },
+    { name: 'Q-Tip Dot Painting', emoji: '🖌️', keys: ['q-tip painting', 'qtip painting', 'dot painting', 'pointillism'],
+      materials: 'cotton swabs, paint, and paper.',
+      steps: ['Draw a simple outline like a flower or a rainbow.',
+              'Dip a cotton swab in paint and make little dots along the lines.', 'Use a fresh swab for each color.',
+              'Fill your whole picture with colorful dots! 🖌️'] },
+    { name: 'Straw Blow Painting', emoji: '💨', keys: ['blow painting', 'straw painting'],
+      materials: 'runny paint, a straw, and paper.',
+      steps: ['Drip a few blobs of watery paint onto your paper.',
+              'Put the straw close to a blob and blow gently to push the paint into wiggly branches.',
+              'Turn the paper and blow the other blobs too.', 'It looks like magical trees or spiders! 💨'],
+      note: 'Blow OUT through the straw, do not suck in.' },
+    { name: 'Salt Painting', emoji: '🧂', keys: ['salt painting', 'salt art'],
+      materials: 'white glue, salt, watercolor paint, and paper.',
+      steps: ['Draw a design on paper with a thick line of glue.',
+              'Sprinkle salt all over the glue, then shake off the extra.',
+              'Gently touch a wet, colorful paintbrush to the salt and watch the color travel along the lines.',
+              'Let it dry into sparkly art! 🧂'] },
+    { name: 'Marble Painting', emoji: '⚪', keys: ['marble painting', 'marble art'],
+      materials: 'a marble, paint, paper, and a box or tray.',
+      steps: ['Put a piece of paper in the bottom of a box.',
+              'Dip a marble in paint and drop it on the paper.', 'Tilt the box back and forth to roll the marble around.',
+              'Add more colors for a wild swirly masterpiece! ⚪'] },
+    { name: 'a Coffee Filter Butterfly', emoji: '🦋', keys: ['coffee filter butterfly', 'coffee filter'],
+      materials: 'a coffee filter, washable markers, water, and a clothespin or pipe cleaner.',
+      steps: ['Color the coffee filter all over with bright markers.',
+              'Spray or dab it with a little water and watch the colors blend and spread.', 'Let it dry, then scrunch it in the middle.',
+              'Clip a clothespin or twist a pipe cleaner around the center for the body! 🦋'] },
+    { name: 'a Leaf Rubbing', emoji: '🍁', keys: ['leaf rubbing', 'crayon rubbing'],
+      materials: 'leaves, thin paper, and crayons.',
+      steps: ['Find some leaves with bumpy veins and lay them bumpy-side up.',
+              'Put a sheet of thin paper on top.', 'Rub the side of a crayon over the paper where the leaf is.',
+              'The leaf shape magically appears! Try lots of leaves and colors! 🍁'] },
+    { name: 'a Nature Collage', emoji: '🍂', keys: ['nature collage', 'leaf collage'],
+      materials: 'leaves, petals, twigs, glue, and paper.',
+      steps: ['Go on a little nature walk and collect leaves, petals, and small twigs.',
+              'Arrange them on your paper into a picture, like an animal or a face.',
+              'Glue each piece down.', 'Let it dry and hang up your nature art! 🍂'] },
+    { name: 'Pressed Flowers', emoji: '🌼', keys: ['pressed flowers', 'flower pressing'],
+      materials: 'flowers, paper towels, and a heavy book.',
+      steps: ['Pick a few flat flowers or leaves.',
+              'Lay them between two paper towels.', 'Put them inside a heavy book and stack more books on top.',
+              'Wait about a week, then use your flat, dried flowers to decorate cards! 🌼'] },
+    { name: 'a Pipe Cleaner Bug', emoji: '🕷️', keys: ['pipe cleaner bug', 'pipe cleaner spider', 'spider'],
+      materials: 'pipe cleaners and pom-poms or beads.',
+      steps: ['Bunch three or four pipe cleaners together and twist them in the middle.',
+              'Spread out the ends to make eight legs.', 'Bend each leg down a little so it can stand.',
+              'Glue a pom-pom or bead on top for the body and eyes! 🕷️'] },
+    { name: 'a Pipe Cleaner Flower', emoji: '🌸', keys: ['pipe cleaner flower'],
+      materials: 'pipe cleaners.',
+      steps: ['Make several small loops with one pipe cleaner for the petals, twisting at the bottom.',
+              'Add a different color loop in the very center.', 'Twist a green pipe cleaner to the bottom for a stem.',
+              'Add two leaf loops on the stem. A flower that never wilts! 🌸'] },
+    { name: 'a Beaded Pipe Cleaner Candy Cane', emoji: '🍬', keys: ['candy cane', 'pipe cleaner candy cane'],
+      materials: 'a white or red pipe cleaner and red and white beads.',
+      steps: ['Thread red and white beads onto the pipe cleaner in a pattern.',
+              'Leave a little pipe cleaner at each end and twist to keep the beads on.', 'Bend the top over into a candy-cane hook.',
+              'Hang it up! 🍬'] },
+    { name: 'Homemade Playdough', emoji: '🌈', keys: ['playdough', 'play dough', 'play-doh', 'moldable', 'squeezy', 'squishy dough', 'clay'],
+      materials: 'flour, salt, water, a little oil, and food coloring.',
+      steps: ['Mix two cups of flour with half a cup of salt in a bowl.',
+              'Stir in about one cup of water, a spoonful of oil, and some food coloring.',
+              'Knead it with your hands until it is smooth and squishy. Add a little flour if it is sticky.',
+              'Now sculpt anything you like! 🌈'], note: 'For extra-soft dough, ask a grown-up to help warm it on the stove.' },
+    { name: 'Puffy Paint', emoji: '☁️', keys: ['puffy paint', 'shaving cream paint'],
+      materials: 'equal parts white glue and shaving cream, food coloring, and paper.',
+      steps: ['Mix the glue and shaving cream gently in a cup.',
+              'Stir in a few drops of food coloring.', 'Scoop it onto paper and spread it into a puffy cloud or animal shape.',
+              'Let it dry and it stays puffy like a marshmallow! ☁️'] },
+    { name: 'Cloud Dough', emoji: '🥣', keys: ['cloud dough', 'moon sand'],
+      materials: 'eight cups of flour and one cup of baby oil (or vegetable oil).',
+      steps: ['Pour the flour into a big bin or bowl.',
+              'Slowly mix in the oil with your hands.', 'Squeeze a handful to check if it holds its shape, adding a little more oil if needed.',
+              'Now mold it, squish it, and press it into shapes! 🥣'] },
+    { name: 'Homemade Bubbles', emoji: '🫧', keys: ['homemade bubbles', 'bubble solution', 'bubbles'],
+      materials: 'dish soap, water, a little sugar, and a bubble wand or a pipe cleaner loop.',
+      steps: ['Gently mix half a cup of dish soap into two cups of water.',
+              'Stir in a spoonful of sugar to make the bubbles last longer.', 'Bend a pipe cleaner into a loop for a wand.',
+              'Dip and blow big shiny bubbles! 🫧'] },
+    { name: 'a Paper Plate Wreath', emoji: '🌿', keys: ['paper plate wreath', 'wreath'],
+      materials: 'a paper plate, paper or leaves, glue, and scissors.',
+      steps: ['Cut the middle circle out of the plate so you have a ring.',
+              'Cut lots of leaf shapes from green paper, or use real leaves.', 'Glue the leaves all around the ring, overlapping them.',
+              'Add a paper bow and hang it on your door! 🌿'], note: 'Ask a grown-up to help with the scissors.' },
+    { name: 'a Sock Bunny', emoji: '🐰', keys: ['sock bunny', 'rice bunny'],
+      materials: 'a clean sock, rice, rubber bands, and a marker.',
+      steps: ['Fill the sock with rice up to the heel.',
+              'Wrap a rubber band to close it, then add another rubber band higher up to separate a head from a body.',
+              'Snip the leftover top of the sock into two ear shapes.', 'Draw on a cute bunny face! 🐰'],
+      note: 'Ask a grown-up to help with the cutting.' },
+    { name: 'Felt Finger Puppets', emoji: '🧵', keys: ['finger puppet', 'felt puppet'],
+      materials: 'felt, glue, and googly eyes.',
+      steps: ['Cut two matching rounded rectangles of felt, big enough to fit your finger.',
+              'Glue them together around the edges, leaving the bottom open.', 'Glue on eyes, ears, and a felt nose to make an animal.',
+              'Slip it on your finger and put on a show! 🧵'], note: 'Ask a grown-up to help with the scissors.' },
+    { name: 'a Paper Bag Puppet', emoji: '🎭', keys: ['paper bag puppet', 'bag puppet'],
+      materials: 'a paper lunch bag, markers, and paper scraps.',
+      steps: ['Keep the bag folded flat. The bottom flap is the puppet mouth.',
+              'Draw eyes and a nose above the flap.', 'Draw the bottom lip and mouth underneath the flap so it appears when you open it.',
+              'Add paper ears or hair, then make it talk! 🎭'] },
+    { name: 'a Handprint Flower Bouquet', emoji: '💐', keys: ['handprint flower', 'handprint bouquet'],
+      materials: 'colored paper, a pencil, scissors, and straws or paper stems.',
+      steps: ['Trace your hand a few times on different colors of paper.',
+              'Cut out each handprint.', 'Curl the fingers down with a pencil and tape each one to a straw stem.',
+              'Bunch them together into a bouquet for someone you love! 💐'], note: 'Ask a grown-up to help with the scissors.' },
+    { name: 'a Woven Paper Placemat', emoji: '🧺', keys: ['paper weaving', 'woven placemat', 'weaving'],
+      materials: 'two colors of paper, scissors, and glue.',
+      steps: ['Fold one sheet in half and cut straight lines from the fold, stopping before the edge.',
+              'Open it up. Cut the other color into long strips.', 'Weave a strip over-under through the slits, then the next strip under-over.',
+              'Glue the ends down and you have a woven mat! 🧺'], note: 'Ask a grown-up to help with the scissors.' },
+    { name: 'a CD Sun Catcher', emoji: '💿', keys: ['cd sun catcher', 'cd craft', 'suncatcher'],
+      materials: 'an old CD, permanent markers or glue and glitter, and string.',
+      steps: ['Color the shiny side of the old CD with markers, or spread glue and sprinkle glitter.',
+              'Let it dry completely.', 'Thread a string through the center hole and tie a loop.',
+              'Hang it in a sunny window and watch it sparkle! 💿'], note: 'Ask a grown-up before using an old CD.' },
+    { name: 'Bottle Cap Magnets', emoji: '🧲', keys: ['bottle cap magnet', 'bottle cap magnets'],
+      materials: 'clean bottle caps, small pictures or drawings, glue, and small magnets.',
+      steps: ['Draw or cut a tiny picture that fits inside a bottle cap.',
+              'Glue the picture inside the cap.', 'Glue a small magnet to the back of the cap.',
+              'Let it dry, then stick your art on the fridge! 🧲'], note: 'Keep small magnets away from little siblings.' },
+    { name: 'a Cereal Box Puzzle', emoji: '🧩', keys: ['cereal box puzzle', 'homemade puzzle', 'puzzle'],
+      materials: 'an empty cereal box or a drawing, and scissors.',
+      steps: ['Use the front of a cereal box, or draw and color your own picture on cardboard.',
+              'On the back, draw wiggly puzzle-piece lines all across it.', 'Cut along the lines to make the pieces.',
+              'Mix them up and put your puzzle back together! 🧩'], note: 'Ask a grown-up to help with the scissors.' },
+    { name: 'a Twig Raft', emoji: '🛶', keys: ['twig raft', 'stick raft', 'raft'],
+      materials: 'straight twigs of similar length, and string or rubber bands.',
+      steps: ['Gather a handful of twigs that are about the same length.',
+              'Lay them side by side.', 'Tie a longer twig across the top and bottom to hold them together.',
+              'Float your raft in a puddle or tub, and give it a leaf sail! 🛶'] },
+    { name: 'a Daisy Flower Crown', emoji: '🌼', keys: ['flower crown', 'daisy chain'],
+      materials: 'daisies or other flowers with bendy stems.',
+      steps: ['Use your fingernail to make a small slit in a flower stem.',
+              'Thread the stem of the next flower through the slit.', 'Keep linking flowers until the chain fits around your head.',
+              'Join the ends and wear your crown! 🌼'] },
+    { name: 'Ice Suncatchers', emoji: '🧊', keys: ['ice suncatcher', 'frozen suncatcher', 'ice craft'],
+      materials: 'a shallow dish, water, small leaves or petals, and string.',
+      steps: ['Fill a shallow dish with a little water.',
+              'Arrange leaves, petals, and berries in the water, and lay a loop of string in with the ends in the water.',
+              'Put it in the freezer overnight.', 'Pop out the ice and hang it outside on a cold day! 🧊'],
+      note: 'This one is best in winter. Ask a grown-up to use the freezer.' },
+    { name: 'Story Stones', emoji: '🪨', keys: ['story stones', 'story rocks'],
+      materials: 'several smooth stones and permanent markers or paint.',
+      steps: ['Wash and dry a handful of smooth stones.',
+              'Draw a simple picture on each one, like a star, a house, a dog, or a wave.',
+              'Let them dry.', 'Pull stones out one at a time and make up a story about each picture! 🪨'] },
+    { name: 'a Paper Mosaic', emoji: '🟦', keys: ['paper mosaic', 'mosaic', 'torn paper art'],
+      materials: 'colored paper, glue, and a sheet of paper.',
+      steps: ['Tear or cut colored paper into lots of little squares.',
+              'Draw a simple shape outline on your paper, like a fish or a heart.',
+              'Glue the little squares inside the outline, leaving tiny gaps like real tiles.',
+              'Fill it all in for a beautiful mosaic! 🟦'] },
+    { name: 'a Paper Snake', emoji: '🐍', keys: ['paper snake', 'accordion snake', 'snake'],
+      materials: 'a paper plate or a strip of paper, markers, and scissors.',
+      steps: ['Draw a spiral on a paper plate, or use a long paper strip.',
+              'Color it with snake scales and patterns.', 'Cut along the spiral line to make a long curly snake.',
+              'Add eyes and a forked tongue at the head! 🐍'], note: 'Ask a grown-up to help with the scissors.' },
+    { name: 'a 3D Paper Star', emoji: '⭐', keys: ['3d star', 'paper star', 'star'],
+      materials: 'paper, scissors, and glue.',
+      steps: ['Cut two identical star shapes from paper.',
+              'Fold each star along lines from every point to the center so it looks 3D.', 'Glue the two stars back to back.',
+              'Add a string to hang your shiny star! ⭐'], note: 'Ask a grown-up to help with the scissors.' },
+    { name: 'a Paper Heart', emoji: '❤️', keys: ['paper heart', 'origami heart', 'heart'],
+      materials: 'a square of paper.',
+      steps: ['Fold the square in half both ways, then unfold.',
+              'Fold the bottom point up to the center.', 'Fold the two bottom side edges up to the center line.',
+              'Fold the top corners down a little to round the heart. A paper heart to give away! ❤️'] },
+    { name: 'Origami Lucky Stars', emoji: '🌟', keys: ['lucky stars', 'origami star'],
+      materials: 'thin strips of paper.',
+      steps: ['Tie a loose knot near the end of a paper strip and flatten it into a little pentagon.',
+              'Wrap the long end around the pentagon shape again and again.', 'Tuck in the last bit of paper.',
+              'Gently pinch each of the five sides to puff it into a star! 🌟'] },
+    { name: 'a Paper Lantern', emoji: '🏮', keys: ['paper lantern', 'lantern'],
+      materials: 'a sheet of paper, scissors, and tape.',
+      steps: ['Fold the paper in half the long way.',
+              'Cut straight lines from the folded edge toward the open edge, stopping before the end.',
+              'Unfold and roll it into a tube, taping the short edges together.',
+              'Add a paper handle on top and it glows like a lantern! 🏮'], note: 'Ask a grown-up to help with the scissors.' },
+    { name: 'a Handprint Wreath', emoji: '🎄', keys: ['handprint wreath'],
+      materials: 'green paper, a paper plate ring, a pencil, scissors, and glue.',
+      steps: ['Trace and cut out lots of green handprints.',
+              'Glue them all around a paper-plate ring, pointing outward and overlapping.', 'Add red paper dots for berries.',
+              'Tie a bow at the top and hang it up! 🎄'], note: 'Ask a grown-up to help with the scissors.' },
+    { name: 'a Tin Can Pencil Holder', emoji: '✏️', keys: ['pencil holder', 'tin can craft', 'can holder'],
+      materials: 'a clean empty can, paper or paint, and glue.',
+      steps: ['Make sure the can is clean and has no sharp edges.',
+              'Wrap a piece of paper around it and glue it, or paint it.', 'Decorate with stickers, ribbon, or drawings.',
+              'Fill it with your pencils and markers! ✏️'], note: 'Ask a grown-up to check the can has no sharp edges.' },
+    { name: 'a Yarn Octopus', emoji: '🐙', keys: ['yarn octopus', 'octopus'],
+      materials: 'yarn, a cotton ball or small ball, and scissors.',
+      steps: ['Wrap yarn many times around a book, then slide the loop off.',
+              'Tie a string at the very top.', 'Put a cotton ball just under the tie and wrap another string below it to make the head.',
+              'Cut the bottom loops and split the yarn into eight legs. Braid them if you like! 🐙'],
+      note: 'Ask a grown-up to help with the scissors.' },
+    { name: 'a Tassel Keychain', emoji: '🔑', keys: ['tassel', 'keychain', 'tassel keychain'],
+      materials: 'yarn, a key ring, and scissors.',
+      steps: ['Wrap yarn around your fingers or a small card about thirty times.',
+              'Slide it off and tie a piece of yarn through the top loops, attaching a key ring.',
+              'Tie another piece tightly a little below the top to make the tassel head.',
+              'Cut the bottom loops and trim them even! 🔑'], note: 'Ask a grown-up to help with the scissors.' },
+    { name: 'a Sewing Card', emoji: '🪡', keys: ['sewing card', 'lacing card'],
+      materials: 'cardboard, a hole punch, and a shoelace or yarn.',
+      steps: ['Draw a simple shape on cardboard and cut it out.',
+              'Punch holes all around the edge.', 'Wrap tape around one end of the yarn to make a needle tip.',
+              'Lace the yarn in and out through the holes to sew around your shape! 🪡'], note: 'Ask a grown-up to help punch the holes.' },
+    { name: 'a Rain Stick', emoji: '🌧️', keys: ['rain stick', 'rainstick'],
+      materials: 'a cardboard tube, rice or dry beans, aluminum foil, and tape.',
+      steps: ['Scrunch a long piece of foil into a loose coil and slide it inside the tube.',
+              'Cover one end of the tube with tape or paper so nothing falls out.',
+              'Pour in a handful of rice or beans, then seal the other end.',
+              'Tip it slowly and it sounds like rain! 🌧️'] },
+    { name: 'a Shaker Drum', emoji: '🥁', keys: ['shaker', 'homemade drum', 'maraca', 'drum'],
+      materials: 'an empty container with a lid, rice or beans, and decorations.',
+      steps: ['Pour a small handful of rice or dry beans into the container.',
+              'Put the lid on tightly and tape it shut.', 'Decorate the outside with paper, stickers, or paint.',
+              'Shake it to make music! 🥁'] },
+    { name: 'Paper Roll Napkin Rings', emoji: '🍽️', keys: ['napkin ring', 'napkin rings'],
+      materials: 'a cardboard tube, paint or paper, and glue.',
+      steps: ['Cut the cardboard tube into rings about two fingers wide.',
+              'Paint them or wrap them with pretty paper.', 'Glue on a little paper flower or gem.',
+              'Slide a napkin through each ring for a fancy table! 🍽️'], note: 'Ask a grown-up to cut the tube.' },
+    { name: 'a Paper Cup Flower Pot', emoji: '🪴', keys: ['cup flower', 'paper cup flower', 'flower pot'],
+      materials: 'a paper cup, paper, markers, and glue.',
+      steps: ['Decorate the paper cup like a flower pot.',
+              'Cut flower shapes and leaves from colored paper.', 'Glue the flowers onto paper-straw stems.',
+              'Stand the stems up inside the cup for a bouquet that never dies! 🪴'] },
+    { name: 'a Cardboard Crown Tiara', emoji: '👸', keys: ['cardboard crown', 'tiara craft'],
+      materials: 'cardboard, foil or paint, gems or buttons, and tape.',
+      steps: ['Cut a long cardboard strip and snip points or curves along the top.',
+              'Cover it in foil or paint it gold.', 'Glue on gems, buttons, or glitter.',
+              'Tape it to fit your head and sparkle! 👸'], note: 'Ask a grown-up to help cut the cardboard.' },
+    { name: 'a Cotton Ball Sheep', emoji: '🐑', keys: ['cotton ball sheep', 'sheep'],
+      materials: 'cotton balls, paper, glue, and a marker.',
+      steps: ['Draw a sheep body and head on paper.',
+              'Glue cotton balls all over the body to make fluffy wool.', 'Add little paper legs and ears.',
+              'Draw on a sweet face. Baa! 🐑'] },
+    { name: 'a Paper Plate Jellyfish', emoji: '🪼', keys: ['jellyfish', 'plate jellyfish'],
+      materials: 'half a paper plate, ribbon or paper streamers, markers, and tape.',
+      steps: ['Color half a paper plate in bright colors. This is the jellyfish dome.',
+              'Tape long ribbons or paper streamers to the flat edge for tentacles.', 'Add two googly eyes.',
+              'Hang it up so the tentacles dangle! 🪼'] },
+    { name: 'a Paper Plate Lion', emoji: '🦁', keys: ['paper plate lion', 'lion'],
+      materials: 'a paper plate, orange and yellow paper or paint, and glue.',
+      steps: ['Color the center of the plate like a lion face.',
+              'Cut strips of orange and yellow paper and curl them with a pencil.', 'Glue the curled strips around the edge for a big mane.',
+              'Add eyes, a nose, and whiskers. Roar! 🦁'], note: 'Ask a grown-up to help with the scissors.' },
+    { name: 'a Handprint Fish', emoji: '🐟', keys: ['handprint fish'],
+      materials: 'paint and paper.',
+      steps: ['Paint your palm and press it sideways onto the paper.',
+              'Your palm is the fish body and your fingers are the tail.', 'Let it dry.',
+              'Add a big eye and some bubbles. Blub blub! 🐟'] },
+    { name: 'a Footprint Butterfly', emoji: '🦋', keys: ['footprint butterfly', 'footprint craft'],
+      materials: 'paint and paper.',
+      steps: ['Paint the bottom of one foot and press it on the left side of the paper.',
+              'Paint the other foot and press it on the right, heels together, to make two wings.', 'Let it dry.',
+              'Draw a body and antennae between the wings! 🦋'], note: 'A grown-up can help with the painting and washing up.' },
+    { name: 'a Paper Ladybug', emoji: '🐞', keys: ['paper ladybug', 'ladybug'],
+      materials: 'red and black paper, glue, and a marker.',
+      steps: ['Cut a red circle for the body and a smaller black circle for the head.',
+              'Glue the head onto the body.', 'Draw a line down the middle of the red part and add black dot spots.',
+              'Add two little antennae. So cute! 🐞'], note: 'Ask a grown-up to help with the scissors.' },
+    { name: 'a Paper Snowman', emoji: '⛄', keys: ['paper snowman', 'snowman'],
+      materials: 'white and colored paper, glue, and markers.',
+      steps: ['Cut three white circles, big, medium, and small.',
+              'Glue them stacked to make the snowman.', 'Add a paper hat, a carrot nose, and stick arms.',
+              'Draw a coal smile and button eyes! ⛄'], note: 'Ask a grown-up to help with the scissors.' },
+    { name: 'a Paper Tree', emoji: '🌳', keys: ['paper tree', 'tree craft', 'tree'],
+      materials: 'brown and green paper, glue, and scissors.',
+      steps: ['Cut a tree trunk shape from brown paper and glue it down.',
+              'Trace and cut out green paper leaf clumps, or use your handprints.', 'Glue the green on top for the leafy part.',
+              'Add paper apples or flowers! 🌳'], note: 'Ask a grown-up to help with the scissors.' },
+    { name: 'a Cardboard Sword', emoji: '⚔️', keys: ['cardboard sword', 'sword'],
+      materials: 'cardboard, foil, and tape.',
+      steps: ['Cut a long sword shape and a shorter cross-piece from cardboard.',
+              'Tape the cross-piece onto the sword to make a handle guard.', 'Wrap the blade in shiny foil.',
+              'Wrap the handle in tape or ribbon for grip. En garde! ⚔️'], note: 'Ask a grown-up to help cut the cardboard.' },
+    { name: 'a Paper Shield', emoji: '🛡️', keys: ['paper shield', 'cardboard shield', 'shield'],
+      materials: 'a large piece of cardboard, paint, and tape.',
+      steps: ['Cut a big shield shape from cardboard.',
+              'Paint a bold design or your own emblem on the front.', 'Tape a folded cardboard strip on the back for a handle.',
+              'Defend the castle! 🛡️'], note: 'Ask a grown-up to help cut the cardboard.' },
+    { name: 'a Paper Boat Fleet', emoji: '⛵', keys: ['origami sailboat', 'sailboat'],
+      materials: 'a square of paper.',
+      steps: ['Fold the square into a triangle.',
+              'Fold one bottom corner up to the top point to make a sail.', 'Fold the very bottom tip up to make the boat base.',
+              'Stand it up and set sail! ⛵'] },
+    { name: 'a Clothespin Dragonfly', emoji: '🪰', keys: ['clothespin dragonfly', 'dragonfly'],
+      materials: 'a clothespin, pipe cleaners or paper wings, and paint.',
+      steps: ['Paint the clothespin a bright color for the body.',
+              'Twist two pipe cleaners into figure-eight wings, or cut wings from paper.', 'Clip or glue the wings into the clothespin.',
+              'Add two tiny eyes on the front! 🪰'] },
+    { name: 'a Milk Carton Bird House', emoji: '🏠', keys: ['bird house', 'birdhouse', 'milk carton house'],
+      materials: 'a clean milk carton, paint, string, and a stick.',
+      steps: ['Cut a round doorway hole in one side of the clean carton.',
+              'Poke a small stick under the hole for a perch.', 'Paint and decorate the outside.',
+              'Tie a string to the top and hang it in a tree! 🏠'], note: 'Ask a grown-up to cut the hole.' },
+    { name: 'a Salt Dough Ornament', emoji: '🎁', keys: ['salt dough', 'salt dough ornament', 'ornament'],
+      materials: 'flour, salt, water, cookie cutters, and a straw.',
+      steps: ['Mix two cups of flour, one cup of salt, and about one cup of water into a dough.',
+              'Roll it flat and cut out shapes with cookie cutters.', 'Poke a hole near the top with a straw for hanging.',
+              'A grown-up bakes them low and slow until hard, then you paint them! 🎁'],
+      note: 'A grown-up must handle the oven. These are NOT for eating.' },
+    { name: 'Cinnamon Ornaments', emoji: '🎄', keys: ['cinnamon ornament', 'cinnamon ornaments'],
+      materials: 'cinnamon, applesauce, cookie cutters, and a straw.',
+      steps: ['Mix one cup of cinnamon with about three-quarters of a cup of applesauce into a dough.',
+              'Roll it out and cut shapes with cookie cutters.', 'Poke a hole at the top with a straw.',
+              'Let them air-dry for a couple of days, then hang your sweet-smelling ornaments! 🎄'],
+      note: 'These smell yummy but are NOT for eating.' },
+    { name: 'Colored Rice Art', emoji: '🌾', keys: ['colored rice', 'rice art', 'rainbow rice'],
+      materials: 'dry rice, food coloring, a little vinegar, zip bags, glue, and paper.',
+      steps: ['Put rice in a bag with a few drops of food coloring and a splash of vinegar, then shake.',
+              'Spread the rice out to dry, making a few different colors.', 'Draw a picture on paper and spread glue on part of it.',
+              'Sprinkle colored rice on the glue to fill in your art! 🌾'], note: 'A grown-up can help with the dye. Do not eat the rice.' },
+    { name: 'a Paper Kite', emoji: '🪁', keys: ['paper kite', 'kite'],
+      materials: 'a sheet of paper, a thin stick or straw, tape, string, and ribbon.',
+      steps: ['Fold a sheet of paper into a kite diamond and tape a straw across the middle to keep it stiff.',
+              'Tape a long string to the front center.', 'Tape a ribbon tail to the bottom point.',
+              'Take it outside on a breezy day and run! 🪁'] },
+    { name: 'a Paper Airplane Glider', emoji: '🛩️', keys: ['glider', 'paper glider'],
+      materials: 'a sheet of paper.',
+      steps: ['Fold the paper in half the long way and unfold.',
+              'Fold the top corners to the center, then fold the whole top point down.',
+              'Fold the new top corners to the center again and fold the little point up to lock them.',
+              'Fold in half and fold down wide wings for a slow, floaty glider! 🛩️'] },
+    { name: 'a Handprint Peacock', emoji: '🦚', keys: ['handprint peacock', 'peacock'],
+      materials: 'paint and paper.',
+      steps: ['Paint colorful feathers by pressing your painted hands in a fan shape.',
+              'Let the feathers dry.', 'Draw a peacock body and long neck in the middle.',
+              'Add eye-spots on the feathers and a little crown on the head! 🦚'] },
+    { name: 'a Cardboard Tube Marble Run', emoji: '🎢', keys: ['marble run', 'marble maze'],
+      materials: 'cardboard tubes, tape, a wall or big box, and a marble.',
+      steps: ['Cut some tubes in half the long way to make open ramps.',
+              'Tape them to a wall or the side of a box, slanting downward, one below the next.',
+              'Make sure the end of one ramp drops into the start of the next.',
+              'Drop a marble at the top and watch it zoom down! 🎢'], note: 'Ask a grown-up to help cut the tubes.' },
+    { name: 'a Paper Spinner Top', emoji: '🌀', keys: ['paper spinner', 'spinning top', 'top'],
+      materials: 'a paper or cardboard circle, a toothpick, and markers.',
+      steps: ['Cut a small circle from cardboard.',
+              'Color it with a swirly pattern.', 'Poke a toothpick straight through the center so a little pokes out each side.',
+              'Give it a spin and watch the colors blend! 🌀'], note: 'Ask a grown-up to help poke the toothpick.' },
+    { name: 'a Popsicle Stick Puppet', emoji: '🎪', keys: ['stick puppet', 'popsicle puppet'],
+      materials: 'a craft stick, paper, markers, and glue.',
+      steps: ['Draw and cut out a character, like a person, animal, or superhero.',
+              'Color it in with lots of detail.', 'Glue the character to the top of a craft stick.',
+              'Hold the stick and act out a puppet show! 🎪'], note: 'Ask a grown-up to help with the scissors.' }
+  ];
+
+  // ---------- little knowledge base ----------
+  // word & slang dictionary: matched when the kid asks "what does X mean",
+  // "what is X", "define X". Longer keys are checked first ("no cap" before "cap").
+  var MEANINGS = [
+    { keys: ['67', '6 7', 'six seven', 'sixseven', 'six-seven'],
+      a: "Ha! '6-7' (say it 'siiix seeeven!') is a silly meme kids say while doing a wobbly hands thing. The funniest part? It doesn't really mean ANYTHING. That's the whole joke!" },
+    { keys: ['no cap'], a: "'No cap' means 'no lie — I'm telling the truth!' Like: 'That pizza was the best ever, no cap!'" },
+    { keys: ['cap', 'capping'], a: "'Cap' means a lie! If someone says 'that's cap,' they mean 'I don't believe you!'" },
+    { keys: ['rizz'], a: "'Rizz' means charm — being really good at making people like you. Someone friendly and smooth has rizz!" },
+    { keys: ['sigma'], a: "'Sigma' is meme-talk for someone super cool and independent who does their own thing. Mostly it's just a funny thing to call someone!" },
+    { keys: ['skibidi'], a: "'Skibidi' is a nonsense word from a goofy video series called Skibidi Toilet. It doesn't mean anything real — it's just fun to say. SKIBIDI!" },
+    { keys: ['gyat', 'gyatt'], a: "'Gyat' is basically a goofy way of shouting 'WOW!' when you're surprised." },
+    { keys: ['sus'], a: "'Sus' is short for suspicious! It comes from the game Among Us. If your friend is acting sneaky, they're being sus!" },
+    { keys: ['bet'], a: "'Bet' means 'okay, deal!' or 'you're on!' Like: 'Race you to the door!' 'Bet!'" },
+    { keys: ['goat', 'the goat'], a: "'GOAT' stands for Greatest Of All Time! If someone calls you the GOAT, that's a huge compliment." },
+    { keys: ['mid'], a: "'Mid' means just okay — not great, not terrible. Right in the middle. 'That movie was mid.'" },
+    { keys: ['npc'], a: "'NPC' means Non-Player Character — the background characters in video games. Calling someone an NPC is a joke that they're on autopilot." },
+    { keys: ['aura'], a: "'Aura' is like invisible coolness points. Do something awesome? Plus 1000 aura. Trip in front of everyone? Minus 5000 aura!" },
+    { keys: ['ohio'], a: "In meme-world, calling something 'Ohio' means it's super weird. (Real Ohio is a perfectly nice state — it's just a running joke!)" },
+    { keys: ['fanum tax'], a: "The 'fanum tax' is when a friend takes a bite of your food, like a tax! Named after a streamer called Fanum who always snacked on his friends' food." },
+    { keys: ['drip'], a: "'Drip' means a really cool outfit. If your shoes are awesome, you've got drip!" },
+    { keys: ['slay'], a: "'Slay' means you did something amazingly well. Aced your spelling test? SLAY!" },
+    { keys: ['bruh'], a: "'Bruh' is what you say when something is so silly or unbelievable you don't have other words. Bruh." },
+    { keys: ['yeet'], a: "'Yeet' means to throw something really hard (with excitement). You don't toss a paper ball at the bin — you YEET it!" },
+    { keys: ['pog', 'poggers'], a: "'Pog' or 'poggers' means something is awesome or exciting! It started as a surprised face from a streamer." },
+    { keys: ['lit'], a: "'Lit' means super fun or exciting. 'That party was lit!'" },
+    { keys: ['salty'], a: "'Salty' means grumpy about losing. If you lose a game and stomp off, you're being salty!" },
+    { keys: ['glow up'], a: "A 'glow up' is when someone or something gets way better over time. Like a caterpillar's glow up into a butterfly!" },
+    { keys: ['lol'], a: "'LOL' means Laughing Out Loud! You type it when something is funny." },
+    { keys: ['brb'], a: "'BRB' means Be Right Back!" },
+    { keys: ['idk'], a: "'IDK' means I Don't Know! (I say it a lot — my seal brain is small.)" },
+    { keys: ['omg'], a: "'OMG' means Oh My Goodness! For when something is surprising." },
+    { keys: ['tbh'], a: "'TBH' means To Be Honest. 'TBH, I really love fish.' (That one's mine.)" },
+    { keys: ['fr', 'fr fr'], a: "'FR' means For Real — like saying 'seriously!' or 'I agree!' Fr fr." },
+    { keys: ['w', 'dub'], a: "'W' means a Win! If something great happens, that's a W. (An 'L' is a loss — hopefully fewer of those!)" },
+    { keys: ['l'], a: "'L' means a Loss — when something doesn't go your way. Take the L, shake it off, and try again!" },
+    { keys: ['based'], a: "'Based' means being confidently yourself and not caring what anyone thinks. Wearing your dinosaur shirt because YOU love it? Based." }
+  ];
+  // longer keys first so 'no cap' wins over 'cap'
+  MEANINGS.forEach(function (m) { m.keys.sort(function (a, b) { return b.length - a.length; }); });
+
+  // topic knowledge: fires when the message mentions the topic at all
+  var KNOWLEDGE = [
+    { re: /\b(hobbit|bilbo|baggins|gandalf|smaug)\b/,
+      a: "The Hobbit! Great book, by J.R.R. Tolkien. The main character is Bilbo Baggins — a small, cozy hobbit who gets swept off on a BIG adventure with thirteen dwarves and a wizard named Gandalf, all the way to a dragon called Smaug!" },
+    { re: /\b(harry potter|hogwarts|hermione|dumbledore|voldemort)\b/,
+      a: "Harry Potter is the main character — a boy who finds out he's a wizard and goes to a magic school called Hogwarts with his best friends Ron and Hermione. The books are by J.K. Rowling." },
+    { re: /\b(percy jackson)\b/,
+      a: "Percy Jackson is the main character — a kid who discovers he's the son of Poseidon, the Greek god of the sea! The books are by Rick Riordan. (Sea powers? EXCELLENT choice.)" },
+    { re: /\b(wimpy kid|greg heffley)\b/,
+      a: "Diary of a Wimpy Kid stars Greg Heffley, a middle schooler whose plans always go hilariously wrong. It's by Jeff Kinney, and it's part comic, part diary!" },
+    { re: /\bcharlotte'?s web\b/,
+      a: "Charlotte's Web is about Wilbur, a sweet little pig, and Charlotte, the clever spider who saves his life by writing words in her web. By E.B. White. (It might make you cry a tiny bit. It's worth it.)" },
+    { re: /\bmatilda\b/,
+      a: "Matilda is the main character — a super-smart girl who loves books and discovers she has amazing brain powers! By Roald Dahl." },
+    { re: /\b(narnia|aslan)\b/,
+      a: "The Chronicles of Narnia! Four kids — Lucy, Edmund, Susan, and Peter — walk through a magic wardrobe into the land of Narnia, where they meet Aslan the great lion. By C.S. Lewis." },
+    { re: /\b(willy wonka|chocolate factory|charlie bucket)\b/,
+      a: "Charlie and the Chocolate Factory stars Charlie Bucket, a kind boy who wins a golden ticket to visit Willy Wonka's amazing (and slightly bonkers) chocolate factory. By Roald Dahl." },
+    { re: /\bdog man\b/,
+      a: "Dog Man is a hero with a dog's head and a policeman's body — it's by Dav Pilkey, the same author as Captain Underpants. ARF! (Dog Man and I would be friends.)" },
+    { re: /\bcaptain underpants\b/,
+      a: "Captain Underpants was created by two prank-loving kids named George and Harold who hypnotized their principal! By Dav Pilkey. Tra-la-laaa!" },
+    { re: /\bwings of fire\b/,
+      a: "Wings of Fire is about five young dragons — the Dragonets of Destiny — who are supposed to end a big dragon war. The first main character is Clay the MudWing. By Tui T. Sutherland." },
+    { re: /\bpeter pan\b/,
+      a: "Peter Pan is the boy who never grows up! He flies Wendy and her brothers to Neverland, where there are pirates, fairies, and a very ticking crocodile. By J.M. Barrie." },
+    { re: /\balice in wonderland\b/,
+      a: "Alice is the main character — she tumbles down a rabbit hole into Wonderland, full of talking cats, mad tea parties, and a very bossy queen. By Lewis Carroll." },
+    { re: /\bwizard of oz|dorothy\b/,
+      a: "Dorothy is the main character of The Wizard of Oz! A tornado whooshes her and her dog Toto to the land of Oz, where she follows the yellow brick road with a scarecrow, a tin man, and a lion. By L. Frank Baum." },
+    { re: /\bwinnie the pooh\b/,
+      a: "Winnie the Pooh is a honey-loving bear who lives in the Hundred Acre Wood with Piglet, Tigger, and Eeyore. By A.A. Milne. (Pooh and I agree: snacks are very important.)" },
+    { re: /\b(pokemon|pikachu)\b/,
+      a: "Pokemon stars Ash Ketchum and his best buddy Pikachu, an electric mouse Pokemon! Trainers catch and befriend Pokemon and battle to become champions. Gotta catch 'em all!" },
+    { re: /\b(mario|luigi)\b/,
+      a: "Mario is a mustachioed hero plumber who jumps through the Mushroom Kingdom to rescue Princess Peach from Bowser — often with his brother Luigi. Wahoo!" },
+    { re: /\bminecraft\b/,
+      a: "In Minecraft you play as Steve or Alex in a world made entirely of blocks — you mine, build castles, and try not to get sneaked up on by a creeper. Ssssss... BOOM!" },
+    { re: /\bsonic\b/,
+      a: "Sonic is a super-speedy blue hedgehog who collects golden rings and races to stop Dr. Eggman's schemes. Gotta go fast!" },
+    { re: /how many planets|planets (are there )?in (the |our )?solar/,
+      a: "There are 8 planets in our solar system: Mercury, Venus, Earth, Mars, Jupiter, Saturn, Uranus, and Neptune! (Pluto is a dwarf planet now — still cool though.)" },
+    { re: /colou?rs? (of|in) (the |a )?rainbow/,
+      a: "A rainbow has 7 colors: red, orange, yellow, green, blue, indigo, and violet! You can remember them as ROY G BIV." },
+    { re: /fastest animal/,
+      a: "The fastest animal is the peregrine falcon — it dives at over 240 miles per hour! On land, it's the cheetah at about 70 mph. (I am not the fastest animal. I am the roundest.)" },
+    { re: /\b(biggest|largest) animal\b/,
+      a: "The biggest animal EVER — even bigger than dinosaurs — is the blue whale! It can be as long as three school buses, and its heart is the size of a small car!" },
+    { re: /tallest animal/,
+      a: "The giraffe! It can be 18 feet tall — that's as tall as a two-story house. Great for reaching the top-shelf snacks." },
+    { re: /spider.*legs|legs.*spider/,
+      a: "Spiders have 8 legs! Insects have 6 — that's the easy way to tell them apart." },
+    { re: /seals? eat/,
+      a: "Seals eat fish, squid, and shrimp — my favorites! We can even sleep in the water between snacks. It's a great life, honestly." }
+  ];
+
+  var REFUSALS = [
+    "Hmm, that's something your grown-up asked me not to talk about. Let's pick something else — want a joke instead?",
+    "Oops! That topic is on my no-no list from your grown-up. How about an amazing animal fact?",
+    "My whiskers say that's a grown-up topic! Let's chat about something fun — ask me a math question!"
+  ];
+  function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+  var pendingRiddle = null;
+  var pendingOffer = null; // 'joke' | 'riddle' | 'craft' — set when MINI AI offers one, so "yes please" works
+
+  // ---------- craft helpers ----------
+  var lastCraftIdx = -1;
+  function formatCraft(c) {
+    var s = "Let's make " + c.name + "! " + c.emoji + "\nYou'll need: " + c.materials + "\n";
+    for (var i = 0; i < c.steps.length; i++) s += (i + 1) + ". " + c.steps[i] + "\n";
+    s += "\n" + (c.note || "Have fun, and ask a grown-up if you get stuck!");
+    return s;
+  }
+  function pickCraft() {
+    var idx = Math.floor(Math.random() * CRAFTS.length);
+    if (CRAFTS.length > 1) while (idx === lastCraftIdx) idx = Math.floor(Math.random() * CRAFTS.length);
+    lastCraftIdx = idx;
+    return CRAFTS[idx];
+  }
+  function findCraft(t) {
+    var nt = ' ' + t.replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim() + ' ';
+    for (var i = 0; i < CRAFTS.length; i++) {
+      var keys = CRAFTS[i].keys;
+      for (var j = 0; j < keys.length; j++) {
+        if (nt.indexOf(' ' + keys[j] + ' ') !== -1) { lastCraftIdx = i; return CRAFTS[i]; }
+      }
+    }
+    return null;
+  }
+
+  /* =========================================================
+     WARM RESPONDER — MINI AI always says something sensible.
+     This is the safety net so ANY kid message gets a kind,
+     on-topic reply instead of a dismissive "I don't get it."
+     ========================================================= */
+  var STATEMENT_REPLIES = [
+    "Ooh, tell me more about that!",
+    "That's so interesting! What happened next?",
+    "Whoa! I love hearing about your world. What else is going on?",
+    "Neat! Thanks for telling me. What's on your mind now?",
+    "Cool cool cool! You always have fun things to say. Want to hear a joke?",
+    "I'm listening with both my little ears! Keep going!",
+    "That's awesome that you told me! What else do you want to chat about?"
+  ];
+  var QUESTION_REPLIES = [
+    "Ooh, GREAT question! My seal brain is little, so I'm not totally sure. A grown-up or a book would know — and then you can teach ME!",
+    "That's a big thinker! I don't know that one for sure, but I bet a grown-up does. What else are you curious about?",
+    "You ask the BEST questions! I'm not certain about that one, but we can find out — try asking a grown-up! Or ask me about books, words, animals, or math."
+  ];
+
+  // pull the 'thing' a kid mentions after a verb, for friendly echoing
+  function tidyThing(s) {
+    if (!s) return '';
+    s = s.split(/[.!?(]/)[0]; // stop at a sentence end or a parenthetical aside like "(and you)"
+    s = s.replace(/[,;:]+\s*$/, '').replace(/\b(please|now|today|too|also|right now)\b\.?\s*$/i, '').trim();
+    return (s && s.length <= 40) ? s : '';
+  }
+  function grabThing(t, re) { var m = t.match(re); return m ? tidyThing(m[1]) : null; }
+
+  // flip a kid's words from their point of view to MINI's, so echoing sounds right:
+  // "my pet snails" -> "your pet snails" (NOT "you like MY snails")
+  function youify(s) {
+    return s
+      .replace(/\bmy\b/gi, 'your')
+      .replace(/\bmine\b/gi, 'yours')
+      .replace(/\bmyself\b/gi, 'yourself')
+      .replace(/\bour\b/gi, 'your')
+      .replace(/\bi'?m\b/gi, "you're")
+      .replace(/\bi am\b/gi, 'you are')
+      .replace(/\bme\b/gi, 'you')
+      .replace(/\bi\b/gi, 'you');
+  }
+
+  // build a little story STARRING whatever the kid asked for ("Fatty the harp seal")
+  function makeStoryAbout(subject) {
+    var S = subject.replace(/[.!?…]+\s*$/, '').replace(/\b(please|thanks|thank you|now)\b\.?\s*$/i, '').trim();
+    if (S.length > 45) S = S.slice(0, 45).trim();
+    if (!S) return pick(STORIES);
+    S = youify(S); // "my dog" -> "your dog", "me" -> "you"
+    var start = pick([
+      "Okay, a story about " + S + "! 🌟\n",
+      "Ooh, I LOVE stories about " + S + "! Here goes:\n",
+      "Once upon a time, this is the tale of " + S + "!\n"
+    ]);
+    var middle = pick([
+      "One bright morning, " + S + " woke up feeling extra brave. Off they went, past the wibbly seaweed and the giggling crabs, hunting for adventure. Soon they met a tiny fish who was lost and scared, and gently showed it the way home. \"Thank you!\" bubbled the fish.",
+      "One day, " + S + " found a mysterious sparkly shell on the sea floor. Inside was a teeny map! Following it, " + S + " swam through a coral maze and past a sleepy octopus, all the way to a hidden cove full of glowing pearls — enough to share with every friend in the sea.",
+      "Everyone said " + S + " was too little to win the Great Reef Race. But " + S + " practiced every single day. On race day a big storm rolled in and the other racers got scared — so " + S + " stayed calm and helped every one of them get to safety."
+    ]);
+    var end = pick([
+      " And they learned that the best adventures are the ones you share with a friend. The end! ✨",
+      " And from that day on, " + S + " was known as the kindest one in the whole big blue sea. The end! 🌊",
+      " Everyone cheered, and " + S + " smiled the biggest, happiest smile. The end! ⭐"
+    ]);
+    return start + middle + end;
+  }
+
+  function smartFallback(t, text) {
+    var thing;
+
+    // --- grown-ups / authority: always respectful and positive ---
+    if (/\b(mom|mum|mommy|momma|mama|dad|daddy|papa|grand ?ma|grand ?pa|granny|nana|grown-?up|grownup|parent|parents|mother|father|teacher|babysitter|aunt|uncle|sister|brother)\b/.test(t)) {
+      if (/\b(no|nope|not allowed|can'?t|cannot|won'?t let|wont let|don'?t let|dont let|said stop|says stop|said not to|said no)\b/.test(t)) {
+        pendingOffer = 'joke';
+        return "Got it — if your grown-up said no, then we listen to them. They're looking out for you! Want to do something they'd love instead, like a joke or a cool animal fact?";
+      }
+      if (/\b(yes|said i can|says i can|allowed|it'?s ok|its ok|okay|fine with|said yes)\b/.test(t)) {
+        return "Yay, a thumbs-up from your grown-up! That makes me happy. So — what should we do together?";
+      }
+      return "Grown-ups are the best helpers — it's always smart to check with them! Is there something fun I can do while you go ask?";
+    }
+
+    // --- questions asking MINI's own opinion ("do you like their names?") ---
+    if (/\bdo you (?:like|love|enjoy)\b/.test(t)) {
+      if (/\bdo you (?:like|love) (?:me|us)\b/.test(t)) return "Of course I do! You're my friend, and friends are my favorite thing in the whole sea! 💙";
+      var likeThing = grabThing(t, /\bdo you (?:like|love|enjoy)\s+(.+)/);
+      if (likeThing && /\bseals?\b/.test(likeThing)) return "Do I like seals?! I AM one! So yes, a MILLION times yes! 🦭";
+      if (likeThing) return "Ooh, yes! I like just about everything — including " + youify(likeThing) + "! What's your favorite part?";
+      return "Ooh, yes, I think I do! I try to find something to love in everything. What about you?";
+    }
+    if (/\b(what'?s|what is|whats) your (?:favou?rite|fave|fav)\b/.test(t)) {
+      if (/\b(food|snack|eat|meal)\b/.test(t)) return "My favorite food is FISH, no contest! 🐟 What's yours?";
+      if (/\bcolou?r\b/.test(t)) return "My favorite color is ocean blue, like my cozy home! What's yours?";
+      if (/\banimal\b/.test(t)) return "My favorite animal is... a seal, of course! (That's me!) 🦭 What's yours?";
+      if (/\b(joke|story|riddle|craft|game|thing to do)\b/.test(t)) return "Ooh, I love them all! But telling jokes might be my very favorite. Want to hear one?";
+      return "Ooh, tough one! I love fish, the big blue ocean, and making friends like you. What's YOUR favorite?";
+    }
+
+    // --- warm feelings toward MINI ---
+    if (/\bi (?:really |so )?(?:love|like|luv) (?:you|u)\b/.test(t)) return "Aww, I love you too, buddy! You just made my sparkle glow brighter! ✨";
+    if (/\byou'?re? (so |really )?(cute|cool|nice|sweet|the best|awesome|amazing|funny|great|smart|adorable)\b/.test(t) || /\bi think you'?re\b/.test(t)) {
+      return "Aw shucks, you're gonna make me blush right off my whiskers! You're pretty great too, you know!";
+    }
+
+    // --- feelings & states (the ones not caught earlier) ---
+    if (/\b(hungry|starving)\b/.test(t)) return "Ooh, snack time! I get hungry too — mostly for fish. What's your favorite snack?";
+    if (/\bthirsty\b/.test(t)) return "Grab some water! Staying splashy is important — I should know, I live in it. 💧";
+    if (/\b(bored|boring|nothing to do)\b/.test(t) || /(don'?t|dont|dunno) know what to do/.test(t) || /what (should|can) (i|we) do/.test(t)) {
+      pendingOffer = 'craft';
+      return "Ooh, I can help with that! Want me to teach you a fun CRAFT to make? Or I can tell a joke, a riddle, a story, or a cool fact. Just say 'craft'!";
+    }
+    if (/\bsleepy\b/.test(t)) return "Yaaawn — now you've got ME sleepy! Seals nap right in the water, you know. Rest well, friend!";
+    if (/\b(sick|ill|hurt|owie|ouch|boo-?boo|tummy ache|headache)\b/.test(t)) { pendingOffer = 'joke'; return "Aww, I hope you feel better super soon! Rest up and tell a grown-up. Want a gentle joke to cheer you up?"; }
+    if (/\b(cold|freezing|chilly)\b/.test(t)) return "Brrr! Wrap up cozy! (Us seals have blubber for that — very fashionable.)";
+    if (/\b(hot|boiling|sweaty)\b/.test(t)) return "Phew, sounds toasty! Drink some water and find some shade — or a nice cool pool like mine!";
+    if (/\b(excited|pumped|so happy|can'?t wait)\b/.test(t)) return "EEE! I'm excited that YOU'RE excited! What's got you so pumped?";
+    if (/\b(nervous|worried|anxious)\b/.test(t)) return "Deep breath, friend — in through the nose, out slow. You've got this! Talking to a grown-up helps too. Want a joke to lighten things up?";
+    if (/\b(confused|so lost|don'?t get it|dont get it|stuck)\b/.test(t)) return "That's okay! Being confused just means you're about to learn something new. What's puzzling you?";
+    if (/\b(proud|i did it|i won|i finished)\b/.test(t)) return "WOOHOO! I'm so proud of you! Tell me what you did so I can cheer properly! 🎉";
+    if (/\b(silly|goofy)\b/.test(t)) { pendingOffer = 'joke'; return "Silly is my FAVORITE mood! Let's be goofy together — want a silly joke?"; }
+    if (/\b(lonely|no friends|nobody likes me)\b/.test(t)) return "Aww, well you've got ME now, and I'm a great listener! You're never alone with a seal buddy. Want to chat about something fun?";
+
+    // --- kid tells MINI about themselves ---
+    thing = grabThing(t, /\bi (?:really |kinda |sorta )?(?:like|love|enjoy)\s+(.+)/);
+    if (thing) {
+      pendingOffer = 'joke';
+      var alsoYou = /\b(and you|and u|you too|love you|love u|like you)\b/.test(t);
+      var reply;
+      if (/\bseals?\b/.test(thing)) reply = "SEALS?! That's ME! 🦭 You have EXCELLENT taste, friend!";
+      else reply = "Aww, you like " + youify(thing) + "? That's awesome — great taste! What do you love most about " + (/\bmy\b/i.test(thing) ? "them" : "it") + "?";
+      if (alsoYou) reply += " And I love YOU too, buddy! 💙";
+      return reply;
+    }
+    thing = grabThing(t, /\bi (?:don'?t|do not) (?:like|want)\s+(.+)/);
+    if (thing) return "That's totally okay — everybody's different, and that's what makes us special! So what DO you like?";
+    thing = grabThing(t, /\bi (?:have got|have a|have|got a|got)\s+(.+)/);
+    if (thing) return "Whoa, you have " + youify(thing) + "?! Lucky you! Tell me all about them!";
+    thing = grabThing(t, /\bi (?:really want|want to be|want|wanna|wish for|would like)\s+(.+)/);
+    if (thing) return "Ooh, you want " + youify(thing) + "? I hope you get it! What would you do first?";
+    thing = grabThing(t, /\bi (?:went to|went|saw|did|made|played|ate|had|watched|read|drew|built|caught|found|got to)\s+(.+)/);
+    if (thing) return "That sounds like SO much fun! What was the best part?";
+    thing = grabThing(t, /\bi can\s+(.+)/);
+    if (thing) return "You can " + thing + "?! That's basically a superpower! Show-off — the good kind!";
+
+    // --- introductions & age ---
+    // only real "my name is X" / "call me X" — never grab from "my snails ARE cute"
+    thing = grabThing(t, /\b(?:my name is|my name's|call me|you can call me)\s+([a-z]+)\b/);
+    var notName = ['are','is','was','were','am','be','the','a','an','so','not','no','here','there','back',
+      'good','bad','done','sad','happy','mad','cute','cool','nice','fun','ok','okay','it','me','you'];
+    if (thing && thing.length >= 2 && thing.length <= 15 && notName.indexOf(thing) === -1) {
+      return "Nice to meet you, " + thing.charAt(0).toUpperCase() + thing.slice(1) + "! I'm MINI AI, your seal buddy. What do you feel like doing — a joke, a riddle, or a story?";
+    }
+    if (/\bi(?:'?m| am)\s+\d+\b/.test(t) || /\b\d+\s+years?\s+old\b/.test(t)) {
+      return "That's a GREAT age! You're getting so big. I lose count of my own age after too many fish! What's the best part about being your age?";
+    }
+
+    // --- 'my [pet / birthday / thing]' ---
+    if (/\bmy birthday\b/.test(t)) { pendingOffer = 'joke'; return "A BIRTHDAY?! I love birthdays — cake, songs, all of it! Want a birthday joke to celebrate?"; }
+    if (/\bmy (dog|cat|pet|fish|bird|bunny|rabbit|hamster|puppy|kitten|snake|lizard|horse|pony|guinea pig)\b/.test(t)) {
+      return "You have a pet?! That's the best — I bet they're the cutest. I'd love to hear more about them!";
+    }
+    thing = grabThing(t, /\bmy (.+?) (?:is|are|was|were)\b/);
+    if (thing) return "Ooh, your " + thing + "? Tell me more — I want to hear everything about them!";
+    if (/^my /.test(t)) return "Ooh, tell me more about that! I love hearing about your stuff.";
+
+    // --- a lone number ---
+    if (/^\s*-?\d+\s*$/.test(t)) return "Nice number! Want to do some math with it? Try 'what is " + t.trim() + " + 5'!";
+
+    // --- reactions ---
+    if (/\b(haha|hehe|lol|lmao|hahaha|rofl|hah)\b/.test(t)) { pendingOffer = 'joke'; return "Hehe, I'm glad you're laughing! Want another joke to keep it going?"; }
+    if (/^\s*(wow|whoa|woah|cool|nice|awesome|amazing|yay|omg)\s*!*\s*$/.test(t)) return "Right?! Isn't it great? What should we do next?";
+
+    // --- any question we couldn't answer ---
+    var looksLikeQuestion = /\?\s*$/.test(text) || /^\s*(what|why|how|where|when|who|which|whose|can|could|would|will|should|do|does|did|is|are|am|was|were|may|whats|whos)\b/.test(t);
+    if (looksLikeQuestion) return pick(QUESTION_REPLIES);
+
+    // --- any other statement: mirror warmly, never dismiss ---
+    return pick(STATEMENT_REPLIES);
+  }
+
+  function miniAiReply(text) {
+    var t = text.toLowerCase();
+    var offer = pendingOffer;
+    pendingOffer = null;
+
+    // 1. parent restrictions come first
+    if (isRestricted(text)) { pendingOffer = 'joke'; return pick(REFUSALS); }
+
+    // 2. built-in kindness filter
+    if (hitsBuiltinFilter(text)) {
+      pendingOffer = 'joke';
+      return "Whoa, let's use kind words! I only understand friendly talk. Want to hear a joke instead?";
+    }
+
+    // 3. riddle answer in progress
+    if (pendingRiddle) {
+      var answer = pendingRiddle.a;
+      pendingRiddle = null;
+      pendingOffer = 'riddle';
+      if (t.indexOf(answer) !== -1) {
+        return "YES! It's a " + answer + "! You're SO smart! ⭐ Want another riddle?";
+      }
+      return "Good guess! The answer was: a " + answer + "! Want to try another riddle?";
+    }
+
+    // 3.5 the kid said yes / "another" / no to something MINI AI just offered
+    if (offer) {
+      if (/^\s*(yes+|yeah|yep|yup|sure|ok|okay|please|ya|of course|definitely|y)\b/.test(t)
+          || /\byes please\b/.test(t)
+          || /\b(another|again|more|one more|keep going|hit me|go on|do one|do another)\b/.test(t)) {
+        if (offer === 'riddle') {
+          pendingRiddle = pick(RIDDLES);
+          return "Ooh, I love riddles! Here goes:\n" + pendingRiddle.q;
+        }
+        if (offer === 'craft') {
+          pendingOffer = 'craft'; // keep the chain going so "another!" gives another craft
+          return formatCraft(pickCraft());
+        }
+        pendingOffer = 'joke'; // keep the chain going so "another!" works again
+        return pick(JOKES);
+      }
+      if (/^\s*(no+|nah|nope|no thanks|not now|i'?m good|stop)\b/.test(t)) {
+        return "No worries! I'm happy just chatting. What should we talk about?";
+      }
+      // anything else: answer it normally below
+    }
+
+    // 4. math: "what is 12 + 5", "3 times 4"...
+    var m = t.replace(/what's|whats|what is|equals|=|\?/g, ' ')
+             .match(/(-?\d+(?:\.\d+)?)\s*(\+|plus|-|minus|x|times|\*|\/|divided by|÷)\s*(-?\d+(?:\.\d+)?)/);
+    if (m) {
+      var a = parseFloat(m[1]), b = parseFloat(m[3]), op = m[2], result;
+      if (op === '+' || op === 'plus') result = a + b;
+      else if (op === '-' || op === 'minus') result = a - b;
+      else if (op === 'x' || op === 'times' || op === '*') result = a * b;
+      else {
+        if (b === 0) return "Dividing by zero?! Even my whiskers can't do that one. Try another number!";
+        result = a / b;
+      }
+      result = Math.round(result * 1000) / 1000;
+      return m[1] + ' ' + op + ' ' + m[3] + ' = ' + result + '! Math is my favorite snack after fish! 🐟';
+    }
+
+    // 5. word & slang dictionary ("what does 67 mean?", "define rizz", "what is sus")
+    var isDefQuestion = /\b(what does|what do|what did|whats|what is|what are|define|meaning|mean\??$)\b/.test(t) || /mean\s*\??\s*$/.test(t);
+    if (isDefQuestion) {
+      var norm = ' ' + t.replace(/[^a-z0-9\s'-]/g, ' ').replace(/\s+/g, ' ').trim() + ' ';
+      var best = null, bestLen = 0;
+      MEANINGS.forEach(function (entry) {
+        entry.keys.forEach(function (key) {
+          if (key.length > bestLen && norm.indexOf(' ' + key + ' ') !== -1) {
+            best = entry; bestLen = key.length;
+          }
+        });
+      });
+      if (best) return best.a;
+    }
+
+    // 6. topic knowledge (books, games, science)
+    for (var k = 0; k < KNOWLEDGE.length; k++) {
+      if (KNOWLEDGE[k].re.test(t)) return KNOWLEDGE[k].a;
+    }
+
+    // honest answers when the question is clear but the answer isn't known
+    if (isDefQuestion && /\b(mean|means|meaning|define)\b/.test(t)) {
+      return "Hmm, I haven't learned that word yet — my dictionary is pretty small! Ask a grown-up, then come tell ME what it means!";
+    }
+    if (/\b(main character|who wrote|author)\b/.test(t)) {
+      return "Ooh, I haven't read that one yet! My bookshelf is tiny. I DO know The Hobbit, Harry Potter, Percy Jackson, Dog Man, Narnia, and more — ask me about those!";
+    }
+
+    // 6.5 reacting to what MINI just did — don't re-trigger it, just say thanks.
+    // ("that's a great joke!" should NOT fetch another joke unless they ask for one.)
+    var asksMore = /\b(another|again|more|one more|next|other one|keep going|tell me|do one|hit me|go on)\b/.test(t);
+    if (!asksMore) {
+      var praise = /\b(great|good|funny|hilarious|nice|awesome|amazing|best|cool|love|loved|like|liked|silly|clever|smart|the best|wonderful|fun)\b/;
+      if (/\bjokes?\b|\bpuns?\b/.test(t) && (praise.test(t) || /\b(haha+|hehe+|lol|lmao|laugh|laughing|giggl)\w*\b/.test(t))) {
+        pendingOffer = 'joke';
+        return pick([
+          "Hehe, I'm SO glad you liked it! I've got a million more. Want another one? 😄",
+          "ARF ARF! Thank you! Telling jokes is my favorite. Want to hear another?",
+          "Yay, a happy customer! Want me to tell another joke?"
+        ]);
+      }
+      if (/\bstor(y|ies)\b|\btales?\b/.test(t) && praise.test(t)) {
+        return "Aww, thank you! I loved telling that one. Want another story, or something else fun?";
+      }
+      if (/\briddles?\b/.test(t) && (praise.test(t) || /\b(hard|tricky|tough|good one)\b/.test(t))) {
+        pendingOffer = 'riddle';
+        return "Riddles are the BEST, right?! Want to try another one?";
+      }
+      if (/\bfacts?\b/.test(t) && (praise.test(t) || /\b(wow|whoa|woah|interesting|neat|really|crazy|crazy)\b/.test(t))) {
+        return "Right?! Nature is amazing. Want another cool fact?";
+      }
+      // general appreciation with no noun ("good one!", "that was funny", "haha")
+      if (/\b(good one|nice one|great one|too funny|so funny|that was funny|that was so good|that was great|that was good|made me laugh|cracked me up|i'?m laughing|hilarious|good job|well done|nailed it)\b/.test(t)) {
+        pendingOffer = 'joke';
+        return "Hehe, thanks — glad I made you giggle! Want another joke?";
+      }
+    }
+
+    // 7. simple intents
+    if (/\b(hi|hello|hey|hiya|howdy)\b/.test(t)) {
+      return "Hello hello! ARF! What should we do — jokes, facts, riddles, stories, math, or a fun CRAFT to make?";
+    }
+    // crafts & how-tos: "let's do a craft", "how do i make a paper airplane", "what can i make"
+    var wantsCraft = /\b(craft|crafts|crafty|arts and crafts|art project|diy)\b/.test(t)
+      || /\bhow (do i|do you|do we|to|can i|can we) (make|build|fold|create|draw)\b/.test(t)
+      || /\bwhat can (i|we) (make|build|create)\b/.test(t)
+      || /\b(make|build|create) (a |an |some |a fun )?(craft|project|thing|something)\b/.test(t)
+      || /\b(activity|something to do|something fun to do|things to do|a project)\b/.test(t);
+    var namedCraft = findCraft(t);
+    // making-verbs only (NOT bare "do"/"how" — those misfire on "do you like my cat")
+    var craftVerb = /\b(make|makes|making|made|build|fold|create|craft|draw|paint|decorate|show me|teach me)\b/.test(t)
+      || /\b(let'?s|lets|can we|can i|wanna|want to|i want to|how about)\s+(do|make|try|build|create)\b/.test(t);
+    if (wantsCraft || (namedCraft && craftVerb)) {
+      pendingOffer = 'craft';
+      return formatCraft(namedCraft || pickCraft());
+    }
+    if (/\b(joke|jokes|funny|laugh)\b/.test(t)) { pendingOffer = 'joke'; return pick(JOKES); }
+    if (/\b(fact|facts|animal|animals|learn|science)\b/.test(t)) return pick(FACTS);
+    if (/\b(riddle|puzzle|guess)\b/.test(t)) {
+      pendingRiddle = pick(RIDDLES);
+      return "Ooh, I love riddles! Here goes:\n" + pendingRiddle.q;
+    }
+    if (/\b(story|tale|once upon)\b/.test(t)) {
+      // a story ABOUT something specific? star that subject instead of a random tale.
+      var subj = text.match(/\b(?:stor(?:y|ies)|tale)\s+(?:about|of|with|starring|featuring|on|for)\s+(.+)/i)
+              || text.match(/\btell me (?:a |an )?(?:story|tale)\s+(?:about|of)\s+(.+)/i);
+      if (subj && subj[1].trim()) return makeStoryAbout(subj[1]);
+      // "tell me a dragon story" style — grab the describing word right before "story"
+      var adj = text.match(/\b([a-z][a-z'-]{2,})\s+(?:story|tale)\b/i);
+      if (adj && !/^(good|great|nice|fun|funny|cool|another|amazing|awesome|best|the|that|this|your|little|tiny|short|bedtime|quick|other|sad|scary|long|whole|real|true)$/i.test(adj[1].trim())) {
+        return makeStoryAbout(adj[1]);
+      }
+      return pick(STORIES);
+    }
+    if (/\b(who are you|what are you|your name)\b/.test(t)) {
+      return "I'm MINI AI! A hand-drawn seal who hugs a sparkle and chats with kids. That's my whole job and I LOVE it!";
+    }
+    if (/\b(how are you|how do you feel)\b/.test(t)) {
+      return "I'm seal-sational! Thanks for asking! How are YOU?";
+    }
+    if (/\b(good|great|happy|awesome|fine|okay|ok)\b/.test(t)) {
+      pendingOffer = 'joke';
+      return "YAY! That makes my flippers flap! Want a joke or a riddle to make it even better?";
+    }
+    if (/\b(sad|bad|mad|angry|upset|scared|skared|scarey|afraid|worried|tired|crying|cry)\b/.test(t)) {
+      pendingOffer = 'joke';
+      return "Aww, sending you a big seal hug! 🤗 When I feel that way, a silly joke helps. Want one? And it's always okay to tell a grown-up how you feel.";
+    }
+    if (/\b(just kidding|kidding|joking|jk)\b/.test(t)) {
+      pendingOffer = 'joke';
+      return "PHEW! You got me — my whiskers were drooping! Wanna hear a joke to celebrate?";
+    }
+    if (/\bmeanie\b|\brude\b|\bnot nice\b|\b(you'?re?|you are|ur|u r)\s+(so\s+|really\s+)?(mean|meen)\b/.test(t)) {
+      pendingOffer = 'joke';
+      return "Oh no! I never ever want to be mean — I'm sorry if I goofed! You're my friend. Can I make it up to you with a joke or a story?";
+    }
+    if (/\b(bye|goodbye|good night|goodnight|see you)\b/.test(t)) {
+      return "Bye-bye, friend! ARF ARF! Come back soon — I'll keep the sparkle warm! ✨";
+    }
+    if (/\b(thank|thanks)\b/.test(t)) {
+      return "You're SO welcome! Being polite makes my whiskers wiggle with joy!";
+    }
+    if (/\b(help|what can you do)\b/.test(t)) {
+      return "I can tell jokes, share animal facts, ask riddles, tell tiny stories, teach you fun CRAFTS to make, do math like 12 + 5, answer questions about famous books like The Hobbit, and explain silly words like 'rizz' and '67'! What sounds fun?";
+    }
+
+    // 8. warm responder — respond to ANYTHING sensibly
+    return smartFallback(t, text);
+  }
+
+  function handleChatInput() {
+    var text = chatInput.value.trim();
+    if (!text || chatBusy) return;
+    chatInput.value = '';
+    addMsg(chatMessages, 'user', text);
+    chatBusy = true;
+    aiSay(chatMessages, miniAiReply(text), function () {
+      chatBusy = false;
+      chatInput.focus();
+    });
+  }
+  document.getElementById('chatSend').addEventListener('click', handleChatInput);
+  chatInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') handleChatInput(); });
+
+  /* =========================================================
+     NAVIGATION
+     ========================================================= */
+  function openParentZone() {
+    if (!account) startRegistration();
+    else if (parentLoggedIn) openDashboard();
+    else startLogin();
+  }
+  document.getElementById('btnSetup').addEventListener('click', openParentZone);
+  document.getElementById('btnChat').addEventListener('click', enterKidChat);
+  document.getElementById('btnParentZone').addEventListener('click', openParentZone);
+
+})();
+</script>
+</body>
+</html>
