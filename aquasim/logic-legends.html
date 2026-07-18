@@ -1,0 +1,1522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Logic Legends — Brain Defense Academy</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --purple: #7e57c2;
+    --purple-dark: #5e35b1;
+    --teal: #26a69a;
+    --teal-dark: #00897b;
+    --orange: #ff9800;
+    --orange-dark: #f57c00;
+    --pink: #ec407a;
+    --blue: #42a5f5;
+    --red: #ef5350;
+    --green: #66bb6a;
+    --green-dark: #43a047;
+    --card: #ffffff;
+    --ink: #35313f;
+    --soft: #f6f1ff;
+  }
+
+  html, body { height: 100%; }
+
+  body {
+    font-family: "Comic Sans MS", "Chalkboard SE", "Segoe UI", sans-serif;
+    color: var(--ink);
+    background: linear-gradient(180deg, #c5b3f0 0%, #a9d9f5 55%, #ffe9c2 100%);
+    min-height: 100vh;
+  }
+
+  /* ---------- Header ---------- */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 16px;
+    background: rgba(255,255,255,0.88);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+    position: sticky;
+    top: 0;
+    z-index: 40;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: bold;
+    font-size: 1.15rem;
+    color: var(--purple-dark);
+    white-space: nowrap;
+  }
+  .logo .badge-ico { font-size: 1.5rem; }
+
+  .hud {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    justify-content: flex-end;
+    min-width: 0;
+  }
+
+  .level-chip {
+    background: var(--purple);
+    color: #fff;
+    border-radius: 999px;
+    padding: 4px 12px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    white-space: nowrap;
+    box-shadow: 0 2px 0 var(--purple-dark);
+  }
+
+  .xp-wrap { display: flex; flex-direction: column; gap: 2px; width: min(220px, 34vw); }
+  .xp-label { font-size: 0.65rem; color: #6f6a80; text-align: right; }
+  .xp-bar {
+    height: 12px;
+    background: #e4defa;
+    border-radius: 999px;
+    overflow: hidden;
+    border: 2px solid #cfc3f2;
+  }
+  .xp-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--teal), var(--purple));
+    border-radius: 999px;
+    transition: width 0.5s ease;
+  }
+
+  /* ---------- Screens ---------- */
+  .screen { display: none; max-width: 880px; margin: 0 auto; padding: 18px 14px 60px; }
+  .screen.active { display: block; animation: pop-in 0.25s ease; }
+  @keyframes pop-in {
+    from { opacity: 0; transform: translateY(10px) scale(0.98); }
+    to   { opacity: 1; transform: none; }
+  }
+
+  .back-btn {
+    background: #fff;
+    border: 2px solid #d9d2ef;
+    border-radius: 999px;
+    padding: 7px 16px;
+    font-family: inherit;
+    font-size: 0.9rem;
+    font-weight: bold;
+    color: var(--purple-dark);
+    cursor: pointer;
+    margin-bottom: 12px;
+    box-shadow: 0 2px 0 #d9d2ef;
+  }
+  .back-btn:active { transform: translateY(2px); box-shadow: none; }
+
+  /* ---------- Home ---------- */
+  .hero {
+    background: var(--card);
+    border-radius: 20px;
+    padding: 20px;
+    text-align: center;
+    box-shadow: 0 6px 18px rgba(94,53,177,0.15);
+    margin-bottom: 18px;
+  }
+  .hero h1 { color: var(--purple-dark); font-size: 1.6rem; margin-bottom: 6px; }
+  .hero p { color: #5d5870; font-size: 0.95rem; max-width: 560px; margin: 0 auto; }
+  .hero .tagline {
+    display: inline-block;
+    margin-top: 10px;
+    background: var(--soft);
+    border: 2px dashed #c8b8ee;
+    border-radius: 12px;
+    padding: 6px 14px;
+    font-size: 0.85rem;
+    color: var(--purple-dark);
+    font-weight: bold;
+  }
+
+  .game-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 14px;
+  }
+
+  .game-card {
+    background: var(--card);
+    border-radius: 18px;
+    padding: 16px;
+    cursor: pointer;
+    border: 3px solid transparent;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.10);
+    transition: transform 0.12s ease, border-color 0.12s ease;
+    text-align: left;
+    font-family: inherit;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+  .game-card:hover { transform: translateY(-3px); border-color: var(--purple); }
+  .game-card:active { transform: translateY(0); }
+  .game-card .ico {
+    font-size: 2rem;
+    background: var(--soft);
+    border-radius: 14px;
+    width: 56px; height: 56px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .game-card h3 { font-size: 1.05rem; color: var(--ink); margin-bottom: 2px; }
+  .game-card p { font-size: 0.8rem; color: #6f6a80; line-height: 1.35; }
+  .game-card .best { font-size: 0.72rem; color: var(--teal-dark); font-weight: bold; margin-top: 4px; display: block; }
+
+  .badges-panel {
+    background: var(--card);
+    border-radius: 18px;
+    padding: 14px 16px;
+    margin-top: 16px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.10);
+  }
+  .badges-panel h3 { font-size: 0.95rem; color: var(--purple-dark); margin-bottom: 8px; }
+  .badge-row { display: flex; flex-wrap: wrap; gap: 8px; }
+  .badge-pill {
+    display: flex; align-items: center; gap: 6px;
+    background: #f2eefc;
+    border: 2px solid #ddd2f5;
+    border-radius: 999px;
+    padding: 5px 12px;
+    font-size: 0.75rem;
+    color: #9a92b0;
+    font-weight: bold;
+  }
+  .badge-pill.earned {
+    background: #fff5df;
+    border-color: var(--orange);
+    color: var(--orange-dark);
+    animation: badge-bounce 0.5s ease;
+  }
+  .badge-pill .b-ico { filter: grayscale(1); opacity: 0.5; }
+  .badge-pill.earned .b-ico { filter: none; opacity: 1; }
+  @keyframes badge-bounce {
+    0% { transform: scale(0.6); } 60% { transform: scale(1.15); } 100% { transform: scale(1); }
+  }
+
+  /* ---------- Field guide ---------- */
+  .guide-tabs { display: flex; gap: 8px; margin-bottom: 12px; }
+  .guide-tab {
+    flex: 1;
+    padding: 10px;
+    border-radius: 14px;
+    border: 3px solid #d9d2ef;
+    background: #fff;
+    font-family: inherit;
+    font-weight: bold;
+    font-size: 0.95rem;
+    color: #8a83a0;
+    cursor: pointer;
+  }
+  .guide-tab.active { border-color: var(--purple); color: var(--purple-dark); background: var(--soft); }
+
+  .guide-list { display: flex; flex-direction: column; gap: 10px; }
+  .guide-card {
+    background: var(--card);
+    border-radius: 16px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+    overflow: hidden;
+    border-left: 6px solid var(--purple);
+  }
+  .guide-card.bias { border-left-color: var(--teal); }
+  .guide-head {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    background: none;
+    border: none;
+    font-family: inherit;
+    font-size: 1rem;
+    font-weight: bold;
+    color: var(--ink);
+    cursor: pointer;
+    text-align: left;
+  }
+  .guide-head .g-ico { font-size: 1.4rem; }
+  .guide-head .g-tag { font-size: 0.72rem; color: #8a83a0; font-weight: normal; display: block; }
+  .guide-head .g-check { margin-left: auto; font-size: 1rem; color: var(--green-dark); opacity: 0; }
+  .guide-card.read .g-check { opacity: 1; }
+  .guide-body { display: none; padding: 0 14px 14px; font-size: 0.88rem; line-height: 1.5; }
+  .guide-card.open .guide-body { display: block; }
+  .guide-body .g-def { margin-bottom: 8px; }
+  .guide-body .g-ex {
+    background: var(--soft);
+    border-radius: 10px;
+    padding: 8px 12px;
+    font-style: italic;
+    color: #5d5870;
+    margin-bottom: 8px;
+  }
+  .guide-body .g-tip { font-size: 0.8rem; color: var(--teal-dark); font-weight: bold; }
+  .guide-progress { text-align: center; font-size: 0.8rem; color: #6f6a80; margin-bottom: 10px; }
+
+  /* ---------- Quiz screens (Spotter & Bias) ---------- */
+  .quiz-top {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 12px; gap: 10px;
+  }
+  .quiz-progress { font-size: 0.85rem; font-weight: bold; color: var(--purple-dark); }
+  .streak-chip {
+    background: #fff;
+    border-radius: 999px;
+    padding: 4px 12px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    color: var(--orange-dark);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+  }
+
+  .q-card {
+    background: var(--card);
+    border-radius: 18px;
+    padding: 18px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.12);
+    margin-bottom: 14px;
+  }
+  .q-scene {
+    font-size: 1.02rem;
+    line-height: 1.55;
+    background: var(--soft);
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 6px;
+  }
+  .q-ask { font-size: 0.85rem; color: #6f6a80; font-weight: bold; margin-top: 8px; }
+
+  .opts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .opt {
+    padding: 13px 10px;
+    border-radius: 14px;
+    border: 3px solid #d9d2ef;
+    background: #fff;
+    font-family: inherit;
+    font-size: 0.9rem;
+    font-weight: bold;
+    color: var(--ink);
+    cursor: pointer;
+    transition: transform 0.1s ease;
+  }
+  .opt:hover { transform: translateY(-2px); border-color: var(--purple); }
+  .opt:disabled { cursor: default; }
+  .opt.correct { background: #e3f6e5; border-color: var(--green-dark); color: var(--green-dark); }
+  .opt.wrong { background: #fde6e5; border-color: var(--red); color: var(--red); animation: shake 0.3s ease; }
+  .opt.dim { opacity: 0.45; }
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); } 75% { transform: translateX(5px); }
+  }
+
+  .explain {
+    display: none;
+    background: var(--card);
+    border-radius: 16px;
+    padding: 14px 16px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.10);
+    border-left: 6px solid var(--green-dark);
+  }
+  .explain.show { display: block; animation: pop-in 0.2s ease; }
+  .explain.miss { border-left-color: var(--red); }
+  .explain .verdict { font-weight: bold; font-size: 1rem; margin-bottom: 4px; }
+  .explain .why { font-size: 0.88rem; line-height: 1.5; margin-bottom: 10px; }
+
+  .big-btn {
+    display: inline-block;
+    background: var(--purple);
+    color: #fff;
+    border: none;
+    border-radius: 999px;
+    padding: 11px 26px;
+    font-family: inherit;
+    font-size: 0.95rem;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 3px 0 var(--purple-dark);
+  }
+  .big-btn:active { transform: translateY(3px); box-shadow: none; }
+  .big-btn.teal { background: var(--teal); box-shadow: 0 3px 0 var(--teal-dark); }
+  .big-btn.orange { background: var(--orange); box-shadow: 0 3px 0 var(--orange-dark); }
+
+  /* ---------- Results ---------- */
+  .result-card {
+    background: var(--card);
+    border-radius: 20px;
+    padding: 26px 20px;
+    text-align: center;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.14);
+  }
+  .result-card .r-ico { font-size: 3rem; }
+  .result-card h2 { color: var(--purple-dark); margin: 8px 0 4px; }
+  .result-card .r-score { font-size: 1.05rem; margin-bottom: 4px; }
+  .result-card .r-xp { color: var(--teal-dark); font-weight: bold; margin-bottom: 16px; }
+  .result-card .r-btns { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+
+  /* ---------- Truth or Trick ---------- */
+  .tot-timer-wrap {
+    height: 14px;
+    background: #e4defa;
+    border-radius: 999px;
+    overflow: hidden;
+    border: 2px solid #cfc3f2;
+    margin-bottom: 14px;
+  }
+  .tot-timer {
+    height: 100%; width: 100%;
+    background: linear-gradient(90deg, var(--orange), var(--pink));
+    border-radius: 999px;
+  }
+  .tot-statement {
+    background: var(--card);
+    border-radius: 18px;
+    padding: 26px 18px;
+    text-align: center;
+    font-size: 1.1rem;
+    line-height: 1.5;
+    min-height: 130px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.12);
+    margin-bottom: 14px;
+  }
+  .tot-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .tot-btn {
+    padding: 18px 10px;
+    border-radius: 16px;
+    border: none;
+    font-family: inherit;
+    font-size: 1.05rem;
+    font-weight: bold;
+    color: #fff;
+    cursor: pointer;
+  }
+  .tot-btn.solid { background: var(--green); box-shadow: 0 4px 0 var(--green-dark); }
+  .tot-btn.trick { background: var(--red); box-shadow: 0 4px 0 #c62828; }
+  .tot-btn:active { transform: translateY(4px); box-shadow: none; }
+  .tot-btn:disabled { opacity: 0.55; cursor: default; }
+  .tot-feedback {
+    text-align: center;
+    min-height: 46px;
+    padding: 8px;
+    font-size: 0.85rem;
+    font-weight: bold;
+    line-height: 1.35;
+  }
+  .tot-feedback.good { color: var(--green-dark); }
+  .tot-feedback.bad { color: var(--red); }
+  .tot-stats {
+    display: flex; justify-content: space-between;
+    font-size: 0.85rem; font-weight: bold; color: var(--purple-dark);
+    margin-bottom: 8px;
+  }
+
+  /* ---------- Whack-a-Fallacy ---------- */
+  .whack-target {
+    background: var(--card);
+    border-radius: 14px;
+    padding: 10px 14px;
+    text-align: center;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.10);
+    margin-bottom: 12px;
+    font-size: 0.9rem;
+  }
+  .whack-target strong { color: var(--pink); font-size: 1.05rem; }
+  .whack-stats {
+    display: flex; justify-content: space-between;
+    font-weight: bold; color: var(--purple-dark);
+    font-size: 0.9rem; margin-bottom: 10px;
+  }
+  .whack-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+  .whack-cell {
+    min-height: 108px;
+    background: rgba(255,255,255,0.45);
+    border: 2px dashed rgba(126,87,194,0.35);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+  }
+  .bubble {
+    width: 100%;
+    height: 100%;
+    min-height: 96px;
+    border-radius: 14px;
+    border: none;
+    background: #fff;
+    font-family: inherit;
+    font-size: 0.72rem;
+    font-weight: bold;
+    line-height: 1.3;
+    color: var(--ink);
+    cursor: pointer;
+    padding: 6px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+    animation: bubble-in 0.25s ease;
+  }
+  @keyframes bubble-in {
+    from { transform: scale(0.3); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+  .bubble.hit { background: #e3f6e5; color: var(--green-dark); transform: scale(0.9); }
+  .bubble.oops { background: #fde6e5; color: var(--red); animation: shake 0.3s ease; }
+
+  /* ---------- Overlays ---------- */
+  .levelup-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(53,49,63,0.55);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 90;
+    padding: 20px;
+  }
+  .levelup-overlay.show { display: flex; }
+  .levelup-card {
+    background: var(--card);
+    border-radius: 22px;
+    padding: 30px 26px;
+    text-align: center;
+    max-width: 340px;
+    animation: badge-bounce 0.5s ease;
+  }
+  .levelup-card .lv-ico { font-size: 3.4rem; }
+  .levelup-card h2 { color: var(--purple-dark); margin: 6px 0; }
+  .levelup-card p { color: #6f6a80; font-size: 0.9rem; margin-bottom: 16px; }
+
+  .toast {
+    position: fixed;
+    left: 50%;
+    bottom: 22px;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--ink);
+    color: #fff;
+    border-radius: 999px;
+    padding: 10px 20px;
+    font-size: 0.85rem;
+    font-weight: bold;
+    z-index: 95;
+    transition: transform 0.3s ease;
+    pointer-events: none;
+    white-space: nowrap;
+    max-width: 92vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  .confetti-bit {
+    position: fixed;
+    top: -12px;
+    width: 10px; height: 14px;
+    z-index: 99;
+    pointer-events: none;
+    animation: confetti-fall linear forwards;
+  }
+  @keyframes confetti-fall {
+    to { transform: translateY(105vh) rotate(720deg); opacity: 0.6; }
+  }
+
+  @media (max-width: 520px) {
+    .opts { grid-template-columns: 1fr; }
+    .hero h1 { font-size: 1.3rem; }
+    .whack-cell { min-height: 92px; }
+    .bubble { font-size: 0.66rem; min-height: 84px; }
+    .xp-label { display: none; }
+    .logo { font-size: 0.95rem; }
+    .logo .badge-ico { font-size: 1.15rem; }
+    .level-chip { font-size: 0.7rem; padding: 4px 9px; }
+    .level-chip .rank-txt { display: none; }
+    .xp-wrap { width: 84px; flex-shrink: 0; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo"><span class="badge-ico">🧠</span> Logic Legends</div>
+  <div class="hud">
+    <div class="xp-wrap">
+      <div class="xp-label" id="xpLabel">0 / 100 XP</div>
+      <div class="xp-bar"><div class="xp-fill" id="xpFill"></div></div>
+    </div>
+    <div class="level-chip" id="levelChip">Lv 1 · Rookie Reasoner</div>
+  </div>
+</header>
+
+<!-- ============ HOME ============ -->
+<section class="screen active" id="screen-home">
+  <div class="hero">
+    <h1>🛡️ Brain Defense Academy</h1>
+    <p>Tricky arguments and sneaky brain traps are everywhere — ads, group chats, even the cafeteria.
+       Train your brain to spot <b>logical fallacies</b> (broken arguments) and
+       <b>cognitive biases</b> (brain shortcuts that fool you). Play games, earn XP, become a Legend.</p>
+    <div class="tagline">Rule #1: Attack the idea, never the person.</div>
+  </div>
+
+  <div class="game-grid">
+    <button class="game-card" data-go="guide">
+      <div class="ico">📖</div>
+      <div>
+        <h3>Field Guide</h3>
+        <p>Meet the 10 fallacies and 6 biases. Read them all to earn the Scholar badge!</p>
+        <span class="best" id="guideBest"></span>
+      </div>
+    </button>
+    <button class="game-card" data-go="spotter">
+      <div class="ico">🔍</div>
+      <div>
+        <h3>Fallacy Spotter</h3>
+        <p>Read real-life scenes and name the broken argument. 8 cases per round.</p>
+        <span class="best" id="spotterBest"></span>
+      </div>
+    </button>
+    <button class="game-card" data-go="bias">
+      <div class="ico">🕵️</div>
+      <div>
+        <h3>Bias Busters</h3>
+        <p>Someone's brain is playing tricks on them. Figure out which bias is at work.</p>
+        <span class="best" id="biasBest"></span>
+      </div>
+    </button>
+    <button class="game-card" data-go="tot">
+      <div class="ico">⚡</div>
+      <div>
+        <h3>Truth or Trick</h3>
+        <p>60 seconds! Is the statement solid reasoning or a sneaky trick? Build a streak!</p>
+        <span class="best" id="totBest"></span>
+      </div>
+    </button>
+    <button class="game-card" data-go="whack">
+      <div class="ico">🔨</div>
+      <div>
+        <h3>Whack-a-Fallacy</h3>
+        <p>Bubbles of nonsense pop up fast. Whack only the target fallacy — don't hit good logic!</p>
+        <span class="best" id="whackBest"></span>
+      </div>
+    </button>
+  </div>
+
+  <div class="badges-panel">
+    <h3>🏅 Badge Case</h3>
+    <div class="badge-row" id="badgeRow"></div>
+  </div>
+</section>
+
+<!-- ============ FIELD GUIDE ============ -->
+<section class="screen" id="screen-guide">
+  <button class="back-btn" data-go="home">← Back to Academy</button>
+  <div class="guide-tabs">
+    <button class="guide-tab active" id="tabFallacies">Fallacies (10)</button>
+    <button class="guide-tab" id="tabBiases">Biases (6)</button>
+  </div>
+  <div class="guide-progress" id="guideProgress"></div>
+  <div class="guide-list" id="guideList"></div>
+</section>
+
+<!-- ============ FALLACY SPOTTER ============ -->
+<section class="screen" id="screen-spotter">
+  <button class="back-btn" data-go="home">← Back to Academy</button>
+  <div id="spotterPlay">
+    <div class="quiz-top">
+      <div class="quiz-progress" id="spotterProgress">Case 1 of 8</div>
+      <div class="streak-chip" id="spotterStreak">🔥 Streak: 0</div>
+    </div>
+    <div class="q-card">
+      <div class="q-scene" id="spotterScene"></div>
+      <div class="q-ask">Which fallacy is this?</div>
+    </div>
+    <div class="opts" id="spotterOpts"></div>
+    <div style="height:12px"></div>
+    <div class="explain" id="spotterExplain">
+      <div class="verdict" id="spotterVerdict"></div>
+      <div class="why" id="spotterWhy"></div>
+      <button class="big-btn" id="spotterNext">Next Case →</button>
+    </div>
+  </div>
+  <div id="spotterDone" style="display:none"></div>
+</section>
+
+<!-- ============ BIAS BUSTERS ============ -->
+<section class="screen" id="screen-bias">
+  <button class="back-btn" data-go="home">← Back to Academy</button>
+  <div id="biasPlay">
+    <div class="quiz-top">
+      <div class="quiz-progress" id="biasProgress">Case 1 of 6</div>
+      <div class="streak-chip" id="biasStreak">🔥 Streak: 0</div>
+    </div>
+    <div class="q-card">
+      <div class="q-scene" id="biasScene"></div>
+      <div class="q-ask">Which brain trap is at work?</div>
+    </div>
+    <div class="opts" id="biasOpts"></div>
+    <div style="height:12px"></div>
+    <div class="explain" id="biasExplain">
+      <div class="verdict" id="biasVerdict"></div>
+      <div class="why" id="biasWhy"></div>
+      <button class="big-btn teal" id="biasNext">Next Case →</button>
+    </div>
+  </div>
+  <div id="biasDone" style="display:none"></div>
+</section>
+
+<!-- ============ TRUTH OR TRICK ============ -->
+<section class="screen" id="screen-tot">
+  <button class="back-btn" data-go="home">← Back to Academy</button>
+  <div id="totIntro">
+    <div class="result-card">
+      <div class="r-ico">⚡</div>
+      <h2>Truth or Trick</h2>
+      <p class="r-score" style="max-width:460px;margin:0 auto 16px;">
+        You've got <b>60 seconds</b>. Read each statement and decide:
+        is it <b style="color:var(--green-dark)">SOLID</b> reasoning, or a sneaky
+        <b style="color:var(--red)">TRICK</b>? Streaks earn bonus points!
+      </p>
+      <button class="big-btn orange" id="totStart">Start the Clock!</button>
+    </div>
+  </div>
+  <div id="totPlay" style="display:none">
+    <div class="tot-stats">
+      <span id="totScore">Score: 0</span>
+      <span id="totStreakLbl">🔥 x0</span>
+    </div>
+    <div class="tot-timer-wrap"><div class="tot-timer" id="totTimer"></div></div>
+    <div class="tot-statement" id="totStatement"></div>
+    <div class="tot-btns">
+      <button class="tot-btn solid" id="totSolid">✔ SOLID</button>
+      <button class="tot-btn trick" id="totTrick">✖ TRICK</button>
+    </div>
+    <div class="tot-feedback" id="totFeedback"></div>
+  </div>
+  <div id="totDone" style="display:none"></div>
+</section>
+
+<!-- ============ WHACK-A-FALLACY ============ -->
+<section class="screen" id="screen-whack">
+  <button class="back-btn" data-go="home">← Back to Academy</button>
+  <div id="whackIntro">
+    <div class="result-card">
+      <div class="r-ico">🔨</div>
+      <h2>Whack-a-Fallacy</h2>
+      <p class="r-score" style="max-width:460px;margin:0 auto 16px;">
+        Bubbles pop up with statements inside. Whack the ones that use the
+        <b>target fallacy</b> — but leave good logic and other fallacies alone!
+        <b>45 seconds</b>. +10 for a hit, −5 for a wrong whack.
+      </p>
+      <button class="big-btn" id="whackStart">Grab the Hammer!</button>
+    </div>
+  </div>
+  <div id="whackPlay" style="display:none">
+    <div class="whack-target">Whack every: <strong id="whackTargetName"></strong><br>
+      <span style="font-size:0.78rem;color:#6f6a80" id="whackTargetHint"></span></div>
+    <div class="whack-stats">
+      <span id="whackScore">Score: 0</span>
+      <span id="whackTime">⏱ 45</span>
+    </div>
+    <div class="whack-grid" id="whackGrid"></div>
+  </div>
+  <div id="whackDone" style="display:none"></div>
+</section>
+
+<!-- ============ OVERLAYS ============ -->
+<div class="levelup-overlay" id="levelupOverlay">
+  <div class="levelup-card">
+    <div class="lv-ico">🎉</div>
+    <h2 id="levelupTitle">Level Up!</h2>
+    <p id="levelupText"></p>
+    <button class="big-btn" id="levelupClose">Keep Training!</button>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+(() => {
+  'use strict';
+
+  /* =====================================================
+     DATA — Fallacies & Biases
+     ===================================================== */
+  const FALLACIES = [
+    { id: 'strawman', name: 'Strawman', ico: '🎃',
+      def: "Twisting someone's argument into a silly exaggerated version, then attacking THAT instead of what they actually said.",
+      ex: '"We should have a vegetarian lunch option." — "Oh, so you want to BAN all meat forever?!"',
+      tip: "Spot it: the reply attacks something nobody actually said." },
+    { id: 'adhominem', name: 'Ad Hominem', ico: '🎯',
+      def: "Attacking the PERSON instead of their idea. Even if someone is annoying, weird, or wears ugly socks, their argument might still be right.",
+      ex: '"Don\'t listen to Leo\'s recycling project — he wears weird socks."',
+      tip: "Spot it: the insult has nothing to do with whether the idea is true." },
+    { id: 'falsedilemma', name: 'False Dilemma', ico: '🚪',
+      def: "Pretending there are ONLY two choices when there are really lots of options in between.",
+      ex: '"Either you stay up all night studying, or you fail the test."',
+      tip: "Spot it: ask yourself — is there a third option? (There almost always is.)" },
+    { id: 'slipperyslope', name: 'Slippery Slope', ico: '🎿',
+      def: "Claiming one small step will DEFINITELY snowball into total disaster, with no proof for any of the steps.",
+      ex: '"If you skip one homework, you\'ll start skipping school and end up living in a cardboard box!"',
+      tip: "Spot it: a chain of 'and then... and then...' leading to doom." },
+    { id: 'bandwagon', name: 'Bandwagon', ico: '🚌',
+      def: "Saying something is true or good just because LOTS of people believe it or do it. Popularity isn't proof.",
+      ex: '"Everyone in 7th grade has this phone case — everyone can\'t be wrong!"',
+      tip: "Spot it: the only 'evidence' is that it's popular." },
+    { id: 'authority', name: 'Fake Authority', ico: '👑',
+      def: "Believing something because a famous or important person said it — even though they're NOT an expert on that topic.",
+      ex: '"My favorite basketball player says this energy drink makes you smarter."',
+      tip: "Spot it: ask — is this person actually an expert on THIS?" },
+    { id: 'hasty', name: 'Hasty Generalization', ico: '🐇',
+      def: "Judging a whole group based on a tiny sample — like one or two examples.",
+      ex: '"I met two kids from Oakwood Middle and they were rude. EVERYONE at Oakwood is rude."',
+      tip: "Spot it: a giant conclusion built on almost no evidence." },
+    { id: 'redherring', name: 'Red Herring', ico: '🐟',
+      def: "Dragging in a totally different topic to distract everyone from the real question.",
+      ex: '"Did you finish your homework?" — "Did you know dolphins sleep with one eye open?"',
+      tip: "Spot it: the reply changes the subject instead of answering." },
+    { id: 'circular', name: 'Circular Reasoning', ico: '🔄',
+      def: "The 'proof' is just the claim said again in different words. It goes in a circle and proves nothing.",
+      ex: '"This is the best pizza place because it\'s better than all the other pizza places."',
+      tip: "Spot it: remove the repeated part and there's no evidence left." },
+    { id: 'falsecause', name: 'False Cause', ico: '🧦',
+      def: "Assuming that because A happened before B, A must have CAUSED B. (Also called 'post hoc'.)",
+      ex: '"I wore my lucky socks and we won the game. The socks made us win!"',
+      tip: "Spot it: 'after this, therefore because of this' — coincidence isn't cause." },
+  ];
+
+  const BIASES = [
+    { id: 'confirmation', name: 'Confirmation Bias', ico: '🥽',
+      def: "Your brain LOVES being right, so it only notices evidence that agrees with what you already believe — and ignores the rest.",
+      ex: 'Zoe thinks Mondays are unlucky, so she remembers every bad Monday and forgets all the fine ones.',
+      tip: "Beat it: go hunting for evidence AGAINST your own idea." },
+    { id: 'anchoring', name: 'Anchoring', ico: '⚓',
+      def: "The FIRST number or idea you hear drags your judgment toward it, like an anchor.",
+      ex: 'The first backpack Liam saw cost $90, so a $60 one felt cheap — even though $60 is still a lot.',
+      tip: "Beat it: ignore the first number and ask what it's worth on its own." },
+    { id: 'availability', name: 'Availability Bias', ico: '📺',
+      def: "Thinking something is common or likely just because it's easy to REMEMBER — usually because it's dramatic or was on the news.",
+      ex: 'After a shark documentary, Nia is scared to swim in a lake. (No sharks live in lakes.)',
+      tip: "Beat it: ask 'is it actually common, or just memorable?'" },
+    { id: 'sunkcost', name: 'Sunk Cost Trap', ico: '🕳️',
+      def: "Sticking with something bad just because you already spent time or money on it. That time is gone either way!",
+      ex: 'Owen hates his club but stays because he already paid $5 and went to three meetings.',
+      tip: "Beat it: ask 'would I choose this NOW, starting fresh?'" },
+    { id: 'halo', name: 'Halo Effect', ico: '😇',
+      def: "When one good thing about a person (they're cool, cute, or good at sports) makes you assume EVERYTHING about them is good.",
+      ex: "Ella is great at soccer, so classmates assume she must also be great at math and singing.",
+      tip: "Beat it: judge each skill or claim separately." },
+    { id: 'hindsight', name: 'Hindsight Bias', ico: '🔮',
+      def: "After something happens, your brain rewrites history so it feels like you 'knew it all along.' You didn't.",
+      ex: 'After the quiz, Marcus says "I totally KNEW question 5 would be about volcanoes" — but he never said it before.',
+      tip: "Beat it: write down predictions BEFORE things happen, then check." },
+  ];
+
+  const byId = {};
+  FALLACIES.forEach(f => byId[f.id] = f);
+  BIASES.forEach(b => byId[b.id] = b);
+
+  /* ---------- Fallacy Spotter scenarios ---------- */
+  const SPOTTER_Q = [
+    { s: 'Maya says the school should add a vegetarian lunch option. Jake replies: "So you think we should BAN all meat and force everyone to eat salad?!"', a: 'strawman' },
+    { s: '"You can\'t trust Leo\'s science fair project about recycling. Have you SEEN his weird socks?"', a: 'adhominem' },
+    { s: '"Either you stay up all night studying, or you fail the test tomorrow. Pick one."', a: 'falsedilemma' },
+    { s: '"If we let students use pencils with cartoon characters, next they\'ll bring toys, then video games, and soon NOBODY will ever learn anything again!"', a: 'slipperyslope' },
+    { s: '"Literally everyone in 7th grade has this phone case. You HAVE to get one — everyone can\'t be wrong!"', a: 'bandwagon' },
+    { s: '"My favorite basketball player says this energy drink makes you smarter, so it must be true."', a: 'authority' },
+    { s: '"I met two kids from Oakwood Middle School and they were both rude. Everyone at Oakwood must be rude."', a: 'hasty' },
+    { s: 'Mom: "Did you finish your homework?" Sam: "Did you know dolphins sleep with one eye open?!"', a: 'redherring' },
+    { s: '"This is the best pizza place in town because it\'s better than all the other pizza places."', a: 'circular' },
+    { s: '"I wore my lucky socks and we won the game. The socks totally made us win!"', a: 'falsecause' },
+    { s: 'Ava: "We should practice more before the concert." Ben: "Oh, so you think we\'re all TERRIBLE musicians and should just quit?!"', a: 'strawman' },
+    { s: '"Don\'t bother with Coach\'s new play. The guy drives a fifteen-year-old car."', a: 'adhominem' },
+    { s: '"You\'re either a cat person or a dog person. There\'s no in-between, ever."', a: 'falsedilemma' },
+    { s: '"A million people follow this prank channel, so it\'s obviously the best channel on the internet."', a: 'bandwagon' },
+    { s: '"A famous actor said this vitamin cures colds, so I\'m buying ten bottles."', a: 'authority' },
+    { s: '"My cousin got a bad grade right after getting a new haircut. New haircuts make you fail tests."', a: 'falsecause' },
+    { s: '"I tried sushi once and didn\'t like it. All seafood everywhere is gross."', a: 'hasty' },
+    { s: 'Teacher: "Why is your project late?" Student: "Have you seen the new superhero movie? The special effects are AMAZING."', a: 'redherring' },
+    { s: '"You should believe me because I\'m telling the truth. And I\'m telling the truth because you should believe me."', a: 'circular' },
+    { s: '"If the school shortens recess by five minutes, soon there will be NO recess, then no lunch, then school will be 24 hours a day!"', a: 'slipperyslope' },
+  ];
+
+  /* ---------- Bias Busters scenarios ---------- */
+  const BIAS_Q = [
+    { s: 'Zoe is sure Mondays are unlucky. She remembers every single bad Monday — but somehow forgets all the perfectly fine ones.', a: 'confirmation' },
+    { s: 'The first backpack Liam saw cost $90. Now a $60 backpack feels like an amazing deal — even though it\'s still a lot of money.', a: 'anchoring' },
+    { s: 'After watching a shark documentary, Nia is scared to swim... in a lake. (No sharks live in lakes.)', a: 'availability' },
+    { s: 'Owen can\'t stand the club he joined, but keeps going because he already paid the $5 fee and attended three meetings.', a: 'sunkcost' },
+    { s: 'Ella is amazing at soccer, so her classmates just assume she must also be great at math, singing, and video games.', a: 'halo' },
+    { s: 'After the quiz, Marcus announces, "I totally KNEW question 5 would be about volcanoes." He never mentioned it before the quiz.', a: 'hindsight' },
+    { s: 'Priya believes her team is the best, so she only reads articles about their wins and scrolls right past stories about their losses.', a: 'confirmation' },
+    { s: 'The menu lists a $12 "deluxe" cookie at the top, which makes the $6 cookie right below it seem like a total bargain.', a: 'anchoring' },
+    { s: 'Plane crashes are all over the news, so Theo decides flying must be way more dangerous than riding in a car. (It isn\'t.)', a: 'availability' },
+    { s: 'Mia keeps grinding through a boring 400-page book — not because she likes it, but because she\'s "already read 200 pages."', a: 'sunkcost' },
+    { s: 'The new kid has a really cool jacket, so everyone instantly assumes he must also be super nice, funny, and smart.', a: 'halo' },
+    { s: 'After the movie\'s surprise twist ending, Dad claims he "saw it coming from the very first scene." Sure, Dad.', a: 'hindsight' },
+  ];
+
+  /* ---------- Truth or Trick statements ---------- */
+  const TOT_Q = [
+    { s: 'The forecast says 90% chance of rain, so I\'m bringing an umbrella.', trick: false, why: 'Solid! Strong evidence, sensible conclusion.' },
+    { s: 'I studied a little every night this week, so I feel ready for the quiz.', trick: false, why: 'Solid! Real preparation is real evidence.' },
+    { s: 'Ten different reviews said this game is buggy, so I\'ll wait before buying.', trick: false, why: 'Solid! Lots of independent evidence pointing the same way.' },
+    { s: 'The recipe says bake 20 minutes. It\'s been 10, so it\'s not done yet.', trick: false, why: 'Solid! Following actual instructions.' },
+    { s: 'My plant droops when I forget to water it and perks up after watering. Water helps it.', trick: false, why: 'Solid! Repeated observation plus a real known cause.' },
+    { s: 'Two dentists told me brushing twice a day helps. That\'s literally their job.', trick: false, why: 'Solid! That\'s a RELEVANT expert, not a fake authority.' },
+    { s: 'My answer didn\'t match my friend\'s, so I rechecked and found my math mistake.', trick: false, why: 'Solid! Checking your own work is peak logic.' },
+    { s: 'Dark clouds and thunder outside — the picnic might get rained out.', trick: false, why: 'Solid! Reasonable prediction from real evidence.' },
+    { s: 'I lost the first round, so I\'ll try a different strategy in round two.', trick: false, why: 'Solid! Learning from evidence and adjusting.' },
+    { s: 'Everyone\'s skipping the assigned reading, so it must not matter.', trick: true, id: 'bandwagon', why: 'Trick! Bandwagon — popular doesn\'t mean right.' },
+    { s: 'You failed one level, so you\'ll fail the game, then flunk out of school.', trick: true, id: 'slipperyslope', why: 'Trick! Slippery slope — one step is not a doom spiral.' },
+    { s: 'My teacher is wrong about fractions because her handwriting is messy.', trick: true, id: 'adhominem', why: 'Trick! Ad hominem — handwriting has nothing to do with math.' },
+    { s: 'Ever since I got this keychain, I haven\'t been struck by lightning. It protects me!', trick: true, id: 'falsecause', why: 'Trick! False cause — you were never getting struck anyway.' },
+    { s: 'Either you love math or you hate school. Which is it?', trick: true, id: 'falsedilemma', why: 'Trick! False dilemma — there are a million in-betweens.' },
+    { s: 'A celebrity chef says this phone is the fastest, so it must be.', trick: true, id: 'authority', why: 'Trick! Fake authority — chefs are experts in food, not phones.' },
+    { s: 'My brother\'s friend didn\'t like the movie, so it\'s trash for everyone.', trick: true, id: 'hasty', why: 'Trick! Hasty generalization — one opinion is not everyone\'s.' },
+    { s: 'Homework is bad because it isn\'t good.', trick: true, id: 'circular', why: 'Trick! Circular — that\'s the same claim twice, zero evidence.' },
+    { s: '"Why should WE clean the classroom? What about the messy cafeteria, huh?!"', trick: true, id: 'redherring', why: 'Trick! Red herring — the cafeteria doesn\'t answer the question.' },
+    { s: '"Oh, you want quiet reading time? So you must hate fun ENTIRELY."', trick: true, id: 'strawman', why: 'Trick! Strawman — nobody said they hate fun.' },
+    { s: 'I ate grapes before my win, so grapes are officially my lucky food.', trick: true, id: 'falsecause', why: 'Trick! False cause — the grapes did not play the game.' },
+    { s: 'Everyone says the haunted house on Elm Street is real, so it has to be.', trick: true, id: 'bandwagon', why: 'Trick! Bandwagon — rumors don\'t become true by spreading.' },
+  ];
+
+  /* ---------- Whack-a-Fallacy pools ---------- */
+  const WHACK_TARGETS = ['bandwagon', 'adhominem', 'slipperyslope', 'falsedilemma', 'falsecause', 'strawman'];
+  const WHACK_POOL = {
+    bandwagon: [
+      'Everyone has one, so it\'s the best!',
+      'All the cool kids are doing it!',
+      'Five million fans can\'t be wrong!',
+      'It\'s trending, so it must be true!',
+    ],
+    adhominem: [
+      'Ignore Tim — his shoes are ugly.',
+      'She\'s bad at sports, so she\'s wrong.',
+      'Don\'t trust him, he likes pineapple pizza.',
+      'Your idea is bad because YOU\'RE weird.',
+    ],
+    slipperyslope: [
+      'One late homework and your life is RUINED!',
+      'Skip practice once and you\'ll never play again!',
+      'Eat one candy and soon you\'ll eat a thousand!',
+      'Lose one game and you\'ll lose at everything forever!',
+    ],
+    falsedilemma: [
+      'You\'re with us or against us!',
+      'Love broccoli or hate ALL vegetables!',
+      'Study 24/7 or fail forever!',
+      'Be perfect or don\'t even try!',
+    ],
+    falsecause: [
+      'Lucky socks = we won the game!',
+      'I sneezed and the lights went out. My fault!',
+      'New haircut, bad grade. Haircut\'s fault!',
+      'It rained after I washed the car. I caused it!',
+    ],
+    strawman: [
+      '"Oh, so you want ZERO fun ever?!"',
+      '"So you\'d ban ALL snacks then?!"',
+      '"You think naps should be ILLEGAL?!"',
+      '"So basically you hate weekends?!"',
+    ],
+    clean: [
+      'It\'s raining, so I\'ll take an umbrella.',
+      'I practiced daily, and I improved.',
+      'Dark clouds — better pack a raincoat.',
+      'The timer isn\'t done, so keep baking.',
+      'Ten reviews agree — worth a look.',
+      'I checked my work and fixed an error.',
+      'The map says turn left, so turn left.',
+      'I\'m tired, so I\'ll sleep earlier tonight.',
+    ],
+  };
+
+  /* ---------- Ranks & badges ---------- */
+  const LEVELS = [0, 100, 250, 450, 700, 1000, 1400, 1900];
+  const RANKS = ['Rookie Reasoner', 'Junior Detective', 'Logic Cadet', 'Argument Ace',
+                 'Bias Hunter', 'Fallacy Slayer', 'Critical Thinker', 'Logic Legend'];
+
+  const BADGES = [
+    { id: 'first', ico: '🌱', name: 'First Steps', desc: 'Earn your first XP' },
+    { id: 'streak5', ico: '🔥', name: 'On Fire', desc: 'Get a 5-answer streak' },
+    { id: 'spotter', ico: '🔍', name: 'Case Closed', desc: 'Finish a Fallacy Spotter round' },
+    { id: 'bias', ico: '🕵️', name: 'Bias Buster', desc: 'Finish a Bias Busters round' },
+    { id: 'tot', ico: '⚡', name: 'Speed Thinker', desc: 'Score 100+ in Truth or Trick' },
+    { id: 'whack', ico: '🔨', name: 'Whack Champ', desc: 'Score 80+ in Whack-a-Fallacy' },
+    { id: 'scholar', ico: '📖', name: 'Scholar', desc: 'Read the whole Field Guide' },
+    { id: 'lv4', ico: '🏆', name: 'Argument Ace', desc: 'Reach level 4' },
+  ];
+
+  /* =====================================================
+     STATE (in-memory only — no storage APIs)
+     ===================================================== */
+  const state = {
+    xp: 0,
+    level: 1,
+    badges: new Set(),
+    guideRead: new Set(),
+    best: { spotter: 0, bias: 0, tot: 0, whack: 0 },
+  };
+
+  /* =====================================================
+     UTILITIES
+     ===================================================== */
+  const $ = id => document.getElementById(id);
+  const shuffle = arr => {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  };
+
+  let toastTimer = null;
+  function toast(msg) {
+    const t = $('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+  }
+
+  function confetti(n = 60) {
+    const colors = ['#7e57c2', '#26a69a', '#ff9800', '#ec407a', '#42a5f5', '#66bb6a'];
+    for (let i = 0; i < n; i++) {
+      const bit = document.createElement('div');
+      bit.className = 'confetti-bit';
+      bit.style.left = Math.random() * 100 + 'vw';
+      bit.style.background = colors[Math.floor(Math.random() * colors.length)];
+      bit.style.animationDuration = (1.6 + Math.random() * 1.6) + 's';
+      bit.style.animationDelay = (Math.random() * 0.5) + 's';
+      bit.style.borderRadius = Math.random() < 0.5 ? '50%' : '2px';
+      document.body.appendChild(bit);
+      setTimeout(() => bit.remove(), 4000);
+    }
+  }
+
+  /* =====================================================
+     XP / LEVELS / BADGES
+     ===================================================== */
+  function levelForXp(xp) {
+    let lv = 1;
+    for (let i = 0; i < LEVELS.length; i++) if (xp >= LEVELS[i]) lv = i + 1;
+    return Math.min(lv, LEVELS.length);
+  }
+
+  function addXp(amount, reason) {
+    if (amount <= 0) return;
+    state.xp += amount;
+    if (reason) toast(`+${amount} XP — ${reason}`);
+    earnBadge('first');
+    const newLevel = levelForXp(state.xp);
+    if (newLevel > state.level) {
+      state.level = newLevel;
+      showLevelUp(newLevel);
+      if (newLevel >= 4) earnBadge('lv4');
+    }
+    updateHud();
+  }
+
+  function updateHud() {
+    const lv = state.level;
+    const floor = LEVELS[lv - 1];
+    const ceil = lv < LEVELS.length ? LEVELS[lv] : null;
+    const rank = RANKS[Math.min(lv - 1, RANKS.length - 1)];
+    $('levelChip').innerHTML = `Lv ${lv}<span class="rank-txt"> · ${rank}</span>`;
+    if (ceil === null) {
+      $('xpLabel').textContent = `${state.xp} XP · MAX`;
+      $('xpFill').style.width = '100%';
+    } else {
+      $('xpLabel').textContent = `${state.xp} / ${ceil} XP`;
+      $('xpFill').style.width = Math.min(100, ((state.xp - floor) / (ceil - floor)) * 100) + '%';
+    }
+  }
+
+  function showLevelUp(lv) {
+    const rank = RANKS[Math.min(lv - 1, RANKS.length - 1)];
+    $('levelupTitle').textContent = `Level ${lv}!`;
+    $('levelupText').textContent = `You are now a ${rank}. Tricky arguments fear you.`;
+    $('levelupOverlay').classList.add('show');
+    confetti(90);
+  }
+  $('levelupClose').addEventListener('click', () => $('levelupOverlay').classList.remove('show'));
+
+  function earnBadge(id) {
+    if (state.badges.has(id)) return;
+    state.badges.add(id);
+    const b = BADGES.find(x => x.id === id);
+    if (b && id !== 'first') {
+      toast(`🏅 Badge earned: ${b.name}!`);
+      confetti(40);
+    }
+    renderBadges();
+  }
+
+  function renderBadges() {
+    const row = $('badgeRow');
+    row.innerHTML = '';
+    BADGES.forEach(b => {
+      const el = document.createElement('div');
+      el.className = 'badge-pill' + (state.badges.has(b.id) ? ' earned' : '');
+      el.title = b.desc;
+      el.innerHTML = `<span class="b-ico">${b.ico}</span> ${b.name}`;
+      row.appendChild(el);
+    });
+  }
+
+  /* =====================================================
+     SCREEN ROUTER
+     ===================================================== */
+  function show(name) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    $('screen-' + name).classList.add('active');
+    window.scrollTo(0, 0);
+    if (name === 'home') refreshHome();
+    if (name === 'guide') renderGuide();
+    if (name === 'spotter') startSpotter();
+    if (name === 'bias') startBias();
+    if (name === 'tot') resetTot();
+    if (name === 'whack') resetWhack();
+  }
+
+  document.querySelectorAll('[data-go]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      stopTimers();
+      show(btn.dataset.go);
+    });
+  });
+
+  function refreshHome() {
+    const total = FALLACIES.length + BIASES.length;
+    $('guideBest').textContent = `Read: ${state.guideRead.size} / ${total}`;
+    $('spotterBest').textContent = state.best.spotter ? `Best: ${state.best.spotter} / 8 correct` : '';
+    $('biasBest').textContent = state.best.bias ? `Best: ${state.best.bias} / 6 correct` : '';
+    $('totBest').textContent = state.best.tot ? `Best: ${state.best.tot} pts` : '';
+    $('whackBest').textContent = state.best.whack ? `Best: ${state.best.whack} pts` : '';
+  }
+
+  /* =====================================================
+     FIELD GUIDE
+     ===================================================== */
+  let guideTab = 'fallacies';
+
+  $('tabFallacies').addEventListener('click', () => { guideTab = 'fallacies'; renderGuide(); });
+  $('tabBiases').addEventListener('click', () => { guideTab = 'biases'; renderGuide(); });
+
+  function renderGuide() {
+    $('tabFallacies').classList.toggle('active', guideTab === 'fallacies');
+    $('tabBiases').classList.toggle('active', guideTab === 'biases');
+    const list = $('guideList');
+    list.innerHTML = '';
+    const items = guideTab === 'fallacies' ? FALLACIES : BIASES;
+    items.forEach(item => {
+      const card = document.createElement('div');
+      card.className = 'guide-card' + (guideTab === 'biases' ? ' bias' : '') +
+                       (state.guideRead.has(item.id) ? ' read' : '');
+      card.innerHTML = `
+        <button class="guide-head">
+          <span class="g-ico">${item.ico}</span>
+          <span>${item.name}
+            <span class="g-tag">${guideTab === 'fallacies' ? 'Broken argument' : 'Brain trap'}</span>
+          </span>
+          <span class="g-check">✔ read</span>
+        </button>
+        <div class="guide-body">
+          <div class="g-def">${item.def}</div>
+          <div class="g-ex">${item.ex}</div>
+          <div class="g-tip">💡 ${item.tip}</div>
+        </div>`;
+      card.querySelector('.guide-head').addEventListener('click', () => {
+        const wasOpen = card.classList.contains('open');
+        list.querySelectorAll('.guide-card').forEach(c => c.classList.remove('open'));
+        if (!wasOpen) {
+          card.classList.add('open');
+          if (!state.guideRead.has(item.id)) {
+            state.guideRead.add(item.id);
+            card.classList.add('read');
+            addXp(5, `studied ${item.name}`);
+            if (state.guideRead.size === FALLACIES.length + BIASES.length) earnBadge('scholar');
+            updateGuideProgress();
+          }
+        }
+      });
+      list.appendChild(card);
+    });
+    updateGuideProgress();
+  }
+
+  function updateGuideProgress() {
+    const total = FALLACIES.length + BIASES.length;
+    $('guideProgress').textContent =
+      `Studied ${state.guideRead.size} of ${total} — each new entry is +5 XP`;
+  }
+
+  /* =====================================================
+     GENERIC QUIZ ENGINE (Spotter & Bias share it)
+     ===================================================== */
+  function makeQuiz(cfg) {
+    let deck = [], idx = 0, correct = 0, streak = 0;
+
+    function start() {
+      deck = shuffle(cfg.pool).slice(0, cfg.rounds);
+      idx = 0; correct = 0; streak = 0;
+      $(cfg.play).style.display = '';
+      $(cfg.done).style.display = 'none';
+      renderQ();
+    }
+
+    function renderQ() {
+      const q = deck[idx];
+      $(cfg.progress).textContent = `Case ${idx + 1} of ${cfg.rounds}`;
+      $(cfg.streakEl).textContent = `🔥 Streak: ${streak}`;
+      $(cfg.scene).textContent = q.s;
+      $(cfg.explain).classList.remove('show', 'miss');
+      const opts = $(cfg.opts);
+      opts.innerHTML = '';
+      const answer = byId[q.a];
+      const others = shuffle(cfg.answerSet.filter(x => x.id !== q.a)).slice(0, 3);
+      shuffle([answer, ...others]).forEach(choice => {
+        const btn = document.createElement('button');
+        btn.className = 'opt';
+        btn.textContent = `${choice.ico} ${choice.name}`;
+        btn.addEventListener('click', () => pick(btn, choice, q));
+        opts.appendChild(btn);
+      });
+    }
+
+    function pick(btn, choice, q) {
+      const opts = $(cfg.opts).querySelectorAll('.opt');
+      opts.forEach(o => { o.disabled = true; o.classList.add('dim'); });
+      const answer = byId[q.a];
+      const hit = choice.id === q.a;
+      opts.forEach(o => {
+        if (o.textContent.includes(answer.name)) { o.classList.add('correct'); o.classList.remove('dim'); }
+      });
+      const ex = $(cfg.explain);
+      if (hit) {
+        correct++; streak++;
+        btn.classList.add('correct');
+        $(cfg.verdict).textContent = '✅ Nailed it!';
+        ex.classList.remove('miss');
+        addXp(15 + (streak >= 3 ? 5 : 0), streak >= 3 ? 'streak bonus!' : cfg.xpReason);
+        if (streak >= 5) earnBadge('streak5');
+      } else {
+        streak = 0;
+        btn.classList.add('wrong');
+        btn.classList.remove('dim');
+        $(cfg.verdict).textContent = `❌ It was ${answer.ico} ${answer.name}`;
+        ex.classList.add('miss');
+      }
+      $(cfg.streakEl).textContent = `🔥 Streak: ${streak}`;
+      $(cfg.why).textContent = `${answer.name}: ${answer.def}`;
+      $(cfg.nextBtn).textContent = idx + 1 < cfg.rounds ? 'Next Case →' : 'See Results →';
+      ex.classList.add('show');
+      ex.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    function next() {
+      idx++;
+      if (idx < cfg.rounds) renderQ();
+      else finish();
+    }
+
+    function finish() {
+      state.best[cfg.bestKey] = Math.max(state.best[cfg.bestKey], correct);
+      earnBadge(cfg.badge);
+      const bonus = correct === cfg.rounds ? 30 : 0;
+      if (bonus) { addXp(bonus, 'PERFECT round!'); confetti(70); }
+      $(cfg.play).style.display = 'none';
+      const done = $(cfg.done);
+      done.style.display = '';
+      const pct = correct / cfg.rounds;
+      const ico = pct === 1 ? '🏆' : pct >= 0.7 ? '🌟' : pct >= 0.4 ? '💪' : '🧠';
+      const line = pct === 1 ? 'FLAWLESS. The fallacies never stood a chance.'
+                 : pct >= 0.7 ? 'Great detective work!'
+                 : pct >= 0.4 ? 'Solid effort — check the Field Guide and go again!'
+                 : 'Tough round! The Field Guide is your secret weapon.';
+      done.innerHTML = `
+        <div class="result-card">
+          <div class="r-ico">${ico}</div>
+          <h2>${line}</h2>
+          <div class="r-score">You solved <b>${correct} of ${cfg.rounds}</b> cases</div>
+          <div class="r-xp">Best so far: ${state.best[cfg.bestKey]} / ${cfg.rounds}</div>
+          <div class="r-btns">
+            <button class="big-btn" id="${cfg.done}-again">Play Again</button>
+            <button class="big-btn teal" id="${cfg.done}-home">Academy</button>
+          </div>
+        </div>`;
+      $(cfg.done + '-again').addEventListener('click', start);
+      $(cfg.done + '-home').addEventListener('click', () => show('home'));
+    }
+
+    $(cfg.nextBtn).addEventListener('click', next);
+    return { start };
+  }
+
+  const spotterQuiz = makeQuiz({
+    pool: SPOTTER_Q, rounds: 8, answerSet: FALLACIES,
+    play: 'spotterPlay', done: 'spotterDone', progress: 'spotterProgress',
+    streakEl: 'spotterStreak', scene: 'spotterScene', opts: 'spotterOpts',
+    explain: 'spotterExplain', verdict: 'spotterVerdict', why: 'spotterWhy',
+    nextBtn: 'spotterNext', bestKey: 'spotter', badge: 'spotter',
+    xpReason: 'fallacy spotted',
+  });
+
+  const biasQuiz = makeQuiz({
+    pool: BIAS_Q, rounds: 6, answerSet: BIASES,
+    play: 'biasPlay', done: 'biasDone', progress: 'biasProgress',
+    streakEl: 'biasStreak', scene: 'biasScene', opts: 'biasOpts',
+    explain: 'biasExplain', verdict: 'biasVerdict', why: 'biasWhy',
+    nextBtn: 'biasNext', bestKey: 'bias', badge: 'bias',
+    xpReason: 'bias busted',
+  });
+
+  function startSpotter() { spotterQuiz.start(); }
+  function startBias() { biasQuiz.start(); }
+
+  /* =====================================================
+     TRUTH OR TRICK (60-second sprint)
+     ===================================================== */
+  const TOT_TIME = 60;
+  let totDeck = [], totIdx = 0, totScore = 0, totStreak = 0, totLeft = 0;
+  let totTicker = null, totLocked = false;
+
+  function resetTot() {
+    stopTimers();
+    $('totIntro').style.display = '';
+    $('totPlay').style.display = 'none';
+    $('totDone').style.display = 'none';
+  }
+
+  $('totStart').addEventListener('click', startTot);
+
+  function startTot() {
+    totDeck = shuffle(TOT_Q);
+    totIdx = 0; totScore = 0; totStreak = 0; totLeft = TOT_TIME; totLocked = false;
+    $('totIntro').style.display = 'none';
+    $('totDone').style.display = 'none';
+    $('totPlay').style.display = '';
+    $('totFeedback').textContent = '';
+    updateTotHud();
+    showTotStatement();
+    totTicker = setInterval(() => {
+      totLeft -= 0.1;
+      $('totTimer').style.width = Math.max(0, (totLeft / TOT_TIME) * 100) + '%';
+      if (totLeft <= 0) endTot();
+    }, 100);
+  }
+
+  function showTotStatement() {
+    if (totIdx >= totDeck.length) totDeck = totDeck.concat(shuffle(TOT_Q));
+    $('totStatement').textContent = totDeck[totIdx].s;
+    $('totSolid').disabled = false;
+    $('totTrick').disabled = false;
+    totLocked = false;
+  }
+
+  function updateTotHud() {
+    $('totScore').textContent = `Score: ${totScore}`;
+    $('totStreakLbl').textContent = `🔥 x${totStreak}`;
+  }
+
+  function totAnswer(saidTrick) {
+    if (totLocked || totLeft <= 0) return;
+    totLocked = true;
+    $('totSolid').disabled = true;
+    $('totTrick').disabled = true;
+    const q = totDeck[totIdx];
+    const fb = $('totFeedback');
+    if (saidTrick === q.trick) {
+      totStreak++;
+      const pts = 10 + Math.min(totStreak - 1, 5) * 2;
+      totScore += pts;
+      fb.textContent = `+${pts} · ${q.why}`;
+      fb.className = 'tot-feedback good';
+      if (totStreak >= 5) earnBadge('streak5');
+    } else {
+      totStreak = 0;
+      totScore = Math.max(0, totScore - 5);
+      fb.textContent = `−5 · ${q.why}`;
+      fb.className = 'tot-feedback bad';
+    }
+    updateTotHud();
+    totIdx++;
+    setTimeout(() => { if (totLeft > 0) showTotStatement(); }, 1000);
+  }
+
+  $('totSolid').addEventListener('click', () => totAnswer(false));
+  $('totTrick').addEventListener('click', () => totAnswer(true));
+
+  function endTot() {
+    clearInterval(totTicker); totTicker = null;
+    state.best.tot = Math.max(state.best.tot, totScore);
+    if (totScore >= 100) earnBadge('tot');
+    const xp = Math.round(totScore / 2);
+    if (xp > 0) addXp(xp, 'Truth or Trick run');
+    $('totPlay').style.display = 'none';
+    const done = $('totDone');
+    done.style.display = '';
+    const ico = totScore >= 120 ? '🏆' : totScore >= 70 ? '🌟' : '⚡';
+    done.innerHTML = `
+      <div class="result-card">
+        <div class="r-ico">${ico}</div>
+        <h2>Time's up!</h2>
+        <div class="r-score">Final score: <b>${totScore}</b> points</div>
+        <div class="r-xp">+${xp} XP · Best: ${state.best.tot}</div>
+        <div class="r-btns">
+          <button class="big-btn orange" id="totAgain">Go Again</button>
+          <button class="big-btn teal" id="totHome">Academy</button>
+        </div>
+      </div>`;
+    $('totAgain').addEventListener('click', startTot);
+    $('totHome').addEventListener('click', () => show('home'));
+    if (totScore >= 100) confetti(70);
+  }
+
+  /* =====================================================
+     WHACK-A-FALLACY (45-second arcade)
+     ===================================================== */
+  const WHACK_TIME = 45;
+  let whackScore = 0, whackLeft = 0, whackTargetId = null;
+  let whackTicker = null, whackSpawner = null;
+
+  function resetWhack() {
+    stopTimers();
+    $('whackIntro').style.display = '';
+    $('whackPlay').style.display = 'none';
+    $('whackDone').style.display = 'none';
+  }
+
+  $('whackStart').addEventListener('click', startWhack);
+
+  function startWhack() {
+    whackScore = 0;
+    whackLeft = WHACK_TIME;
+    whackTargetId = WHACK_TARGETS[Math.floor(Math.random() * WHACK_TARGETS.length)];
+    const target = byId[whackTargetId];
+    $('whackIntro').style.display = 'none';
+    $('whackDone').style.display = 'none';
+    $('whackPlay').style.display = '';
+    $('whackTargetName').textContent = `${target.ico} ${target.name}`;
+    $('whackTargetHint').textContent = target.def;
+    $('whackScore').textContent = 'Score: 0';
+    $('whackTime').textContent = `⏱ ${WHACK_TIME}`;
+    const grid = $('whackGrid');
+    grid.innerHTML = '';
+    for (let i = 0; i < 9; i++) {
+      const cell = document.createElement('div');
+      cell.className = 'whack-cell';
+      grid.appendChild(cell);
+    }
+    whackTicker = setInterval(() => {
+      whackLeft--;
+      $('whackTime').textContent = `⏱ ${whackLeft}`;
+      if (whackLeft <= 0) endWhack();
+    }, 1000);
+    whackSpawner = setInterval(spawnBubble, 1050);
+    spawnBubble();
+    spawnBubble();
+  }
+
+  function spawnBubble() {
+    const cells = Array.from($('whackGrid').children).filter(c => !c.firstChild);
+    if (!cells.length) return;
+    const cell = cells[Math.floor(Math.random() * cells.length)];
+
+    // 40% target fallacy, 30% a different fallacy, 30% clean logic
+    const roll = Math.random();
+    let poolId;
+    if (roll < 0.4) poolId = whackTargetId;
+    else if (roll < 0.7) {
+      const others = WHACK_TARGETS.filter(t => t !== whackTargetId);
+      poolId = others[Math.floor(Math.random() * others.length)];
+    } else poolId = 'clean';
+
+    const pool = WHACK_POOL[poolId];
+    const text = pool[Math.floor(Math.random() * pool.length)];
+    const isTarget = poolId === whackTargetId;
+
+    const b = document.createElement('button');
+    b.className = 'bubble';
+    b.textContent = text;
+    let resolved = false;
+    b.addEventListener('click', () => {
+      if (resolved || whackLeft <= 0) return;
+      resolved = true;
+      if (isTarget) {
+        whackScore += 10;
+        b.classList.add('hit');
+        b.textContent = '+10 WHACK!';
+      } else {
+        whackScore = Math.max(0, whackScore - 5);
+        b.classList.add('oops');
+        b.textContent = poolId === 'clean' ? '−5 that was good logic!' : `−5 that was ${byId[poolId].name}!`;
+      }
+      $('whackScore').textContent = `Score: ${whackScore}`;
+      setTimeout(() => b.remove(), 550);
+    });
+    cell.appendChild(b);
+    setTimeout(() => { if (!resolved) { resolved = true; b.remove(); } }, 3000);
+  }
+
+  function endWhack() {
+    clearInterval(whackTicker); whackTicker = null;
+    clearInterval(whackSpawner); whackSpawner = null;
+    state.best.whack = Math.max(state.best.whack, whackScore);
+    if (whackScore >= 80) earnBadge('whack');
+    const xp = Math.round(whackScore / 2);
+    if (xp > 0) addXp(xp, 'Whack-a-Fallacy run');
+    $('whackPlay').style.display = 'none';
+    const done = $('whackDone');
+    done.style.display = '';
+    const target = byId[whackTargetId];
+    const ico = whackScore >= 100 ? '🏆' : whackScore >= 60 ? '🌟' : '🔨';
+    done.innerHTML = `
+      <div class="result-card">
+        <div class="r-ico">${ico}</div>
+        <h2>Hammer down!</h2>
+        <div class="r-score">You scored <b>${whackScore}</b> hunting ${target.ico} ${target.name}</div>
+        <div class="r-xp">+${xp} XP · Best: ${state.best.whack}</div>
+        <div class="r-btns">
+          <button class="big-btn" id="whackAgain">New Round</button>
+          <button class="big-btn teal" id="whackHome">Academy</button>
+        </div>
+      </div>`;
+    $('whackAgain').addEventListener('click', startWhack);
+    $('whackHome').addEventListener('click', () => show('home'));
+    if (whackScore >= 80) confetti(70);
+  }
+
+  /* =====================================================
+     SHARED
+     ===================================================== */
+  function stopTimers() {
+    if (totTicker) { clearInterval(totTicker); totTicker = null; }
+    if (whackTicker) { clearInterval(whackTicker); whackTicker = null; }
+    if (whackSpawner) { clearInterval(whackSpawner); whackSpawner = null; }
+  }
+
+  /* =====================================================
+     BOOT
+     ===================================================== */
+  renderBadges();
+  updateHud();
+  refreshHome();
+})();
+</script>
+</body>
+</html>

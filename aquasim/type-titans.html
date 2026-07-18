@@ -1,0 +1,1355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Type Titans — Keyboard Defense Arcade</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --purple: #7e57c2;
+    --purple-dark: #5e35b1;
+    --teal: #26c6da;
+    --orange: #ffa726;
+    --pink: #ec407a;
+    --blue: #42a5f5;
+    --red: #ef5350;
+    --green: #66bb6a;
+    --gold: #ffd54f;
+    --ink: #2b2838;
+    --card: #ffffff;
+    --space1: #141034;
+    --space2: #1e1a4a;
+    --space3: #2a1f5e;
+    --neon: #64ffda;
+  }
+
+  html, body { height: 100%; }
+
+  body {
+    font-family: "Comic Sans MS", "Chalkboard SE", "Segoe UI", sans-serif;
+    color: var(--ink);
+    background: linear-gradient(180deg, #b3a5ec 0%, #8fc7f0 60%, #ffe2b0 100%);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ---------- Header / HUD ---------- */
+  header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 14px;
+    background: rgba(255,255,255,0.9);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    z-index: 40;
+    flex-wrap: wrap;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: bold;
+    font-size: 1.1rem;
+    color: var(--purple-dark);
+    white-space: nowrap;
+  }
+  .logo .ico { font-size: 1.4rem; }
+
+  .hud {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex: 1;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    font-size: 0.92rem;
+  }
+  .stat {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background: #f3eefe;
+    border-radius: 999px;
+    padding: 4px 12px;
+    font-weight: bold;
+    white-space: nowrap;
+  }
+  .stat .lbl { color: #8a80a8; font-weight: normal; font-size: 0.78rem; }
+  #hudHearts { color: var(--red); letter-spacing: 2px; background: #ffeef0; }
+  #hudCombo.hot { background: #fff1dc; color: #e65100; animation: pulse 0.6s infinite alternate; }
+  @keyframes pulse { from { transform: scale(1); } to { transform: scale(1.08); } }
+
+  .xpwrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 190px;
+  }
+  .xpbar {
+    flex: 1;
+    height: 12px;
+    background: #e4defa;
+    border-radius: 999px;
+    overflow: hidden;
+  }
+  .xpbar > div {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--purple), var(--pink));
+    border-radius: 999px;
+    transition: width 0.3s;
+  }
+  #hudTitle { font-size: 0.78rem; color: var(--purple-dark); font-weight: bold; white-space: nowrap; }
+
+  #muteBtn {
+    border: none;
+    background: #f3eefe;
+    border-radius: 999px;
+    padding: 4px 10px;
+    font-size: 1rem;
+    cursor: pointer;
+  }
+
+  /* ---------- Arena ---------- */
+  #arenaWrap { flex: 1; position: relative; min-height: 0; padding: 10px; }
+  #arena {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    border-radius: 18px;
+    background: linear-gradient(180deg, var(--space1) 0%, var(--space2) 55%, var(--space3) 100%);
+    overflow: hidden;
+    box-shadow: inset 0 0 60px rgba(0,0,0,0.5), 0 4px 14px rgba(0,0,0,0.25);
+    cursor: default;
+  }
+  #arena.frozen { box-shadow: inset 0 0 90px rgba(100,255,218,0.35), 0 4px 14px rgba(0,0,0,0.25); }
+  #arena.shake { animation: shake 0.3s; }
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    25% { transform: translateX(-7px); }
+    50% { transform: translateX(6px); }
+    75% { transform: translateX(-4px); }
+  }
+
+  .star {
+    position: absolute;
+    background: #fff;
+    border-radius: 50%;
+    opacity: 0.7;
+    animation: twinkle 3s infinite alternate;
+  }
+  @keyframes twinkle { from { opacity: 0.15; } to { opacity: 0.85; } }
+
+  /* shield line */
+  #shield {
+    position: absolute;
+    left: 0; right: 0;
+    bottom: 46px;
+    height: 4px;
+    background: linear-gradient(90deg, transparent, var(--neon) 15%, var(--neon) 85%, transparent);
+    box-shadow: 0 0 14px var(--neon), 0 0 30px rgba(100,255,218,0.4);
+    opacity: 0.85;
+  }
+  #shield.hurt { background: linear-gradient(90deg, transparent, var(--red) 15%, var(--red) 85%, transparent); box-shadow: 0 0 18px var(--red); }
+
+  #cannon {
+    position: absolute;
+    bottom: 8px;
+    left: 50%;
+    width: 46px;
+    height: 46px;
+    margin-left: -23px;
+    transition: transform 0.08s;
+    z-index: 5;
+    text-align: center;
+    font-size: 34px;
+    line-height: 46px;
+    filter: drop-shadow(0 0 8px rgba(100,255,218,0.7));
+  }
+
+  .laser {
+    position: absolute;
+    height: 3px;
+    background: linear-gradient(90deg, rgba(100,255,218,0.9), rgba(236,64,122,0.9));
+    border-radius: 2px;
+    transform-origin: 0 50%;
+    pointer-events: none;
+    z-index: 4;
+    animation: laserFade 0.15s forwards;
+  }
+  @keyframes laserFade { to { opacity: 0; } }
+
+  /* ---------- Enemies ---------- */
+  .enemy {
+    position: absolute;
+    padding: 7px 13px;
+    border-radius: 14px;
+    font-size: 1.05rem;
+    font-weight: bold;
+    letter-spacing: 1px;
+    white-space: nowrap;
+    z-index: 3;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.4);
+    border: 2px solid rgba(255,255,255,0.25);
+  }
+  .enemy .rock { margin-right: 6px; }
+  .enemy.t1 { background: #2e7d46; color: #d8ffe4; }
+  .enemy.t2 { background: #1c5e9e; color: #d8ecff; }
+  .enemy.t3 { background: #9e5a12; color: #ffedd2; }
+  .enemy.t4 { background: #8e2450; color: #ffd9ea; }
+  .enemy.locked { border-color: var(--neon); box-shadow: 0 0 16px rgba(100,255,218,0.65); transform-origin: center; }
+  .enemy .ch.hit { color: var(--neon); text-shadow: 0 0 8px var(--neon); }
+  .enemy.wrongflash { animation: wrongf 0.22s; }
+  @keyframes wrongf { 50% { filter: brightness(2) hue-rotate(-40deg); } }
+
+  /* boss */
+  .enemy.bossbox {
+    background: linear-gradient(135deg, #4a148c, #880e4f);
+    color: #fff;
+    font-size: 1.25rem;
+    padding: 14px 20px;
+    border-radius: 20px;
+    border: 3px solid var(--gold);
+    box-shadow: 0 0 26px rgba(255,213,79,0.55);
+    text-align: center;
+  }
+  .bossname { display: block; font-size: 0.72rem; color: var(--gold); letter-spacing: 2px; margin-bottom: 4px; }
+  .bosshp { display: flex; gap: 3px; justify-content: center; margin-top: 6px; }
+  .bosshp i { width: 14px; height: 7px; border-radius: 3px; background: var(--green); }
+  .bosshp i.gone { background: rgba(255,255,255,0.25); }
+
+  .particle {
+    position: absolute;
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 6;
+    animation: pop 0.65s forwards ease-out;
+  }
+  @keyframes pop {
+    to { transform: translate(var(--dx), var(--dy)) scale(0.1); opacity: 0; }
+  }
+
+  .floatscore {
+    position: absolute;
+    font-weight: bold;
+    color: var(--gold);
+    text-shadow: 0 0 8px rgba(0,0,0,0.6);
+    pointer-events: none;
+    z-index: 7;
+    animation: rise 0.9s forwards ease-out;
+    font-size: 1.05rem;
+  }
+  @keyframes rise { to { transform: translateY(-55px); opacity: 0; } }
+
+  /* typed buffer */
+  #typedBuf {
+    position: absolute;
+    bottom: 56px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: var(--neon);
+    font-size: 1.15rem;
+    font-weight: bold;
+    letter-spacing: 3px;
+    text-shadow: 0 0 10px rgba(100,255,218,0.8);
+    z-index: 8;
+    pointer-events: none;
+    min-height: 1.4em;
+  }
+
+  /* ---------- Powerup bar ---------- */
+  #powerBar {
+    position: absolute;
+    left: 12px;
+    bottom: 12px;
+    display: flex;
+    gap: 8px;
+    z-index: 9;
+  }
+  .power {
+    background: rgba(255,255,255,0.12);
+    border: 2px solid rgba(255,255,255,0.3);
+    border-radius: 12px;
+    padding: 5px 9px;
+    color: #fff;
+    font-size: 0.8rem;
+    text-align: center;
+    min-width: 62px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .power .big { font-size: 1.2rem; display: block; }
+  .power .cnt { color: var(--gold); font-weight: bold; }
+  .power.empty { opacity: 0.35; }
+  .power .keyhint { display: block; font-size: 0.65rem; color: rgba(255,255,255,0.6); }
+
+  /* wave banner */
+  #waveBanner {
+    position: absolute;
+    top: 34%;
+    left: 0; right: 0;
+    text-align: center;
+    font-size: 2.2rem;
+    font-weight: bold;
+    color: #fff;
+    text-shadow: 0 0 20px var(--purple), 0 3px 6px rgba(0,0,0,0.5);
+    z-index: 20;
+    pointer-events: none;
+    opacity: 0;
+  }
+  #waveBanner.show { animation: bannerIn 1.6s forwards; }
+  @keyframes bannerIn {
+    0% { opacity: 0; transform: scale(0.6); }
+    18% { opacity: 1; transform: scale(1.05); }
+    30% { transform: scale(1); }
+    80% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+
+  /* ---------- Toasts ---------- */
+  #toasts {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 30;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-end;
+  }
+  .toast {
+    background: rgba(255,255,255,0.95);
+    border-left: 5px solid var(--gold);
+    border-radius: 10px;
+    padding: 8px 14px;
+    font-size: 0.88rem;
+    font-weight: bold;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    animation: toastIn 0.35s, toastOut 0.4s 3s forwards;
+    max-width: 260px;
+  }
+  .toast .tt { color: var(--purple-dark); }
+  .toast .td { font-weight: normal; font-size: 0.78rem; color: #6d6787; }
+  @keyframes toastIn { from { transform: translateX(120%); } }
+  @keyframes toastOut { to { transform: translateX(130%); opacity: 0; } }
+
+  /* ---------- Overlays ---------- */
+  .overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(20,16,52,0.82);
+    backdrop-filter: blur(3px);
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    overflow-y: auto;
+  }
+  .overlay.hidden { display: none; }
+
+  .panel {
+    background: var(--card);
+    border-radius: 22px;
+    padding: 22px 26px;
+    max-width: 620px;
+    width: 100%;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+    text-align: center;
+    max-height: 100%;
+    overflow-y: auto;
+  }
+  .panel h1 {
+    color: var(--purple-dark);
+    font-size: 1.9rem;
+    margin-bottom: 4px;
+  }
+  .panel h2 { color: var(--purple-dark); font-size: 1.5rem; margin-bottom: 8px; }
+  .panel .sub { color: #7a7295; margin-bottom: 14px; font-size: 0.95rem; }
+
+  .howto {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin: 14px 0;
+  }
+  .howcard {
+    background: #f6f1ff;
+    border-radius: 14px;
+    padding: 10px 12px;
+    width: 158px;
+    font-size: 0.8rem;
+    color: #5c5477;
+  }
+  .howcard .big { font-size: 1.6rem; display: block; margin-bottom: 4px; }
+  .howcard b { color: var(--purple-dark); }
+
+  .diffrow { display: flex; gap: 10px; justify-content: center; margin: 12px 0 18px; flex-wrap: wrap; }
+  .diffbtn {
+    border: 3px solid #e4defa;
+    background: #faf8ff;
+    border-radius: 16px;
+    padding: 10px 16px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.95rem;
+    font-weight: bold;
+    color: var(--ink);
+    width: 150px;
+  }
+  .diffbtn small { display: block; font-weight: normal; font-size: 0.72rem; color: #8a80a8; margin-top: 3px; }
+  .diffbtn.sel { border-color: var(--purple); background: #efe7ff; box-shadow: 0 0 0 3px rgba(126,87,194,0.2); }
+  .diffbtn .big { font-size: 1.5rem; display: block; }
+
+  .bigbtn {
+    border: none;
+    background: linear-gradient(135deg, var(--purple), var(--pink));
+    color: #fff;
+    font-family: inherit;
+    font-size: 1.15rem;
+    font-weight: bold;
+    padding: 13px 34px;
+    border-radius: 999px;
+    cursor: pointer;
+    box-shadow: 0 5px 16px rgba(126,87,194,0.5);
+    transition: transform 0.1s;
+  }
+  .bigbtn:hover { transform: scale(1.05); }
+  .enterhint { font-size: 0.75rem; color: #9a92b5; margin-top: 8px; }
+
+  /* stats grid */
+  .statgrid {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin: 12px 0;
+  }
+  .statcard {
+    background: #f6f1ff;
+    border-radius: 14px;
+    padding: 10px 16px;
+    min-width: 105px;
+  }
+  .statcard .v { font-size: 1.45rem; font-weight: bold; color: var(--purple-dark); }
+  .statcard .k { font-size: 0.72rem; color: #8a80a8; }
+
+  /* shop */
+  .shoprow { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin: 10px 0 16px; }
+  .shopitem {
+    background: #fffdf4;
+    border: 2px solid #f2e3b3;
+    border-radius: 16px;
+    padding: 10px 12px;
+    width: 148px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.82rem;
+    color: #5c5477;
+  }
+  .shopitem .big { font-size: 1.7rem; display: block; }
+  .shopitem b { color: var(--purple-dark); display: block; }
+  .shopitem .price { color: #b8860b; font-weight: bold; }
+  .shopitem:hover { border-color: var(--gold); }
+  .shopitem.cant { opacity: 0.45; cursor: not-allowed; }
+
+  .badgerow { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin: 10px 0; }
+  .badge {
+    background: #fff8e1;
+    border: 2px solid var(--gold);
+    border-radius: 999px;
+    padding: 5px 12px;
+    font-size: 0.78rem;
+    font-weight: bold;
+    color: #8d6e00;
+  }
+
+  .medal { font-size: 3rem; }
+
+  /* hidden input for mobile keyboards */
+  #mobileInput {
+    position: absolute;
+    opacity: 0.01;
+    width: 2px; height: 2px;
+    bottom: 0; left: 0;
+    border: none;
+    z-index: 1;
+  }
+
+  @media (max-width: 640px) {
+    .hud { font-size: 0.78rem; gap: 7px; }
+    .xpwrap { min-width: 120px; }
+    .stat { padding: 3px 8px; }
+    .panel { padding: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo"><span class="ico">⌨️</span> Type Titans</div>
+  <div class="hud">
+    <div class="xpwrap">
+      <span id="hudTitle">Rookie Typist</span>
+      <div class="xpbar"><div id="xpFill"></div></div>
+      <b id="hudLevel">Lv 1</b>
+    </div>
+    <div class="stat"><span class="lbl">Wave</span> <span id="hudWave">–</span></div>
+    <div class="stat"><span class="lbl">Score</span> <span id="hudScore">0</span></div>
+    <div class="stat" id="hudCombo"><span class="lbl">Combo</span> <span id="comboV">x1</span></div>
+    <div class="stat"><span class="lbl">WPM</span> <span id="hudWpm">0</span></div>
+    <div class="stat">🪙 <span id="hudCoins">0</span></div>
+    <div class="stat" id="hudHearts">♥♥♥</div>
+    <button id="muteBtn" title="Sound on/off">🔊</button>
+  </div>
+</header>
+
+<div id="arenaWrap">
+  <div id="arena">
+    <div id="shield"></div>
+    <div id="cannon">🛸</div>
+    <div id="typedBuf"></div>
+    <div id="waveBanner"></div>
+    <div id="powerBar">
+      <div class="power" id="pwFreeze"><span class="big">🧊</span>Freeze <span class="cnt">1</span><span class="keyhint">press 1</span></div>
+      <div class="power" id="pwBomb"><span class="big">💥</span>Bomb <span class="cnt">1</span><span class="keyhint">press 2</span></div>
+      <div class="power" id="pwHeal"><span class="big">💖</span>Heal <span class="cnt">0</span><span class="keyhint">press 3</span></div>
+    </div>
+    <div id="toasts"></div>
+    <input id="mobileInput" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-hidden="true" tabindex="-1">
+  </div>
+
+  <!-- START -->
+  <div class="overlay" id="startOverlay">
+    <div class="panel">
+      <h1>⌨️ Type Titans</h1>
+      <div class="sub">Word meteors are falling on your base. Type them to blast them out of the sky!</div>
+      <div class="howto">
+        <div class="howcard"><span class="big">🎯</span><b>Type a word</b> — just start typing and your cannon locks on. No Enter needed!</div>
+        <div class="howcard"><span class="big">🔥</span><b>Build combos</b> — no typos = bigger score multiplier. One wrong key breaks it!</div>
+        <div class="howcard"><span class="big">🪙</span><b>Earn coins</b> — spend them in the shop on freezes, bombs & hearts.</div>
+        <div class="howcard"><span class="big">👾</span><b>Boss battles</b> — every 4th wave a Word Boss attacks. Out-type it!</div>
+      </div>
+      <div class="diffrow">
+        <button class="diffbtn" data-diff="cadet"><span class="big">🐢</span>Cadet<small>chill speed, shorter words</small></button>
+        <button class="diffbtn sel" data-diff="hero"><span class="big">🚀</span>Hero<small>the classic challenge</small></button>
+        <button class="diffbtn" data-diff="legend"><span class="big">☄️</span>Legend<small>fast + monster words</small></button>
+      </div>
+      <button class="bigbtn" id="startBtn">START MISSION</button>
+      <div class="enterhint">or press Enter</div>
+    </div>
+  </div>
+
+  <!-- WAVE COMPLETE / SHOP -->
+  <div class="overlay hidden" id="shopOverlay">
+    <div class="panel">
+      <h2 id="shopHead">Wave 1 cleared! 🎉</h2>
+      <div class="statgrid">
+        <div class="statcard"><div class="v" id="wsWords">0</div><div class="k">words blasted</div></div>
+        <div class="statcard"><div class="v" id="wsAcc">100%</div><div class="k">accuracy</div></div>
+        <div class="statcard"><div class="v" id="wsWpm">0</div><div class="k">wave WPM</div></div>
+        <div class="statcard"><div class="v" id="wsCoins">+0</div><div class="k">coins earned</div></div>
+      </div>
+      <div class="sub">🛒 Supply shop — you have <b>🪙 <span id="shopCoins">0</span></b></div>
+      <div class="shoprow">
+        <button class="shopitem" data-buy="freeze"><span class="big">🧊</span><b>Freeze</b>slows all meteors for 4s<div class="price">🪙 30</div></button>
+        <button class="shopitem" data-buy="bomb"><span class="big">💥</span><b>Bomb</b>wipes the whole screen<div class="price">🪙 45</div></button>
+        <button class="shopitem" data-buy="heal"><span class="big">💖</span><b>Heal</b>restores 1 heart (max 5)<div class="price">🪙 60</div></button>
+      </div>
+      <button class="bigbtn" id="nextWaveBtn">NEXT WAVE ➜</button>
+      <div class="enterhint">or press Enter</div>
+    </div>
+  </div>
+
+  <!-- PAUSE -->
+  <div class="overlay hidden" id="pauseOverlay">
+    <div class="panel">
+      <h2>⏸ Paused</h2>
+      <div class="sub">Stretch those fingers, Titan.</div>
+      <button class="bigbtn" id="resumeBtn">RESUME</button>
+      <div class="enterhint">or press Esc</div>
+    </div>
+  </div>
+
+  <!-- GAME OVER -->
+  <div class="overlay hidden" id="overOverlay">
+    <div class="panel">
+      <div class="medal" id="goMedal">🥉</div>
+      <h2 id="goHead">Base overrun!</h2>
+      <div class="sub" id="goSub">You fought hard, Titan.</div>
+      <div class="statgrid">
+        <div class="statcard"><div class="v" id="goScore">0</div><div class="k">final score</div></div>
+        <div class="statcard"><div class="v" id="goWave">1</div><div class="k">wave reached</div></div>
+        <div class="statcard"><div class="v" id="goWpm">0</div><div class="k">avg WPM</div></div>
+        <div class="statcard"><div class="v" id="goAcc">0%</div><div class="k">accuracy</div></div>
+        <div class="statcard"><div class="v" id="goCombo">0</div><div class="k">best streak</div></div>
+      </div>
+      <div class="badgerow" id="goBadges"></div>
+      <button class="bigbtn" id="againBtn">PLAY AGAIN</button>
+      <div class="enterhint">or press Enter</div>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  'use strict';
+  const $ = s => document.getElementById(s);
+  const rand = (a, b) => a + Math.random() * (b - a);
+  const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+  // ---------------------------------------------------------------
+  // Word banks (all lowercase, letters only — power keys 1/2/3 stay free)
+  // ---------------------------------------------------------------
+  const WORDS = {
+    1: ['fox','jump','quiz','sky','run','zip','wow','fun','sun','map','key','ice','art','box','bug','cup','gem','hat','ink','jar','kit','log','mud','net','owl','pen','rug','saw','tap','van','web','yak','zoo','bird','cake','desk','echo','frog','gold','hero','iron','jazz','kite','lava','moon','note','path','rock','star','tide','volt','wave','yarn','zero','dash','epic','fire','glow','hawk','maze'],
+    2: ['planet','rocket','wizard','dragon','forest','castle','energy','galaxy','jungle','knight','legend','magnet','orbit','pirate','puzzle','quartz','riddle','shadow','temple','comet','storm','brave','charm','blaze','crown','flame','ghost','honey','joker','koala','lemon','maple','ninja','ocean','prism','quill','robot','spark','tiger','ultra','vivid','whale','zebra','arcade','bounce','canyon','dazzle','empire','frozen','glitch','hazard','island','jigsaw','kraken','launch','meteor','nimble','oxygen','portal','quiver','socket','turbo','velvet','wander','zigzag'],
+    3: ['asteroid','blizzard','broccoli','gravity','habitat','journey','keyboard','lightning','molecule','nitrogen','obstacle','particle','pyramid','reptile','satellite','skeleton','tsunami','universe','volcano','waterfall','xylophone','zeppelin','adventure','butterfly','chemistry','dinosaur','electric','fantastic','hurricane','invisible','jellyfish','kilometer','labyrinth','magnetic','nocturnal','orchestra','predator','quicksand','submarine','telescope','umbrella','tornado','penguin','phantom','avalanche','carnivore','ecosystem','equation','fireworks','gargoyle','hologram'],
+    4: ['photosynthesis','constellation','thermometer','archaeology','biodiversity','championship','civilization','declaration','electricity','engineering','evaporation','extraordinary','generation','hibernation','imagination','journalism','kaleidoscope','laboratory','mathematics','metamorphosis','microscope','navigation','opportunity','parallelogram','personality','precipitation','quadrilateral','respiratory','revolutionary','skateboarding','technology','temperature','trampoline','tyrannosaurus','underground','vocabulary','watermelon','wavelength','independence','encyclopedia']
+  };
+
+  const BOSSES = [
+    { name: 'THE TYPOSAUR', icon: '🦖' },
+    { name: 'CAPS LOCKTOPUS', icon: '🐙' },
+    { name: 'GLITCHZILLA', icon: '👾' },
+    { name: 'SIR SPELLSALOT', icon: '🛡️' },
+    { name: 'MEGA MISSPELL', icon: '🤖' },
+    { name: 'QWERTY THE CURSED', icon: '💀' }
+  ];
+
+  const TITLES = ['Rookie Typist','Key Cadet','Word Scout','Swift Fingers','Combo Captain','Word Warrior','Typing Titan','Keyboard Legend','QWERTY Grandmaster'];
+
+  const DIFFS = {
+    cadet:  { fall: 30, tierShift: -1, spawnMul: 1.25 },
+    hero:   { fall: 23, tierShift: 0,  spawnMul: 1.0  },
+    legend: { fall: 17, tierShift: 1,  spawnMul: 0.82 }
+  };
+
+  // ---------------------------------------------------------------
+  // Sound (tiny WebAudio bleeps, no assets)
+  // ---------------------------------------------------------------
+  let audioCtx = null, muted = false;
+  function beep(freq, dur, type = 'square', vol = 0.05, slide = 0) {
+    if (muted) return;
+    try {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const o = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      o.type = type;
+      o.frequency.setValueAtTime(freq, audioCtx.currentTime);
+      if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(40, freq + slide), audioCtx.currentTime + dur);
+      g.gain.setValueAtTime(vol, audioCtx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + dur);
+      o.connect(g).connect(audioCtx.destination);
+      o.start();
+      o.stop(audioCtx.currentTime + dur);
+    } catch (e) { /* audio unavailable — fine */ }
+  }
+  const sfx = {
+    key:     () => beep(760 + Math.random() * 120, 0.05, 'square', 0.03),
+    wrong:   () => beep(140, 0.18, 'sawtooth', 0.06),
+    blast:   () => { beep(520, 0.12, 'square', 0.05, -300); beep(220, 0.2, 'triangle', 0.05, -120); },
+    hurt:    () => beep(110, 0.35, 'sawtooth', 0.08, -60),
+    power:   () => { beep(440, 0.1, 'sine', 0.06); beep(660, 0.12, 'sine', 0.06); },
+    levelup: () => { [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => beep(f, 0.14, 'triangle', 0.06), i * 90)); },
+    bosshit: () => beep(330, 0.15, 'square', 0.07, -140),
+    coin:    () => beep(988, 0.09, 'sine', 0.045)
+  };
+  $('muteBtn').addEventListener('click', () => {
+    muted = !muted;
+    $('muteBtn').textContent = muted ? '🔇' : '🔊';
+  });
+
+  // ---------------------------------------------------------------
+  // State
+  // ---------------------------------------------------------------
+  const arena = $('arena');
+  let AW = 0, AH = 0, SHIELD_Y = 0;
+  function measure() {
+    AW = arena.clientWidth;
+    AH = arena.clientHeight;
+    SHIELD_Y = AH - 50;
+  }
+  window.addEventListener('resize', measure);
+
+  let state = 'start';           // start | playing | shop | paused | gameover
+  let diff = 'hero';
+  let wave = 0, score = 0, coins = 0, hearts = 3;
+  let combo = 0, bestCombo = 0, mult = 1;
+  let level = 1, xpInto = 0;
+  let keysTotal = 0, keysGood = 0, charsGood = 0;
+  let playTime = 0;              // seconds of active play
+  let enemies = [];              // includes boss (flagged)
+  let target = null;
+  let spawnLeft = 0, spawnTimer = 0, spawnGap = 2;
+  let frozenT = 0;
+  let powers = { freeze: 1, bomb: 1, heal: 0 };
+  let wordsBlasted = 0, totalWords = 0, bossesSlain = 0;
+  let waveKeys = 0, waveGood = 0, waveWords = 0, waveTime = 0, waveCoinStart = 0;
+  let earned = new Set();        // achievement ids
+
+  const xpNeed = lv => 400 + (lv - 1) * 350;
+
+  // ---------------------------------------------------------------
+  // HUD
+  // ---------------------------------------------------------------
+  function updateHUD() {
+    $('hudScore').textContent = score;
+    $('hudCoins').textContent = coins;
+    $('hudWave').textContent = wave || '–';
+    $('hudHearts').textContent = '♥'.repeat(Math.max(0, hearts)) + '♡'.repeat(Math.max(0, 3 - hearts));
+    $('comboV').textContent = 'x' + mult + (combo >= 5 ? ' 🔥' + combo : '');
+    $('hudCombo').classList.toggle('hot', combo >= 10);
+    $('hudLevel').textContent = 'Lv ' + level;
+    $('hudTitle').textContent = TITLES[Math.min(level - 1, TITLES.length - 1)];
+    $('xpFill').style.width = clamp(xpInto / xpNeed(level) * 100, 0, 100) + '%';
+    $('hudWpm').textContent = wpm();
+    for (const [k, id] of [['freeze', 'pwFreeze'], ['bomb', 'pwBomb'], ['heal', 'pwHeal']]) {
+      const el = $(id);
+      el.querySelector('.cnt').textContent = powers[k];
+      el.classList.toggle('empty', powers[k] <= 0);
+    }
+  }
+  function wpm() {
+    if (playTime < 4) return 0;
+    return Math.round((charsGood / 5) / (playTime / 60));
+  }
+  function accuracy(good, total) {
+    return total ? Math.round(good / total * 100) : 100;
+  }
+
+  // ---------------------------------------------------------------
+  // Toasts & achievements
+  // ---------------------------------------------------------------
+  function toast(title, desc) {
+    const t = document.createElement('div');
+    t.className = 'toast';
+    t.innerHTML = '<div class="tt">' + title + '</div>' + (desc ? '<div class="td">' + desc + '</div>' : '');
+    $('toasts').appendChild(t);
+    setTimeout(() => t.remove(), 3600);
+  }
+  const ACH = {
+    first:   { t: '🏅 First Blast!', d: 'Your first word bites the stardust.' },
+    combo10: { t: '🔥 On Fire!', d: '10-word streak with no typos.' },
+    combo25: { t: '🌋 Unstoppable!', d: '25-word streak. Are you a robot?' },
+    boss:    { t: '👑 Boss Slayer', d: 'You out-typed a Word Boss.' },
+    wpm30:   { t: '⚡ Speedy Keys', d: 'Hit 30 words per minute.' },
+    wpm50:   { t: '🚀 Lightning Hands', d: 'Hit 50 words per minute!' },
+    wave10:  { t: '🛡️ Survivor', d: 'Reached wave 10.' },
+    perfect: { t: '💎 Flawless Wave', d: '100% accuracy on a whole wave.' },
+    rich:    { t: '💰 Coin Collector', d: 'Held 150 coins at once.' }
+  };
+  function unlock(id) {
+    if (earned.has(id)) return;
+    earned.add(id);
+    const a = ACH[id];
+    toast(a.t, a.d);
+    sfx.power();
+  }
+
+  // ---------------------------------------------------------------
+  // Stars background
+  // ---------------------------------------------------------------
+  function makeStars() {
+    for (let i = 0; i < 55; i++) {
+      const s = document.createElement('div');
+      s.className = 'star';
+      const sz = rand(1, 3);
+      s.style.width = s.style.height = sz + 'px';
+      s.style.left = rand(0, 100) + '%';
+      s.style.top = rand(0, 92) + '%';
+      s.style.animationDelay = rand(0, 3) + 's';
+      s.style.animationDuration = rand(1.6, 4) + 's';
+      arena.appendChild(s);
+    }
+  }
+
+  // ---------------------------------------------------------------
+  // Enemies
+  // ---------------------------------------------------------------
+  function tierFor() {
+    // weights drift toward harder tiers as waves progress
+    const w = wave + DIFFS[diff].tierShift;
+    let weights;
+    if (w <= 1) weights = [1, 0, 0, 0];
+    else if (w <= 2) weights = [0.65, 0.35, 0, 0];
+    else if (w <= 4) weights = [0.4, 0.5, 0.1, 0];
+    else if (w <= 6) weights = [0.2, 0.5, 0.3, 0];
+    else if (w <= 9) weights = [0.1, 0.4, 0.4, 0.1];
+    else weights = [0.05, 0.3, 0.45, 0.2];
+    let r = Math.random(), acc = 0;
+    for (let i = 0; i < 4; i++) { acc += weights[i]; if (r <= acc) return i + 1; }
+    return 2;
+  }
+
+  function freshWord(tier) {
+    const inUse = new Set(enemies.flatMap(e => e.boss ? e.words : [e.word]));
+    for (let i = 0; i < 30; i++) {
+      const w = pick(WORDS[tier]);
+      if (!inUse.has(w)) return w;
+    }
+    return pick(WORDS[tier]);
+  }
+
+  function spawnEnemy() {
+    const tier = tierFor();
+    const word = freshWord(tier);
+    const el = document.createElement('div');
+    el.className = 'enemy t' + tier;
+    el.innerHTML = '<span class="rock">' + pick(['☄️', '🪨', '🌑', '💫']) + '</span>' +
+      word.split('').map(c => '<span class="ch">' + c + '</span>').join('');
+    arena.appendChild(el);
+    const ew = el.offsetWidth;
+    const x = rand(14, Math.max(15, AW - ew - 14));
+    const speedBase = AH / DIFFS[diff].fall;
+    const e = {
+      word, tier, el, x,
+      y: -40,
+      matched: 0,
+      speed: speedBase * (1 + (wave - 1) * 0.055) * rand(0.85, 1.15) * (tier === 4 ? 0.8 : 1),
+      sway: rand(0, Math.PI * 2),
+      swayAmp: rand(4, 16),
+      boss: false,
+      dead: false
+    };
+    el.style.transform = 'translate(' + x + 'px,' + e.y + 'px)';
+    enemies.push(e);
+  }
+
+  function spawnBoss() {
+    const b = BOSSES[(Math.floor(wave / 4) - 1) % BOSSES.length];
+    const nWords = 4 + Math.floor(wave / 4);
+    const words = [];
+    const used = new Set();
+    for (let i = 0; i < nWords; i++) {
+      const tier = Math.min(4, 2 + Math.floor(i / 2));
+      let w;
+      do { w = pick(WORDS[tier]); } while (used.has(w));
+      used.add(w);
+      words.push(w);
+    }
+    const el = document.createElement('div');
+    el.className = 'enemy bossbox';
+    arena.appendChild(el);
+    const e = {
+      boss: true, name: b.name, icon: b.icon,
+      words, wi: 0, word: words[0], matched: 0,
+      el, x: 0, y: -90,
+      speed: (AH / DIFFS[diff].fall) * 0.32,
+      sway: 0, swayAmp: 40,
+      dead: false
+    };
+    renderBoss(e);
+    e.x = (AW - el.offsetWidth) / 2;
+    el.style.transform = 'translate(' + e.x + 'px,' + e.y + 'px)';
+    enemies.push(e);
+    toast('⚠️ BOSS INCOMING', b.icon + ' ' + b.name + ' approaches!');
+  }
+
+  function renderBoss(e) {
+    e.el.innerHTML =
+      '<span class="bossname">' + e.icon + ' ' + e.name + '</span>' +
+      e.word.split('').map(c => '<span class="ch">' + c + '</span>').join('') +
+      '<span class="bosshp">' + e.words.map((_, i) =>
+        '<i class="' + (i < e.wi ? 'gone' : '') + '"></i>').join('') + '</span>';
+    paintMatch(e);
+  }
+
+  function paintMatch(e) {
+    const chs = e.el.querySelectorAll('.ch');
+    chs.forEach((c, i) => c.classList.toggle('hit', i < e.matched));
+  }
+
+  function killEnemy(e, scored) {
+    e.dead = true;
+    explode(e.x + e.el.offsetWidth / 2, e.y + e.el.offsetHeight / 2, e.boss ? 26 : 12, e.boss);
+    e.el.remove();
+    enemies = enemies.filter(x => x !== e);
+    if (target === e) { target = null; $('typedBuf').textContent = ''; }
+    if (scored) {
+      wordsBlasted++;
+      waveWords++;
+      const pts = (e.boss ? 400 : e.word.length * 10) * mult;
+      score += pts;
+      gainXP(pts);
+      const c = e.boss ? 50 : Math.ceil(e.word.length / 2) + (combo >= 10 ? 2 : 0);
+      coins += c;
+      floatText('+' + pts + '  🪙' + c, e.x + 20, e.y);
+      sfx.blast();
+      if (wordsBlasted === 1) unlock('first');
+      if (coins >= 150) unlock('rich');
+      if (e.boss) { bossesSlain++; unlock('boss'); }
+    }
+  }
+
+  // ---------------------------------------------------------------
+  // Effects
+  // ---------------------------------------------------------------
+  function explode(x, y, n, gold) {
+    const colors = gold ? ['#ffd54f', '#ffb300', '#fff176', '#ec407a'] : ['#64ffda', '#42a5f5', '#ec407a', '#fff'];
+    for (let i = 0; i < n; i++) {
+      const p = document.createElement('div');
+      p.className = 'particle';
+      p.style.background = pick(colors);
+      p.style.left = x + 'px';
+      p.style.top = y + 'px';
+      const ang = rand(0, Math.PI * 2), d = rand(28, gold ? 120 : 70);
+      p.style.setProperty('--dx', Math.cos(ang) * d + 'px');
+      p.style.setProperty('--dy', Math.sin(ang) * d + 'px');
+      arena.appendChild(p);
+      p.addEventListener('animationend', () => p.remove());
+    }
+  }
+
+  function floatText(txt, x, y) {
+    const f = document.createElement('div');
+    f.className = 'floatscore';
+    f.textContent = txt;
+    f.style.left = clamp(x, 10, AW - 120) + 'px';
+    f.style.top = y + 'px';
+    arena.appendChild(f);
+    f.addEventListener('animationend', () => f.remove());
+  }
+
+  function fireLaser(e) {
+    const cx = AW / 2, cy = AH - 30;
+    const tx = e.x + e.el.offsetWidth / 2, ty = e.y + e.el.offsetHeight / 2;
+    const dx = tx - cx, dy = ty - cy;
+    const len = Math.sqrt(dx * dx + dy * dy);
+    const ang = Math.atan2(dy, dx);
+    const l = document.createElement('div');
+    l.className = 'laser';
+    l.style.left = cx + 'px';
+    l.style.top = cy + 'px';
+    l.style.width = len + 'px';
+    l.style.transform = 'rotate(' + ang + 'rad)';
+    arena.appendChild(l);
+    l.addEventListener('animationend', () => l.remove());
+    $('cannon').style.transform = 'rotate(' + (ang + Math.PI / 2) * 0.25 + 'rad)';
+  }
+
+  // ---------------------------------------------------------------
+  // Typing
+  // ---------------------------------------------------------------
+  function handleChar(ch) {
+    if (state !== 'playing') return;
+    keysTotal++; waveKeys++;
+    if (!target) {
+      // lock onto the lowest (most dangerous) enemy starting with ch
+      let best = null;
+      for (const e of enemies) {
+        if (e.word[0] === ch && (!best || e.y > best.y)) best = e;
+      }
+      if (!best) { miss(false); return; }
+      target = best;
+      target.el.classList.add('locked');
+    }
+    if (target.word[target.matched] === ch) {
+      target.matched++;
+      keysGood++; waveGood++; charsGood++;
+      paintMatch(target);
+      fireLaser(target);
+      sfx.key();
+      $('typedBuf').textContent = target.word.slice(0, target.matched);
+      if (target.matched >= target.word.length) {
+        if (target.boss && target.wi < target.words.length - 1) {
+          // boss takes a hit, moves to next word
+          target.wi++;
+          target.word = target.words[target.wi];
+          target.matched = 0;
+          combo++; mult = Math.min(5, 1 + Math.floor(combo / 8));
+          bestCombo = Math.max(bestCombo, combo);
+          target.y = Math.max(-90, target.y - AH * 0.09); // knockback!
+          explode(target.x + target.el.offsetWidth / 2, target.y + 30, 10, true);
+          renderBoss(target);
+          $('typedBuf').textContent = '';
+          sfx.bosshit();
+          score += 60 * mult; gainXP(60 * mult);
+        } else {
+          combo++; mult = Math.min(5, 1 + Math.floor(combo / 8));
+          bestCombo = Math.max(bestCombo, combo);
+          if (combo === 10) unlock('combo10');
+          if (combo === 25) unlock('combo25');
+          killEnemy(target, true);
+        }
+        if (wpm() >= 50) unlock('wpm50');
+        else if (wpm() >= 30) unlock('wpm30');
+      }
+    } else {
+      miss(true);
+    }
+    updateHUD();
+  }
+
+  function miss(lockedMiss) {
+    combo = 0; mult = 1;
+    if (target) target.el.classList.add('wrongflash');
+    setTimeout(() => target && target.el.classList.remove('wrongflash'), 240);
+    sfx.wrong();
+    updateHUD();
+  }
+
+  function clearTarget() {
+    if (target) {
+      target.matched = 0;
+      paintMatch(target);
+      if (target.boss) renderBoss(target);
+      target.el.classList.remove('locked');
+      target = null;
+    }
+    $('typedBuf').textContent = '';
+  }
+
+  // ---------------------------------------------------------------
+  // Powers
+  // ---------------------------------------------------------------
+  function usePower(k) {
+    if (state !== 'playing' || powers[k] <= 0) return;
+    if (k === 'freeze') {
+      powers.freeze--;
+      frozenT = 4;
+      arena.classList.add('frozen');
+      toast('🧊 FREEZE!', 'Meteors crawl for 4 seconds.');
+      sfx.power();
+    } else if (k === 'bomb') {
+      if (!enemies.length) return;
+      powers.bomb--;
+      arena.classList.add('shake');
+      setTimeout(() => arena.classList.remove('shake'), 320);
+      // bombs clear the screen but give half points and no combo
+      for (const e of [...enemies]) {
+        if (e.boss) {
+          // bomb knocks the boss back and skips one word
+          if (e.wi < e.words.length - 1) {
+            e.wi++; e.word = e.words[e.wi]; e.matched = 0;
+            e.y = Math.max(-90, e.y - AH * 0.15);
+            renderBoss(e);
+          } else {
+            killEnemy(e, true);
+          }
+          continue;
+        }
+        score += e.word.length * 5;
+        gainXP(e.word.length * 5);
+        killEnemy(e, false);
+        wordsBlasted++;
+      }
+      clearTarget();
+      toast('💥 KABOOM!', 'Screen cleared (half points).');
+      sfx.blast();
+    } else if (k === 'heal') {
+      if (hearts >= 5) { toast('💖 Full health!', 'Save it for later.'); return; }
+      powers.heal--;
+      hearts++;
+      toast('💖 HEALED', 'One heart restored.');
+      sfx.power();
+    }
+    updateHUD();
+  }
+  $('pwFreeze').addEventListener('click', () => usePower('freeze'));
+  $('pwBomb').addEventListener('click', () => usePower('bomb'));
+  $('pwHeal').addEventListener('click', () => usePower('heal'));
+
+  // ---------------------------------------------------------------
+  // XP / levels
+  // ---------------------------------------------------------------
+  function gainXP(n) {
+    xpInto += n;
+    while (xpInto >= xpNeed(level)) {
+      xpInto -= xpNeed(level);
+      level++;
+      const title = TITLES[Math.min(level - 1, TITLES.length - 1)];
+      toast('⭐ LEVEL ' + level + '!', 'You are now a ' + title + '.');
+      sfx.levelup();
+      explode(AW / 2, AH / 2, 24, true);
+    }
+  }
+
+  // ---------------------------------------------------------------
+  // Waves
+  // ---------------------------------------------------------------
+  function startWave() {
+    wave++;
+    waveKeys = 0; waveGood = 0; waveWords = 0; waveTime = 0; waveCoinStart = coins;
+    state = 'playing';
+    hideOverlays();
+    if (wave >= 10) unlock('wave10');
+    const banner = $('waveBanner');
+    if (wave % 4 === 0) {
+      spawnLeft = 0;
+      spawnBoss();
+      banner.textContent = '👾 BOSS WAVE ' + wave + ' 👾';
+    } else {
+      spawnLeft = Math.min(6 + wave * 2, 26);
+      totalWords += spawnLeft;
+      spawnGap = clamp(2.4 - wave * 0.12, 0.9, 2.4) * DIFFS[diff].spawnMul;
+      spawnTimer = 0.6; // small breather before first meteor
+      banner.textContent = 'WAVE ' + wave;
+    }
+    banner.classList.remove('show');
+    void banner.offsetWidth; // restart animation
+    banner.classList.add('show');
+    updateHUD();
+  }
+
+  function waveComplete() {
+    state = 'shop';
+    clearTarget();
+    const bonus = 10 + wave * 2;
+    coins += bonus;
+    sfx.coin();
+    const acc = accuracy(waveGood, waveKeys);
+    if (acc === 100 && waveWords > 0) unlock('perfect');
+    $('shopHead').textContent = (wave % 4 === 0 ? '👑 Boss defeated — wave ' : '🎉 Wave ') + wave + ' cleared!';
+    $('wsWords').textContent = waveWords;
+    $('wsAcc').textContent = acc + '%';
+    $('wsWpm').textContent = waveTime > 2 ? Math.round((waveGood / 5) / (waveTime / 60)) : 0;
+    $('wsCoins').textContent = '+' + (coins - waveCoinStart);
+    $('shopCoins').textContent = coins;
+    refreshShop();
+    $('shopOverlay').classList.remove('hidden');
+    updateHUD();
+  }
+
+  const PRICES = { freeze: 30, bomb: 45, heal: 60 };
+  function refreshShop() {
+    document.querySelectorAll('.shopitem').forEach(b => {
+      b.classList.toggle('cant', coins < PRICES[b.dataset.buy]);
+    });
+    $('shopCoins').textContent = coins;
+  }
+  document.querySelectorAll('.shopitem').forEach(b => {
+    b.addEventListener('click', () => {
+      const k = b.dataset.buy;
+      if (coins < PRICES[k]) return;
+      coins -= PRICES[k];
+      powers[k]++;
+      sfx.coin();
+      refreshShop();
+      updateHUD();
+    });
+  });
+
+  function loseHeart(e) {
+    hearts--;
+    sfx.hurt();
+    arena.classList.add('shake');
+    $('shield').classList.add('hurt');
+    setTimeout(() => { arena.classList.remove('shake'); $('shield').classList.remove('hurt'); }, 350);
+    explode(e.x + e.el.offsetWidth / 2, SHIELD_Y, 16, false);
+    combo = 0; mult = 1;
+    killEnemy(e, false);
+    updateHUD();
+    if (hearts <= 0) gameOver();
+  }
+
+  function gameOver() {
+    state = 'gameover';
+    clearTarget();
+    for (const e of [...enemies]) killEnemy(e, false);
+    const acc = accuracy(keysGood, keysTotal);
+    const w = wpm();
+    $('goScore').textContent = score;
+    $('goWave').textContent = wave;
+    $('goWpm').textContent = w;
+    $('goAcc').textContent = acc + '%';
+    $('goCombo').textContent = bestCombo;
+    let medal = '🥉', head = 'Base overrun!', sub = 'Every Titan starts somewhere. Run it back!';
+    if (score >= 12000 || w >= 45) { medal = '🥇'; head = 'LEGENDARY RUN!'; sub = 'Your keyboard is smoking. Incredible typing!'; }
+    else if (score >= 5000 || w >= 30) { medal = '🥈'; head = 'Heroic effort!'; sub = 'The base fell, but you took half the meteor swarm with it.'; }
+    $('goMedal').textContent = medal;
+    $('goHead').textContent = head;
+    $('goSub').textContent = sub;
+    const br = $('goBadges');
+    br.innerHTML = '';
+    for (const id of earned) {
+      const b = document.createElement('span');
+      b.className = 'badge';
+      b.textContent = ACH[id].t;
+      br.appendChild(b);
+    }
+    $('overOverlay').classList.remove('hidden');
+  }
+
+  function resetGame() {
+    for (const e of [...enemies]) { e.el.remove(); }
+    enemies = [];
+    target = null;
+    wave = 0; score = 0; coins = 0; hearts = 3;
+    combo = 0; bestCombo = 0; mult = 1;
+    level = 1; xpInto = 0;
+    keysTotal = 0; keysGood = 0; charsGood = 0;
+    playTime = 0; frozenT = 0;
+    powers = { freeze: 1, bomb: 1, heal: 0 };
+    wordsBlasted = 0; totalWords = 0; bossesSlain = 0;
+    earned = new Set();
+    arena.classList.remove('frozen');
+    $('typedBuf').textContent = '';
+    updateHUD();
+  }
+
+  function hideOverlays() {
+    ['startOverlay', 'shopOverlay', 'pauseOverlay', 'overOverlay'].forEach(id => $(id).classList.add('hidden'));
+  }
+
+  // ---------------------------------------------------------------
+  // Main loop
+  // ---------------------------------------------------------------
+  let last = performance.now();
+  let lastTick = 0;
+  function step(now) {
+    lastTick = now;
+    let dt = (now - last) / 1000;
+    last = now;
+    dt = Math.min(dt, 0.05);
+    if (state === 'playing') update(dt);
+  }
+  function loop(now) {
+    step(now);
+    requestAnimationFrame(loop);
+  }
+  // Fallback driver: some embedded/throttled views suspend rAF entirely.
+  // If no rAF tick landed recently, step the simulation from a timer instead.
+  setInterval(() => {
+    const now = performance.now();
+    if (now - lastTick > 120) step(now);
+  }, 50);
+
+  function update(dt) {
+    playTime += dt;
+    waveTime += dt;
+
+    if (frozenT > 0) {
+      frozenT -= dt;
+      if (frozenT <= 0) arena.classList.remove('frozen');
+    }
+    const speedMul = frozenT > 0 ? 0.15 : 1;
+
+    // spawn
+    if (spawnLeft > 0) {
+      spawnTimer -= dt;
+      if (spawnTimer <= 0) {
+        spawnEnemy();
+        spawnLeft--;
+        spawnTimer = spawnGap * rand(0.7, 1.3);
+      }
+    }
+
+    // move
+    for (const e of [...enemies]) {
+      e.sway += dt * (e.boss ? 0.8 : 1.6);
+      e.y += e.speed * speedMul * dt;
+      const sx = Math.sin(e.sway) * e.swayAmp;
+      e.el.style.transform = 'translate(' + (e.x + sx) + 'px,' + e.y + 'px)';
+      if (e.y + e.el.offsetHeight >= SHIELD_Y) {
+        if (e.boss) {
+          // boss slams the shield: costs 2 hearts, then retreats upward
+          hearts--; // loseHeart handles the second one below
+          loseHeart(e);
+          if (state !== 'playing') return;
+        } else {
+          loseHeart(e);
+          if (state !== 'playing') return;
+        }
+      }
+    }
+
+    // wave finished?
+    if (spawnLeft <= 0 && enemies.length === 0) waveComplete();
+
+    // WPM refreshes ~2x/sec via HUD updates on keystrokes; force periodic
+    if (Math.floor(playTime * 2) !== Math.floor((playTime - dt) * 2)) updateHUD();
+  }
+
+  // ---------------------------------------------------------------
+  // Input
+  // ---------------------------------------------------------------
+  window.addEventListener('keydown', e => {
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    const k = e.key;
+
+    if (state === 'start' && k === 'Enter') { e.preventDefault(); begin(); return; }
+    if (state === 'shop' && k === 'Enter') { e.preventDefault(); startWave(); return; }
+    if (state === 'gameover' && k === 'Enter') { e.preventDefault(); resetGame(); startWave(); return; }
+    if (state === 'paused' && (k === 'Escape' || k === 'Enter')) {
+      e.preventDefault();
+      state = 'playing';
+      last = performance.now();
+      $('pauseOverlay').classList.add('hidden');
+      return;
+    }
+    if (state !== 'playing') return;
+
+    if (k === 'Escape') {
+      state = 'paused';
+      $('pauseOverlay').classList.remove('hidden');
+      return;
+    }
+    if (k === 'Backspace') { e.preventDefault(); clearTarget(); return; }
+    if (k === '1') { usePower('freeze'); return; }
+    if (k === '2') { usePower('bomb'); return; }
+    if (k === '3') { usePower('heal'); return; }
+    if (/^[a-z]$/i.test(k)) {
+      e.preventDefault();
+      handleChar(k.toLowerCase());
+    }
+  });
+
+  // mobile keyboards: hidden input, diff the value
+  const mi = $('mobileInput');
+  arena.addEventListener('touchstart', () => { if (state === 'playing') mi.focus(); }, { passive: true });
+  mi.addEventListener('input', () => {
+    const v = mi.value;
+    if (v) {
+      const ch = v[v.length - 1].toLowerCase();
+      if (/^[a-z]$/.test(ch)) handleChar(ch);
+    }
+    mi.value = '';
+  });
+
+  // ---------------------------------------------------------------
+  // Screens / buttons
+  // ---------------------------------------------------------------
+  document.querySelectorAll('.diffbtn').forEach(b => {
+    b.addEventListener('click', () => {
+      document.querySelectorAll('.diffbtn').forEach(x => x.classList.remove('sel'));
+      b.classList.add('sel');
+      diff = b.dataset.diff;
+    });
+  });
+
+  function begin() {
+    measure();
+    resetGame();
+    startWave();
+  }
+  $('startBtn').addEventListener('click', begin);
+  $('nextWaveBtn').addEventListener('click', () => { if (state === 'shop') startWave(); });
+  $('againBtn').addEventListener('click', () => { resetGame(); startWave(); });
+  $('resumeBtn').addEventListener('click', () => {
+    if (state === 'paused') {
+      state = 'playing';
+      last = performance.now();
+      $('pauseOverlay').classList.add('hidden');
+    }
+  });
+
+  // ---------------------------------------------------------------
+  // Boot
+  // ---------------------------------------------------------------
+  measure();
+  makeStars();
+  updateHUD();
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
