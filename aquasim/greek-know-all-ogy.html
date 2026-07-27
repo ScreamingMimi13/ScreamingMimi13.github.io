@@ -1,0 +1,2976 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Greek Know-All-ogy</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --marble: #f4ecd8;
+    --marble-deep: #e4d5b7;
+    --parchment: #fbf4e2;
+    --gold: #d4af37;
+    --gold-deep: #a9812f;
+    --gold-light: #f0d878;
+    --aegean: #1d5f8a;
+    --aegean-deep: #123e59;
+    --wine: #7b2d3e;
+    --wine-deep: #591f2c;
+    --olive: #6b7f3a;
+    --ink: #3a2f1e;
+    --ink-soft: #6b5d45;
+    --card: #fffdf6;
+    --danger: #a8402f;
+    --good: #4c7a3d;
+    --greek-font: 'Trajan Pro', 'Papyrus', Cambria, Georgia, 'Times New Roman', serif;
+    --read-font: Georgia, 'Palatino Linotype', 'Book Antiqua', serif;
+  }
+
+  html, body { height: 100%; }
+
+  body {
+    font-family: var(--read-font);
+    color: var(--ink);
+    background: radial-gradient(ellipse at top, #bcd9ec 0%, #7fa9c9 40%, #3d6d8e 100%);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  .greek-font {
+    font-family: var(--greek-font);
+    letter-spacing: 0.06em;
+    font-variant: small-caps;
+  }
+
+  h1, h2, h3, .btn, .navbtn, .stat, .card-title, .tab {
+    font-family: var(--greek-font);
+    letter-spacing: 0.05em;
+  }
+
+  /* ---------- Greek key border ---------- */
+  .key-border {
+    background-image:
+      linear-gradient(90deg, var(--gold) 0 8px, transparent 8px),
+      linear-gradient(var(--gold) 0 4px, transparent 4px);
+    background-size: 24px 4px, 4px 24px;
+    background-repeat: repeat-x, repeat-y;
+    background-position: top left, top left;
+  }
+  .key-top {
+    height: 10px;
+    background: repeating-linear-gradient(90deg, var(--gold) 0 10px, var(--gold-deep) 10px 12px, transparent 12px 20px, var(--gold-deep) 20px 22px, var(--gold) 22px 32px);
+    opacity: 0.9;
+  }
+
+  /* ---------- Header / HUD ---------- */
+  header#mainHeader {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 14px;
+    background: linear-gradient(180deg, var(--wine) 0%, var(--wine-deep) 100%);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.35);
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    flex-wrap: wrap;
+    border-bottom: 3px solid var(--gold);
+  }
+  header#mainHeader.hidden { display: none; }
+  .logo {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 1.15rem; color: var(--gold-light);
+    white-space: nowrap; cursor: pointer;
+    text-shadow: 1px 1px 0 rgba(0,0,0,0.5);
+  }
+  .logo .ico { font-size: 1.5rem; }
+  nav.navbar { display: flex; gap: 6px; flex-wrap: wrap; }
+  .navbtn {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid var(--gold-deep);
+    color: var(--parchment);
+    border-radius: 10px;
+    padding: 6px 12px;
+    font-size: 0.82rem;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .navbtn.active, .navbtn:hover { background: var(--gold); color: var(--wine-deep); }
+  .hud { display: flex; align-items: center; gap: 8px; margin-left: auto; flex-wrap: wrap; }
+  .stat {
+    display: flex; align-items: center; gap: 5px;
+    background: rgba(0,0,0,0.25); border-radius: 999px; padding: 4px 12px;
+    font-size: 0.85rem; color: var(--gold-light); white-space: nowrap;
+  }
+  #hudDrachma { color: #ffe27a; font-weight: bold; }
+  #hudTier { background: var(--olive); color: #fff; }
+
+  /* ---------- Screens ---------- */
+  main { min-height: calc(100vh - 60px); padding-bottom: 40px; }
+  .screen { display: none; max-width: 980px; margin: 0 auto; padding: 22px 14px 50px; }
+  .screen.active { display: block; animation: pop-in 0.3s ease; }
+  @keyframes pop-in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+
+  /* ---------- Chat-bubble onboarding ---------- */
+  .onboard-wrap {
+    max-width: 560px; margin: 40px auto; text-align: center;
+  }
+  .speaker-icon {
+    font-size: 4.5rem; margin-bottom: 6px;
+    filter: drop-shadow(0 6px 6px rgba(0,0,0,0.3));
+    animation: bob 2.6s ease-in-out infinite;
+  }
+  @keyframes bob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+  .bubble {
+    background: var(--parchment);
+    border: 3px solid var(--gold);
+    border-radius: 18px;
+    padding: 18px 22px;
+    box-shadow: 0 8px 18px rgba(0,0,0,0.25);
+    position: relative;
+    font-family: var(--read-font);
+    font-size: 1.08rem;
+    line-height: 1.5;
+    color: var(--ink);
+  }
+  .bubble::after {
+    content: "";
+    position: absolute; top: -14px; left: 50%; transform: translateX(-50%);
+    border-width: 0 12px 14px 12px; border-style: solid;
+    border-color: transparent transparent var(--gold) transparent;
+  }
+  .bubble b { color: var(--wine); }
+  .onboard-input {
+    margin-top: 16px; display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;
+  }
+  input.textin {
+    font-family: var(--read-font); font-size: 1.05rem;
+    padding: 10px 14px; border-radius: 10px; border: 2px solid var(--gold-deep);
+    background: #fff; min-width: 220px; text-align: center;
+  }
+  .btn {
+    background: linear-gradient(180deg, var(--gold-light), var(--gold));
+    color: var(--wine-deep); border: none; border-radius: 12px;
+    padding: 11px 22px; font-size: 1rem; cursor: pointer;
+    box-shadow: 0 4px 0 var(--gold-deep);
+    transition: transform 0.08s;
+  }
+  .btn:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--gold-deep); }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn.secondary {
+    background: rgba(255,255,255,0.85); color: var(--aegean-deep);
+    box-shadow: 0 4px 0 #b9c9d4; border: 1px solid #b9c9d4;
+  }
+  .btn.danger { background: linear-gradient(180deg,#e0796a,var(--danger)); color: #fff; box-shadow: 0 4px 0 #7a2c20; }
+  .btn.small { padding: 6px 14px; font-size: 0.85rem; box-shadow: 0 3px 0 var(--gold-deep); }
+  .skiplink {
+    display: inline-block; margin-top: 14px; color: rgba(255,255,255,0.85);
+    text-decoration: underline; cursor: pointer; font-size: 0.9rem;
+  }
+
+  .exp-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(210px,1fr));
+    gap: 12px; margin-top: 18px; text-align: left;
+  }
+  .exp-card {
+    background: var(--card); border: 2px solid var(--gold-deep); border-radius: 14px;
+    padding: 14px; cursor: pointer; transition: transform 0.1s;
+  }
+  .exp-card:hover { transform: translateY(-3px); border-color: var(--gold); }
+  .exp-card .pct { font-family: var(--greek-font); font-size: 1.3rem; color: var(--wine); }
+  .exp-card .quote { font-size: 0.85rem; color: var(--ink-soft); margin-top: 4px; font-style: italic; }
+
+  /* ---------- Avatar bust ---------- */
+  .avatar-frame {
+    width: 220px; height: 220px; margin: 0 auto;
+    border-radius: 50%; overflow: hidden;
+    border: 5px solid var(--gold); box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+    background: radial-gradient(circle, #dfeef7, #a9c6d8);
+  }
+  .avatar-frame.small { width: 64px; height: 64px; border-width: 3px; }
+  .avatar-frame svg { width: 100%; height: 100%; display: block; }
+
+  /* ---------- Personality quiz ---------- */
+  .pquiz-progress { height: 10px; background: rgba(255,255,255,0.4); border-radius: 999px; overflow: hidden; margin: 14px 0; }
+  .pquiz-progress > div { height: 100%; background: linear-gradient(90deg, var(--gold), var(--wine)); width: 0%; transition: width 0.3s; }
+  .pq-options { display: grid; gap: 10px; margin-top: 16px; text-align: left; }
+  .pq-opt {
+    background: var(--card); border: 2px solid var(--gold-deep); border-radius: 12px;
+    padding: 12px 16px; cursor: pointer; font-family: var(--read-font); font-size: 1rem;
+  }
+  .pq-opt:hover { background: #fff6db; border-color: var(--gold); }
+
+  /* ---------- Home / deity grid ---------- */
+  .hero-title { text-align: center; color: #fff; text-shadow: 0 3px 6px rgba(0,0,0,0.4); margin-bottom: 4px; font-size: 2rem; }
+  .hero-sub { text-align: center; color: #eaf3fa; margin-bottom: 20px; }
+  .deity-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(170px,1fr)); gap: 14px;
+  }
+  .deity-card {
+    background: var(--card); border-radius: 16px; padding: 16px 12px; text-align: center;
+    cursor: pointer; box-shadow: 0 5px 14px rgba(0,0,0,0.25); border: 2px solid transparent;
+    transition: transform 0.12s;
+  }
+  .deity-card:hover { transform: translateY(-4px); }
+  .deity-card.matched { border-color: var(--gold); box-shadow: 0 0 0 3px var(--gold-light), 0 5px 14px rgba(0,0,0,0.25); }
+  .deity-card .dico { font-size: 2.6rem; }
+  .deity-card .dname { font-family: var(--greek-font); color: var(--wine); font-size: 1.05rem; margin-top: 6px; }
+  .deity-card .depi { font-size: 0.75rem; color: var(--ink-soft); font-style: italic; }
+  .deity-card .star { font-size: 0.72rem; color: var(--gold-deep); margin-top: 4px; }
+
+  /* ---------- Deity detail ---------- */
+  .deity-hero {
+    background: var(--card); border-radius: 20px; padding: 22px; text-align: center;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.25); margin-bottom: 18px;
+  }
+  .deity-hero .dico-big { font-size: 4rem; }
+  .deity-hero h2 { color: var(--wine); font-size: 1.7rem; margin-top: 4px; }
+  .deity-hero .depi-big { color: var(--ink-soft); font-style: italic; margin-bottom: 8px; }
+  .deity-hero .facts { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 10px; }
+  .fact-chip { background: var(--marble-deep); border-radius: 999px; padding: 4px 12px; font-size: 0.8rem; }
+  .action-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px,1fr)); gap: 14px; margin-top: 18px; }
+  .action-card {
+    background: var(--card); border-radius: 16px; padding: 20px; cursor: pointer;
+    text-align: center; box-shadow: 0 5px 14px rgba(0,0,0,0.22);
+  }
+  .action-card .aico { font-size: 2.2rem; }
+  .action-card .atitle { font-family: var(--greek-font); color: var(--wine); margin-top: 6px; }
+  .action-card .adesc { font-size: 0.8rem; color: var(--ink-soft); margin-top: 4px; }
+
+  /* ---------- Myths ---------- */
+  .myth-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px,1fr)); gap: 12px; }
+  .myth-card {
+    background: var(--card); border-radius: 14px; padding: 14px; cursor: pointer;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.18); border-left: 6px solid var(--gold);
+  }
+  .myth-card.read { opacity: 0.65; border-left-color: var(--olive); }
+  .myth-card .mnum { font-size: 0.72rem; color: var(--gold-deep); font-weight: bold; }
+  .myth-card .mtitle { font-family: var(--greek-font); color: var(--wine); font-size: 1rem; margin-top: 2px; }
+  .myth-reader {
+    background: var(--parchment); border-radius: 18px; padding: 26px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.25); font-family: var(--read-font);
+    font-size: 1.08rem; line-height: 1.7; position: relative;
+  }
+  .myth-reader::first-letter { font-size: 2.6rem; font-family: var(--greek-font); color: var(--wine); float: left; line-height: 1; margin-right: 6px; }
+  .myth-reader h3 { font-family: var(--greek-font); color: var(--wine); margin-bottom: 10px; font-size: 1.4rem; }
+  .reader-nav { display: flex; justify-content: space-between; margin-top: 18px; gap: 8px; flex-wrap: wrap; }
+
+  /* ---------- Quiz ---------- */
+  .quiz-card {
+    background: var(--card); border-radius: 18px; padding: 22px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+  }
+  .quiz-top { display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; color: var(--ink-soft); }
+  .quiz-progress { height: 10px; background: var(--marble-deep); border-radius: 999px; overflow: hidden; margin: 10px 0 18px; }
+  .quiz-progress > div { height: 100%; background: linear-gradient(90deg, var(--olive), var(--gold)); width: 0%; transition: width 0.3s; }
+  .quiz-q { font-size: 1.2rem; color: var(--wine); margin-bottom: 16px; font-family: var(--read-font); font-weight: bold; }
+  .quiz-choices { display: grid; gap: 10px; }
+  .quiz-choice {
+    background: #fff; border: 2px solid var(--gold-deep); border-radius: 12px;
+    padding: 12px 16px; cursor: pointer; font-size: 1rem; text-align: left;
+  }
+  .quiz-choice:hover { background: #fff6db; }
+  .quiz-choice.correct { background: #dcf2d4; border-color: var(--good); }
+  .quiz-choice.wrong { background: #f7d9d3; border-color: var(--danger); }
+  .quiz-choice.disabled { pointer-events: none; }
+  .quiz-feedback { margin-top: 14px; font-weight: bold; }
+  .quiz-feedback.good { color: var(--good); }
+  .quiz-feedback.bad { color: var(--danger); }
+
+  /* ---------- Shop / Palace grids ---------- */
+  .tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+  .tab {
+    background: rgba(255,255,255,0.7); border: 2px solid var(--gold-deep); border-radius: 999px;
+    padding: 7px 16px; cursor: pointer; font-size: 0.85rem;
+  }
+  .tab.active { background: var(--wine); color: #fff; border-color: var(--wine-deep); }
+  .shop-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px,1fr)); gap: 12px; }
+  .shop-item {
+    background: var(--card); border-radius: 14px; padding: 14px; text-align: center;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.18); border: 2px solid transparent;
+  }
+  .shop-item.owned { border-color: var(--good); }
+  .shop-item.equipped { border-color: var(--gold); box-shadow: 0 0 0 3px var(--gold-light); }
+  .shop-item .sicon { font-size: 1.8rem; }
+  .shop-item .sname { font-family: var(--greek-font); font-size: 0.9rem; color: var(--wine); margin: 4px 0; }
+  .shop-item .sprice { font-size: 0.85rem; color: var(--gold-deep); font-weight: bold; }
+  .swatch-row { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; margin: 10px 0 18px; }
+  .swatch { width: 26px; height: 26px; border-radius: 50%; cursor: pointer; border: 2px solid #fff; box-shadow: 0 0 0 1px var(--gold-deep); }
+  .swatch.active { box-shadow: 0 0 0 3px var(--wine); }
+
+  /* ---------- Palace / Market worlds ---------- */
+  .palace-tools { display: flex; justify-content: center; gap: 10px; margin: 14px 0 10px; flex-wrap: wrap; }
+  .world-wrap {
+    position: relative; max-width: 960px; margin: 0 auto;
+    border-radius: 16px; overflow: hidden; box-shadow: 0 8px 22px rgba(0,0,0,0.35);
+    border: 5px solid var(--gold); background: #000;
+  }
+  .world-wrap canvas { display: block; width: 100%; height: auto; }
+  .bargain-offers { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin: 14px 0; }
+
+  /* ---------- Friends ---------- */
+  .friend-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px,1fr)); gap: 14px; }
+  .friend-card { background: var(--card); border-radius: 16px; padding: 16px; text-align: center; box-shadow: 0 5px 14px rgba(0,0,0,0.2); }
+  .friend-card .fname { font-family: var(--greek-font); color: var(--wine); margin: 6px 0 2px; }
+  .friend-card .fdeity { font-size: 0.78rem; color: var(--ink-soft); margin-bottom: 8px; }
+
+  .section-title { color: #fff; text-shadow: 0 2px 4px rgba(0,0,0,0.4); margin-bottom: 14px; font-size: 1.4rem; }
+  .backbtn { margin-bottom: 14px; }
+  .note { font-size: 0.78rem; color: rgba(255,255,255,0.85); text-align: center; margin-top: 16px; font-style: italic; }
+  .center { text-align: center; }
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: none;
+    align-items: center; justify-content: center; z-index: 100; padding: 16px;
+  }
+  .modal-overlay.active { display: flex; }
+  .modal-box {
+    background: var(--parchment); border-radius: 18px; padding: 22px; max-width: 640px;
+    width: 100%; max-height: 86vh; overflow-y: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+    border: 3px solid var(--gold);
+  }
+
+  @media (max-width: 640px) {
+    .logo .txt { display: none; }
+    header#mainHeader { padding: 6px 8px; }
+  }
+</style>
+</head>
+<body>
+
+<header id="mainHeader" class="hidden">
+  <div class="logo greek-font" onclick="go('scr-home')"><span class="ico">🏛️</span><span class="txt">Greek Know-All-ogy</span></div>
+  <nav class="navbar" id="mainNav"></nav>
+  <div class="hud">
+    <div class="stat" id="hudTier">Tier</div>
+    <div class="stat" id="hudDrachma">🪙 0</div>
+    <div class="avatar-frame small" id="hudAvatar" onclick="go('scr-avatarshop')"></div>
+  </div>
+</header>
+
+<main id="main">
+  <div class="screen active" id="scr-onboard-name">
+    <div class="onboard-wrap">
+      <div class="speaker-icon">🦚</div>
+      <div class="bubble">Hi! I'm jotting this down for the royal records...<br><b>What is your name?</b></div>
+      <div class="onboard-input">
+        <input class="textin" id="nameInput" type="text" maxlength="24" placeholder="Type your name..." onkeydown="if(event.key==='Enter')submitName()">
+        <button class="btn" onclick="submitName()">Continue</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="screen" id="scr-onboard-exp">
+    <div class="onboard-wrap">
+      <div class="speaker-icon">🐄</div>
+      <div class="bubble" id="expBubble"></div>
+      <div class="exp-grid" id="expGrid"></div>
+    </div>
+  </div>
+
+  <div class="screen" id="scr-onboard-avatarloading">
+    <div class="onboard-wrap">
+      <div class="speaker-icon">🐄</div>
+      <div class="bubble">Great! Let's do your avatar...</div>
+      <div style="margin-top:20px;"><button class="btn" onclick="revealAvatar()">Boom!</button></div>
+    </div>
+  </div>
+
+  <div class="screen" id="scr-onboard-avatarreveal">
+    <div class="onboard-wrap">
+      <div class="speaker-icon">🐄</div>
+      <div class="bubble">Boom! Here it is!<br><span style="font-size:0.85rem;">(If it looks funky, you can change it later in the avatar section — don't worry!)</span></div>
+      <div class="avatar-frame" id="revealAvatarFrame" style="margin-top:18px;"></div>
+      <div style="margin-top:18px;"><button class="btn" onclick="go('scr-onboard-quizintro')">Next</button></div>
+    </div>
+  </div>
+
+  <div class="screen" id="scr-onboard-quizintro">
+    <div class="onboard-wrap">
+      <div class="speaker-icon">🐄</div>
+      <div class="bubble" id="quizIntroBubble"></div>
+      <div style="margin-top:18px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
+        <button class="btn" onclick="startPersonalityQuiz()">Let's go!</button>
+        <button class="btn secondary" onclick="skipPersonalityQuiz()">Skip this part</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="screen" id="scr-onboard-quiz">
+    <div class="onboard-wrap" style="max-width:640px;">
+      <div class="pquiz-progress"><div id="pqProgressBar"></div></div>
+      <div class="bubble" id="pqQuestion"></div>
+      <div class="pq-options" id="pqOptions"></div>
+      <div class="center"><span class="skiplink" onclick="skipPersonalityQuiz()">Skip this part</span></div>
+    </div>
+  </div>
+
+  <div class="screen" id="scr-onboard-match">
+    <div class="onboard-wrap">
+      <div class="bubble" id="matchBubble"></div>
+      <div class="deity-card" id="matchCard" style="max-width:220px; margin:20px auto; cursor:default;"></div>
+      <div style="margin-top:18px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
+        <button class="btn" onclick="completeLogin()">Enter Olympus</button>
+        <button class="btn secondary" onclick="retakeQuizDifferent()">🔄 Retake (Different Answer)</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="screen" id="scr-home">
+    <h1 class="hero-title greek-font">Choose Your Deity</h1>
+    <p class="hero-sub" id="homeSub"></p>
+    <div class="deity-grid" id="deityGrid"></div>
+    <p class="note">Tap any deity to read their myths or take their quiz.</p>
+  </div>
+
+  <div class="screen" id="scr-deity">
+    <button class="btn secondary small backbtn" onclick="go('scr-home')">← All Deities</button>
+    <div class="deity-hero" id="deityHero"></div>
+    <div class="action-grid" id="deityActions"></div>
+  </div>
+
+  <div class="screen" id="scr-myths">
+    <button class="btn secondary small backbtn" id="mythsBackBtn">← Back</button>
+    <h2 class="section-title greek-font" id="mythsTitle"></h2>
+    <div class="myth-list" id="mythList"></div>
+  </div>
+
+  <div class="screen" id="scr-mythreader">
+    <button class="btn secondary small backbtn" onclick="go('scr-myths')">← All Myths</button>
+    <div class="myth-reader" id="mythReaderBox"></div>
+    <div class="reader-nav">
+      <button class="btn secondary small" id="mythPrevBtn">← Previous</button>
+      <button class="btn small" id="mythNextBtn">Next →</button>
+    </div>
+  </div>
+
+  <div class="screen" id="scr-quiz">
+    <button class="btn secondary small backbtn" id="quizBackBtn">← Back</button>
+    <div class="quiz-card">
+      <div class="quiz-top"><span id="quizDeityName"></span><span id="quizCounter"></span></div>
+      <div class="quiz-progress"><div id="quizProgressBar"></div></div>
+      <div class="quiz-q" id="quizQuestion"></div>
+      <div class="quiz-choices" id="quizChoices"></div>
+      <div class="quiz-feedback" id="quizFeedback"></div>
+      <div class="center" style="margin-top:16px;"><button class="btn" id="quizNextBtn" style="display:none;" onclick="nextQuizQuestion()">Next →</button></div>
+    </div>
+  </div>
+
+  <div class="screen" id="scr-quizresult">
+    <div class="quiz-card center">
+      <h2 class="greek-font" id="qrTitle" style="color:var(--wine);"></h2>
+      <p id="qrSummary" style="margin:12px 0; font-size:1.1rem;"></p>
+      <p id="qrTier" style="color:var(--ink-soft); margin-bottom:14px;"></p>
+      <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
+        <button class="btn" id="qrAgainBtn">Quiz Again</button>
+        <button class="btn secondary" id="qrShopBtn" onclick="go('scr-avatarshop')">Spend Drachma</button>
+        <button class="btn secondary" id="qrBackBtn">Back to Deity</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="screen" id="scr-avatarshop">
+    <h2 class="section-title greek-font">Avatar Emporium</h2>
+    <div class="avatar-frame" id="shopAvatarFrame" style="margin-bottom:16px;"></div>
+    <div class="tabs" id="shopTabs"></div>
+    <div class="swatch-row" id="shopSwatchRow"></div>
+    <div class="shop-grid" id="shopGrid"></div>
+  </div>
+
+  <div class="screen" id="scr-palace">
+    <h2 class="section-title greek-font">Your Palace Grounds</h2>
+    <p class="note" id="palaceHint" style="margin-bottom:8px;"></p>
+    <div class="world-wrap">
+      <canvas id="palaceCanvas" width="960" height="600"></canvas>
+    </div>
+    <div class="palace-tools">
+      <button class="btn" onclick="go('scr-market')">🏺 Go to the Market</button>
+    </div>
+    <p class="note">Arrow keys to walk. Carrying something? Press Space to set it down. Walk up to the palace doors to go inside!</p>
+  </div>
+
+  <div class="screen" id="scr-palace-interior">
+    <h2 class="section-title greek-font">Inside the Palace</h2>
+    <p class="note" id="interiorHint" style="margin-bottom:8px;"></p>
+    <div class="world-wrap">
+      <canvas id="interiorCanvas" width="960" height="600"></canvas>
+    </div>
+    <p class="note">Arrow keys to walk. Walk up to the hearth, the drink table, or the dining table and press Space.</p>
+  </div>
+
+  <div class="screen" id="scr-market">
+    <button class="btn secondary small backbtn" onclick="go('scr-palace')">← Back to Palace</button>
+    <h2 class="section-title greek-font">The Agora Market</h2>
+    <p class="note" id="marketHint" style="margin-bottom:8px;"></p>
+    <div class="world-wrap">
+      <canvas id="marketCanvas" width="960" height="600"></canvas>
+    </div>
+    <p class="note">Walk up to a stall and press Space to see what the merchant's selling.</p>
+  </div>
+
+  <div class="screen" id="scr-friends">
+    <h2 class="section-title greek-font">Fellow Olympians</h2>
+    <p class="note" style="margin-bottom:14px;">Companions from around Olympus — no internet required! Add them as friends and visit their palaces.</p>
+    <div class="friend-grid" id="friendGrid"></div>
+  </div>
+
+  <!--SCREENS3-->
+</main>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal-box" id="modalBox"></div>
+</div>
+
+<script>
+//DATA
+const DEITIES = [
+  { id:'zeus', name:'Zeus', epithet:'Cloud-Gatherer', domain:'the Sky and Thunder', animal:'Eagle', roman:'Jupiter', icon:'⚡', color:'#d4af37', colorDeep:'#a9812f', symbols:['Thunderbolt','Oak Tree'], tagline:'King of the Gods' },
+  { id:'hera', name:'Hera', epithet:'Ox-Eyed Queen', domain:'Marriage and Family', animal:'Peacock', roman:'Juno', icon:'🦚', color:'#7b2d3e', colorDeep:'#591f2c', symbols:['Diadem','Pomegranate'], tagline:'Queen of the Gods' },
+  { id:'poseidon', name:'Poseidon', epithet:'Earth-Shaker', domain:'the Sea and Earthquakes', animal:'Horse', roman:'Neptune', icon:'🔱', color:'#1d5f8a', colorDeep:'#123e59', symbols:['Trident','Dolphin'], tagline:'God of the Sea' },
+  { id:'demeter', name:'Demeter', epithet:'Bringer of Seasons', domain:'the Harvest', animal:'Snake', roman:'Ceres', icon:'🌾', color:'#8a7a2e', colorDeep:'#665b21', symbols:['Wheat Sheaf','Cornucopia'], tagline:'Goddess of the Harvest' },
+  { id:'athena', name:'Athena', epithet:'Grey-Eyed', domain:'Wisdom and Strategy', animal:'Owl', roman:'Minerva', icon:'🦉', color:'#5b6b8c', colorDeep:'#3f4a63', symbols:['Olive Branch','Aegis Shield'], tagline:'Goddess of Wisdom' },
+  { id:'apollo', name:'Apollo', epithet:'Far-Shooter', domain:'the Sun, Music and Prophecy', animal:'Swan', roman:'Apollo', icon:'☀️', color:'#e0913a', colorDeep:'#b06f24', symbols:['Lyre','Laurel Wreath'], tagline:'God of Music and Light' },
+  { id:'artemis', name:'Artemis', epithet:'Lady of Wild Things', domain:'the Moon and the Hunt', animal:'Deer', roman:'Diana', icon:'🌙', color:'#4f6a52', colorDeep:'#37493a', symbols:['Silver Bow','Crescent Moon'], tagline:'Goddess of the Hunt' },
+  { id:'ares', name:'Ares', epithet:'The Relentless', domain:'War', animal:'Vulture', roman:'Mars', icon:'⚔️', color:'#8c2b2b', colorDeep:'#661e1e', symbols:['Spear','Helmet'], tagline:'God of War' },
+  { id:'aphrodite', name:'Aphrodite', epithet:'Foam-Born', domain:'Love and Beauty', animal:'Dove', roman:'Venus', icon:'🌹', color:'#d46a92', colorDeep:'#a94c70', symbols:['Seashell','Myrtle'], tagline:'Goddess of Love' },
+  { id:'hephaestus', name:'Hephaestus', epithet:'The Divine Smith', domain:'Fire and the Forge', animal:'Donkey', roman:'Vulcan', icon:'🔨', color:'#b5541f', colorDeep:'#8a3f16', symbols:['Hammer','Anvil'], tagline:'God of Craftsmen' },
+  { id:'hermes', name:'Hermes', epithet:'Swift Messenger', domain:'Travel and Trade', animal:'Tortoise', roman:'Mercury', icon:'🪽', color:'#3f8f7a', colorDeep:'#2c6a5a', symbols:['Winged Sandals','Caduceus'], tagline:'Messenger of the Gods' },
+  { id:'dionysus', name:'Dionysus', epithet:'The Reveler', domain:'Wine and Festivity', animal:'Panther', roman:'Bacchus', icon:'🍇', color:'#6b2f7a', colorDeep:'#4c2159', symbols:['Grapevine','Thyrsus Staff'], tagline:'God of Celebration' },
+  { id:'hades', name:'Hades', epithet:'The Unseen One', domain:'the Underworld', animal:'Screech Owl', roman:'Pluto', icon:'💀', color:'#2b2b2b', colorDeep:'#141414', symbols:['Helm of Darkness','Key'], tagline:'King of the Underworld' },
+];
+function deity(id){ return DEITIES.find(d=>d.id===id); }
+
+const MYTHS = {
+  zeus: [
+    {title:'Swallowed by Mistake', text:"Baby Zeus's father Cronus swallowed all his children, but Zeus's mother Rhea hid him away and gave Cronus a rock wrapped in a blanket instead!"},
+    {title:'The Titan War', text:"Grown-up Zeus freed his siblings and led them in a huge ten-year war against the Titans, finally winning and becoming king of the gods."},
+    {title:'Splitting the World', text:"Zeus divided the universe with his brothers: he took the sky, Poseidon took the sea, and Hades took the underworld."},
+    {title:'The Thunderbolt', text:"The Cyclopes forged Zeus a mighty thunderbolt as a thank-you gift, and it became his signature weapon forever after."},
+    {title:'Europa and the Bull', text:"Zeus once turned into a gentle white bull to carry the princess Europa safely across the sea to a new land."},
+    {title:"Prometheus's Fire", text:"When Prometheus stole fire from Olympus to give to humans, Zeus was furious — but humans got to keep the fire anyway."},
+    {title:'The Great Flood', text:"Angry at humanity's bad behavior, Zeus sent a great flood, but let one kind couple, Deucalion and Pyrrha, survive to start anew."},
+    {title:'Father of Many', text:"Zeus was father to many famous heroes and gods, including Athena, Apollo, Artemis, and the strongman Hercules."},
+    {title:'The Eagle King', text:"The eagle became Zeus's sacred bird because it was said to be the only creature that could fly straight into the sun."},
+    {title:'Ruling from Olympus', text:"From his throne on Mount Olympus, Zeus kept order among gods and mortals, and his word was law across the world."},
+  ],
+  hera: [
+    {title:'Queen of Olympus', text:"Hera married her brother Zeus and became queen of all the gods, ruling by his side on Mount Olympus."},
+    {title:'Goddess of Marriage', text:"Hera watched over weddings and families, and was seen as the protector of every married couple in Greece."},
+    {title:"The Peacock's Eyes", text:"Hera's loyal servant Argus had a hundred eyes; after he passed, she placed his eyes on a peacock's tail forever."},
+    {title:'Jealous Queen', text:"Hera was famous for her fierce jealousy and often used clever, dramatic tricks to protect her place as queen."},
+    {title:'The Golden Apple', text:"Hera was one of three goddesses judged in a legendary beauty contest that eventually helped spark the Trojan War."},
+    {title:'Protector of Heroes', text:"Even though she sometimes tested heroes harshly, Hera respected courage and rewarded those who proved themselves worthy."},
+    {title:'The Milky Way', text:"Legend says the Milky Way was formed from drops of Hera's milk spilled across the night sky."},
+    {title:"Hera's Chariot", text:"Hera rode a golden chariot pulled by peacocks, gliding across the sky whenever she traveled between the clouds."},
+    {title:'Guardian of Argos', text:"The city of Argos honored Hera above all other gods and built one of her grandest temples there."},
+    {title:'The Ox-Eyed Queen', text:'Poets called Hera "ox-eyed" as a compliment, describing her large, beautiful, watchful eyes that missed nothing.'},
+  ],
+  poseidon: [
+    {title:'God of the Sea', text:"When the world was divided, Poseidon received the seas and oceans as his eternal kingdom."},
+    {title:"The Trident's Power", text:"Poseidon's three-pronged trident could calm the waves, summon storms, or even shake the earth itself."},
+    {title:'Battle for Athens', text:"Poseidon and Athena once competed to be patron of a great city; Athena's gift of the olive tree won the people over."},
+    {title:'Father of Horses', text:"Poseidon was said to have created the very first horse, striking a rock with his trident until it appeared."},
+    {title:'The Earth-Shaker', text:"Ancient Greeks believed earthquakes happened whenever Poseidon struck the ground in anger deep beneath the sea."},
+    {title:'Underwater Palace', text:"Poseidon lived in a dazzling coral and gold palace at the bottom of the sea, surrounded by sea creatures."},
+    {title:'Calming the Storm', text:"Sailors prayed to Poseidon before every voyage, hoping he'd keep his waves gentle and their ships safe."},
+    {title:"Poseidon's Chariot", text:"He rode a chariot pulled by wild-maned sea horses that could gallop right across the surface of the waves."},
+    {title:'Brother of Zeus', text:"Poseidon fought alongside Zeus and Hades to defeat the Titans before claiming the ocean as his own realm."},
+    {title:'Guardian of Sailors', text:"Fishermen and sailors across Greece built shrines to Poseidon, hoping for calm seas and full nets."},
+  ],
+  demeter: [
+    {title:'Goddess of the Harvest', text:"Demeter made the crops grow, and farmers across Greece thanked her for every good harvest."},
+    {title:"Persephone's Story", text:"When Demeter's daughter Persephone went to live part of the year in the underworld, Demeter's grief caused the very first winter."},
+    {title:'The First Spring', text:"Every year when Persephone returned, Demeter's joy made flowers bloom — and that's how the Greeks explained spring."},
+    {title:'Teaching Triptolemus', text:"Demeter taught a young prince named Triptolemus the secrets of farming, and he spread that knowledge to all humankind."},
+    {title:'The Cornucopia', text:"Demeter's magical horn of plenty, the cornucopia, could overflow with fruit, grain, and flowers whenever she wished."},
+    {title:'Guardian of Seasons', text:"Demeter's moods were said to control the seasons themselves — happy meant growth, sad meant a long, cold winter."},
+    {title:'The Eleusinian Mysteries', text:"Ancient Greeks held secret harvest festivals called the Eleusinian Mysteries in Demeter's honor every single year."},
+    {title:'Sacred Wheat', text:"Golden wheat was Demeter's favorite symbol, and it appeared woven into crowns and carved into her temples."},
+    {title:'Kind to Mortals', text:"Unlike some gods, Demeter was known for being gentle and caring deeply about ordinary farmers and families."},
+    {title:"Demeter's Serpents", text:"Demeter's chariot was sometimes pulled by winged serpents, gliding low over fields to bless the growing crops."},
+  ],
+  athena: [
+    {title:"Born from Zeus's Head", text:"Athena burst fully grown and armored from her father Zeus's head, already wise and ready for battle."},
+    {title:'Athens Named for Her', text:"Athena won the city of Athens by gifting the people an olive tree for food, oil, and wood."},
+    {title:'Goddess of Wisdom', text:"Athena represented clever strategy rather than reckless fighting, always thinking three steps ahead of her rivals."},
+    {title:"The Owl's Wisdom", text:"The owl became Athena's sacred bird because it could see clearly even in the dark, just like her wisdom."},
+    {title:'Helper of Heroes', text:"Athena guided many heroes, including clever Odysseus, giving them wise advice to outsmart their toughest challenges."},
+    {title:'Weaving Contest', text:'Athena challenged a weaver named Arachne to a contest; the story of what happened after is why we call spiders "arachnids" today.'},
+    {title:'The Aegis Shield', text:"Athena carried a magical shield called the Aegis, said to protect anyone brave enough to fight by her side."},
+    {title:'Patron of Crafts', text:"Athena watched over weavers, potters, and inventors, blessing anyone who worked hard and thought carefully."},
+    {title:'Grey-Eyed Athena', text:'Ancient poets called her "grey-eyed," describing eyes that seemed to see the truth others missed.'},
+    {title:'Never Defeated in War', text:"Because she fought with strategy instead of rage, Athena was said to never lose a battle she planned."},
+  ],
+  apollo: [
+    {title:'God of the Sun and Music', text:"Apollo drove the sun's golden chariot across the sky each day, and played the lyre more beautifully than anyone."},
+    {title:'Twin of Artemis', text:"Apollo and his twin sister Artemis were born on the tiny island of Delos and stayed close their whole lives."},
+    {title:'The Oracle at Delphi', text:"Apollo's temple at Delphi housed a priestess who spoke his prophecies, and people traveled from everywhere to hear their future."},
+    {title:'Slaying the Python', text:"As a young god, Apollo bravely defeated a giant serpent called Python to claim Delphi as his sacred home."},
+    {title:'The Healing God', text:"Apollo could soothe sickness with his music and medicine, and his son Asclepius became the god of healers."},
+    {title:'Musical Contest', text:"Apollo once won a music contest against a satyr named Marsyas, proving the lyre could outplay any flute."},
+    {title:'Laurel Wreath', text:"Apollo wore a crown of laurel leaves after a nymph named Daphne, whom he admired, turned into a laurel tree."},
+    {title:'Guide of Poets', text:"Apollo led the nine Muses, inspiring poets, musicians, and artists throughout ancient Greece."},
+    {title:'The Far-Shooter', text:"Apollo's golden bow and arrows never missed, earning him the nickname \"Far-Shooter\" among the gods."},
+    {title:'God of Truth', text:"Apollo hated lies above all else, and his oracles always spoke the truth — even when it was hard to hear."},
+  ],
+  artemis: [
+    {title:'Goddess of the Hunt', text:"Artemis raced through forests with her silver bow, protecting wild animals and hunting only when it was fair."},
+    {title:'Twin of Apollo', text:"Born just before her twin brother Apollo, Artemis even helped her mother welcome him into the world moments later!"},
+    {title:'Queen of the Wild', text:'Artemis was called "Lady of Wild Things," watching over every forest, meadow, and mountain creature in Greece.'},
+    {title:"The Moon's Glow", text:"As goddess of the moon, Artemis was said to light the night sky so hunters and travelers could find their way."},
+    {title:'Her Loyal Nymphs', text:"Artemis led a band of nymph companions who swore to roam free with her forever, never settling down."},
+    {title:'Protector of Girls', text:"Young girls in ancient Greece were sometimes brought to Artemis's temples to be blessed before growing up."},
+    {title:'The Golden Hind', text:"Artemis once owned a magical deer with golden antlers, so fast that almost nothing could catch it."},
+    {title:'Fierce and Fair', text:"Artemis demanded respect for nature; anyone who hunted her animals disrespectfully faced her swift anger."},
+    {title:'Silver Bow and Arrows', text:"Artemis's silver bow was crafted by the Cyclopes, matching her brother Apollo's golden one."},
+    {title:'Guardian of Sparta', text:"The city of Sparta especially honored Artemis, believing her strength inspired their own famous warriors."},
+  ],
+  ares: [
+    {title:'God of War', text:"Ares loved the roar and chaos of battle more than any other god, charging fearlessly into every fight."},
+    {title:'Not Always Loved', text:"Even Zeus admitted Ares was his least favorite child, since Ares seemed to enjoy conflict a little too much."},
+    {title:'Companions in Battle', text:"Ares was followed into war by Deimos and Phobos — Dread and Fear — his loyal sons."},
+    {title:'The Vulture and the Dog', text:"Ares's sacred animals, the vulture and the dog, were both fierce and unafraid on the battlefield."},
+    {title:'Losing to Athena', text:"Whenever Ares fought Athena, her clever strategy usually beat his brute strength — much to his frustration."},
+    {title:'Armor of Bronze', text:"Ares always appeared in gleaming bronze armor with a spear and helmet, ready for war at any moment."},
+    {title:'Father of Amazons', text:"According to legend, Ares was the father of the legendary Amazons, a nation of fierce warrior women."},
+    {title:'Caught in a Net', text:"Once, the clever god Hephaestus trapped Ares in an invisible golden net, embarrassing him in front of the other gods."},
+    {title:'Symbol of Courage', text:"Despite his rough reputation, soldiers prayed to Ares for courage before heading into a difficult battle."},
+    {title:'A Complicated God', text:"Ares showed that not every god was gentle or wise — sometimes myths taught lessons through his mistakes, too."},
+  ],
+  aphrodite: [
+    {title:'Born from Sea Foam', text:"Aphrodite rose fully grown from sea foam near the island of Cyprus, more beautiful than any other being."},
+    {title:'Goddess of Love', text:"Aphrodite could make anyone — god or mortal — fall instantly in love with just a touch of her magic."},
+    {title:'The Golden Apple', text:'Aphrodite was chosen "fairest of all" in a famous contest, which eventually led to the story of the Trojan War.'},
+    {title:'Her Magic Girdle', text:"Aphrodite owned an enchanted belt that made her irresistibly charming to anyone who saw her wearing it."},
+    {title:'Doves and Swans', text:"Aphrodite traveled in a chariot pulled by gentle doves or swans, symbols of love and peace."},
+    {title:'Helper of Lovers', text:"Aphrodite often helped mortal couples find each other, especially in stories about true love overcoming obstacles."},
+    {title:'Son Eros', text:"Aphrodite's son Eros (Cupid to the Romans) carried tiny arrows that made anyone struck by them fall in love."},
+    {title:"The Rose's Bloom", text:"Legend says the first red roses bloomed from drops of nectar Aphrodite spilled while walking through a garden."},
+    {title:'Beauty and Kindness', text:"Beyond just beauty, Aphrodite also represented friendship, laughter, and the warmth people feel for each other."},
+    {title:'Myrtle and Seashells', text:"The myrtle tree and the seashell became sacred to Aphrodite, both linked to her beautiful birth from the sea."},
+  ],
+  hephaestus: [
+    {title:'The Divine Blacksmith', text:"Hephaestus was the god of fire and forging, crafting the most magnificent weapons and treasures on Olympus."},
+    {title:'A Rocky Start', text:"As a baby, Hephaestus was cast down from Olympus, but he survived and grew stronger, teaching himself incredible skill."},
+    {title:'Master Craftsman', text:"Hephaestus built Zeus's thunderbolts, Achilles' famous armor, and even Hermes's winged sandals with his own hands."},
+    {title:'His Underground Forge', text:"Hephaestus's workshop sat inside a rumbling volcano, where he worked alongside skilled one-eyed Cyclopes."},
+    {title:'Living Helpers', text:"Hephaestus built golden mechanical servants that could move and even talk, helping him around his busy forge."},
+    {title:'Married to Aphrodite', text:"Hephaestus married Aphrodite, and though they were very different, he cherished the beautiful jewelry he made just for her."},
+    {title:'The Throne Trap', text:"Hephaestus once built Hera a golden throne with a hidden trap, a clever prank that surprised the whole family."},
+    {title:'Patron of Craftsmen', text:"Blacksmiths, sculptors, and inventors across Greece all prayed to Hephaestus for skillful, steady hands."},
+    {title:'Not the Strongest, but the Smartest', text:"Hephaestus wasn't the most powerful god physically, but his brilliant inventions made him indispensable to Olympus."},
+    {title:"The Donkey's Loyalty", text:"Hephaestus was often shown riding a humble donkey, a symbol of his hardworking, down-to-earth spirit."},
+  ],
+  hermes: [
+    {title:'The Messenger God', text:"Hermes zoomed across the world on winged sandals, delivering messages between Olympus and the mortal world in an instant."},
+    {title:'A Clever Baby', text:"On the very day he was born, baby Hermes snuck out of his cradle and cleverly borrowed Apollo's cattle for a little adventure!"},
+    {title:'Inventor of the Lyre', text:"Hermes invented the very first lyre from a tortoise shell, later trading it to Apollo to make peace."},
+    {title:'Guide to the Underworld', text:"Hermes was the only god trusted to guide souls safely to the underworld and back when needed."},
+    {title:'God of Travelers', text:"Hermes protected anyone on a journey, from merchants and messengers to lost travelers looking for the right road."},
+    {title:'The Caduceus', text:"Hermes carried a winged staff wrapped with two snakes, called a caduceus, symbolizing balance and swift communication."},
+    {title:'Trickster and Friend', text:"Hermes loved clever tricks and games, but he was also famously kind, helping heroes like Perseus on their quests."},
+    {title:'Fastest of the Gods', text:"With wings on his sandals and his hat, Hermes was considered the very fastest traveler among all the gods."},
+    {title:'God of Trade', text:"Merchants and shopkeepers honored Hermes, hoping his quick wit and luck would bring them fair and prosperous deals."},
+    {title:'Friend to All', text:"Unlike some gods who stayed distant, Hermes was known for chatting easily with both gods and ordinary mortals alike."},
+  ],
+  dionysus: [
+    {title:'God of Wine and Festivals', text:"Dionysus taught humans how to grow grapes and turn them into wine, and threw the liveliest festivals on Olympus."},
+    {title:'Twice Born', text:'Dionysus was born once, then sewn into Zeus\'s leg to finish growing — earning him the nickname "twice-born."'},
+    {title:'Raised by Nymphs', text:"To keep him safe, baby Dionysus was raised secretly by kind nymphs in a hidden, faraway valley."},
+    {title:"The Theater's Patron", text:"Dionysus loved storytelling so much that the ancient Greeks invented theater and drama in his honor."},
+    {title:'Turning Pirates into Dolphins', text:"When pirates once tried to kidnap Dionysus, he turned their oars into snakes and the pirates into dolphins!"},
+    {title:'The Thyrsus Staff', text:"Dionysus carried a staff called a thyrsus, wrapped in ivy and topped with a pinecone, wherever he traveled."},
+    {title:'Panther Companions', text:"Dionysus often traveled with wild panthers or leopards, showing his connection to nature's untamed side."},
+    {title:'Bringing Joy', text:"Dionysus represented celebration, creativity, and letting loose — an important balance to the more serious gods of Olympus."},
+    {title:"Ariadne's Husband", text:"Dionysus fell in love with and married Ariadne, a princess who had once been left behind on an island."},
+    {title:'Welcomed to Olympus', text:"Though born partly mortal, Dionysus eventually earned a full seat among the twelve great gods of Olympus."},
+  ],
+  hades: [
+    {title:'King of the Underworld', text:"When the world was divided, Hades received the underworld — not evil, just serious and fair to every soul."},
+    {title:'Ruler, Not a Villain', text:"Unlike his portrayal in some stories, ancient Greeks saw Hades as a stern but just king, not a bad guy."},
+    {title:'The Helm of Darkness', text:"Hades owned a magical helmet that made him completely invisible whenever he wore it."},
+    {title:'Guardian Cerberus', text:"A giant three-headed dog named Cerberus guarded the gates of the underworld, making sure no soul left without permission."},
+    {title:'Queen Persephone', text:"Hades and Persephone ruled the underworld together every winter, and their story explains the changing seasons above."},
+    {title:'The River Styx', text:"Souls crossed into the underworld over the River Styx, ferried by a boatman named Charon for a small coin."},
+    {title:'Rarely Left Home', text:"Unlike the other gods, Hades almost never visited Mount Olympus, preferring to manage his quiet, orderly kingdom below."},
+    {title:'Riches Below', text:'Hades was also linked to precious metals and jewels hidden underground, which is why "Pluto" means "wealthy" in Greek.'},
+    {title:'Fair Judgment', text:"Hades made sure every soul was judged fairly, sending them to their rightful place in the afterlife."},
+    {title:'The Unseen One', text:"Hades's name meant \"the unseen,\" since he ruled a realm that living mortals could never visit and return from."},
+  ],
+};
+
+const PERSONALITY_QUESTIONS = [
+  { q:"A group project partner takes credit for your idea in front of the whole class. You...", options:[
+    {text:'Call it out immediately, right there in front of everyone.', pts:{ares:2}},
+    {text:'Stay calm and calmly lay out the facts afterward.', pts:{athena:2}},
+    {text:"Let it go for now — you know the truth, and that's what matters.", pts:{hera:2}},
+    {text:'Quietly find a clever way to make sure the truth comes out later.', pts:{hermes:2}},
+  ]},
+  { q:'The night before a huge event you planned, a storm wrecks the venue. Your first move?', options:[
+    {text:"Turn the chaos into an even bigger, wilder party somewhere else.", pts:{dionysus:2}},
+    {text:'Take a breath, adapt, and steer everyone through it calmly.', pts:{poseidon:2}},
+    {text:"Push through no matter what — canceling isn't an option.", pts:{ares:1,artemis:1}},
+    {text:'Start over from scratch with an even better plan.', pts:{hephaestus:2}},
+  ]},
+  { q:"A friend admits they're scared to try out for something big. You tell them:", options:[
+    {text:"You've got this — I'll be right there cheering you on.", pts:{aphrodite:2}},
+    {text:"Here's exactly how to prepare so you're actually ready.", pts:{athena:2}},
+    {text:'Everyone is scared. Do it scared. Go.', pts:{ares:2}},
+    {text:"Take your time — good things aren't in a hurry.", pts:{demeter:2}},
+  ]},
+  { q:'You find a wallet full of cash on the ground with nobody around. What happens?', options:[
+    {text:"You gather everyone nearby and make a big, fair show of finding its owner.", pts:{zeus:2}},
+    {text:'You track down the owner quietly — it just felt like the right thing to do.', pts:{hera:2}},
+    {text:'You turn it in and never think about it again. Not even tempted.', pts:{apollo:2}},
+    {text:"You split it — some kept, some given away, some just... vanishes.", pts:{hermes:2}},
+  ]},
+  { q:'Your favorite show drops a plot twist nobody saw coming. Your reaction?', options:[
+    {text:'You immediately start mapping out what happens next.', pts:{athena:2}},
+    {text:'You text everyone you know. Right now. This cannot wait.', pts:{dionysus:2}},
+    {text:'You rewatch the whole season hunting for clues you missed.', pts:{hermes:2}},
+    {text:'You go quiet for a minute. You need to sit with it first.', pts:{hades:2}},
+  ]},
+  { q:"You're leading a hike and someone falls behind. What do you do?", options:[
+    {text:'Slow the whole group down. Nobody gets left behind, period.', pts:{demeter:2}},
+    {text:'Send your fastest friend back to help while the rest keep moving.', pts:{hermes:1,athena:1}},
+    {text:'Stick with them and keep them talking to take their mind off it.', pts:{aphrodite:2}},
+    {text:"Keep the pace up — the trail doesn't wait for anyone.", pts:{artemis:2}},
+  ]},
+  { q:'A friend swears you to secrecy about something huge. What do you do?', options:[
+    {text:"Lock it away forever. It doesn't leave you, no matter what.", pts:{hades:2}},
+    {text:"Tell them the truth will come out eventually, and it should — from them.", pts:{apollo:2}},
+    {text:"Let it slip 'by accident' because you just can't help yourself.", pts:{dionysus:1,hermes:1}},
+    {text:'File it away, just in case you ever really need it.', pts:{hermes:2}},
+  ]},
+  { q:'What genuinely makes you happiest?', options:[
+    {text:'Winning. Full stop.', pts:{ares:2}},
+    {text:'Figuring out exactly how something works.', pts:{hephaestus:2}},
+    {text:'Being outside, far away from everyone and everything.', pts:{artemis:2}},
+    {text:'A really good meal with the people you love.', pts:{aphrodite:1,demeter:1}},
+  ]},
+  { q:'How would you actually want to be remembered?', options:[
+    {text:'As someone who kept things fair, even when it was hard.', pts:{zeus:2}},
+    {text:'As someone who was always three steps ahead of everyone else.', pts:{athena:2}},
+    {text:'As the person who made every room brighter just by being in it.', pts:{dionysus:2}},
+    {text:'As someone people never quite fully figured out.', pts:{poseidon:1,hades:1}},
+  ]},
+  { q:'What does an ideal "win" look like to you?', options:[
+    {text:'Pulling off the cleverest plan nobody saw coming.', pts:{hermes:2}},
+    {text:'Earning respect without ever having to raise your voice.', pts:{hera:2}},
+    {text:'Leaving everyone else in the dust. Literally.', pts:{ares:1,artemis:1}},
+    {text:"Making something so good people are still talking about it years later.", pts:{hephaestus:1,apollo:1}},
+  ]},
+];
+
+const MYTH_QUIZ = [
+  {deity:'zeus', q:"What did Zeus's mother Rhea trick Cronus into swallowing instead of baby Zeus?", choices:['A rock wrapped in a blanket','A golden egg','A wooden statue','A sack of wheat'], answer:0},
+  {deity:'zeus', q:'Who forged the mighty thunderbolt as a gift for Zeus?', choices:['The Muses','The Cyclopes','The Titans','The nymphs'], answer:1},
+  {deity:'zeus', q:'Which realm did Zeus claim when the world was divided among the brothers?', choices:['The Sea','The Underworld','The Sky','The Forests'], answer:2},
+  {deity:'hera', q:"What did Hera do with her servant Argus's hundred eyes?", choices:["Placed them on a peacock's tail",'Hid them in the sea','Turned them into stars','Gave them to Zeus'], answer:0},
+  {deity:'hera', q:'What is Hera best known as the goddess of?', choices:['War','Marriage and Family','The Hunt','Wine'], answer:1},
+  {deity:'hera', q:'What animal pulled Hera\'s golden chariot?', choices:['Horses','Doves','Peacocks','Lions'], answer:2},
+  {deity:'poseidon', q:"What did Poseidon offer Athens that lost him the city's favor?", choices:['A spring of salt water','A trident statue','A school of fish','A pearl crown'], answer:0},
+  {deity:'poseidon', q:"What is Poseidon's most famous weapon?", choices:['A bow','A trident','A hammer','A shield'], answer:1},
+  {deity:'poseidon', q:'Ancient Greeks believed Poseidon caused which natural event when angry?', choices:['Lightning storms','Wildfires','Earthquakes','Droughts'], answer:2},
+  {deity:'demeter', q:"Demeter's grief over her daughter Persephone explains the myth of which season?", choices:['Summer','Winter','Spring','Autumn only'], answer:1},
+  {deity:'demeter', q:'What is Demeter the goddess of?', choices:['The Harvest','The Sea','The Moon','Fire'], answer:0},
+  {deity:'demeter', q:'What did Demeter teach the young prince Triptolemus?', choices:['Sword fighting','The secrets of farming','Sailing','Music'], answer:1},
+  {deity:'athena', q:'How was Athena born?', choices:['From sea foam','From an egg','Fully grown from Zeus\'s head','From a flower'], answer:2},
+  {deity:'athena', q:'What gift did Athena give Athens to win the city?', choices:['A war horse','An olive tree','A silver mirror','A golden apple'], answer:1},
+  {deity:'athena', q:"What is Athena's sacred bird?", choices:['Eagle','Swan','Owl','Dove'], answer:2},
+  {deity:'apollo', q:'What instrument was Apollo famous for playing beautifully?', choices:['The lyre','The drum','The flute','The horn'], answer:0},
+  {deity:'apollo', q:"Where was Apollo's famous oracle located?", choices:['Athens','Delphi','Sparta','Crete'], answer:1},
+  {deity:'apollo', q:'Who was born as the twin sibling of Apollo?', choices:['Athena','Hermes','Artemis','Persephone'], answer:2},
+  {deity:'artemis', q:'What is Artemis the goddess of?', choices:['The Moon and the Hunt','The Sun and Music','War','Wine'], answer:0},
+  {deity:'artemis', q:'What magical animal did Artemis own with golden antlers?', choices:['The Golden Hind','The Golden Ram','The Golden Bull','The Golden Owl'], answer:0},
+  {deity:'artemis', q:'Who crafted Artemis\'s silver bow?', choices:['Hephaestus','The Cyclopes','Apollo','The Muses'], answer:1},
+  {deity:'ares', q:'What are the names of Ares\'s two sons who followed him into battle?', choices:['Deimos and Phobos','Castor and Pollux','Zetes and Calais','Eros and Anteros'], answer:0},
+  {deity:'ares', q:'Who trapped Ares in an invisible golden net?', choices:['Zeus','Hephaestus','Poseidon','Hermes'], answer:1},
+  {deity:'ares', q:'What is Ares the god of?', choices:['Wisdom','War','Love','Travel'], answer:1},
+  {deity:'aphrodite', q:'How was Aphrodite born?', choices:['From sea foam','From a thunderbolt','From a rose','From a flame'], answer:0},
+  {deity:'aphrodite', q:"Who was Aphrodite's mischievous son who carried tiny love arrows?", choices:['Hermes','Eros','Apollo','Pan'], answer:1},
+  {deity:'aphrodite', q:'What flower is said to have first bloomed from drops of nectar Aphrodite spilled?', choices:['The lily','The tulip','The rose','The daisy'], answer:2},
+  {deity:'hephaestus', q:'What is Hephaestus the god of?', choices:['Fire and the Forge','The Sea','The Hunt','The Underworld'], answer:0},
+  {deity:'hephaestus', q:'Who did Hephaestus marry?', choices:['Athena','Aphrodite','Artemis','Demeter'], answer:1},
+  {deity:'hephaestus', q:'What animal did Hephaestus often ride?', choices:['A horse','A donkey','A bull','A lion'], answer:1},
+  {deity:'hermes', q:'What clever thing did baby Hermes do on the day he was born?', choices:["Borrowed Apollo's cattle",'Stole a thunderbolt','Built a temple','Sailed to Crete'], answer:0},
+  {deity:'hermes', q:'What instrument did Hermes invent from a tortoise shell?', choices:['A drum','A lyre','A flute','A horn'], answer:1},
+  {deity:'hermes', q:'What is Hermes the god of?', choices:['Travel and Trade','The Hunt','Wine','War'], answer:0},
+  {deity:'dionysus', q:'What is Dionysus the god of?', choices:['Wine and Festivity','The Sea','Wisdom','War'], answer:0},
+  {deity:'dionysus', q:'Why was Dionysus called "twice-born"?', choices:['He had two names','He was sewn into Zeus\'s leg to finish growing','He had a twin','He was born on two islands'], answer:1},
+  {deity:'dionysus', q:'What did Dionysus turn a group of unkind pirates into?', choices:['Statues','Trees','Dolphins','Birds'], answer:2},
+  {deity:'hades', q:'What is Hades the god of?', choices:['The Underworld','The Sky','The Sea','The Harvest'], answer:0},
+  {deity:'hades', q:'What is the name of the three-headed dog who guards the underworld?', choices:['Argus','Cerberus','Python','Ladon'], answer:1},
+  {deity:'hades', q:"What magical item made Hades invisible?", choices:['A cloak','The Helm of Darkness','A ring','A shield'], answer:1},
+];
+
+function shuffle(arr){ const a=arr.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+
+function factQuestion(deityId){
+  const d = deity(deityId);
+  const types = ['domain','animal','roman','symbol','epithet'];
+  const type = types[Math.floor(Math.random()*types.length)];
+  const others = shuffle(DEITIES.filter(x=>x.id!==deityId)).slice(0,3);
+  let qText, answer, distractors;
+  if (type==='domain'){
+    qText = `${d.name} is the god or goddess of...`;
+    answer = d.domain; distractors = others.map(o=>o.domain);
+  } else if (type==='animal'){
+    qText = `What is ${d.name}'s sacred animal?`;
+    answer = d.animal; distractors = others.map(o=>o.animal);
+  } else if (type==='roman'){
+    qText = `What is ${d.name}'s Roman name?`;
+    answer = d.roman; distractors = others.map(o=>o.roman);
+  } else if (type==='symbol'){
+    qText = `Which of these is a symbol of ${d.name}?`;
+    answer = d.symbols[Math.floor(Math.random()*d.symbols.length)];
+    distractors = others.map(o=>o.symbols[Math.floor(Math.random()*o.symbols.length)]);
+  } else {
+    qText = `Which epithet (nickname) belongs to ${d.name}?`;
+    answer = d.epithet; distractors = others.map(o=>o.epithet);
+  }
+  const choices = shuffle([answer, ...distractors]);
+  return { q: qText, choices, answer: choices.indexOf(answer) };
+}
+
+function buildQuizSession(deityId, count){
+  const curated = shuffle(MYTH_QUIZ.filter(m=>m.deity===deityId)).slice(0, Math.min(3,count));
+  const curatedQs = curated.map(m=>({q:m.q, choices:shuffle(m.choices.map((c,i)=>({c,i}))).map(x=>x.c), answer:0}))
+    .map((qq,idx)=>{ // recompute answer index after shuffle
+      const orig = curated[idx];
+      const correctText = orig.choices[orig.answer];
+      return { q: orig.q, choices: qq.choices, answer: qq.choices.indexOf(correctText) };
+    });
+  const needed = count - curatedQs.length;
+  const proceduralQs = [];
+  for(let i=0;i<needed;i++) proceduralQs.push(factQuestion(deityId));
+  return shuffle([...curatedQs, ...proceduralQs]);
+}
+
+const COLOR_SWATCHES = ['#f4ecd8','#e8c98a','#c98a5a','#8a5a3a','#d4af37','#7b2d3e','#1d5f8a','#6b7f3a','#6b2f7a','#3f3f3f'];
+
+const AVATAR_SLOTS = {
+  skin: { label:'Skin Tone', items:[
+    {id:'s1',name:'Fair',price:0,hex:'#f0d3ae'}, {id:'s2',name:'Warm Beige',price:0,hex:'#e0b280'},
+    {id:'s3',name:'Olive',price:0,hex:'#c99568'}, {id:'s4',name:'Bronze',price:0,hex:'#a5723f'},
+    {id:'s5',name:'Deep Bronze',price:0,hex:'#7a4d2b'}, {id:'s6',name:'Ebony',price:0,hex:'#4d3222'},
+    {id:'s7',name:'Marble White',price:400,hex:'#eef2f5'}, {id:'s8',name:'Gilded Gold',price:3000,hex:'#e8c04a'},
+  ]},
+  hair: { label:'Hair', items:[
+    {id:'h1',name:'Cropped Curls',price:0}, {id:'h2',name:'Flowing Waves',price:0},
+    {id:'h3',name:'Warrior Braid',price:300}, {id:'h4',name:'Regal Bun',price:300},
+    {id:'h5',name:'Golden Ringlets',price:700}, {id:'h6',name:'Wild Locks',price:700},
+    {id:'h7',name:'Bald & Bold',price:200}, {id:'h8',name:'Divine Halo Locks',price:2200},
+  ]},
+  robe: { label:'Robe', items:[
+    {id:'r1',name:'Simple Chiton',price:0}, {id:'r2',name:'Peplos Gown',price:0},
+    {id:'r3',name:'Senator Toga',price:400}, {id:'r4',name:'Draped Himation',price:400},
+    {id:'r5',name:'Warrior Cuirass',price:900}, {id:'r6',name:"Zeus's Thunder Cloak",price:2500},
+    {id:'r7',name:"Poseidon's Sea-Silk Robe",price:2500}, {id:'r8',name:'Golden Weave Robe',price:5000},
+  ]},
+  headpiece: { label:'Headpiece', items:[
+    {id:'p1',name:'Bare-Headed',price:0}, {id:'p2',name:'Laurel Wreath',price:250},
+    {id:'p3',name:'Silver Diadem',price:600}, {id:'p4',name:'Olive Circlet',price:600},
+    {id:'p5',name:"Hera's Crown",price:3000}, {id:'p6',name:'Helm of Darkness',price:3200},
+    {id:'p7',name:"Apollo's Sun Crown",price:4500}, {id:'p8',name:'Divine Halo',price:6000},
+  ]},
+  accessory: { label:'Accessory', items:[
+    {id:'a1',name:'None',price:0}, {id:'a2',name:"Aphrodite's Scarf",price:900},
+    {id:'a3',name:"Poseidon's Trident Charm",price:1200}, {id:'a4',name:"Apollo's Lyre",price:1200},
+    {id:'a5',name:"Zeus's Thunderbolt",price:1800}, {id:'a6',name:"Athena's Aegis Emblem",price:2000},
+    {id:'a7',name:"Hermes' Winged Charm",price:1500}, {id:'a8',name:"Ares' Spear Pin",price:1500},
+  ]},
+  aura: { label:'Aura', items:[
+    {id:'u1',name:'No Aura',price:0}, {id:'u2',name:'Golden Glow',price:500},
+    {id:'u3',name:'Sea Mist',price:500}, {id:'u4',name:'Olive Grove Glow',price:500},
+    {id:'u5',name:'Starlight Aura',price:1500}, {id:'u6',name:'Eternal Flame',price:1500},
+    {id:'u7',name:'Shadow Veil',price:1500}, {id:'u8',name:'Iris Rainbow Aura',price:4000},
+  ]},
+  companion: { label:'Companion', items:[
+    {id:'c1',name:'None',price:0}, {id:'c2',name:'Owl Companion',price:700,icon:'🦉'},
+    {id:'c3',name:'Peacock Companion',price:700,icon:'🦚'}, {id:'c4',name:'Dove Companion',price:700,icon:'🕊️'},
+    {id:'c5',name:'Dolphin Companion',price:1000,icon:'🐬'}, {id:'c6',name:'Snake Companion',price:1000,icon:'🐍'},
+    {id:'c7',name:'Panther Companion',price:1600,icon:'🐆'}, {id:'c8',name:'Phoenix Companion',price:5000,icon:'🔥'},
+  ]},
+};
+
+const ACCESSORY_ICON = {a1:'', a2:'🧣', a3:'🔱', a4:'🎵', a5:'⚡', a6:'🛡️', a7:'🪽', a8:'🗡️'};
+const HEADPIECE_ICON = {p1:'', p2:'🌿', p3:'👑', p4:'🌿', p5:'👑', p6:'🖤', p7:'☀️', p8:'✨'};
+
+function defaultAvatar(){
+  return { skin:'s1', hair:'h1', hairColor:'#5a3a22', robe:'r1', robeColor:'#f4ecd8', headpiece:'p1', accessory:'a1', aura:'u1', companion:'c1' };
+}
+
+function renderAvatarSVG(cfg){
+  const skin = AVATAR_SLOTS.skin.items.find(i=>i.id===cfg.skin) || AVATAR_SLOTS.skin.items[0];
+  const auraColors = { u1:null, u2:'#f0d878', u3:'#8fd0e8', u4:'#a9c96a', u5:'#c9a9f0', u6:'#f0895a', u7:'#6a5a8a', u8:'url(#rainbowGrad)' };
+  const auraFill = auraColors[cfg.aura];
+  let svg = `<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">`;
+  svg += `<defs><linearGradient id="rainbowGrad" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0%" stop-color="#f06a6a"/><stop offset="25%" stop-color="#f0d878"/>
+    <stop offset="50%" stop-color="#8fe0a0"/><stop offset="75%" stop-color="#8fc0f0"/>
+    <stop offset="100%" stop-color="#c98fe0"/></linearGradient></defs>`;
+  if (auraFill) svg += `<circle cx="100" cy="105" r="92" fill="${auraFill}" opacity="0.55"/>`;
+  // hair behind head (long styles)
+  if (['h2','h6','h8'].includes(cfg.hair)) {
+    svg += `<path d="M65 76 Q44 102 47 145 Q49 174 67 188 Q56 142 63 96 Z" fill="${cfg.hairColor}"/>`;
+    svg += `<path d="M135 76 Q156 102 153 145 Q151 174 133 188 Q144 142 137 96 Z" fill="${cfg.hairColor}"/>`;
+  }
+  // robe / body — rounded silhouette with visible shoulders, arms, and clasped hands (not a flat wedge)
+  svg += `<path d="M40 200 Q34 148 60 130 Q100 110 140 130 Q166 148 160 200 Z" fill="${cfg.robeColor}" stroke="${cfg.robeColor==='#f4ecd8'?'#c9a95a':'rgba(0,0,0,0.15)'}" stroke-width="2"/>`;
+  svg += `<path d="M100 128 Q138 145 142 200 L160 200 Q164 148 138 128 Z" fill="rgba(0,0,0,0.1)"/>`;
+  svg += `<ellipse cx="56" cy="136" rx="15" ry="20" fill="${cfg.robeColor}" stroke="rgba(0,0,0,0.15)" stroke-width="1.5"/>`;
+  svg += `<ellipse cx="144" cy="136" rx="15" ry="20" fill="${cfg.robeColor}" stroke="rgba(0,0,0,0.15)" stroke-width="1.5"/>`;
+  svg += `<path d="M52 150 Q60 178 82 186" stroke="${skin.hex}" stroke-width="13" fill="none" stroke-linecap="round"/>`;
+  svg += `<path d="M148 150 Q140 178 118 186" stroke="${skin.hex}" stroke-width="13" fill="none" stroke-linecap="round"/>`;
+  svg += `<circle cx="83" cy="187" r="9" fill="${skin.hex}"/>`;
+  svg += `<circle cx="117" cy="187" r="9" fill="${skin.hex}"/>`;
+  if (cfg.robe==='r3' || cfg.robe==='r4') svg += `<path d="M70 135 L130 190" stroke="#d4af37" stroke-width="6" opacity="0.85"/>`;
+  if (cfg.robe==='r5') svg += `<rect x="72" y="128" width="56" height="40" rx="6" fill="rgba(0,0,0,0.15)"/>`;
+  if (cfg.robe==='r6' || cfg.robe==='r7' || cfg.robe==='r8') svg += `<path d="M45 200 L62 128 Q100 108 138 128 L155 200 Z" fill="none" stroke="#ffe27a" stroke-width="2" opacity="0.6"/>`;
+  // neck
+  svg += `<rect x="88" y="108" width="24" height="26" fill="${skin.hex}"/>`;
+  // head
+  svg += `<ellipse cx="100" cy="82" rx="38" ry="42" fill="${skin.hex}"/>`;
+  // hair front styles
+  const hairShapes = {
+    h1: `<path d="M62 70 Q100 30 138 70 Q138 50 100 42 Q62 50 62 70 Z" fill="${cfg.hairColor}"/>`,
+    h2: `<path d="M60 68 Q100 28 140 68 Q140 46 100 38 Q60 46 60 68 Z" fill="${cfg.hairColor}"/>`,
+    h3: `<path d="M62 68 Q100 30 138 68 Q136 48 100 40 Q64 48 62 68 Z" fill="${cfg.hairColor}"/><rect x="128" y="70" width="10" height="70" rx="5" fill="${cfg.hairColor}"/>`,
+    h4: `<path d="M62 70 Q100 32 138 70 Q138 50 100 44 Q62 50 62 70 Z" fill="${cfg.hairColor}"/><circle cx="100" cy="34" r="14" fill="${cfg.hairColor}"/>`,
+    h5: `<circle cx="70" cy="60" r="13" fill="${cfg.hairColor}"/><circle cx="90" cy="45" r="14" fill="${cfg.hairColor}"/><circle cx="112" cy="45" r="14" fill="${cfg.hairColor}"/><circle cx="132" cy="60" r="13" fill="${cfg.hairColor}"/>`,
+    h6: `<path d="M55 75 Q75 25 100 35 Q125 25 145 75 Q130 55 100 50 Q70 55 55 75 Z" fill="${cfg.hairColor}"/>`,
+    h7: ``,
+    h8: `<path d="M60 66 Q100 26 140 66 Q140 44 100 36 Q60 44 60 66 Z" fill="${cfg.hairColor}"/><circle cx="100" cy="40" r="46" fill="none" stroke="#ffe27a" stroke-width="2" opacity="0.7"/>`,
+  };
+  svg += hairShapes[cfg.hair] || hairShapes.h1;
+  // face features
+  svg += `<circle cx="86" cy="84" r="3.4" fill="#3a2f1e"/><circle cx="114" cy="84" r="3.4" fill="#3a2f1e"/>`;
+  svg += `<path d="M90 100 Q100 106 110 100" stroke="#3a2f1e" stroke-width="2.4" fill="none" stroke-linecap="round"/>`;
+  // headpiece
+  if (cfg.headpiece==='p2' || cfg.headpiece==='p4') {
+    svg += `<path d="M64 56 Q100 38 136 56" stroke="#6b7f3a" stroke-width="8" fill="none"/>`;
+    for(let i=0;i<6;i++){ const t=i/5, x=64+(136-64)*t, y=56-Math.sin(t*Math.PI)*16; svg += `<ellipse cx="${x}" cy="${y}" rx="6" ry="3" fill="#7f9a45" transform="rotate(${(t-0.5)*90} ${x} ${y})"/>`; }
+  } else if (cfg.headpiece==='p3') {
+    svg += `<path d="M64 58 Q100 44 136 58" stroke="#cfd6dc" stroke-width="6" fill="none"/><circle cx="100" cy="50" r="5" fill="#8fc0f0"/>`;
+  } else if (cfg.headpiece==='p5') {
+    svg += `<path d="M62 60 L68 36 L82 54 L92 30 L108 30 L118 54 L132 36 L138 60 Z" fill="#d4af37" stroke="#a9812f" stroke-width="2"/>`;
+    svg += `<circle cx="100" cy="46" r="4" fill="#7b2d3e"/>`;
+  } else if (cfg.headpiece==='p6') {
+    svg += `<path d="M58 70 Q60 26 100 24 Q140 26 142 70 Q140 50 100 44 Q60 50 58 70 Z" fill="#2b2b2b" opacity="0.92"/>`;
+  } else if (cfg.headpiece==='p7') {
+    svg += `<circle cx="100" cy="42" r="18" fill="none" stroke="#e0913a" stroke-width="4"/>`;
+    for(let i=0;i<8;i++){ const ang=i/8*Math.PI*2; svg += `<line x1="${100+Math.cos(ang)*20}" y1="${42+Math.sin(ang)*20}" x2="${100+Math.cos(ang)*28}" y2="${42+Math.sin(ang)*28}" stroke="#e0913a" stroke-width="3"/>`; }
+  } else if (cfg.headpiece==='p8') {
+    svg += `<ellipse cx="100" cy="40" rx="34" ry="9" fill="none" stroke="#ffe27a" stroke-width="3" opacity="0.9"/>`;
+  }
+  // accessory — actually worn on the body, not a corner badge
+  const ACCESSORY_ART = {
+    a2: `<path d="M70 128 Q100 146 130 128 Q133 152 119 191 Q111 166 100 166 Q89 166 81 191 Q67 152 70 128 Z" fill="#f0a8c8" stroke="#d47fa8" stroke-width="1.5"/>
+      <path d="M70 128 Q100 146 130 128" fill="none" stroke="#d47fa8" stroke-width="2"/>
+      ${[80,88,96,104,112,120].map(x=>`<line x1="${x}" y1="186" x2="${x}" y2="195" stroke="#d47fa8" stroke-width="2.4" stroke-linecap="round"/>`).join('')}`,
+    a3: `<line x1="90" y1="112" x2="100" y2="146" stroke="#d4af37" stroke-width="2"/><line x1="110" y1="112" x2="100" y2="146" stroke="#d4af37" stroke-width="2"/>
+      <g stroke="#8fd0f0" stroke-width="2.6" stroke-linecap="round" fill="none">
+        <line x1="100" y1="142" x2="100" y2="164"/><line x1="94" y1="142" x2="94" y2="152"/><line x1="106" y1="142" x2="106" y2="152"/>
+        <line x1="94" y1="136" x2="94" y2="142"/><line x1="100" y1="134" x2="100" y2="142"/><line x1="106" y1="136" x2="106" y2="142"/>
+      </g>`,
+    a4: `<g transform="translate(120,172)">
+        <path d="M-10 20 Q-15 -8 -6 -13 M10 20 Q15 -8 6 -13" fill="none" stroke="#c9a05a" stroke-width="3" stroke-linecap="round"/>
+        <path d="M-10 20 Q0 27 10 20" fill="none" stroke="#c9a05a" stroke-width="3"/>
+        <line x1="-6" y1="-13" x2="6" y2="-13" stroke="#c9a05a" stroke-width="3"/>
+        ${[-4,-1,2,5].map(x=>`<line x1="${x}" y1="-11" x2="${x-1}" y2="18" stroke="#f4ecd8" stroke-width="1"/>`).join('')}
+      </g>`,
+    a5: `<line x1="90" y1="112" x2="100" y2="144" stroke="#d4af37" stroke-width="2"/><line x1="110" y1="112" x2="100" y2="144" stroke="#d4af37" stroke-width="2"/>
+      <path d="M100 142 L94 158 L100 158 L92 180 L108 155 L100 155 L107 142 Z" fill="#ffe27a" stroke="#d4af37" stroke-width="1.5"/>`,
+    a6: `<circle cx="100" cy="160" r="14" fill="#5b6b8c" stroke="#d4af37" stroke-width="2.5"/><circle cx="100" cy="160" r="8" fill="#8fa0c0"/>
+      <path d="M100 152 L100 168 M92 160 L108 160" stroke="#d4af37" stroke-width="1.5"/>`,
+    a7: `<path d="M78 130 Q59 125 55 136 Q68 139 79 134 Z" fill="#e8ecf0" stroke="#c4cdd6" stroke-width="1"/>
+      <path d="M122 130 Q141 125 145 136 Q132 139 121 134 Z" fill="#e8ecf0" stroke="#c4cdd6" stroke-width="1"/>`,
+    a8: `<line x1="86" y1="146" x2="114" y2="178" stroke="#8a6a4a" stroke-width="3" stroke-linecap="round"/>
+      <path d="M112 176 L119 182 L112 184 Z" fill="#c4cdd6" stroke="#8a929a" stroke-width="0.5"/>
+      <circle cx="100" cy="162" r="4" fill="#d4af37"/>`,
+  };
+  if (ACCESSORY_ART[cfg.accessory]) svg += ACCESSORY_ART[cfg.accessory];
+  // companion
+  const comp = AVATAR_SLOTS.companion.items.find(i=>i.id===cfg.companion);
+  if (comp && comp.icon) svg += `<circle cx="34" cy="160" r="18" fill="#fffdf6" stroke="#d4af37" stroke-width="2.5"/><text x="34" y="167" font-size="18" text-anchor="middle">${comp.icon}</text>`;
+  svg += `</svg>`;
+  return svg;
+}
+
+function randomAvatar(){
+  const cfg = defaultAvatar();
+  cfg.skin = AVATAR_SLOTS.skin.items[Math.floor(Math.random()*6)].id; // only starter tones
+  cfg.hair = ['h1','h2','h7'][Math.floor(Math.random()*3)];
+  cfg.hairColor = ['#2b1d10','#5a3a22','#8a5a2a','#1a1a1a','#c98a3a'][Math.floor(Math.random()*5)];
+  cfg.robe = Math.random()<0.5 ? 'r1' : 'r2';
+  cfg.robeColor = COLOR_SWATCHES[Math.floor(Math.random()*COLOR_SWATCHES.length)];
+  return cfg;
+}
+
+function skinHexOf(cfg){
+  return (AVATAR_SLOTS.skin.items.find(i=>i.id===cfg.skin) || AVATAR_SLOTS.skin.items[0]).hex;
+}
+
+const AURA_COLORS_CANVAS = { u1:null, u2:'#f0d878', u3:'#8fd0e8', u4:'#a9c96a', u5:'#c9a9f0', u6:'#f0895a', u7:'#6a5a8a', u8:'#e08fd0' };
+
+function shadeHex(hex, percent){
+  const num = parseInt(hex.replace('#',''), 16);
+  let r = (num >> 16) + Math.round(2.55 * percent);
+  let g = ((num >> 8) & 0x00FF) + Math.round(2.55 * percent);
+  let b = (num & 0x0000FF) + Math.round(2.55 * percent);
+  r = Math.max(0, Math.min(255, r));
+  g = Math.max(0, Math.min(255, g));
+  b = Math.max(0, Math.min(255, b));
+  return '#' + (0x1000000 + r*0x10000 + g*0x100 + b).toString(16).slice(1);
+}
+
+function drawLimb(ctx, x1, y1, x2, y2, w1, w2, color){
+  const dx = x2-x1, dy = y2-y1;
+  const len = Math.hypot(dx,dy) || 1;
+  const nx = -dy/len, ny = dx/len;
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.moveTo(x1+nx*w1/2, y1+ny*w1/2);
+  ctx.lineTo(x2+nx*w2/2, y2+ny*w2/2);
+  ctx.arc(x2, y2, w2/2, Math.atan2(ny,nx), Math.atan2(-ny,-nx), false);
+  ctx.lineTo(x1-nx*w1/2, y1-ny*w1/2);
+  ctx.arc(x1, y1, w1/2, Math.atan2(-ny,-nx), Math.atan2(ny,nx), false);
+  ctx.closePath();
+  ctx.fill();
+}
+
+function drawAvatarSprite(ctx, x, y, cfg, facing, walkPhase, carrying, avatarScale){
+  const bob = Math.abs(Math.sin(walkPhase)) * 2.5;
+  const stride = Math.sin(walkPhase) * 7;
+  const skinHex = skinHexOf(cfg);
+  const skinDark = shadeHex(skinHex, -18);
+  const robeDark = shadeHex(cfg.robeColor, -22);
+  const robeLight = shadeHex(cfg.robeColor, 18);
+
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(avatarScale === undefined ? 2.2 : avatarScale, avatarScale === undefined ? 2.2 : avatarScale);
+
+  // ground shadow (stays put, doesn't bob)
+  ctx.fillStyle = 'rgba(0,0,0,0.28)';
+  ctx.beginPath(); ctx.ellipse(0, 19, 14, 4.5, 0, 0, Math.PI*2); ctx.fill();
+
+  ctx.translate(0, -bob);
+
+  // aura glow behind the figure
+  const auraHex = AURA_COLORS_CANVAS[cfg.aura];
+  if (auraHex) {
+    ctx.save();
+    ctx.globalAlpha = 0.35;
+    ctx.fillStyle = auraHex;
+    ctx.beginPath(); ctx.arc(0, -12, 27, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
+  }
+
+  // legs — solid tapered limbs (hip-wide to ankle-narrow), not thin sticks
+  const legBackX = -4 - stride*0.45, legFrontX = 4 + stride*0.45;
+  drawLimb(ctx, -4, 2, legBackX, 19, 9, 7, skinHex);
+  drawLimb(ctx, 4, 2, legFrontX, 19, 9, 7, skinHex);
+  ctx.fillStyle = '#6b4a2a';
+  ctx.beginPath(); ctx.ellipse(legBackX, 20.5, 6, 3, 0, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(legFrontX, 20.5, 6, 3, 0, 0, Math.PI*2); ctx.fill();
+
+  // arms — solid tapered limbs with a hand, swing opposite the legs (drawn behind the torso)
+  const armBackX = -10 + stride*0.55, armBackY = 6, armFrontX = 10 - stride*0.55, armFrontY = 6;
+  drawLimb(ctx, -9, -10, armBackX, armBackY, 8, 6, skinHex);
+  drawLimb(ctx, 9, -10, armFrontX, armFrontY, 8, 6, skinHex);
+  ctx.fillStyle = skinHex;
+  ctx.beginPath(); ctx.arc(armBackX, armBackY, 3.4, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(armFrontX, armFrontY, 3.4, 0, Math.PI*2); ctx.fill();
+
+  // torso / robe (bell shape, shaded)
+  const grad = ctx.createLinearGradient(-11, -14, 11, 8);
+  grad.addColorStop(0, robeLight);
+  grad.addColorStop(0.55, cfg.robeColor);
+  grad.addColorStop(1, robeDark);
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.moveTo(-7, -15);
+  ctx.quadraticCurveTo(-13, -3, -12, 8);
+  ctx.quadraticCurveTo(-6, 12, 0, 12);
+  ctx.quadraticCurveTo(6, 12, 12, 8);
+  ctx.quadraticCurveTo(13, -3, 7, -15);
+  ctx.quadraticCurveTo(0, -19, -7, -15);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(0,0,0,0.2)'; ctx.lineWidth = 1; ctx.stroke();
+
+  // belt
+  ctx.strokeStyle = shadeHex(cfg.robeColor, -38);
+  ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(-10, -1); ctx.lineTo(10, -1); ctx.stroke();
+
+  // neck
+  ctx.fillStyle = skinDark;
+  ctx.fillRect(-3, -19, 6, 6);
+
+  // head
+  ctx.fillStyle = skinHex;
+  ctx.beginPath(); ctx.arc(0, -26, 10.5, 0, Math.PI*2); ctx.fill();
+  ctx.globalAlpha = 0.22;
+  ctx.fillStyle = skinDark;
+  ctx.beginPath(); ctx.arc(4.5, -23.5, 5.5, 0, Math.PI*2); ctx.fill();
+  ctx.globalAlpha = 1;
+
+  // hair
+  if (cfg.hair !== 'h7') {
+    ctx.fillStyle = cfg.hairColor;
+    ctx.beginPath(); ctx.arc(0, -28.5, 11, Math.PI, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(-9.3, -24, 3.6, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(9.3, -24, 3.6, 0, Math.PI*2); ctx.fill();
+  }
+
+  // face (hidden when facing away from camera)
+  if (facing !== 'up') {
+    const ox = facing==='left' ? -2.8 : facing==='right' ? 2.8 : 0;
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.ellipse(ox-3.2, -26.5, 1.6, 2, 0, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(ox+3.2, -26.5, 1.6, 2, 0, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#2b2418';
+    ctx.beginPath(); ctx.arc(ox-3.2, -26, 1, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(ox+3.2, -26, 1, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = '#8a5a3a'; ctx.lineWidth = 1.2; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.arc(ox, -22.5, 2.4, 0.15*Math.PI, 0.85*Math.PI); ctx.stroke();
+  }
+
+  // headpiece marker
+  if (cfg.headpiece && HEADPIECE_ICON[cfg.headpiece]) {
+    ctx.font = '11px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText(HEADPIECE_ICON[cfg.headpiece], 0, -37);
+  }
+
+  // companion, floating alongside
+  const comp = AVATAR_SLOTS.companion.items.find(i=>i.id===cfg.companion);
+  if (comp && comp.icon) {
+    ctx.font = '13px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText(comp.icon, 18, -2 + Math.sin(walkPhase*0.7)*3);
+  }
+
+  // carried item, bobbing overhead in the avatar's hands
+  if (carrying) {
+    ctx.font = 'bold 16px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText(carrying, 0, -46 + Math.sin(walkPhase*1.3)*2);
+  }
+
+  ctx.restore();
+}
+
+const PALACE_WORLD_W = 4200, PALACE_WORLD_H = 2800;
+
+const PERMITS = [
+  {id:'apprentice', name:"Apprentice Builder's Permit", price:500, desc:'Lets you place columns, fountains, and statues.'},
+  {id:'master', name:"Master Builder's Permit", price:2500, desc:'Unlocks grand structures: bath house, reflecting pool.'},
+  {id:'royal', name:"Royal Builder's Permit", price:9000, desc:'Unlocks royal wonders: watchtower, grand gate, throne room.'},
+  {id:'divine', name:"Divine Builder's Permit", price:25000, desc:'Unlocks divine marvels: golden colonnade, temple dome, sky bridge.'},
+];
+
+const STRUCTURES = [
+  {id:'column', name:'Marble Column', tier:0, base:150, cap:12, icon:'🏛️'},
+  {id:'fountain', name:'Stone Fountain', tier:0, base:450, cap:4, icon:'⛲'},
+  {id:'statue', name:'Marble Statue', tier:0, base:650, cap:6, icon:'🗿'},
+  {id:'bathhouse', name:'Bath House', tier:1, base:1800, cap:2, icon:'🛁'},
+  {id:'pool', name:'Reflecting Pool', tier:1, base:1100, cap:3, icon:'🌊'},
+  {id:'watchtower', name:'Watchtower', tier:2, base:2600, cap:4, icon:'🗼'},
+  {id:'gate', name:'Grand Gate', tier:2, base:3400, cap:1, icon:'⛩️'},
+  {id:'throne', name:'Throne Room', tier:2, base:5200, cap:1, icon:'👑'},
+  {id:'colonnade', name:'Golden Colonnade', tier:3, base:6500, cap:3, icon:'✨'},
+  {id:'dome', name:'Temple Dome', tier:3, base:11000, cap:1, icon:'🏯'},
+  {id:'bridge', name:'Sky Bridge', tier:3, base:16000, cap:1, icon:'🌉'},
+];
+
+const STONE_ITEM = { id:'stone', name:'Masonry Stone', base:60, icon:'🪨' };
+
+const SEEDS = [
+  {id:'wildflower', name:'Wildflower Seeds', tier:0, base:80, cap:12, sprout:'🌱', bloom:'🌼'},
+  {id:'rosebush', name:'Rose Cutting', tier:0, base:150, cap:8, sprout:'🌱', bloom:'🌹'},
+  {id:'olive', name:'Olive Sapling', tier:0, base:220, cap:6, sprout:'🌱', bloom:'🌳'},
+  {id:'grapevine', name:'Grapevine Seed', tier:1, base:180, cap:6, sprout:'🌱', bloom:'🍇'},
+  {id:'lotus', name:'Lotus Seed', tier:1, base:200, cap:6, sprout:'🌱', bloom:'🪷'},
+  {id:'cypress', name:'Cypress Sapling', tier:1, base:260, cap:5, sprout:'🌱', bloom:'🌲'},
+];
+
+const FURNITURE = [
+  {id:'chair', name:'Wooden Chair', base:80, cap:8, icon:'🪑'},
+  {id:'bench', name:'Cushioned Bench', base:220, cap:4, icon:'🛋️'},
+  {id:'lamp', name:'Oil Lamp', base:90, cap:8, icon:'🪔'},
+  {id:'shelf', name:'Bookshelf', base:300, cap:3, icon:'📚'},
+  {id:'tapestry', name:'Wall Tapestry', base:260, cap:4, icon:'🖼️'},
+  {id:'plant', name:'Potted Plant', base:110, cap:6, icon:'🪴'},
+  {id:'candelabra', name:'Candelabra', base:180, cap:5, icon:'🕯️'},
+  {id:'vase', name:'Painted Vase', base:140, cap:6, icon:'🏺'},
+];
+
+const PAINT_COLORS = [
+  {id:'marble', name:'Marble White', price:0, hex:'#f4ecd8'},
+  {id:'aegean', name:'Aegean Blue', price:250, hex:'#1d5f8a'},
+  {id:'wine', name:'Tyrian Wine', price:250, hex:'#7b2d3e'},
+  {id:'gold', name:'Gold Leaf', price:900, hex:'#d4af37'},
+  {id:'olive', name:'Olive Grove', price:250, hex:'#6b7f3a'},
+  {id:'rose', name:'Rose Quartz', price:250, hex:'#d46a92'},
+  {id:'obsidian', name:'Obsidian Black', price:600, hex:'#2b2b2b'},
+  {id:'coral', name:'Sunrise Coral', price:250, hex:'#e0793a'},
+];
+
+const MERCHANT_LINES = [
+  "Ah, a customer with a keen eye!",
+  "For you? A special price... maybe.",
+  "This piece traveled all the way from Corinth!",
+  "Hmm. Let's see what you're offering.",
+  "You drive a hard bargain, mortal.",
+  "The gods themselves would envy this piece.",
+];
+
+function permitIndex(p){ return p.palace.permitTier ? PERMITS.findIndex(t=>t.id===p.palace.permitTier) : -1; }
+
+function countPlaced(p, kind, id){
+  return p.palace.objects.filter(o => o.kind===kind && o.id===id).length;
+}
+function countPending(p, kind, id){
+  return p.palace.pendingItems.filter(it => it.kind===kind && it.id===id).length;
+}
+function totalOwned(p, kind, id){ return countPlaced(p, kind, id) + countPending(p, kind, id); }
+
+function marketPrice(item, ownedCount){ return Math.round(item.base * Math.pow(1.4, ownedCount)); }
+
+
+function countBloomed(p){
+  return p.palace.objects.filter(o => o.kind==='seed' && (o.stage ?? 0) >= 3).length;
+}
+
+function isGrandPalace(p){
+  return p.palace.paintColor === 'gold'
+    && countPlaced(p,'structure','throne') >= 1
+    && countPlaced(p,'structure','dome') >= 1
+    && countPlaced(p,'structure','statue') >= 4
+    && countPlaced(p,'structure','fountain') >= 3
+    && countBloomed(p) >= 6;
+}
+
+const FRIENDS_POOL = [
+  { id:'f1', name:'Thalia the Bold', deity:'ares', avatar:{skin:'s3',hair:'h3',hairColor:'#1a1a1a',robe:'r5',robeColor:'#8c2b2b',headpiece:'p1',accessory:'a8',aura:'u6',companion:'c7'},
+    paintColor:'wine', placements:[
+      [1,3,'structure','column'],[2,3,'structure','column'],[3,3,'structure','column'],[5,3,'structure','column'],[6,3,'structure','column'],
+      [4,2,'structure','fountain'],[1,2,'structure','statue'],[7,2,'structure','statue'],
+      [0,4,'seed','wildflower'],[8,4,'seed','wildflower'],
+    ] },
+  { id:'f2', name:'Nikandros of the Tide', deity:'poseidon', avatar:{skin:'s4',hair:'h6',hairColor:'#2b1d10',robe:'r7',robeColor:'#1d5f8a',headpiece:'p1',accessory:'a3',aura:'u3',companion:'c5'},
+    paintColor:'aegean', placements:[
+      [2,3,'structure','column'],[4,3,'structure','column'],[6,3,'structure','column'],
+      [3,2,'structure','fountain'],[5,2,'structure','fountain'],
+      [1,4,'seed','lotus'],[7,4,'seed','lotus'],
+    ] },
+  { id:'f3', name:'Irene Swiftfoot', deity:'hermes', avatar:{skin:'s2',hair:'h1',hairColor:'#8a5a2a',robe:'r1',robeColor:'#3f8f7a',headpiece:'p1',accessory:'a7',aura:'u1',companion:'c1'},
+    paintColor:'marble', placements:[
+      [4,2,'structure','column'],
+    ] },
+  { id:'f4', name:'Calliope Star-Weaver', deity:'aphrodite', avatar:{skin:'s1',hair:'h5',hairColor:'#c98a3a',robe:'r2',robeColor:'#d46a92',headpiece:'p2',accessory:'a2',aura:'u5',companion:'c4'},
+    paintColor:'gold', placements:[
+      [0,0,'structure','column'],[1,0,'structure','column'],[2,0,'structure','column'],[3,0,'structure','column'],
+      [5,0,'structure','column'],[6,0,'structure','column'],[7,0,'structure','column'],[8,0,'structure','column'],[4,0,'structure','dome'],
+      [0,1,'structure','statue'],[1,1,'structure','fountain'],[2,1,'structure','colonnade'],[4,1,'structure','throne'],
+      [6,1,'structure','colonnade'],[7,1,'structure','fountain'],[8,1,'structure','statue'],
+      [0,2,'structure','watchtower'],[2,2,'structure','bathhouse'],[4,2,'structure','gate'],[6,2,'structure','bathhouse'],[8,2,'structure','watchtower'],
+      [1,3,'structure','statue'],[3,3,'structure','pool'],[4,3,'structure','fountain'],[5,3,'structure','pool'],[7,3,'structure','statue'],
+      [0,4,'seed','rosebush'],[1,4,'seed','wildflower'],[2,4,'seed','olive'],[3,4,'seed','grapevine'],[4,4,'seed','lotus'],
+      [5,4,'seed','cypress'],[6,4,'seed','rosebush'],[7,4,'seed','wildflower'],[8,4,'seed','olive'],
+    ] },
+  { id:'f5', name:'Orin the Wise', deity:'athena', avatar:{skin:'s5',hair:'h4',hairColor:'#1a1a1a',robe:'r4',robeColor:'#5b6b8c',headpiece:'p3',accessory:'a6',aura:'u1',companion:'c2'},
+    paintColor:'olive', placements:[
+      [1,3,'structure','column'],[3,3,'structure','column'],[5,3,'structure','column'],[7,3,'structure','column'],
+      [2,2,'structure','statue'],[4,2,'structure','statue'],[6,2,'structure','statue'],[4,3,'structure','pool'],
+      [0,4,'seed','olive'],[8,4,'seed','olive'],
+    ] },
+  { id:'f6', name:'Persephone-Anne', deity:'demeter', avatar:{skin:'s3',hair:'h2',hairColor:'#e8c04a',robe:'r2',robeColor:'#8a7a2e',headpiece:'p4',accessory:'a1',aura:'u4',companion:'c1'},
+    paintColor:'marble', placements:[
+      [4,2,'structure','fountain'],[4,3,'structure','statue'],
+      [1,3,'seed','wildflower'],[2,3,'seed','wildflower'],[6,3,'seed','rosebush'],[7,3,'seed','rosebush'],
+      [1,4,'seed','olive'],[2,4,'seed','olive'],[6,4,'seed','grapevine'],[7,4,'seed','grapevine'],[4,4,'seed','lotus'],
+    ] },
+];
+
+function friendObjects(f, w, h){
+  const cols = 9, rows = 5;
+  return f.placements.map(([gx,gy,kind,id]) => ({
+    kind, id, stage: 9, built: true,
+    x: (gx+0.5)/cols*w,
+    y: (gy+0.5)/rows*h,
+  }));
+}
+
+//STATE
+const EXP_TIERS = [
+  {pct:'0%', quote:"Who's Zeus? Never heard of him!"},
+  {pct:'20%', quote:'I know Hercules is a Disney movie... right?'},
+  {pct:'40%', quote:'I can name like five gods if you give me a minute.'},
+  {pct:'60%', quote:"I've read Percy Jackson. Twice. Try me."},
+  {pct:'80%', quote:'I dream in ancient Greek. Bring your best question.'},
+];
+
+const KNOWLEDGE_TIERS = [
+  {min:0, label:'Mortal Newcomer'},
+  {min:0.2, label:'Curious Apprentice'},
+  {min:0.4, label:'Temple Scholar'},
+  {min:0.6, label:"Oracle's Favorite"},
+  {min:0.8, label:'Olympian Sage'},
+];
+
+function knowledgeTier(p){
+  const acc = p.knowledge.total ? p.knowledge.correct / p.knowledge.total : 0;
+  let t = KNOWLEDGE_TIERS[0];
+  for (const k of KNOWLEDGE_TIERS) if (acc >= k.min) t = k;
+  return t;
+}
+
+function freshPlayer(){
+  return {
+    name: '',
+    expTierIndex: null,
+    avatar: defaultAvatar(),
+    owned: { skin:['s1','s2','s3','s4','s5','s6'], hair:['h1','h2'], robe:['r1','r2'], headpiece:['p1'], accessory:['a1'], aura:['u1'], companion:['c1'] },
+    personalityScores: {},
+    matchedDeity: null,
+    chosenDeity: null,
+    drachma: 5000,
+    knowledge: { correct:0, total:0 },
+    palace: {
+      permitTier: null,
+      paintColor: 'marble',
+      unlockedColors: new Set(['marble']),
+      objects: [],
+      pendingItems: [],
+      diningGuests: [],
+      playerPos: { x: PALACE_WORLD_W/2, y: PALACE_WORLD_H/2 },
+    },
+    friends: new Set(),
+    mythsRead: new Set(),
+  };
+}
+let player = freshPlayer();
+
+// onboarding transient state
+let ob = { pqIndex:0, pqScores:{} };
+
+function go(screenId){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  const el = document.getElementById(screenId);
+  if (el) el.classList.add('active');
+  document.querySelectorAll('.navbtn').forEach(b=>b.classList.toggle('active', b.dataset.screen===screenId));
+  window.scrollTo(0,0);
+  if (RENDERERS[screenId]) RENDERERS[screenId]();
+  renderHeader();
+}
+
+function renderHeader(){
+  const header = document.getElementById('mainHeader');
+  const onboardScreens = ['scr-onboard-name','scr-onboard-exp','scr-onboard-avatarloading','scr-onboard-avatarreveal','scr-onboard-quizintro','scr-onboard-quiz','scr-onboard-match'];
+  const showHeader = !onboardScreens.some(id => document.getElementById(id).classList.contains('active'));
+  header.classList.toggle('hidden', !showHeader);
+  if (!showHeader) return;
+  document.getElementById('hudDrachma').textContent = '🪙 ' + player.drachma;
+  document.getElementById('hudTier').textContent = knowledgeTier(player).label;
+  document.getElementById('hudAvatar').innerHTML = renderAvatarSVG(player.avatar);
+  const nav = document.getElementById('mainNav');
+  nav.innerHTML = `
+    <button class="navbtn" data-screen="scr-home" onclick="go('scr-home')">Deities</button>
+    ${player.chosenDeity ? `<button class="navbtn" data-screen="scr-deity" onclick="openDeity(player.chosenDeity)">My Deity</button>` : ''}
+    <button class="navbtn" data-screen="scr-avatarshop" onclick="go('scr-avatarshop')">Avatar</button>
+    <button class="navbtn" data-screen="scr-palace" onclick="go('scr-palace')">Palace</button>
+    <button class="navbtn" data-screen="scr-market" onclick="go('scr-market')">Market</button>
+    <button class="navbtn" data-screen="scr-friends" onclick="go('scr-friends')">Friends</button>
+  `;
+}
+
+function addDrachma(n){ player.drachma = Math.max(0, player.drachma + n); }
+
+function openModal(html){ document.getElementById('modalBox').innerHTML = html; document.getElementById('modalOverlay').classList.add('active'); }
+function closeModal(){ document.getElementById('modalOverlay').classList.remove('active'); }
+
+const RENDERERS = {};
+
+//RENDER
+
+//LOGIC
+
+function escapeHtml(str){
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+function submitName(){
+  const input = document.getElementById('nameInput');
+  const val = input.value.trim();
+  if (!val) { input.focus(); return; }
+  player.name = val;
+  go('scr-onboard-exp');
+}
+
+RENDERERS['scr-onboard-exp'] = function(){
+  document.getElementById('expBubble').innerHTML = `Hi, <b>${escapeHtml(player.name)}</b>! Welcome to Greek Know-All-ogy!<br>What experience do you have with Greek myths?`;
+  document.getElementById('expGrid').innerHTML = EXP_TIERS.map((t,i)=>`
+    <div class="exp-card" onclick="selectExp(${i})">
+      <div class="pct">${t.pct}</div>
+      <div class="quote">"${t.quote}"</div>
+    </div>`).join('');
+};
+
+function selectExp(i){
+  player.expTierIndex = i;
+  go('scr-onboard-avatarloading');
+}
+
+function revealAvatar(){
+  player.avatar = randomAvatar();
+  document.getElementById('revealAvatarFrame').innerHTML = renderAvatarSVG(player.avatar);
+  go('scr-onboard-avatarreveal');
+}
+
+RENDERERS['scr-onboard-quizintro'] = function(){
+  document.getElementById('quizIntroBubble').innerHTML = `Okay, <b>${escapeHtml(player.name)}</b>, here's a fun personality quiz to find out which Greek deity you are!`;
+};
+
+function startPersonalityQuiz(){
+  ob.pqIndex = 0;
+  ob.pqScores = {};
+  DEITIES.forEach(d=>ob.pqScores[d.id]=0);
+  go('scr-onboard-quiz');
+}
+
+RENDERERS['scr-onboard-quiz'] = function(){
+  const q = PERSONALITY_QUESTIONS[ob.pqIndex];
+  document.getElementById('pqProgressBar').style.width = (ob.pqIndex/PERSONALITY_QUESTIONS.length*100)+'%';
+  document.getElementById('pqQuestion').textContent = q.q;
+  document.getElementById('pqOptions').innerHTML = q.options.map((o,i)=>`<div class="pq-opt" onclick="choosePQOption(${i})">${escapeHtml(o.text)}</div>`).join('');
+};
+
+function choosePQOption(i){
+  const q = PERSONALITY_QUESTIONS[ob.pqIndex];
+  const opt = q.options[i];
+  Object.keys(opt.pts).forEach(dId => ob.pqScores[dId] = (ob.pqScores[dId]||0) + opt.pts[dId]);
+  ob.pqIndex++;
+  if (ob.pqIndex >= PERSONALITY_QUESTIONS.length) { finishPersonalityQuiz(); return; }
+  go('scr-onboard-quiz');
+};
+
+function skipPersonalityQuiz(){
+  player.matchedDeity = null;
+  player.chosenDeity = null;
+  quizExcludeDeity = null;
+  go('scr-home');
+}
+
+let quizExcludeDeity = null;
+
+function finishPersonalityQuiz(){
+  let best = null, bestScore = -1;
+  Object.keys(ob.pqScores).forEach(dId => {
+    if (quizExcludeDeity && dId === quizExcludeDeity) return;
+    if (ob.pqScores[dId] > bestScore) { bestScore = ob.pqScores[dId]; best = dId; }
+  });
+  quizExcludeDeity = null;
+  player.matchedDeity = best;
+  player.personalityScores = ob.pqScores;
+  go('scr-onboard-match');
+}
+
+function retakeQuizDifferent(){
+  quizExcludeDeity = player.matchedDeity;
+  startPersonalityQuiz();
+}
+
+RENDERERS['scr-onboard-match'] = function(){
+  const d = deity(player.matchedDeity);
+  document.getElementById('matchBubble').innerHTML = `The oracle has spoken, <b>${escapeHtml(player.name)}</b>!<br>You are most like...`;
+  document.getElementById('matchCard').innerHTML = `
+    <div class="dico">${d.icon}</div>
+    <div class="dname">${d.name}</div>
+    <div class="depi">"${d.epithet}" — ${d.tagline}</div>`;
+};
+
+function completeLogin(){
+  player.chosenDeity = player.matchedDeity;
+  go('scr-home');
+}
+
+// support "skip personality quiz" path landing straight on home with no match
+function goHomeNoMatch(){
+  player.chosenDeity = null;
+  go('scr-home');
+}
+
+// ---------- Home / Deity ----------
+let viewingDeity = null;
+
+RENDERERS['scr-home'] = function(){
+  document.getElementById('homeSub').textContent = player.matchedDeity
+    ? `Your match: ${deity(player.matchedDeity).name}. Pick any deity to explore their myths and quizzes!`
+    : 'Pick a deity to explore their myths and quizzes!';
+  document.getElementById('deityGrid').innerHTML = DEITIES.map(d => `
+    <div class="deity-card ${d.id===player.matchedDeity?'matched':''}" onclick="openDeity('${d.id}')">
+      <div class="dico">${d.icon}</div>
+      <div class="dname">${d.name}</div>
+      <div class="depi">${d.tagline}</div>
+      ${d.id===player.matchedDeity ? '<div class="star">★ Your Match</div>' : ''}
+      ${d.id===player.chosenDeity ? '<div class="star">🏠 Current</div>' : ''}
+    </div>`).join('');
+};
+
+function openDeity(id){
+  viewingDeity = id;
+  go('scr-deity');
+}
+
+RENDERERS['scr-deity'] = function(){
+  const d = deity(viewingDeity);
+  document.getElementById('deityHero').innerHTML = `
+    <div class="dico-big">${d.icon}</div>
+    <h2>${d.name}</h2>
+    <div class="depi-big">"${d.epithet}"</div>
+    <div class="facts">
+      <span class="fact-chip">Domain: ${d.domain}</span>
+      <span class="fact-chip">Sacred Animal: ${d.animal}</span>
+      <span class="fact-chip">Roman Name: ${d.roman}</span>
+    </div>
+    ${player.chosenDeity!==d.id ? `<div style="margin-top:14px;"><button class="btn secondary small" onclick="setChosenDeity('${d.id}')">Make ${d.name} My Deity</button></div>` : ''}
+  `;
+  document.getElementById('deityActions').innerHTML = `
+    <div class="action-card" onclick="openMythsList('${d.id}')">
+      <div class="aico">📜</div>
+      <div class="atitle">Myths</div>
+      <div class="adesc">Read 10 short myths about ${d.name}</div>
+    </div>
+    <div class="action-card" onclick="startQuiz('${d.id}')">
+      <div class="aico">🏺</div>
+      <div class="atitle">Quiz</div>
+      <div class="adesc">Answer questions — earn or lose drachma!</div>
+    </div>
+  `;
+};
+
+function setChosenDeity(id){
+  player.chosenDeity = id;
+  go('scr-deity');
+}
+
+// ---------- Myths ----------
+let currentMythIndex = 0;
+
+function openMythsList(id){
+  viewingDeity = id;
+  go('scr-myths');
+}
+
+RENDERERS['scr-myths'] = function(){
+  const d = deity(viewingDeity);
+  document.getElementById('mythsTitle').textContent = `${d.name}'s Myths`;
+  document.getElementById('mythsBackBtn').onclick = () => openDeity(viewingDeity);
+  document.getElementById('mythList').innerHTML = MYTHS[viewingDeity].map((m,i) => `
+    <div class="myth-card ${player.mythsRead.has(viewingDeity+':'+i)?'read':''}" onclick="openMyth(${i})">
+      <div class="mnum">Myth ${i+1} of 10</div>
+      <div class="mtitle">${escapeHtml(m.title)}</div>
+    </div>`).join('');
+};
+
+function openMyth(i){
+  currentMythIndex = i;
+  player.mythsRead.add(viewingDeity+':'+i);
+  go('scr-mythreader');
+}
+
+RENDERERS['scr-mythreader'] = function(){
+  const d = deity(viewingDeity);
+  const m = MYTHS[viewingDeity][currentMythIndex];
+  document.getElementById('mythReaderBox').innerHTML = `<h3>${escapeHtml(m.title)}</h3><p>${escapeHtml(m.text)}</p>`;
+  const prevBtn = document.getElementById('mythPrevBtn');
+  const nextBtn = document.getElementById('mythNextBtn');
+  prevBtn.disabled = currentMythIndex === 0;
+  prevBtn.onclick = () => { if (currentMythIndex>0) openMyth(currentMythIndex-1); };
+  if (currentMythIndex === MYTHS[viewingDeity].length - 1) {
+    nextBtn.textContent = 'Finish';
+    nextBtn.onclick = () => go('scr-myths');
+  } else {
+    nextBtn.textContent = 'Next →';
+    nextBtn.onclick = () => openMyth(currentMythIndex+1);
+  }
+};
+
+// ---------- Quiz ----------
+let quizState = null;
+
+function startQuiz(deityId){
+  viewingDeity = deityId;
+  quizState = { deityId, questions: buildQuizSession(deityId, 8), idx: 0, correct: 0, drachmaEarned: 0, answered:false };
+  go('scr-quiz');
+}
+
+RENDERERS['scr-quiz'] = function(){
+  const d = deity(quizState.deityId);
+  document.getElementById('quizBackBtn').onclick = () => openDeity(quizState.deityId);
+  document.getElementById('quizDeityName').textContent = `${d.icon} ${d.name} Quiz`;
+  document.getElementById('quizCounter').textContent = `Question ${quizState.idx+1} of ${quizState.questions.length}`;
+  document.getElementById('quizProgressBar').style.width = (quizState.idx/quizState.questions.length*100)+'%';
+  const q = quizState.questions[quizState.idx];
+  document.getElementById('quizQuestion').textContent = q.q;
+  document.getElementById('quizFeedback').textContent = '';
+  document.getElementById('quizFeedback').className = 'quiz-feedback';
+  document.getElementById('quizNextBtn').style.display = 'none';
+  quizState.answered = false;
+  document.getElementById('quizChoices').innerHTML = q.choices.map((c,i) => `
+    <div class="quiz-choice" onclick="chooseQuizAnswer(${i})">${escapeHtml(c)}</div>`).join('');
+};
+
+function chooseQuizAnswer(i){
+  if (quizState.answered) return;
+  quizState.answered = true;
+  const q = quizState.questions[quizState.idx];
+  const choiceEls = document.querySelectorAll('#quizChoices .quiz-choice');
+  choiceEls.forEach(el => el.classList.add('disabled'));
+  const feedback = document.getElementById('quizFeedback');
+  player.knowledge.total++;
+  const tier = knowledgeTier(player);
+  const rewardBase = 12 + KNOWLEDGE_TIERS.indexOf(tier) * 4;
+  if (i === q.answer) {
+    choiceEls[i].classList.add('correct');
+    const gain = rewardBase + Math.floor(Math.random()*8);
+    addDrachma(gain);
+    quizState.drachmaEarned += gain;
+    quizState.correct++;
+    player.knowledge.correct++;
+    feedback.textContent = `Correct! +${gain} drachma 🪙`;
+    feedback.className = 'quiz-feedback good';
+  } else {
+    choiceEls[i].classList.add('wrong');
+    choiceEls[q.answer].classList.add('correct');
+    const loss = 6 + Math.floor(Math.random()*5);
+    addDrachma(-loss);
+    quizState.drachmaEarned -= loss;
+    feedback.textContent = `Not quite — the answer was "${q.choices[q.answer]}". -${loss} drachma`;
+    feedback.className = 'quiz-feedback bad';
+  }
+  document.getElementById('hudDrachma').textContent = '🪙 ' + player.drachma;
+  document.getElementById('hudTier').textContent = knowledgeTier(player).label;
+  document.getElementById('quizNextBtn').style.display = 'inline-block';
+  document.getElementById('quizNextBtn').textContent = quizState.idx === quizState.questions.length-1 ? 'See Results' : 'Next →';
+}
+
+function nextQuizQuestion(){
+  quizState.idx++;
+  if (quizState.idx >= quizState.questions.length) { go('scr-quizresult'); return; }
+  RENDERERS['scr-quiz']();
+}
+
+RENDERERS['scr-quizresult'] = function(){
+  const d = deity(quizState.deityId);
+  document.getElementById('qrTitle').textContent = `${d.name} Quiz Complete!`;
+  document.getElementById('qrSummary').textContent = `You got ${quizState.correct} of ${quizState.questions.length} right and ${quizState.drachmaEarned>=0?'earned':'lost'} ${Math.abs(quizState.drachmaEarned)} drachma.`;
+  const tier = knowledgeTier(player);
+  document.getElementById('qrTier').textContent = `Your knowledge tier: ${tier.label}`;
+  document.getElementById('qrAgainBtn').onclick = () => startQuiz(quizState.deityId);
+  document.getElementById('qrBackBtn').onclick = () => openDeity(quizState.deityId);
+};
+
+// ---------- Avatar Shop ----------
+const SLOT_ICON = { skin:'🎨', hair:'💇', robe:'👘', headpiece:'👑', accessory:'💍', aura:'✨', companion:'🐾' };
+let currentShopSlot = 'hair';
+
+RENDERERS['scr-avatarshop'] = function(){
+  document.getElementById('shopAvatarFrame').innerHTML = renderAvatarSVG(player.avatar);
+  const slots = Object.keys(AVATAR_SLOTS);
+  document.getElementById('shopTabs').innerHTML = slots.map(s=>`<div class="tab ${s===currentShopSlot?'active':''}" onclick="setShopSlot('${s}')">${AVATAR_SLOTS[s].label}</div>`).join('');
+  const colorField = currentShopSlot==='hair' ? 'hairColor' : currentShopSlot==='robe' ? 'robeColor' : null;
+  const swatchRow = document.getElementById('shopSwatchRow');
+  if (colorField) {
+    swatchRow.style.display = 'flex';
+    swatchRow.innerHTML = COLOR_SWATCHES.map(c=>`<div class="swatch ${player.avatar[colorField]===c?'active':''}" style="background:${c}" onclick="setAvatarColor('${colorField}','${c}')"></div>`).join('');
+  } else {
+    swatchRow.style.display = 'none';
+    swatchRow.innerHTML = '';
+  }
+  const items = AVATAR_SLOTS[currentShopSlot].items;
+  document.getElementById('shopGrid').innerHTML = items.map(it=>{
+    const owned = player.owned[currentShopSlot].includes(it.id);
+    const equipped = player.avatar[currentShopSlot]===it.id;
+    const iconHtml = it.hex
+      ? `<span style="display:inline-block;width:28px;height:28px;border-radius:50%;background:${it.hex};border:2px solid rgba(0,0,0,0.2);"></span>`
+      : (it.icon || SLOT_ICON[currentShopSlot]);
+    const btnLabel = equipped ? 'Equipped' : owned ? 'Equip' : (it.price===0?'Get':('Buy'));
+    return `<div class="shop-item ${owned?'owned':''} ${equipped?'equipped':''}">
+      <div class="sicon">${iconHtml}</div>
+      <div class="sname">${escapeHtml(it.name)}</div>
+      <div class="sprice">${owned ? (equipped?'✓ Equipped':'Owned') : (it.price===0?'Free':'🪙 '+it.price)}</div>
+      <button class="btn small" style="margin-top:8px;" ${equipped?'disabled':''} onclick="buySlotItem('${currentShopSlot}','${it.id}')">${btnLabel}</button>
+    </div>`;
+  }).join('');
+};
+
+function setShopSlot(s){ currentShopSlot = s; RENDERERS['scr-avatarshop'](); }
+function setAvatarColor(field, hex){ player.avatar[field] = hex; RENDERERS['scr-avatarshop'](); renderHeader(); }
+
+function buySlotItem(slot, id){
+  const owned = player.owned[slot].includes(id);
+  if (owned) { player.avatar[slot] = id; RENDERERS['scr-avatarshop'](); renderHeader(); return; }
+  const item = AVATAR_SLOTS[slot].items.find(i=>i.id===id);
+  if (item.price > 0 && player.drachma < item.price) { flashInsufficientFunds(); return; }
+  addDrachma(-item.price);
+  player.owned[slot].push(id);
+  player.avatar[slot] = id;
+  RENDERERS['scr-avatarshop']();
+  renderHeader();
+}
+
+function flashInsufficientFunds(){
+  openModal(`<h3 class="greek-font" style="color:var(--wine);">Not Enough Drachma!</h3>
+    <p style="margin:12px 0;">Go earn more gold by taking quizzes about your favorite deities.</p>
+    <button class="btn" onclick="closeModal()">OK</button>`);
+}
+
+// ---------- Shared walking input ----------
+const heldKeys = {};
+document.addEventListener('keydown', (e) => {
+  const marketActive = document.getElementById('scr-market').classList.contains('active');
+  const palaceActive = document.getElementById('scr-palace').classList.contains('active');
+  const interiorActive = document.getElementById('scr-palace-interior').classList.contains('active');
+  const modalOpen = document.getElementById('modalOverlay').classList.contains('active');
+  if ((marketActive || palaceActive || interiorActive) && !modalOpen && ['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key)) e.preventDefault();
+  heldKeys[e.key] = true;
+  if (modalOpen) return;
+  if (e.key === ' ') {
+    if (marketActive) tryInteractMarket();
+    else if (palaceActive) tryInteractExterior();
+    else if (interiorActive) tryInteractInterior();
+  }
+});
+document.addEventListener('keyup', (e) => { heldKeys[e.key] = false; });
+
+// ---------- Market World ----------
+const MARKET_STALLS = [
+  { id:'permits', name:"Scribe's Table", x:160, y:200, tint:'#7b2d3e', icon:'📜', kind:'permit' },
+  { id:'structures', name:"Mason's Yard", x:480, y:150, tint:'#5b6b8c', icon:'🏛️', kind:'structure' },
+  { id:'seeds', name:"Gardener's Cart", x:800, y:200, tint:'#6b7f3a', icon:'🌱', kind:'seed' },
+  { id:'furniture', name:"Furniture Stand", x:260, y:440, tint:'#8a5a2a', icon:'🪑', kind:'furniture' },
+  { id:'paint', name:"Painter's Stand", x:700, y:440, tint:'#d4af37', icon:'🎨', kind:'paint' },
+];
+
+let marketWorld = { x:480, y:520, facing:'down', walking:false, walkPhase:0, nearStall:null, lastTs:null, raf:null };
+let bargainState = null;
+
+function drawStall(ctx, s){
+  ctx.save();
+  ctx.translate(s.x, s.y);
+  ctx.fillStyle = 'rgba(0,0,0,0.2)';
+  ctx.beginPath(); ctx.ellipse(0, 44, 50, 10, 0, 0, Math.PI*2); ctx.fill();
+  ctx.strokeStyle = '#8a6a3a'; ctx.lineWidth = 5;
+  ctx.beginPath(); ctx.moveTo(-42,-50); ctx.lineTo(-42,30); ctx.moveTo(42,-50); ctx.lineTo(42,30); ctx.stroke();
+  ctx.fillStyle = s.tint;
+  ctx.fillRect(-46,-62,92,16);
+  ctx.beginPath();
+  for (let i=0;i<6;i++){ const bx=-46+i*15.3; ctx.moveTo(bx,-46); ctx.lineTo(bx+7.6,-34); ctx.lineTo(bx+15.3,-46); }
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#c9a96a'; ctx.fillRect(-46,26,92,16);
+  ctx.strokeStyle = 'rgba(0,0,0,0.2)'; ctx.strokeRect(-46,26,92,16);
+  ctx.font = '20px serif'; ctx.textAlign = 'center';
+  ctx.fillText(s.icon, -22, 22); ctx.fillText(s.icon, 0, 22); ctx.fillText(s.icon, 22, 22);
+  ctx.fillStyle = '#e0b280';
+  ctx.beginPath(); ctx.arc(0,-8,13,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle = s.tint;
+  ctx.beginPath(); ctx.moveTo(-15,24); ctx.lineTo(-11,-16); ctx.quadraticCurveTo(0,-22,11,-16); ctx.lineTo(15,24); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#2b2418';
+  ctx.beginPath(); ctx.arc(-3.5,-9,1.3,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(3.5,-9,1.3,0,Math.PI*2); ctx.fill();
+  ctx.font = 'bold 13px Georgia'; ctx.fillText(s.name, 0, 58);
+  ctx.restore();
+}
+
+function drawMarketWorld(){
+  const ctx = document.getElementById('marketCanvas').getContext('2d');
+  ctx.clearRect(0,0,960,600);
+  const g = ctx.createLinearGradient(0,0,0,600);
+  g.addColorStop(0,'#e8d9b0'); g.addColorStop(1,'#c9a96a');
+  ctx.fillStyle = g; ctx.fillRect(0,0,960,600);
+  ctx.strokeStyle = 'rgba(0,0,0,0.05)';
+  for (let i=0;i<=960;i+=48){ ctx.beginPath(); ctx.moveTo(i,0); ctx.lineTo(i,600); ctx.stroke(); }
+  for (let j=0;j<=600;j+=48){ ctx.beginPath(); ctx.moveTo(0,j); ctx.lineTo(960,j); ctx.stroke(); }
+  ctx.fillStyle = '#6b5326'; ctx.font = 'bold 22px Georgia'; ctx.textAlign = 'center';
+  ctx.fillText('~ The Agora ~', 480, 42);
+
+  const drawables = [...MARKET_STALLS.map(s=>({type:'stall', y:s.y+40, s})), {type:'player', y:marketWorld.y}];
+  drawables.sort((a,b)=>a.y-b.y);
+  drawables.forEach(d=> d.type==='stall' ? drawStall(ctx, d.s) : drawAvatarSprite(ctx, marketWorld.x, marketWorld.y, player.avatar, marketWorld.facing, marketWorld.walkPhase, null));
+
+  if (marketWorld.nearStall) {
+    const s = MARKET_STALLS.find(x=>x.id===marketWorld.nearStall);
+    ctx.font = 'bold 14px Georgia'; ctx.textAlign = 'center';
+    ctx.strokeStyle = 'rgba(0,0,0,0.6)'; ctx.lineWidth = 3;
+    ctx.strokeText(`SPACE — Browse ${s.name}`, marketWorld.x, marketWorld.y - 48);
+    ctx.fillStyle = '#fffdf6';
+    ctx.fillText(`SPACE — Browse ${s.name}`, marketWorld.x, marketWorld.y - 48);
+  }
+}
+
+function updateMarketWorld(dt){
+  const speed = 190;
+  let dx=0, dy=0;
+  if (heldKeys['ArrowUp']) { dy=-1; marketWorld.facing='up'; }
+  if (heldKeys['ArrowDown']) { dy=1; marketWorld.facing='down'; }
+  if (heldKeys['ArrowLeft']) { dx=-1; marketWorld.facing='left'; }
+  if (heldKeys['ArrowRight']) { dx=1; marketWorld.facing='right'; }
+  marketWorld.walking = dx!==0 || dy!==0;
+  if (marketWorld.walking) {
+    const len = Math.hypot(dx,dy);
+    marketWorld.x = Math.max(40, Math.min(920, marketWorld.x + (dx/len)*speed*dt));
+    marketWorld.y = Math.max(90, Math.min(580, marketWorld.y + (dy/len)*speed*dt));
+    marketWorld.walkPhase += dt*9;
+  }
+  let near = null;
+  for (const s of MARKET_STALLS) { if (Math.hypot(marketWorld.x-s.x, marketWorld.y-(s.y+30)) < 65) { near = s.id; break; } }
+  marketWorld.nearStall = near;
+}
+
+function marketLoop(ts){
+  if (!document.getElementById('scr-market').classList.contains('active')) { marketWorld.raf = null; return; }
+  const dt = Math.min(0.05, (ts - (marketWorld.lastTs || ts)) / 1000);
+  marketWorld.lastTs = ts;
+  updateMarketWorld(dt);
+  drawMarketWorld();
+  marketWorld.raf = requestAnimationFrame(marketLoop);
+}
+
+RENDERERS['scr-market'] = function(){
+  document.getElementById('marketHint').textContent = "Walk up to a stall and press Space to browse its goods.";
+  marketWorld.lastTs = null;
+  if (!marketWorld.raf) marketWorld.raf = requestAnimationFrame(marketLoop);
+};
+
+function tryInteractMarket(){
+  if (!marketWorld.nearStall) return;
+  openStallGoods(MARKET_STALLS.find(x=>x.id===marketWorld.nearStall));
+}
+
+function openStallGoods(s){
+  const unlockedIdx = permitIndex(player);
+  let itemsHtml = '';
+  if (s.kind === 'permit') {
+    itemsHtml = PERMITS.map((t,idx)=>{
+      const owned = idx <= unlockedIdx;
+      const affordable = idx === unlockedIdx+1;
+      return `<div class="shop-item ${owned?'owned':''}">
+        <div class="sicon">📜</div>
+        <div class="sname">${t.name}</div>
+        <div class="sprice">${owned?'Owned':'Asking 🪙 '+t.price}</div>
+        <div style="font-size:0.7rem;color:var(--ink-soft);margin:4px 0;">${t.desc}</div>
+        <button class="btn small" ${owned||!affordable?'disabled':''} onclick="closeModal(); openBargain('permit','${t.id}')">${owned?'Owned':(affordable?'Bargain':'Locked')}</button>
+      </div>`;
+    }).join('');
+  } else if (s.kind === 'structure') {
+    const stoneOwned = totalOwned(player,'stone','stone');
+    const stonePrice = marketPrice(STONE_ITEM, stoneOwned);
+    const stoneCard = `<div class="shop-item">
+      <div class="sicon">${STONE_ITEM.icon}</div>
+      <div class="sname">${STONE_ITEM.name}</div>
+      <div class="sprice">Asking 🪙 ${stonePrice}</div>
+      <div style="font-size:0.7rem;color:var(--ink-soft);margin:4px 0;">Carry it to an unfinished structure to build it.</div>
+      <button class="btn small" onclick="closeModal(); openBargain('stone','stone')">Bargain</button>
+    </div>`;
+    itemsHtml = stoneCard + STRUCTURES.map(st=>{
+      const owned = totalOwned(player,'structure',st.id);
+      const locked = st.tier > unlockedIdx;
+      const atCap = owned >= st.cap;
+      const price = marketPrice(st, owned);
+      return `<div class="shop-item ${owned?'owned':''}">
+        <div class="sicon">${st.icon}</div>
+        <div class="sname">${st.name}${owned?` ×${owned}`:''}</div>
+        <div class="sprice">${locked?'Need a Permit':(atCap?'Max reached':'Asking 🪙 '+price)}</div>
+        <button class="btn small" ${locked||atCap?'disabled':''} onclick="closeModal(); openBargain('structure','${st.id}')">${locked?'Locked':(atCap?'Max':'Bargain')}</button>
+      </div>`;
+    }).join('');
+  } else if (s.kind === 'seed') {
+    itemsHtml = SEEDS.map(sd=>{
+      const owned = totalOwned(player,'seed',sd.id);
+      const locked = sd.tier > unlockedIdx;
+      const atCap = owned >= sd.cap;
+      const price = marketPrice(sd, owned);
+      return `<div class="shop-item ${owned?'owned':''}">
+        <div class="sicon">${sd.bloom}</div>
+        <div class="sname">${sd.name}${owned?` ×${owned}`:''}</div>
+        <div class="sprice">${locked?'Need a Permit':(atCap?'Max reached':'Asking 🪙 '+price)}</div>
+        <button class="btn small" ${locked||atCap?'disabled':''} onclick="closeModal(); openBargain('seed','${sd.id}')">${locked?'Locked':(atCap?'Max':'Bargain')}</button>
+      </div>`;
+    }).join('');
+  } else if (s.kind === 'furniture') {
+    itemsHtml = FURNITURE.map(fi=>{
+      const owned = totalOwned(player,'furniture',fi.id);
+      const atCap = owned >= fi.cap;
+      const price = marketPrice(fi, owned);
+      return `<div class="shop-item ${owned?'owned':''}">
+        <div class="sicon">${fi.icon}</div>
+        <div class="sname">${fi.name}${owned?` ×${owned}`:''}</div>
+        <div class="sprice">${atCap?'Max reached':'Asking 🪙 '+price}</div>
+        <button class="btn small" ${atCap?'disabled':''} onclick="closeModal(); openBargain('furniture','${fi.id}')">${atCap?'Max':'Bargain'}</button>
+      </div>`;
+    }).join('');
+  } else {
+    itemsHtml = PAINT_COLORS.map(c=>{
+      const owned = player.palace.unlockedColors.has(c.id);
+      const active = player.palace.paintColor === c.id;
+      return `<div class="shop-item ${owned?'owned':''} ${active?'equipped':''}">
+        <div class="sicon"><span style="display:inline-block;width:26px;height:26px;border-radius:50%;background:${c.hex};border:2px solid rgba(0,0,0,0.2);"></span></div>
+        <div class="sname">${c.name}</div>
+        <div class="sprice">${owned?(active?'Applied':'Owned'):(c.price===0?'Free':'Asking 🪙 '+c.price)}</div>
+        <button class="btn small" ${active?'disabled':''} onclick="${owned?`applyColor('${c.id}'); closeModal();`:`closeModal(); openBargain('paint','${c.id}')`}">${active?'Applied':(owned?'Apply':'Bargain')}</button>
+      </div>`;
+    }).join('');
+  }
+  openModal(`<h3 class="greek-font" style="color:var(--wine); margin-bottom:6px;">${escapeHtml(s.name)}</h3>
+    <p style="margin-bottom:12px; color:var(--ink-soft); font-style:italic;">${escapeHtml(MERCHANT_LINES[Math.floor(Math.random()*MERCHANT_LINES.length)])}</p>
+    <div class="shop-grid">${itemsHtml}</div>
+    <div class="center" style="margin-top:14px;"><button class="btn secondary small" onclick="closeModal()">Walk Away</button></div>`);
+}
+
+function applyColor(id){ player.palace.paintColor = id; }
+
+// ---------- Palace World ----------
+let palaceWorld = { facing:'down', walking:false, walkPhase:0, lastTs:null, raf:null, gardenTimer:10, helperEffect:null, toastText:'', toastUntil:0 };
+const PALACE_DOOR = { x: PALACE_WORLD_W/2, y: 420 };
+const PALACE_FACADE_HALF_WIDTH = 1100;
+function setPalaceToast(text, ms){ palaceWorld.toastText = text; palaceWorld.toastUntil = Date.now() + ms; }
+function nearPalaceDoor(p){ return Math.hypot(p.x-PALACE_DOOR.x, p.y-PALACE_DOOR.y) < 110; }
+function findNearbyGrowingSeed(p){ return player.palace.objects.find(o => o.kind==='seed' && (o.stage ?? 0) < 9 && Math.hypot(o.x-p.x, o.y-p.y) < 40); }
+
+function drawPalaceFacade(ctx, tintHex){
+  const hw = PALACE_FACADE_HALF_WIDTH;
+  ctx.save();
+  ctx.translate(PALACE_DOOR.x, PALACE_DOOR.y);
+
+  // grand stepped platform leading up to the building
+  for (let s=0; s<4; s++){
+    const w = hw + 70 - s*22;
+    ctx.fillStyle = shadeHex('#e8ddc4', -s*9);
+    ctx.fillRect(-w, s*16, w*2, 18);
+  }
+
+  // main wall band (tinted with the player's chosen paint)
+  const wallGrad = ctx.createLinearGradient(0,-360,0,0);
+  wallGrad.addColorStop(0, shadeHex(tintHex, 14));
+  wallGrad.addColorStop(1, shadeHex(tintHex, -10));
+  ctx.fillStyle = wallGrad;
+  ctx.fillRect(-hw, -360, hw*2, 360);
+  ctx.strokeStyle = 'rgba(0,0,0,0.15)'; ctx.lineWidth = 3;
+  ctx.strokeRect(-hw, -360, hw*2, 360);
+
+  // long colonnade across the entire front
+  const colCount = 15;
+  for (let i=0;i<colCount;i++){
+    const cxp = -hw + 70 + i*((hw*2-140)/(colCount-1));
+    ctx.save(); ctx.translate(cxp, -40); ctx.scale(2.8, 2.8); drawColumnIcon(ctx); ctx.restore();
+  }
+
+  // entablature beam running above the columns
+  ctx.fillStyle = shadeHex(tintHex, 20);
+  ctx.fillRect(-hw-20, -358, hw*2+40, 34);
+  ctx.strokeStyle = 'rgba(0,0,0,0.15)'; ctx.strokeRect(-hw-20, -358, hw*2+40, 34);
+
+  // central pediment (triangular roof) with a simple sculpted relief
+  ctx.fillStyle = shadeHex(tintHex, 26);
+  ctx.beginPath(); ctx.moveTo(-380,-358); ctx.lineTo(0,-560); ctx.lineTo(380,-358); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = 'rgba(0,0,0,0.18)'; ctx.lineWidth = 2; ctx.stroke();
+  ctx.fillStyle = 'rgba(0,0,0,0.12)';
+  ctx.beginPath(); ctx.arc(0,-430,34,0,Math.PI*2); ctx.fill();
+  [-1,1].forEach(sgn=>{ ctx.beginPath(); ctx.ellipse(sgn*90,-390,26,14,sgn*0.5,0,Math.PI*2); ctx.fill(); });
+
+  // corner towers topped with domes
+  [-hw+90, hw-90].forEach(tx=>{
+    ctx.save(); ctx.translate(tx, -358); ctx.scale(2, 2);
+    const g = ctx.createLinearGradient(-20,0,20,0);
+    g.addColorStop(0,'#fffdf6'); g.addColorStop(1,'#b8a878');
+    ctx.fillStyle = g; ctx.fillRect(-24,-130,48,130);
+    ctx.strokeStyle = 'rgba(0,0,0,0.12)'; ctx.strokeRect(-24,-130,48,130);
+    const dg = ctx.createRadialGradient(-10,-140,8,0,-136,34);
+    dg.addColorStop(0,'#ffe27a'); dg.addColorStop(1,'#a9812f');
+    ctx.fillStyle = dg; ctx.beginPath(); ctx.arc(0,-130,32,Math.PI,0); ctx.fill();
+    ctx.fillStyle = '#ffe27a'; ctx.beginPath(); ctx.arc(0,-162,5,0,Math.PI*2); ctx.fill();
+    ctx.restore();
+  });
+
+  // grand central archway — the actual entrance
+  ctx.fillStyle = '#241d14';
+  ctx.beginPath();
+  ctx.moveTo(-70,20); ctx.lineTo(-70,-150);
+  ctx.quadraticCurveTo(0,-210,70,-150);
+  ctx.lineTo(70,20);
+  ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = '#d4af37'; ctx.lineWidth = 7; ctx.stroke();
+  ctx.fillStyle = '#ffe27a';
+  ctx.beginPath(); ctx.arc(-30,-80,3,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(30,-80,3,0,Math.PI*2); ctx.fill();
+
+  ctx.font = 'bold 22px Georgia'; ctx.textAlign = 'center'; ctx.fillStyle = '#fffdf6';
+  ctx.strokeStyle = 'rgba(0,0,0,0.4)'; ctx.lineWidth = 3;
+  ctx.strokeText('The Palace', 0, -382);
+  ctx.fillText('The Palace', 0, -382);
+
+  ctx.restore();
+}
+
+function updateGardenHelper(dt){
+  palaceWorld.gardenTimer -= dt;
+  if (palaceWorld.gardenTimer > 0) return;
+  palaceWorld.gardenTimer = 9 + Math.random()*7;
+  if (!player.friends.size) return;
+  const growingSeeds = player.palace.objects.filter(o=>o.kind==='seed' && (o.stage ?? 0) < 9);
+  if (!growingSeeds.length) return;
+  const friendIds = [...player.friends];
+  const friend = FRIENDS_POOL.find(f=>f.id === friendIds[Math.floor(Math.random()*friendIds.length)]);
+  if (!friend) return;
+  const target = growingSeeds[Math.floor(Math.random()*growingSeeds.length)];
+  target.stage = Math.min(9, (target.stage ?? 0) + 1);
+  palaceWorld.helperEffect = { name: friend.name, avatar: friend.avatar, x: target.x, y: target.y, until: Date.now()+1800 };
+  setPalaceToast(`🌊 ${friend.name} waters it into a ${PLANT_STAGES[target.stage].name}!`, 2500);
+}
+
+function currentCarryIcon(){
+  const item = player.palace.pendingItems[0];
+  if (!item) return null;
+  if (item.kind === 'seed') return SEEDS.find(s=>s.id===item.id).sprout;
+  if (item.kind === 'furniture') return FURNITURE.find(s=>s.id===item.id).icon;
+  if (item.kind === 'stone') return STONE_ITEM.icon;
+  return STRUCTURES.find(s=>s.id===item.id).icon;
+}
+
+// ---------- Realistic object art (hand-drawn vector shading, no emoji) ----------
+function radialSphereGrad(ctx, cx, cy, r, light, dark){
+  const g = ctx.createRadialGradient(cx-r*0.35, cy-r*0.35, r*0.15, cx, cy, r);
+  g.addColorStop(0, light);
+  g.addColorStop(1, dark);
+  return g;
+}
+
+function drawSprout(ctx){
+  ctx.fillStyle = '#6b8f3a';
+  ctx.beginPath(); ctx.moveTo(0,0); ctx.quadraticCurveTo(-2,-14,-9,-16); ctx.quadraticCurveTo(-4,-8,0,0); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(0,0); ctx.quadraticCurveTo(2,-16,10,-19); ctx.quadraticCurveTo(4,-9,0,0); ctx.fill();
+  ctx.fillStyle = '#5a4630';
+  ctx.beginPath(); ctx.ellipse(0,1,6,2.4,0,0,Math.PI*2); ctx.fill();
+}
+
+function drawWildflowerBloom(ctx){
+  ctx.fillStyle = '#5a4630'; ctx.beginPath(); ctx.ellipse(0,1,10,3,0,0,Math.PI*2); ctx.fill();
+  const petalColors = ['#e089b0','#f0d878','#f4f0e0'];
+  [[-8,0,0.9],[0,0,1.15],[8,-1,0.85]].forEach(([sx,,scale], i)=>{
+    ctx.strokeStyle = '#4a7a2e'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(sx,0); ctx.quadraticCurveTo(sx*0.6,-10*scale,sx*0.3,-18*scale); ctx.stroke();
+    const fx = sx*0.3, fy = -18*scale, col = petalColors[i%petalColors.length];
+    for (let p=0;p<5;p++){
+      const a = p/5*Math.PI*2;
+      ctx.fillStyle = col;
+      ctx.beginPath(); ctx.ellipse(fx+Math.cos(a)*3.6, fy+Math.sin(a)*3.6, 2.6, 1.6, a, 0, Math.PI*2); ctx.fill();
+    }
+    ctx.fillStyle = '#f0c040';
+    ctx.beginPath(); ctx.arc(fx,fy,1.6,0,Math.PI*2); ctx.fill();
+  });
+}
+
+function drawRosebushBloom(ctx){
+  ctx.fillStyle = radialSphereGrad(ctx,-2,-8,14,'#7fa855','#3d5a24');
+  ctx.beginPath(); ctx.ellipse(0,-8,13,11,0,0,Math.PI*2); ctx.fill();
+  [[-6,-16],[5,-18],[0,-9],[8,-8]].forEach(([rx,ry])=>{
+    for (let ring=3; ring>=1; ring--){
+      ctx.fillStyle = shadeHex('#b8223f', (3-ring)*10 - 10);
+      ctx.beginPath(); ctx.arc(rx,ry,ring*1.6,0,Math.PI*2); ctx.fill();
+    }
+  });
+}
+
+function drawOliveBloom(ctx){
+  ctx.strokeStyle = '#6b4a2a'; ctx.lineWidth = 4; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(0,-16); ctx.stroke();
+  [[0,-26,14],[-9,-20,9],[9,-19,9],[0,-34,10]].forEach(([bx,by,br])=>{
+    ctx.fillStyle = radialSphereGrad(ctx,bx-br*0.3,by-br*0.3,br,'#9ab86a','#4e6b34');
+    ctx.beginPath(); ctx.arc(bx,by,br,0,Math.PI*2); ctx.fill();
+  });
+}
+
+function drawGrapevineBloom(ctx){
+  ctx.strokeStyle = '#7a5a34'; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(-14,0); ctx.lineTo(-14,-30); ctx.moveTo(14,0); ctx.lineTo(14,-30); ctx.moveTo(-16,-30); ctx.lineTo(16,-30); ctx.stroke();
+  ctx.fillStyle = '#4f7a34';
+  [[-10,-30],[-2,-32],[6,-30],[12,-28]].forEach(([lx,ly])=>{
+    ctx.beginPath(); ctx.ellipse(lx,ly,5,4,0.4,0,Math.PI*2); ctx.fill();
+  });
+  [[-4,-22,3],[4,-22,3],[0,-19,3],[-6,-17,3],[6,-17,3],[-2,-14,3],[3,-14,3],[0,-10,2.6]].forEach(([gx,gy,gr])=>{
+    ctx.fillStyle = radialSphereGrad(ctx,gx-gr*0.35,gy-gr*0.35,gr,'#a97fd0','#4a2a68');
+    ctx.beginPath(); ctx.arc(gx,gy,gr,0,Math.PI*2); ctx.fill();
+  });
+}
+
+function drawLotusBloom(ctx){
+  ctx.fillStyle = '#4f7a5a'; ctx.beginPath(); ctx.ellipse(0,-2,15,5,0,0,Math.PI*2); ctx.fill();
+  const cx=0, cy=-10, petalCols = ['#e888ac','#f4a8c0'];
+  [11,7].forEach((len,ring)=>{
+    for (let i=0;i<6;i++){
+      const a = (i/6)*Math.PI*2 + ring*(Math.PI/6);
+      ctx.save(); ctx.translate(cx,cy); ctx.rotate(a);
+      ctx.fillStyle = petalCols[ring];
+      ctx.beginPath();
+      ctx.moveTo(0,0); ctx.quadraticCurveTo(3,-len*0.6,0,-len); ctx.quadraticCurveTo(-3,-len*0.6,0,0);
+      ctx.fill();
+      ctx.restore();
+    }
+  });
+  ctx.fillStyle = '#f0c040'; ctx.beginPath(); ctx.arc(cx,cy,3,0,Math.PI*2); ctx.fill();
+}
+
+function drawCypressBloom(ctx){
+  ctx.fillStyle = '#6b4a2a'; ctx.fillRect(-2,-6,4,6);
+  [[-42,7],[-32,10],[-20,13],[-8,15]].forEach(([ty,tw])=>{
+    ctx.fillStyle = radialSphereGrad(ctx,-tw*0.3,ty,tw,'#3f6b3f','#1e3d20');
+    ctx.beginPath(); ctx.moveTo(-tw,ty+10); ctx.lineTo(0,ty-10); ctx.lineTo(tw,ty+10); ctx.closePath(); ctx.fill();
+  });
+}
+
+const PLANT_BLOOM_DRAW = {
+  wildflower: drawWildflowerBloom, rosebush: drawRosebushBloom, olive: drawOliveBloom,
+  grapevine: drawGrapevineBloom, lotus: drawLotusBloom, cypress: drawCypressBloom,
+};
+
+// Target heights are absolute world-units (the avatar stands about 130 units tall),
+// not a flat multiplier — so every species reaches the same real size at each stage
+// regardless of how big its base art was drawn. A "Tree" must be taller than a person.
+const PLANT_STAGES = [
+  { name: 'Sprout', shape: 'sprout', height: 20 },
+  { name: 'Bigger Sprout', shape: 'sprout', height: 38 },
+  { name: 'Really Big Sprout', shape: 'sprout', height: 58 },
+  { name: 'Sapling', shape: 'bloom', height: 90 },
+  { name: 'Big Sapling', shape: 'bloom', height: 120 },
+  { name: 'Gigantic Sapling', shape: 'bloom', height: 155 },
+  { name: 'Tree', shape: 'bloom', height: 205 },
+  { name: 'Big Tree', shape: 'bloom', height: 285 },
+  { name: 'Gigantic Tree', shape: 'bloom', height: 375 },
+  { name: 'MEGA TREE', shape: 'bloom', height: 490 },
+];
+const PLANT_BASE_HEIGHT = { wildflower:20, rosebush:20, olive:44, grapevine:32, lotus:21, cypress:52 };
+const SPROUT_BASE_HEIGHT = 19;
+function plantScaleFor(o, stageInfo){
+  const base = stageInfo.shape === 'sprout' ? SPROUT_BASE_HEIGHT : (PLANT_BASE_HEIGHT[o.id] || 30);
+  return stageInfo.height / base;
+}
+
+function drawColumnIcon(ctx){
+  const g = ctx.createLinearGradient(-9,0,9,0);
+  g.addColorStop(0,'#fffdf6'); g.addColorStop(0.5,'#e8ddc4'); g.addColorStop(1,'#b8a878');
+  ctx.fillStyle = g; ctx.fillRect(-9,-52,18,48);
+  ctx.strokeStyle = 'rgba(0,0,0,0.12)'; ctx.lineWidth = 1;
+  [-4,0,4].forEach(fx=>{ ctx.beginPath(); ctx.moveTo(fx,-52); ctx.lineTo(fx,-4); ctx.stroke(); });
+  ctx.fillStyle = '#c9bb96'; ctx.fillRect(-13,-4,26,6);
+  ctx.fillStyle = '#f4ecd8';
+  ctx.beginPath(); ctx.moveTo(-9,-52); ctx.lineTo(-13,-58); ctx.lineTo(13,-58); ctx.lineTo(9,-52); ctx.closePath(); ctx.fill();
+  ctx.fillRect(-15,-62,30,4);
+}
+
+function drawFountainIcon(ctx){
+  const bg = ctx.createRadialGradient(-6,-4,4,0,0,32);
+  bg.addColorStop(0,'#f4ecd8'); bg.addColorStop(1,'#b8a878');
+  ctx.fillStyle = bg;
+  ctx.beginPath(); ctx.ellipse(0,0,32,12,0,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle = '#8a7a52'; ctx.lineWidth = 2; ctx.stroke();
+  ctx.fillStyle = '#5fa8d0'; ctx.beginPath(); ctx.ellipse(0,-1,24,7,0,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.beginPath(); ctx.ellipse(-6,-3,8,2.4,0,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#d8cca0'; ctx.fillRect(-5,-26,10,20);
+  ctx.fillStyle = bg;
+  ctx.beginPath(); ctx.ellipse(0,-28,16,6,0,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#5fa8d0'; ctx.beginPath(); ctx.ellipse(0,-29,11,4,0,0,Math.PI*2); ctx.fill();
+
+  // animated water — a continuous spurt from the spout plus falling droplets
+  const t = Date.now() / 260;
+  const spurtH = 16 + Math.sin(t*2.4)*4;
+  const spurtGrad = ctx.createLinearGradient(0,-30,0,-30-spurtH);
+  spurtGrad.addColorStop(0, 'rgba(180,220,250,0.95)');
+  spurtGrad.addColorStop(1, 'rgba(220,240,255,0.3)');
+  ctx.strokeStyle = spurtGrad; ctx.lineWidth = 3; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(0,-30); ctx.lineTo(0,-30-spurtH); ctx.stroke();
+
+  for (let i=-2;i<=2;i++){
+    const phase = ((t*0.7 + i*0.37) % 1 + 1) % 1;
+    const dropY = -30 + phase*30;
+    const dropX = i*7*phase;
+    ctx.globalAlpha = 1 - phase*0.75;
+    ctx.fillStyle = 'rgba(190,225,250,0.9)';
+    ctx.beginPath(); ctx.arc(dropX, dropY, 1.7 - phase*0.8, 0, Math.PI*2); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+
+  // ripples spreading across the lower basin
+  const rippleT = (t*0.5) % 1;
+  ctx.strokeStyle = `rgba(255,255,255,${0.5 - rippleT*0.5})`; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.ellipse(0,-1, 4 + rippleT*18, (4 + rippleT*18)*0.3, 0, 0, Math.PI*2); ctx.stroke();
+}
+
+function drawStatueIcon(ctx){
+  ctx.fillStyle = '#c9bb96'; ctx.fillRect(-14,-6,28,6);
+  const g = ctx.createLinearGradient(-10,0,10,0);
+  g.addColorStop(0,'#fffdf8'); g.addColorStop(0.5,'#eee3ce'); g.addColorStop(1,'#c4b696');
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.moveTo(-4,-6); ctx.quadraticCurveTo(-13,-24,-8,-42); ctx.quadraticCurveTo(0,-48,8,-42); ctx.quadraticCurveTo(13,-24,4,-6); ctx.closePath();
+  ctx.fill();
+  ctx.beginPath(); ctx.arc(0,-50,7.5,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle = 'rgba(0,0,0,0.12)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(-3,-38); ctx.quadraticCurveTo(0,-30,-2,-10); ctx.stroke();
+}
+
+function drawBathhouseIcon(ctx){
+  ctx.fillStyle = '#e8ddc4'; ctx.fillRect(-22,-30,44,30);
+  ctx.strokeStyle = 'rgba(0,0,0,0.12)'; ctx.strokeRect(-22,-30,44,30);
+  [-15,-5,5,15].forEach(cx=>{
+    const g = ctx.createLinearGradient(cx-3,0,cx+3,0);
+    g.addColorStop(0,'#fffdf6'); g.addColorStop(1,'#c4b696');
+    ctx.fillStyle = g; ctx.fillRect(cx-3,-30,6,30);
+  });
+  const dg = ctx.createRadialGradient(-6,-36,4,0,-34,26);
+  dg.addColorStop(0,'#fffdf6'); dg.addColorStop(1,'#c4b696');
+  ctx.fillStyle = dg;
+  ctx.beginPath(); ctx.arc(0,-30,24,Math.PI,0); ctx.fill();
+  ctx.fillStyle = '#3a2f1e'; ctx.beginPath(); ctx.arc(0,-10,7,Math.PI,0); ctx.fill(); ctx.fillRect(-7,-10,14,10);
+}
+
+function drawPoolIcon(ctx){
+  ctx.fillStyle = '#d8cca0'; ctx.fillRect(-36,-6,72,10);
+  ctx.strokeStyle = '#8a7a52'; ctx.strokeRect(-36,-6,72,10);
+  const wg = ctx.createLinearGradient(0,-4,0,2);
+  wg.addColorStop(0,'#7fc0e0'); wg.addColorStop(1,'#3f7fa8');
+  ctx.fillStyle = wg; ctx.fillRect(-32,-4,64,6);
+  ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.lineWidth = 1;
+  for (let i=0;i<3;i++){ ctx.beginPath(); ctx.moveTo(-28+i*20,-1); ctx.lineTo(-14+i*20,-1); ctx.stroke(); }
+}
+
+function drawWatchtowerIcon(ctx){
+  const g = ctx.createLinearGradient(-14,0,14,0);
+  g.addColorStop(0,'#f4ecd8'); g.addColorStop(1,'#b8a878');
+  ctx.fillStyle = g;
+  ctx.beginPath(); ctx.moveTo(-16,0); ctx.lineTo(-11,-60); ctx.lineTo(11,-60); ctx.lineTo(16,0); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = 'rgba(0,0,0,0.1)';
+  ctx.beginPath(); ctx.moveTo(-16,0); ctx.lineTo(-11,-60); ctx.moveTo(16,0); ctx.lineTo(11,-60); ctx.stroke();
+  ctx.fillStyle = '#3a2f1e'; ctx.beginPath(); ctx.ellipse(0,-6,4,8,0,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#c9bb96';
+  for (let i=-3;i<=3;i+=2){ ctx.fillRect(i*3-2,-64,3,5); }
+}
+
+function drawGateIcon(ctx){
+  ctx.fillStyle = '#e8ddc4';
+  ctx.fillRect(-30,-46,10,46); ctx.fillRect(20,-46,10,46);
+  ctx.strokeStyle = 'rgba(0,0,0,0.12)'; ctx.strokeRect(-30,-46,10,46); ctx.strokeRect(20,-46,10,46);
+  ctx.beginPath();
+  ctx.moveTo(-30,-46); ctx.quadraticCurveTo(0,-72,30,-46); ctx.lineTo(20,-46); ctx.quadraticCurveTo(0,-58,-20,-46); ctx.closePath();
+  ctx.fillStyle = '#d4af37'; ctx.fill();
+  ctx.strokeStyle = '#a9812f'; ctx.stroke();
+}
+
+function drawThroneIcon(ctx){
+  ctx.fillStyle = '#7b2d3e';
+  ctx.beginPath(); ctx.moveTo(-14,0); ctx.lineTo(-16,-40); ctx.quadraticCurveTo(0,-52,16,-40); ctx.lineTo(14,0); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = '#d4af37'; ctx.lineWidth = 2; ctx.stroke();
+  ctx.fillStyle = '#c9a96a'; ctx.fillRect(-16,-6,32,8);
+  ctx.fillStyle = '#d4af37';
+  ctx.fillRect(-18,-8,4,10); ctx.fillRect(14,-8,4,10);
+  ctx.beginPath(); ctx.arc(0,-46,5,0,Math.PI*2); ctx.fill();
+}
+
+function drawColonnadeIcon(ctx){
+  [-22,0,22].forEach(cx=>{
+    ctx.save(); ctx.translate(cx,0); ctx.scale(0.65,0.65); drawColumnIcon(ctx); ctx.restore();
+  });
+  ctx.fillStyle = '#d4af37'; ctx.fillRect(-34,-42,68,6);
+}
+
+function drawDomeIcon(ctx){
+  [-16,0,16].forEach(cx=>{
+    ctx.save(); ctx.translate(cx,0); ctx.scale(0.5,0.5); drawColumnIcon(ctx); ctx.restore();
+  });
+  ctx.fillStyle = '#e8ddc4'; ctx.fillRect(-22,-34,44,8);
+  const dg = ctx.createRadialGradient(-8,-50,6,0,-46,28);
+  dg.addColorStop(0,'#ffe27a'); dg.addColorStop(1,'#a9812f');
+  ctx.fillStyle = dg;
+  ctx.beginPath(); ctx.arc(0,-34,26,Math.PI,0); ctx.fill();
+  ctx.fillStyle = '#a9812f'; ctx.fillRect(-2,-64,4,8);
+  ctx.fillStyle = '#ffe27a'; ctx.beginPath(); ctx.arc(0,-64,3,0,Math.PI*2); ctx.fill();
+}
+
+function drawBridgeIcon(ctx){
+  ctx.strokeStyle = '#b8a878'; ctx.lineWidth = 8; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(-34,0); ctx.quadraticCurveTo(0,-30,34,0); ctx.stroke();
+  ctx.strokeStyle = '#8a7a52'; ctx.lineWidth = 3;
+  for (let i=-3;i<=3;i++){
+    const t=i/3, xx=t*30, yy=-30*(1-t*t)*0.85;
+    ctx.beginPath(); ctx.moveTo(xx,yy); ctx.lineTo(xx,yy-8); ctx.stroke();
+  }
+}
+
+function drawUnbuiltStructure(ctx){
+  ctx.fillStyle = 'rgba(0,0,0,0.15)';
+  ctx.beginPath(); ctx.ellipse(0,1,16,5,0,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#8f8f86';
+  ctx.beginPath(); ctx.moveTo(-14,0); ctx.lineTo(-10,-18); ctx.lineTo(6,-20); ctx.lineTo(14,-4); ctx.lineTo(8,2); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = 'rgba(0,0,0,0.2)'; ctx.lineWidth = 1; ctx.stroke();
+  ctx.fillStyle = '#b4b4aa';
+  ctx.beginPath(); ctx.moveTo(-6,-2); ctx.lineTo(-2,-16); ctx.lineTo(10,-13); ctx.lineTo(6,0); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = 'rgba(0,0,0,0.15)'; ctx.stroke();
+  ctx.fillStyle = '#dcdcd2';
+  ctx.beginPath(); ctx.moveTo(-4,-4); ctx.lineTo(0,-12); ctx.lineTo(6,-9); ctx.lineTo(3,-2); ctx.closePath(); ctx.fill();
+}
+
+const STRUCTURE_DRAW = {
+  column: drawColumnIcon, fountain: drawFountainIcon, statue: drawStatueIcon,
+  bathhouse: drawBathhouseIcon, pool: drawPoolIcon,
+  watchtower: drawWatchtowerIcon, gate: drawGateIcon, throne: drawThroneIcon,
+  colonnade: drawColonnadeIcon, dome: drawDomeIcon, bridge: drawBridgeIcon,
+};
+
+const STRUCTURE_SCALE = 3.5;
+
+function objectShadow(o, structureScale){
+  if (o.kind === 'seed') {
+    const stageInfo = PLANT_STAGES[o.stage ?? 0];
+    return { rx: stageInfo.height * 0.22 };
+  }
+  const scale = structureScale === undefined ? STRUCTURE_SCALE : structureScale;
+  const big = ['dome','throne','gate','bridge','watchtower','bathhouse'].includes(o.id);
+  return { rx: (big ? 30 : 16) * scale };
+}
+
+function drawPalaceObject(ctx, o, structureScale){
+  const scale = structureScale === undefined ? STRUCTURE_SCALE : structureScale;
+  ctx.save();
+  ctx.translate(o.x, o.y);
+  const sh = objectShadow(o, scale);
+  ctx.fillStyle = 'rgba(0,0,0,0.25)';
+  ctx.beginPath(); ctx.ellipse(0, 1, sh.rx, sh.rx*0.32, 0, 0, Math.PI*2); ctx.fill();
+  if (o.kind === 'seed') {
+    const stageIdx = o.stage ?? 0;
+    const stageInfo = PLANT_STAGES[stageIdx];
+    const plantScale = plantScaleFor(o, stageInfo);
+    if (stageIdx < 3) ctx.globalAlpha = 0.55 + Math.sin(Date.now()/300)*0.3;
+    ctx.save();
+    ctx.scale(plantScale, plantScale);
+    if (stageInfo.shape === 'sprout') drawSprout(ctx);
+    else (PLANT_BLOOM_DRAW[o.id] || drawWildflowerBloom)(ctx);
+    ctx.restore();
+    ctx.globalAlpha = 1;
+  } else {
+    ctx.save();
+    ctx.scale(scale, scale);
+    if (o.built === false) drawUnbuiltStructure(ctx);
+    else (STRUCTURE_DRAW[o.id] || drawColumnIcon)(ctx);
+    ctx.restore();
+  }
+  ctx.restore();
+}
+
+function drawPalaceWorld(){
+  const ctx = document.getElementById('palaceCanvas').getContext('2d');
+  const W=960, H=600;
+  const p = player.palace.playerPos;
+  const camX = Math.max(0, Math.min(PALACE_WORLD_W - W, p.x - W/2));
+  const camY = Math.max(0, Math.min(PALACE_WORLD_H - H, p.y - H/2));
+
+  ctx.clearRect(0,0,W,H);
+  ctx.save();
+  ctx.translate(-camX, -camY);
+
+  const grand = isGrandPalace(player);
+  const wallHex = (PAINT_COLORS.find(c=>c.id===player.palace.paintColor)||PAINT_COLORS[0]).hex;
+
+  const grassGrad = ctx.createLinearGradient(0,0,0,PALACE_WORLD_H);
+  grassGrad.addColorStop(0, '#8fae5e');
+  grassGrad.addColorStop(1, '#6f8a48');
+  ctx.fillStyle = grassGrad;
+  ctx.fillRect(0,0,PALACE_WORLD_W,PALACE_WORLD_H);
+
+  const plazaW = PALACE_FACADE_HALF_WIDTH*2 + 260;
+  const plazaX = PALACE_WORLD_W/2 - plazaW/2;
+  const plazaTop = PALACE_DOOR.y + 80;
+  const plazaBottom = PALACE_WORLD_H - 260;
+  ctx.fillStyle = grand ? '#e0c04a' : wallHex;
+  ctx.fillRect(plazaX, plazaTop, plazaW, plazaBottom - plazaTop);
+  ctx.strokeStyle = 'rgba(0,0,0,0.08)';
+  for (let i=plazaX;i<=plazaX+plazaW;i+=60){ ctx.beginPath(); ctx.moveTo(i,plazaTop); ctx.lineTo(i,plazaBottom); ctx.stroke(); }
+  for (let j=plazaTop;j<=plazaBottom;j+=60){ ctx.beginPath(); ctx.moveTo(plazaX,j); ctx.lineTo(plazaX+plazaW,j); ctx.stroke(); }
+  ctx.strokeStyle = '#a9812f'; ctx.lineWidth = 6; ctx.strokeRect(plazaX, plazaTop, plazaW, plazaBottom - plazaTop);
+
+  ctx.strokeStyle = '#5a7038'; ctx.lineWidth = 14;
+  ctx.strokeRect(7,7,PALACE_WORLD_W-14,PALACE_WORLD_H-14);
+
+  if (grand) {
+    for (let i=0;i<50;i++){
+      const sx = (i*173) % PALACE_WORLD_W;
+      const sy = (i*257 + (Date.now()/25)) % PALACE_WORLD_H;
+      ctx.globalAlpha = 0.25 + 0.35*Math.abs(Math.sin(Date.now()/300 + i));
+      ctx.fillStyle = '#fff8d8';
+      ctx.beginPath(); ctx.arc(sx, sy, 2.2, 0, Math.PI*2); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  const groundsObjects = player.palace.objects.filter(o => o.kind !== 'furniture');
+
+  if (!groundsObjects.length) {
+    ctx.fillStyle = 'rgba(58,47,30,0.55)';
+    ctx.font = 'bold 22px Georgia'; ctx.textAlign = 'center';
+    ctx.fillText('Your grounds are empty — visit the Market!', PALACE_WORLD_W/2, PALACE_WORLD_H/2);
+  }
+
+  drawPalaceFacade(ctx, grand ? '#e0c04a' : wallHex);
+
+  const carry = currentCarryIcon();
+  const drawables = [...groundsObjects.map(o=>({type:'obj', y:o.y, o})), {type:'player', y:p.y}];
+  drawables.sort((a,b)=>a.y-b.y);
+  drawables.forEach(d=> d.type==='obj' ? drawPalaceObject(ctx, d.o) : drawAvatarSprite(ctx, p.x, p.y, player.avatar, palaceWorld.facing, palaceWorld.walkPhase, carry));
+
+  if (palaceWorld.helperEffect) {
+    if (Date.now() < palaceWorld.helperEffect.until) {
+      const h = palaceWorld.helperEffect;
+      drawAvatarSprite(ctx, h.x-26, h.y-4, h.avatar, 'down', 4, null);
+      ctx.font = '15px sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText('💧', h.x-14, h.y-28);
+    } else {
+      palaceWorld.helperEffect = null;
+    }
+  }
+
+  ctx.restore();
+}
+
+function updatePalaceWorld(dt){
+  const p = player.palace.playerPos;
+  const speed = 340;
+  let dx=0, dy=0;
+  if (heldKeys['ArrowUp']) { dy=-1; palaceWorld.facing='up'; }
+  if (heldKeys['ArrowDown']) { dy=1; palaceWorld.facing='down'; }
+  if (heldKeys['ArrowLeft']) { dx=-1; palaceWorld.facing='left'; }
+  if (heldKeys['ArrowRight']) { dx=1; palaceWorld.facing='right'; }
+  palaceWorld.walking = dx!==0 || dy!==0;
+  if (palaceWorld.walking) {
+    const len = Math.hypot(dx,dy);
+    p.x = Math.max(24, Math.min(PALACE_WORLD_W-24, p.x + (dx/len)*speed*dt));
+    p.y = Math.max(24, Math.min(PALACE_WORLD_H-24, p.y + (dy/len)*speed*dt));
+    palaceWorld.walkPhase += dt*9;
+  }
+  updateGardenHelper(dt);
+}
+
+function updatePalaceHint(){
+  const hint = document.getElementById('palaceHint');
+  const p = player.palace.playerPos;
+  if (palaceWorld.toastText && Date.now() < palaceWorld.toastUntil) { hint.textContent = palaceWorld.toastText; return; }
+  if (nearPalaceDoor(p)) { hint.textContent = 'SPACE — Enter the Palace'; return; }
+  if (findNearbyGrowingSeed(p)) { hint.textContent = 'SPACE — Water this plant 🌊'; return; }
+  if (isGrandPalace(player)) { hint.textContent = 'Your palace shines across all of Olympus! ✨'; return; }
+  const pending = player.palace.pendingItems;
+  if (!pending.length) { hint.textContent = 'Nothing to place — visit the Market for something to build!'; return; }
+  const item = pending[0];
+  if (item.kind === 'furniture') {
+    const f = FURNITURE.find(s=>s.id===item.id);
+    hint.textContent = `Carrying: ${f.name} — walk through the palace doors to place it inside! (${pending.length} to place)`;
+    return;
+  }
+  if (item.kind === 'stone') {
+    hint.textContent = findNearbyUnbuiltStructure(p)
+      ? 'SPACE — Use the stone to finish this structure! 🪨'
+      : `Carrying: Masonry Stone — find an unfinished structure to build. (${pending.length} to use)`;
+    return;
+  }
+  const src = item.kind==='seed' ? SEEDS.find(s=>s.id===item.id) : STRUCTURES.find(s=>s.id===item.id);
+  hint.textContent = `Carrying: ${src.name} — walk to a spot and press Space to set it down. (${pending.length} to place)`;
+}
+
+function palaceLoop(ts){
+  if (!document.getElementById('scr-palace').classList.contains('active')) { palaceWorld.raf = null; return; }
+  const dt = Math.min(0.05, (ts - (palaceWorld.lastTs || ts)) / 1000);
+  palaceWorld.lastTs = ts;
+  updatePalaceWorld(dt);
+  drawPalaceWorld();
+  updatePalaceHint();
+  palaceWorld.raf = requestAnimationFrame(palaceLoop);
+}
+
+RENDERERS['scr-palace'] = function(){
+  palaceWorld.lastTs = null;
+  updatePalaceHint();
+  if (!palaceWorld.raf) palaceWorld.raf = requestAnimationFrame(palaceLoop);
+};
+
+function tryInteractExterior(){
+  const p = player.palace.playerPos;
+  if (nearPalaceDoor(p)) { enterInterior(); return; }
+  const seed = findNearbyGrowingSeed(p);
+  if (seed) { waterPlant(seed); return; }
+  const carrying = player.palace.pendingItems[0];
+  if (carrying && carrying.kind === 'stone') {
+    const unbuilt = findNearbyUnbuiltStructure(p);
+    if (unbuilt) { buildWithStone(unbuilt); return; }
+    setPalaceToast("Carry this stone to an unfinished structure to build it!", 2000);
+    return;
+  }
+  placeCarriedItem();
+}
+
+function waterPlant(obj){
+  obj.stage = Math.min(9, (obj.stage ?? 0) + 1);
+  const stageInfo = PLANT_STAGES[obj.stage];
+  const msg = obj.stage === 9 ? `🌊 MEGA TREE!! It can't grow any bigger!` : `🌊 It grows into a ${stageInfo.name}!`;
+  setPalaceToast(msg, 2200);
+}
+
+function findNearbyUnbuiltStructure(p){
+  return player.palace.objects.find(o => o.kind==='structure' && o.built===false && Math.hypot(o.x-p.x, o.y-p.y) < 50);
+}
+
+function buildWithStone(structureObj){
+  player.palace.pendingItems.shift();
+  structureObj.built = true;
+  const name = STRUCTURES.find(s=>s.id===structureObj.id).name;
+  setPalaceToast(`🪨 The masons finish the ${name}!`, 2200);
+  renderHeader();
+}
+
+function placeCarriedItem(){
+  const item = player.palace.pendingItems[0];
+  if (!item) return;
+  if (item.kind === 'furniture') { setPalaceToast("That's furniture — carry it through the palace doors to place it inside!", 2200); return; }
+  const p = player.palace.playerPos;
+  const dropX = p.x, dropY = p.y + 30;
+  const groundsObjects = player.palace.objects.filter(o => o.kind !== 'furniture');
+  const newRx = objectShadow({ kind:item.kind, id:item.id, stage:0 }).rx;
+  const tooClose = groundsObjects.some(o => Math.hypot(o.x-dropX, o.y-dropY) < (objectShadow(o).rx + newRx) * 0.7);
+  if (tooClose) { setPalaceToast("There's already something there — try another spot!", 1800); return; }
+  player.palace.pendingItems.shift();
+  const obj = { kind:item.kind, id:item.id, x:dropX, y:dropY };
+  if (item.kind === 'seed') obj.stage = 0;
+  if (item.kind === 'structure') obj.built = false;
+  player.palace.objects.push(obj);
+  renderHeader();
+}
+
+function enterInterior(){ go('scr-palace-interior'); }
+
+// ---------- Palace Interior ----------
+let interiorWorld = { x:480, y:480, facing:'up', walking:false, walkPhase:0, lastTs:null, raf:null, near:null, plateOnTable:false, cupsOnTable:0, eatingUntil:0, toastText:'', toastUntil:0 };
+const INTERIOR_SPOTS = { hearth:[170,160], drinks:[790,160], table:[480,340], exit:[480,560] };
+const BRISKET_LINES = [
+  'You cook up a smoky, tender brisket! 🍖',
+  'Perfectly cooked — falls right off the bone.',
+  "A little charred on the edges. Still amazing.",
+  'The whole room smells incredible now.',
+];
+const JUICE_LINES = [
+  'You pour a cold cup of pomegranate juice. 🧃',
+  'Sweet, cold, and refreshing.',
+  'You take a big, satisfying gulp.',
+];
+const DINNER_LINES = [
+  'passes you a plate with a warm smile.',
+  'raises a cup in your honor.',
+  'tells a story that has the whole table laughing.',
+  'says this is the best meal in ages.',
+];
+
+function setInteriorToast(text, ms){ interiorWorld.toastText = text; interiorWorld.toastUntil = Date.now() + ms; }
+
+function drawHearth(ctx){
+  ctx.save(); ctx.translate(INTERIOR_SPOTS.hearth[0], INTERIOR_SPOTS.hearth[1]);
+  ctx.fillStyle = '#5a4632'; ctx.fillRect(-40,-30,80,70);
+  ctx.fillStyle = '#2b2b2b'; ctx.fillRect(-30,-16,60,50);
+  ctx.font = '34px serif'; ctx.textAlign = 'center'; ctx.fillText('🔥', 0, 20);
+  ctx.fillStyle = '#3a2f1e'; ctx.font = 'bold 13px Georgia'; ctx.fillText('Hearth', 0, 56);
+  ctx.restore();
+}
+function drawDrinkTable(ctx){
+  ctx.save(); ctx.translate(INTERIOR_SPOTS.drinks[0], INTERIOR_SPOTS.drinks[1]);
+  ctx.fillStyle = '#a9812f'; ctx.fillRect(-36,10,72,14);
+  ctx.strokeStyle = '#8a6a3a'; ctx.lineWidth = 5;
+  ctx.beginPath(); ctx.moveTo(-30,24); ctx.lineTo(-30,50); ctx.moveTo(30,24); ctx.lineTo(30,50); ctx.stroke();
+  ctx.font = '28px serif'; ctx.textAlign = 'center'; ctx.fillText('🏺', -12, 6); ctx.fillText('🍇', 14, 6);
+  ctx.fillStyle = '#3a2f1e'; ctx.font = 'bold 13px Georgia'; ctx.fillText('Drink Table', 0, 62);
+  ctx.restore();
+}
+function drawDiningTable(ctx){
+  ctx.save(); ctx.translate(INTERIOR_SPOTS.table[0], INTERIOR_SPOTS.table[1]);
+  ctx.fillStyle = 'rgba(0,0,0,0.2)'; ctx.beginPath(); ctx.ellipse(0,62,215,28,0,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#c9a96a'; ctx.fillRect(-190,-14,380,40);
+  ctx.strokeStyle = '#8a6a3a'; ctx.lineWidth = 3; ctx.strokeRect(-190,-14,380,40);
+  ctx.font = '22px serif'; ctx.textAlign = 'center';
+  if (interiorWorld.plateOnTable) ctx.fillText('🍖', 0, 12);
+  for (let i=0;i<interiorWorld.cupsOnTable && i<4;i++){ ctx.font = '18px serif'; ctx.fillText('🧃', -135+i*90, 10); }
+  if (interiorWorld.eatingUntil && Date.now() < interiorWorld.eatingUntil) {
+    ctx.font = '26px serif'; ctx.fillText('😋', 0, -34 + Math.sin(Date.now()/120)*3);
+  }
+  const chairSpots = [[-215,16],[215,16],[-95,-76],[95,-76]];
+  player.palace.diningGuests.forEach((fid, i) => {
+    const f = FRIENDS_POOL.find(x=>x.id===fid);
+    if (!f || !chairSpots[i]) return;
+    drawAvatarSprite(ctx, chairSpots[i][0], chairSpots[i][1], f.avatar, 'down', 0, null);
+  });
+  ctx.fillStyle = '#3a2f1e'; ctx.font = 'bold 13px Georgia'; ctx.textAlign = 'center'; ctx.fillText('Dining Table', 0, 96);
+  ctx.restore();
+}
+function drawExitDoor(ctx){
+  ctx.save(); ctx.translate(INTERIOR_SPOTS.exit[0], INTERIOR_SPOTS.exit[1]);
+  ctx.fillStyle = '#7b2d3e'; ctx.fillRect(-36,-40,72,60);
+  ctx.strokeStyle = '#d4af37'; ctx.lineWidth = 3; ctx.strokeRect(-36,-40,72,60);
+  ctx.fillStyle = '#ffe27a'; ctx.beginPath(); ctx.arc(20,-10,3,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#3a2f1e'; ctx.font = 'bold 13px Georgia'; ctx.textAlign = 'center'; ctx.fillText('Outside', 0, 34);
+  ctx.restore();
+}
+
+function drawFurnitureItem(ctx, o){
+  const f = FURNITURE.find(x=>x.id===o.id);
+  ctx.save();
+  ctx.translate(o.x, o.y);
+  ctx.fillStyle = 'rgba(0,0,0,0.22)';
+  ctx.beginPath(); ctx.ellipse(0, 10, 16, 5, 0, 0, Math.PI*2); ctx.fill();
+  ctx.font = '26px serif'; ctx.textAlign = 'center';
+  ctx.fillText(f.icon, 0, 10);
+  ctx.restore();
+}
+
+function drawInteriorWorld(){
+  const ctx = document.getElementById('interiorCanvas').getContext('2d');
+  const W=960, H=600;
+  ctx.clearRect(0,0,W,H);
+  const floorHex = (PAINT_COLORS.find(c=>c.id===player.palace.paintColor)||PAINT_COLORS[0]).hex;
+  ctx.fillStyle = floorHex; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle = 'rgba(123,45,62,0.25)';
+  ctx.beginPath(); ctx.ellipse(480,360,260,140,0,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#a9812f'; ctx.fillRect(0,0,W,26); ctx.fillRect(0,H-14,W,14);
+
+  drawHearth(ctx);
+  drawDrinkTable(ctx);
+  drawDiningTable(ctx);
+  drawExitDoor(ctx);
+
+  const carry = currentCarryIcon();
+  const furniture = player.palace.objects.filter(o=>o.kind==='furniture');
+  const drawables = [...furniture.map(o=>({type:'f', y:o.y, o})), {type:'p', y:interiorWorld.y}];
+  drawables.sort((a,b)=>a.y-b.y);
+  drawables.forEach(d=> d.type==='f'
+    ? drawFurnitureItem(ctx, d.o)
+    : drawAvatarSprite(ctx, interiorWorld.x, interiorWorld.y, player.avatar, interiorWorld.facing, interiorWorld.walkPhase, carry));
+
+  if (interiorWorld.near) {
+    const labels = { hearth:'Cook a Brisket', drinks:'Pour Some Juice', table: player.palace.diningGuests.length ? 'Invite More Friends' : 'Sit Down for Dinner', exit:'Go Back Outside' };
+    ctx.font = 'bold 14px Georgia'; ctx.textAlign = 'center';
+    ctx.strokeStyle = 'rgba(0,0,0,0.6)'; ctx.lineWidth = 3;
+    ctx.strokeText('SPACE — ' + labels[interiorWorld.near], interiorWorld.x, interiorWorld.y-46);
+    ctx.fillStyle = '#3a2f1e';
+    ctx.fillText('SPACE — ' + labels[interiorWorld.near], interiorWorld.x, interiorWorld.y-46);
+  }
+}
+
+function updateInteriorWorld(dt){
+  const speed = 190;
+  let dx=0, dy=0;
+  if (heldKeys['ArrowUp']) { dy=-1; interiorWorld.facing='up'; }
+  if (heldKeys['ArrowDown']) { dy=1; interiorWorld.facing='down'; }
+  if (heldKeys['ArrowLeft']) { dx=-1; interiorWorld.facing='left'; }
+  if (heldKeys['ArrowRight']) { dx=1; interiorWorld.facing='right'; }
+  interiorWorld.walking = dx!==0 || dy!==0;
+  if (interiorWorld.walking) {
+    const len = Math.hypot(dx,dy);
+    interiorWorld.x = Math.max(40, Math.min(920, interiorWorld.x + (dx/len)*speed*dt));
+    interiorWorld.y = Math.max(60, Math.min(580, interiorWorld.y + (dy/len)*speed*dt));
+    interiorWorld.walkPhase += dt*9;
+  }
+  let near = null;
+  for (const key in INTERIOR_SPOTS) {
+    const [sx,sy] = INTERIOR_SPOTS[key];
+    if (Math.hypot(interiorWorld.x-sx, interiorWorld.y-sy) < 70) { near = key; break; }
+  }
+  interiorWorld.near = near;
+}
+
+function updateInteriorHint(){
+  const hint = document.getElementById('interiorHint');
+  if (interiorWorld.toastText && Date.now() < interiorWorld.toastUntil) { hint.textContent = interiorWorld.toastText; return; }
+  if (interiorWorld.near) { hint.textContent = ''; return; }
+  const item = player.palace.pendingItems[0];
+  if (item && item.kind === 'furniture') {
+    const f = FURNITURE.find(x=>x.id===item.id);
+    hint.textContent = `Carrying: ${f.name} — walk to a spot and press Space to set it down.`;
+    return;
+  }
+  hint.textContent = 'Walk around and explore — the hearth, drink table, and dining table are all interactive.';
+}
+
+function interiorLoop(ts){
+  if (!document.getElementById('scr-palace-interior').classList.contains('active')) { interiorWorld.raf = null; return; }
+  const dt = Math.min(0.05, (ts - (interiorWorld.lastTs || ts)) / 1000);
+  interiorWorld.lastTs = ts;
+  updateInteriorWorld(dt);
+  drawInteriorWorld();
+  updateInteriorHint();
+  interiorWorld.raf = requestAnimationFrame(interiorLoop);
+}
+
+RENDERERS['scr-palace-interior'] = function(){
+  interiorWorld.x = 480; interiorWorld.y = 480; interiorWorld.lastTs = null;
+  updateInteriorHint();
+  if (!interiorWorld.raf) interiorWorld.raf = requestAnimationFrame(interiorLoop);
+};
+
+function tryInteractInterior(){
+  if (interiorWorld.near === 'hearth') {
+    interiorWorld.plateOnTable = true;
+    setInteriorToast(BRISKET_LINES[Math.floor(Math.random()*BRISKET_LINES.length)], 2500);
+    return;
+  }
+  if (interiorWorld.near === 'drinks') {
+    interiorWorld.cupsOnTable = Math.min(4, interiorWorld.cupsOnTable+1);
+    setInteriorToast(JUICE_LINES[Math.floor(Math.random()*JUICE_LINES.length)], 2500);
+    return;
+  }
+  if (interiorWorld.near === 'table') { interactDiningTable(); return; }
+  if (interiorWorld.near === 'exit') { go('scr-palace'); return; }
+  placeFurniture();
+}
+
+function placeFurniture(){
+  const item = player.palace.pendingItems[0];
+  if (!item || item.kind !== 'furniture') return;
+  const dropX = interiorWorld.x, dropY = interiorWorld.y + 26;
+  const nearStation = Object.values(INTERIOR_SPOTS).some(([sx,sy]) => Math.hypot(dropX-sx, dropY-sy) < 70);
+  if (nearStation) { setInteriorToast("Can't place furniture there — too close to something else.", 1800); return; }
+  const tooClose = player.palace.objects.some(o => o.kind==='furniture' && Math.hypot(o.x-dropX, o.y-dropY) < 40);
+  if (tooClose) { setInteriorToast("There's already something there!", 1800); return; }
+  player.palace.pendingItems.shift();
+  player.palace.objects.push({ kind:'furniture', id:item.id, x:dropX, y:dropY });
+  renderHeader();
+}
+
+const EAT_LINES = [
+  'is fantastic!',
+  'is the best thing anyone here has ever eaten.',
+  'is gone in about ten seconds flat.',
+  'gets seconds. And thirds.',
+  'has everyone at the table smiling.',
+];
+
+function interactDiningTable(){
+  const hasFood = interiorWorld.plateOnTable || interiorWorld.cupsOnTable > 0;
+  const guestCount = player.palace.diningGuests.length;
+  let html = `<h3 class="greek-font" style="color:var(--wine); margin-bottom:10px;">Dining Table</h3>`;
+  if (hasFood) {
+    html += `<p style="margin-bottom:12px; font-size:0.9rem; color:var(--ink-soft);">${guestCount ? 'The feast is ready!' : "There's food on the table."}</p>
+      <div style="display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin-bottom:8px;">
+        <button class="btn" onclick="closeModal(); eatFeast();">🍽️ Dig In!</button>
+        <button class="btn secondary" onclick="closeModal(); openDinnerModal();">👥 Invite Friends</button>
+      </div>`;
+  } else {
+    html += `<p style="margin-bottom:12px; font-size:0.9rem; color:var(--ink-soft);">The table is empty — cook something at the hearth or pour a drink first!</p>
+      <div class="center" style="margin-bottom:8px;"><button class="btn" onclick="closeModal(); openDinnerModal();">👥 Invite Friends</button></div>`;
+  }
+  html += `<div class="center"><button class="btn secondary small" onclick="closeModal()">Never Mind</button></div>`;
+  openModal(html);
+}
+
+function eatFeast(){
+  const hadFood = interiorWorld.plateOnTable || interiorWorld.cupsOnTable > 0;
+  if (!hadFood) return;
+  interiorWorld.plateOnTable = false;
+  interiorWorld.cupsOnTable = 0;
+  interiorWorld.eatingUntil = Date.now() + 1800;
+  const names = player.palace.diningGuests.map(fid => FRIENDS_POOL.find(f=>f.id===fid).name);
+  const eater = names.length ? names[Math.floor(Math.random()*names.length)] : 'Everyone';
+  setInteriorToast(`${eater} says it ${EAT_LINES[Math.floor(Math.random()*EAT_LINES.length)]}`, 2800);
+}
+
+function openDinnerModal(){
+  if (!player.friends.size) {
+    openModal(`<h3 class="greek-font" style="color:var(--wine);">Dining Table</h3>
+      <p style="margin:12px 0;">You don't have any friends added yet! Visit the Friends page to meet some fellow Olympians first.</p>
+      <div style="display:flex; gap:8px; justify-content:center;">
+        <button class="btn" onclick="closeModal(); go('scr-friends');">Go Meet Friends</button>
+        <button class="btn secondary" onclick="closeModal()">Maybe Later</button>
+      </div>`);
+    return;
+  }
+  const friendIds = [...player.friends];
+  const itemsHtml = friendIds.map(fid => {
+    const f = FRIENDS_POOL.find(x=>x.id===fid);
+    const seated = player.palace.diningGuests.includes(fid);
+    return `<label style="display:flex; align-items:center; gap:8px; padding:8px; border:2px solid ${seated?'var(--gold)':'var(--gold-deep)'}; border-radius:10px; margin-bottom:8px; cursor:pointer;">
+      <input type="checkbox" id="dine-${fid}" ${seated?'checked':''} onchange="toggleDinnerGuest('${fid}')" style="width:18px;height:18px;">
+      <span class="avatar-frame small" style="width:36px;height:36px;">${renderAvatarSVG(f.avatar)}</span>
+      <span>${escapeHtml(f.name)}</span>
+    </label>`;
+  }).join('');
+  openModal(`<h3 class="greek-font" style="color:var(--wine); margin-bottom:8px;">Invite Friends to Dinner</h3>
+    <p style="margin-bottom:10px; font-size:0.85rem; color:var(--ink-soft);">Up to 4 friends can join you at the table.</p>
+    ${itemsHtml}
+    <div class="center" style="margin-top:12px;"><button class="btn small" onclick="closeModal()">Done</button></div>`);
+}
+
+function toggleDinnerGuest(fid){
+  const idx = player.palace.diningGuests.indexOf(fid);
+  if (idx >= 0) { player.palace.diningGuests.splice(idx,1); return; }
+  if (player.palace.diningGuests.length >= 4) { const cb = document.getElementById('dine-'+fid); if (cb) cb.checked = false; return; }
+  player.palace.diningGuests.push(fid);
+  const f = FRIENDS_POOL.find(x=>x.id===fid);
+  setInteriorToast(`${f.name} ${DINNER_LINES[Math.floor(Math.random()*DINNER_LINES.length)]}`, 3000);
+}
+
+function openBargain(kind, id){
+  let item, askingBase;
+  if (kind==='permit') { item = PERMITS.find(x=>x.id===id); askingBase = item.price; }
+  else if (kind==='structure') { item = STRUCTURES.find(x=>x.id===id); askingBase = marketPrice(item, totalOwned(player,'structure',id)); }
+  else if (kind==='seed') { item = SEEDS.find(x=>x.id===id); askingBase = marketPrice(item, totalOwned(player,'seed',id)); }
+  else if (kind==='furniture') { item = FURNITURE.find(x=>x.id===id); askingBase = marketPrice(item, totalOwned(player,'furniture',id)); }
+  else if (kind==='stone') { item = STONE_ITEM; askingBase = marketPrice(item, totalOwned(player,'stone','stone')); }
+  else { item = PAINT_COLORS.find(x=>x.id===id); askingBase = item.price; }
+
+  bargainState = {
+    kind, id, item,
+    asking: askingBase,
+    minAccept: Math.max(1, Math.round(askingBase * (0.62 + Math.random()*0.13))),
+    round: 1,
+    maxRounds: 3,
+    locked: false,
+  };
+  renderBargainModal(MERCHANT_LINES[Math.floor(Math.random()*MERCHANT_LINES.length)]);
+}
+
+function renderBargainModal(feedback){
+  const b = bargainState;
+  const offers = [
+    { label:'Lowball', mult:0.55 },
+    { label:'Fair Offer', mult:0.78 },
+    { label:'Generous', mult:0.95 },
+  ];
+  openModal(`
+    <h3 class="greek-font" style="color:var(--wine);">Bargaining for ${escapeHtml(b.item.name)}</h3>
+    <p style="margin:10px 0;">Merchant's asking price: <b>🪙 ${b.asking}</b> ${b.locked?'':`(Round ${b.round} of ${b.maxRounds})`}</p>
+    ${b.locked ? '' : `<div class="bargain-offers">
+      ${offers.map(o=>`<button class="btn small" onclick="makeOffer(${Math.max(1,Math.round(b.asking*o.mult))})">${o.label} (🪙 ${Math.max(1,Math.round(b.asking*o.mult))})</button>`).join('')}
+    </div>`}
+    <div style="display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin-top:8px;">
+      <button class="btn secondary small" onclick="payAsking()">Pay Asking 🪙 ${b.asking}</button>
+      <button class="btn danger small" onclick="walkAway()">Walk Away</button>
+    </div>
+    <p style="margin-top:12px; text-align:center; min-height:20px; font-style:italic;">${escapeHtml(feedback||'')}</p>
+  `);
+}
+
+function makeOffer(amount){
+  const b = bargainState;
+  if (player.drachma < amount) { renderBargainModal("You can't even afford your own offer!"); return; }
+  if (amount >= b.minAccept) { finalizeBargain(amount); return; }
+  if (b.round >= b.maxRounds) {
+    b.locked = true;
+    renderBargainModal(`"That's my final offer of ${b.asking}. Take it or leave it."`);
+    return;
+  }
+  b.round++;
+  b.asking = Math.max(amount+1, Math.round((amount + b.asking) / 2));
+  renderBargainModal(`"Not quite enough... how about ${b.asking} instead?"`);
+}
+
+function payAsking(){ finalizeBargain(bargainState.asking); }
+
+function walkAway(){ bargainState = null; closeModal(); }
+
+function finalizeBargain(price){
+  const b = bargainState;
+  if (player.drachma < price) { flashInsufficientFunds(); return; }
+  addDrachma(-price);
+  if (b.kind === 'permit') {
+    player.palace.permitTier = b.id;
+  } else if (b.kind === 'paint') {
+    player.palace.unlockedColors.add(b.id);
+    player.palace.paintColor = b.id;
+  } else {
+    player.palace.pendingItems.push({ kind: b.kind, id: b.id });
+  }
+  const boughtKind = b.kind, boughtName = b.item.name;
+  bargainState = null;
+  renderHeader();
+  const goPlace = (boughtKind === 'structure' || boughtKind === 'seed' || boughtKind === 'furniture' || boughtKind === 'stone');
+  const placeDest = boughtKind === 'furniture' ? 'scr-palace-interior' : 'scr-palace';
+  const placeLabel = boughtKind === 'furniture' ? 'Head inside to place it!'
+    : boughtKind === 'stone' ? 'Carry it to an unfinished structure to build it!'
+    : 'Head to your palace to place it!';
+  const placeBtnText = boughtKind === 'stone' ? 'Go Build' : 'Go Place It';
+  openModal(`<h3 class="greek-font" style="color:var(--wine);">Deal! 🤝</h3>
+    <p style="margin:12px 0;">You got the ${escapeHtml(boughtName)} for 🪙 ${price}.</p>
+    ${goPlace ? `<p style="margin-bottom:12px; font-size:0.9rem; color:var(--ink-soft);">${placeLabel}</p>` : ''}
+    <div style="display:flex; gap:8px; justify-content:center; flex-wrap:wrap;">
+      ${goPlace ? `<button class="btn" onclick="closeModal(); go('${placeDest}');">${placeBtnText}</button>` : ''}
+      <button class="btn secondary" onclick="closeModal()">Keep Shopping</button>
+    </div>`);
+}
+
+// ---------- Friends ----------
+RENDERERS['scr-friends'] = function(){
+  document.getElementById('friendGrid').innerHTML = FRIENDS_POOL.map(f=>{
+    const d = deity(f.deity);
+    const isFriend = player.friends.has(f.id);
+    return `<div class="friend-card">
+      <div class="avatar-frame small" style="margin:0 auto;">${renderAvatarSVG(f.avatar)}</div>
+      <div class="fname">${escapeHtml(f.name)}</div>
+      <div class="fdeity">${d.icon} Devotee of ${d.name}</div>
+      <div style="display:flex; gap:6px; justify-content:center; flex-wrap:wrap; margin-top:6px;">
+        <button class="btn small ${isFriend?'secondary':''}" onclick="toggleFriend('${f.id}')">${isFriend?'✓ Friends':'Add Friend'}</button>
+        <button class="btn small secondary" onclick="visitPalace('${f.id}')">Visit Palace</button>
+      </div>
+    </div>`;
+  }).join('');
+};
+
+function toggleFriend(id){
+  if (player.friends.has(id)) player.friends.delete(id); else player.friends.add(id);
+  RENDERERS['scr-friends']();
+}
+
+function visitPalace(id){
+  const f = FRIENDS_POOL.find(x=>x.id===id);
+  const W = 560, H = 320;
+  openModal(`<h3 class="greek-font" style="color:var(--wine); margin-bottom:10px;">${escapeHtml(f.name)}'s Palace</h3>
+    <div class="world-wrap" style="max-width:${W}px;"><canvas id="friendPalaceCanvas" width="${W}" height="${H}"></canvas></div>
+    <div class="center" style="margin-top:14px;"><button class="btn secondary small" onclick="closeModal()">Close</button></div>`);
+
+  const ctx = document.getElementById('friendPalaceCanvas').getContext('2d');
+  const wallHex = (PAINT_COLORS.find(c=>c.id===f.paintColor)||PAINT_COLORS[0]).hex;
+  const grand = f.paintColor === 'gold';
+  ctx.fillStyle = grand ? '#e0c04a' : wallHex;
+  ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle = 'rgba(0,0,0,0.06)';
+  for (let i=0;i<=W;i+=40){ ctx.beginPath(); ctx.moveTo(i,0); ctx.lineTo(i,H); ctx.stroke(); }
+  for (let j=0;j<=H;j+=40){ ctx.beginPath(); ctx.moveTo(0,j); ctx.lineTo(W,j); ctx.stroke(); }
+  ctx.strokeStyle = '#a9812f'; ctx.lineWidth = 10;
+  ctx.strokeRect(5,5,W-10,H-10);
+  if (grand) {
+    for (let i=0;i<25;i++){
+      ctx.globalAlpha = 0.25 + 0.35*Math.abs(Math.sin(i));
+      ctx.fillStyle = '#fff8d8';
+      ctx.beginPath(); ctx.arc((i*97)%W, (i*151)%H, 2, 0, Math.PI*2); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+  const objs = friendObjects(f, W, H);
+  const drawables = [...objs.map(o=>({y:o.y, o})), {y:H*0.9, avatar:true}];
+  drawables.sort((a,b)=>a.y-b.y);
+  drawables.forEach(d => d.avatar
+    ? drawAvatarSprite(ctx, W/2, H*0.9, f.avatar, 'down', 0, null, 1.1)
+    : drawPalaceObject(ctx, d.o, 1));
+}
+
+// ---------- Init ----------
+document.getElementById('modalOverlay').addEventListener('click', (e)=>{ if (e.target.id==='modalOverlay') closeModal(); });
+go('scr-onboard-name');
+document.getElementById('nameInput').focus();
+</script>
+</body>
+</html>
