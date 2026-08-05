@@ -217,10 +217,19 @@
       <div class="karaoke" id="karaoke"></div>
       <div class="row" style="margin-top:12px">
         <button class="btn" id="btnPlay">▶ Play</button>
+        <button class="btn gold" id="btnSing">🎙️ Sing It Yourself</button>
         <button class="btn ghost sm" id="btnReroll">🎲 New Melody</button>
         <span class="spacer"></span>
         <button class="btn ghost sm" id="btnEdit">✏️ Lyrics</button>
         <button class="btn lime" id="btnToVideo">🎥 Make Video</button>
+      </div>
+      <div id="singBox" style="display:none;margin-top:12px">
+        <div class="row">
+          <span class="pill" id="singState">Ready</span>
+          <span class="spacer"></span>
+          <button class="btn ghost sm" id="btnSingStop" style="display:none">⏹ Done singing</button>
+        </div>
+        <div class="warn" id="singMsg" style="margin-top:8px"></div>
       </div>
     </div>
 
@@ -339,6 +348,78 @@ function syllables(word) {
   let n = groups ? groups.length : 1;
   if (n > 1 && /e$/.test(w) && !/[aeiouy]e$/.test(w)) n--;
   return Math.max(1, n);
+}
+
+/* =====================================================================
+   1a. reading the words — how hard is this line being sung?
+   ===================================================================== */
+/* words that tend to get belted rather than mumbled */
+const PUNCH_WORDS = new Set([
+  'need', 'want', 'burn', 'burned', 'burning', 'fire', 'flame', 'forever', 'never', 'always',
+  'scream', 'shout', 'cry', 'fight', 'run', 'fly', 'high', 'loud', 'heart', 'alive', 'tonight',
+  'love', 'free', 'gone', 'stay', 'light', 'dream', 'rise', 'fall', 'hold', 'break', 'broken',
+  'crash', 'storm', 'thunder', 'wild', 'more', 'everything', 'nothing', 'again', 'now', 'go',
+  'sky', 'crown', 'gold', 'war', 'die', 'life', 'soul', 'world', 'you', 'me', 'us', 'home',
+  'hell', 'heaven', 'stars', 'blood', 'bones', 'lost', 'found', 'gods', 'king', 'queen', 'up'
+]);
+/* words that almost never carry the big note */
+const WEAK_WORDS = new Set(['the', 'a', 'an', 'of', 'to', 'in', 'on', 'at', 'and', 'but', 'or',
+  'is', 'was', 'it', 'that', 'this', 'with', 'for', 'my', 'your', 'his', 'her', 'their', 'as', 'so']);
+
+function analyzeLine(text) {
+  const raw = text.split(/\s+/).filter(Boolean);
+  const letters = text.replace(/[^A-Za-z]/g, '');
+  const capsRatio = letters.length ? text.replace(/[^A-Z]/g, '').length / letters.length : 0;
+  const bangs = (text.match(/[!?]/g) || []).length;
+  let punchy = 0;
+
+  const words = raw.map(w => {
+    const clean = w.toLowerCase().replace(/[^a-z']/g, '');
+    const shouted = w.length > 1 && w === w.toUpperCase() && /[A-Z]/.test(w);
+    const punch = PUNCH_WORDS.has(clean);
+    const weak = WEAK_WORDS.has(clean);
+    const stretched = /(.)\1{2,}/.test(w);       /* "yeahhh" wants a long note */
+    let stress = .4;
+    if (punch) stress += .3;
+    if (shouted) stress += .32;
+    if (stretched) stress += .22;
+    if (clean.length >= 6) stress += .1;
+    if (weak) stress -= .26;
+    if (w.indexOf('!') > -1) stress += .15;
+    if (punch || shouted) punchy++;
+    return { w, clean, syl: syllables(w) || 1, stress: clamp(stress, .08, 1), shouted, punch, weak, stretched };
+  });
+
+  const punchRatio = raw.length ? punchy / raw.length : 0;
+  const intensity = clamp(
+    capsRatio * .5 + punchRatio * .45 + Math.min(bangs, 3) * .1 + (raw.length > 9 ? .08 : 0),
+    0, 1);
+  return { words, intensity, capsRatio, bangs };
+}
+
+/* =====================================================================
+   1b. motifs — a melody people can hum back
+   ===================================================================== */
+/* Each motif is a list of scale-step moves. Reusing and transposing a few
+   motifs is what stops the tune wandering off into random noodling. */
+const MOTIF_SHAPES = [
+  [0, 1, 2, 1], [0, 2, 1, -1], [0, -1, 1, 3], [0, 1, -1, 2],
+  [0, 3, -1, -2], [0, 1, 1, -2], [0, -2, 1, 1], [0, 2, 2, -1],
+  [0, 0, 2, 3], [0, -1, -1, 2]
+];
+/* phrase arcs, sampled across the line: how the register moves overall */
+const ARCS = {
+  arch:   i => Math.sin(i * Math.PI) * 2.4,               /* up then back down */
+  launch: i => (i < .18 ? i * 12 : 2.4 - i * .7) ,        /* jump up, ride it out */
+  climb:  i => i * 3.4,                                   /* keeps rising */
+  fall:   i => (1 - i) * 3.0 - 1.2,                       /* starts high, sinks */
+  wave:   i => Math.sin(i * Math.PI * 2) * 1.3,           /* gentle roll */
+  flat:   i => Math.sin(i * Math.PI) * .7                 /* barely moves */
+};
+function pickArc(intensity, rng, section) {
+  if (intensity > .62) return rng() < .55 ? 'launch' : 'climb';
+  if (intensity > .38) return section === 'chorus' ? 'arch' : (rng() < .5 ? 'arch' : 'climb');
+  return rng() < .5 ? 'wave' : (rng() < .5 ? 'fall' : 'flat');
 }
 
 /* =====================================================================
@@ -517,7 +598,8 @@ const state = {
   drumVol: .8, bassVol: .8, chordVol: .55, leadVol: .5, vocalVol: 1,
   reverb: .3, delay: .16, swing: 0, brightness: .5,
   vocals: true, harmony: true, voiceIdx: -1,
-  song: null
+  song: null,
+  sung: null, useSung: false
 };
 
 function lyricLines() {
@@ -561,70 +643,335 @@ function buildSong() {
   }
   song.dur = totalBars * barDur + 1.6;
 
-  /* --- melody: one phrase per lyric line --- */
-  let deg = 7; /* start an octave above the root */
+  /* --- melody: one phrase per lyric line ---
+     The shape of each phrase comes from the words themselves. A quiet line
+     gets a low, stepwise, chattering melody; a line that is shouting gets
+     fewer notes, held longer, higher up, landing hard on the loudest word. */
+  const motifs = [];
+  for (let i = 0; i < 3; i++) motifs.push(MOTIF_SHAPES[Math.floor(rng() * MOTIF_SHAPES.length)]);
+
+  /* nearest root/3rd/5th of the bar's chord to a wanted scale degree */
+  const chordTone = (want, chord) => {
+    let best = want, bd = 99;
+    for (let iv = 0; iv <= 4; iv += 2) {
+      for (let o = -2; o <= 2; o++) {
+        const c = chord + iv + o * scale.length;
+        const d = Math.abs(c - want);
+        if (d < bd) { bd = d; best = c; }
+      }
+    }
+    return best;
+  };
+
   lines.forEach((text, li) => {
     const startBar = introBars + li * bpl;
     const start = startBar * barDur;
     const dur = barDur * bpl;
     const chord = chordAt(startBar);
     const section = Math.floor(li / 4) % 2 === 1 ? 'chorus' : 'verse';
+    const a = analyzeLine(text);
+    const inten = a.intensity;
+    const totalSyl = Math.max(1, a.words.reduce((x, w) => x + w.syl, 0));
 
-    const words = text.split(/\s+/).filter(Boolean);
-    const wordSyl = words.map(syllables);
-    const totalSyl = Math.max(1, wordSyl.reduce((a, b) => a + b, 0));
+    /* one entry per syllable, carrying its word's stress */
+    let syls = [];
+    a.words.forEach((wd, wi) => {
+      for (let s = 0; s < wd.syl; s++) {
+        syls.push({
+          wi,
+          stress: clamp(wd.stress * (s === 0 ? 1 : .62), .05, 1),
+          hold: wd.stretched || (wd.shouted && s === 0)
+        });
+      }
+    });
+    if (!syls.length) syls = [{ wi: 0, stress: .5, hold: false }];
 
-    /* fit the syllables into an 8th (or 16th) note grid */
-    const slots = bpl * 8;
-    const step = totalSyl <= slots ? dur / slots : dur / (slots * 2);
-    const gridN = Math.round(dur / step);
-    const useN = Math.min(totalSyl, gridN - 1);
-    const spread = Math.max(1, Math.floor((gridN - 1) / Math.max(1, useN)));
+    /* --- rhythm: loud syllables take up more of the bar --- */
+    const fine = syls.length > bpl * 9;
+    const gridN = bpl * (fine ? 16 : 8);
+    const stepT = dur / gridN;
+    const stretch = 1 + Math.round(inten * 2.6);          /* belted lines hold notes */
+    let units = syls.map(s => 1 + Math.round(s.stress * stretch) + (s.hold ? 1 : 0));
+    let sum = units.reduce((x, y) => x + y, 0);
+    if (sum > gridN) {                                     /* too busy — shorten, then trim */
+      const k = gridN / sum;
+      units = units.map(u => Math.max(1, Math.floor(u * k)));
+      sum = units.reduce((x, y) => x + y, 0);
+      if (sum > gridN) { units = units.slice(0, gridN); syls = syls.slice(0, gridN); sum = units.length; }
+    }
+
+    /* whichever syllable is pushing hardest gets the big note */
+    let peak = 0;
+    syls.forEach((s, i) => { if (s.stress >= syls[peak].stress) peak = i; });
+    if (sum < gridN) {                                     /* spare room rings out on the peak */
+      const spare = gridN - sum;
+      units[peak] += Math.ceil(spare / 2);
+      units[units.length - 1] += Math.floor(spare / 2);
+    }
+
+    /* base sits around MIDI 74-84 — a singable lead register, not a whistle */
+    const base = 3 + Math.round(inten * 3) + (section === 'chorus' ? 2 : 0);
+    const motif = motifs[(li + (section === 'chorus' ? 1 : 0)) % motifs.length];
+    const arcName = pickArc(inten, rng, section);
+    const arc = ARCS[arcName];
 
     const notes = [];
-    let slot = 0;
-    for (let s = 0; s < useN; s++) {
-      /* walk the scale, favour chord tones on the downbeats */
-      const jump = rng() < .18 ? (rng() < .5 ? -2 : 2) : (rng() < .5 ? -1 : 1);
-      deg += rng() < .34 ? 0 : jump;
-      if (slot % 4 === 0 && rng() < .7) {
-        const tones = [chord, chord + 2, chord + 4];
-        let best = tones[0], bd = 99;
-        tones.forEach(tn => {
-          for (let o = -1; o <= 2; o++) {
-            const c = tn + o * scale.length;
-            if (Math.abs(c - deg) < bd) { bd = Math.abs(c - deg); best = c; }
-          }
-        });
-        deg = best;
-      }
-      deg = clamp(deg, 2, 15);
-      const lift = section === 'chorus' ? 2 : 0;
-      const t = start + slot * step;
-      const nd = step * (rng() < .22 ? 1.9 : 1.05);
-      notes.push({ t, dur: Math.min(nd, start + dur - t + .2), midi: noteOf(deg + lift), slot });
-      slot += spread + (rng() < .2 ? 1 : 0);
-      if (slot >= gridN) break;
-    }
-    /* land the phrase on a chord tone */
-    if (notes.length) {
-      const lastDeg = chord + (rng() < .5 ? 0 : 4);
-      notes[notes.length - 1].midi = noteOf(clamp(lastDeg + 7, 2, 15));
-    }
-
-    /* map words to time so karaoke can light them up one at a time */
-    const wordTimes = [];
-    let acc = 0;
-    words.forEach((w, i) => {
-      const share = wordSyl[i] / totalSyl;
-      wordTimes.push({ w, a: start + acc * dur * .92, b: start + (acc + share) * dur * .92 });
-      acc += share;
+    let t = start;
+    syls.forEach((s, i) => {
+      const pos = syls.length > 1 ? i / (syls.length - 1) : 0;
+      let deg = base + motif[i % motif.length] + Math.round(arc(pos));
+      if (i === peak) deg += 1 + Math.round(inten * 2);
+      else if (s.stress < .3 && rng() < .55) deg -= 1;      /* throwaway syllables sit low */
+      const strongBeat = Math.round((t - start) / stepT) % (fine ? 4 : 2) === 0;
+      if (i === peak || (strongBeat && (s.stress > .5 || rng() < .5))) deg = chordTone(deg, chord);
+      deg = clamp(deg, 0, 13);
+      const nd = units[i] * stepT;
+      notes.push({
+        t, dur: nd * (s.hold ? 1 : .92), midi: noteOf(deg),
+        vel: clamp(.42 + s.stress * .5 + inten * .18, .2, 1.15),
+        stress: s.stress, peak: i === peak
+      });
+      t += nd;
     });
 
-    song.lines.push({ text, start, dur, notes, words: wordTimes, section, syl: totalSyl });
+    /* land the phrase somewhere restful (higher if the line was shouting) */
+    if (notes.length > 1) {
+      const last = notes[notes.length - 1];
+      last.midi = noteOf(clamp(chordTone(base + (inten > .55 ? 4 : 0), chord), 0, 13));
+      last.dur = Math.max(last.dur, stepT * 1.6);
+    }
+
+    /* karaoke word timings come straight off the notes */
+    const wordTimes = a.words.map((wd, wi) => {
+      const mine = [];
+      syls.forEach((s, i) => { if (s.wi === wi && notes[i]) mine.push(notes[i]); });
+      if (!mine.length) {
+        const tail = notes.length ? notes[notes.length - 1] : null;
+        const at = tail ? tail.t + tail.dur : start + dur;
+        return { w: wd.w, a: at, b: at };
+      }
+      const f = mine[0], l = mine[mine.length - 1];
+      return { w: wd.w, a: f.t, b: l.t + l.dur };
+    });
+
+    song.lines.push({
+      text, start, dur, notes, words: wordTimes, section,
+      syl: totalSyl, intensity: inten, arc: arcName, sung: false
+    });
   });
 
+  if (state.useSung && state.sung) applySungMelody(song);
+
   return song;
+}
+
+/* =====================================================================
+   3b. your voice -> the melody
+   The pitches you actually sang get snapped to the key and to the beat
+   grid, then handed to the lead instrument. The rhythm the words asked
+   for is kept, so a line you belted still lands on long, high notes.
+   ===================================================================== */
+function applySungMelody(song) {
+  const sung = state.sung;
+  const scale = SCALES[state.scale] || SCALES.major;
+  /* pitch classes of the current key, for snapping */
+  const inKey = scale.map(s => (s + state.keyRoot) % 12);
+  const snap = midi => {
+    let best = midi, bd = 99;
+    for (let d = -6; d <= 6; d++) {
+      const m = Math.round(midi) + d;
+      if (inKey.indexOf(((m % 12) + 12) % 12) > -1 && Math.abs(d) < bd) { bd = Math.abs(d); best = m; }
+    }
+    return best;
+  };
+
+  /* One octave shift for the whole take, not per line — working it out line
+     by line drops neighbouring phrases into different octaves and the tune
+     jumps around for no musical reason. */
+  const all = sung.notes.map(n => n.midi).sort((x, y) => x - y);
+  const med = all[Math.floor(all.length / 2)];
+  const shift = Math.round((72 - med) / 12) * 12;
+
+  let used = 0;
+  song.lines.forEach(line => {
+    /* the notes you sang during this line's slice of the take */
+    const mine = sung.notes.filter(n => n.t >= line.start - .25 && n.t < line.start + line.dur);
+    if (mine.length < 2) return;
+    line.sung = true;
+    used++;
+
+    line.notes.forEach(n => {
+      /* the sung note that overlaps this one the most — picking the first
+         one that merely touches it biases every note towards the last pitch */
+      let hit = null, bestOv = 0;
+      const a0 = n.t, a1 = n.t + n.dur;
+      mine.forEach(s => {
+        const ov = Math.min(a1, s.t + s.dur) - Math.max(a0, s.t);
+        if (ov > bestOv) { bestOv = ov; hit = s; }
+      });
+      if (!hit) {                                    /* nothing overlaps: take the nearest */
+        let bd = 1e9;
+        mine.forEach(s => { const d = Math.abs(s.t - n.t); if (d < bd) { bd = d; hit = s; } });
+      }
+      if (!hit) return;
+      n.midi = clamp(snap(hit.midi + shift), 48, 96);
+      n.vel = clamp(n.vel * (.7 + hit.rms * 4), .2, 1.2);
+    });
+  });
+  song.sungLines = used;
+}
+
+/* =====================================================================
+   3c. listening to a take — pitch tracking, all in-page
+   ===================================================================== */
+/* Mono-ise and drop to ~15 kHz: far less work than 44.1k, while still
+   leaving enough lag resolution for a high belted note (~1 kHz). */
+function toMonoLow(audioBuf) {
+  const src = audioBuf.getChannelData(0);
+  const src2 = audioBuf.numberOfChannels > 1 ? audioBuf.getChannelData(1) : null;
+  const ratio = Math.max(1, Math.round(audioBuf.sampleRate / 14700));
+  const outLen = Math.floor(src.length / ratio);
+  const out = new Float32Array(outLen);
+  for (let i = 0; i < outLen; i++) {
+    let s = 0;
+    for (let k = 0; k < ratio; k++) {
+      const j = i * ratio + k;
+      s += src2 ? (src[j] + src2[j]) * .5 : src[j];
+    }
+    out[i] = s / ratio;
+  }
+  return { data: out, sr: audioBuf.sampleRate / ratio };
+}
+
+/* normalised autocorrelation — returns the fundamental, or 0 if unvoiced */
+function pitchAt(buf, start, len, sr) {
+  let rms = 0;
+  for (let i = 0; i < len; i++) { const v = buf[start + i]; rms += v * v; }
+  rms = Math.sqrt(rms / len);
+  if (rms < .012) return { hz: 0, rms };
+
+  /* 70 Hz to 1150 Hz covers a low male speaking note up to a high belt */
+  const minLag = Math.floor(sr / 1150), maxLag = Math.floor(sr / 70);
+  let best = -1, bestC = 0, top = maxLag;
+  const corr = new Float32Array(maxLag + 2);
+  for (let lag = minLag; lag <= maxLag; lag++) {
+    let c = 0, n1 = 0, n2 = 0;
+    for (let i = 0; i + lag < len; i++) {
+      const x = buf[start + i], y = buf[start + i + lag];
+      c += x * y; n1 += x * x; n2 += y * y;
+    }
+    const norm = c / (Math.sqrt(n1 * n2) + 1e-9);
+    corr[lag] = norm;
+    if (norm > bestC) { bestC = norm; best = lag; }
+    /* Once a convincing peak has been passed, stop: everything beyond it is
+       a multiple of the same period. Roughly halves the work on a real take. */
+    if (bestC > .93 && lag > best + 2 && norm < bestC * .8) { top = lag; break; }
+  }
+  if (best < 0 || bestC < .84) return { hz: 0, rms, clarity: bestC };
+
+  /* Take the SHORTEST lag that is nearly as strong as the best one. A plain
+     "highest correlation wins" also matches at 2x and 3x the period, which
+     reports the note an octave or two below what was actually sung. */
+  let pick = best;
+  const thresh = bestC * .9;
+  for (let lag = minLag + 1; lag < top; lag++) {
+    if (corr[lag] >= thresh && corr[lag] >= corr[lag - 1] && corr[lag] >= corr[lag + 1]) { pick = lag; break; }
+  }
+
+  /* parabolic interpolation for sub-sample accuracy */
+  const y0 = corr[pick - 1] || 0, y1 = corr[pick], y2 = corr[pick + 1] || 0;
+  const den = 2 * (2 * y1 - y0 - y2);
+  const shift = den !== 0 ? (y2 - y0) / den : 0;
+  return { hz: sr / (pick + shift), rms, clarity: bestC };
+}
+
+/* Krumhansl key profiles — which key does this melody sit in? */
+const KEY_PROFILE = {
+  major: [6.35, 2.23, 3.48, 2.33, 4.38, 4.09, 2.52, 5.19, 2.39, 3.66, 2.29, 2.88],
+  minor: [6.33, 2.68, 3.52, 5.38, 2.60, 3.53, 2.54, 4.75, 3.98, 2.69, 3.34, 3.17]
+};
+function detectKey(notes) {
+  const w = new Array(12).fill(0);
+  notes.forEach(n => { w[((Math.round(n.midi) % 12) + 12) % 12] += n.dur; });
+  let best = { root: state.keyRoot, mode: 'major', score: -1e9 };
+  ['major', 'minor'].forEach(mode => {
+    const prof = KEY_PROFILE[mode];
+    for (let root = 0; root < 12; root++) {
+      let s = 0;
+      for (let i = 0; i < 12; i++) s += w[(root + i) % 12] * prof[i];
+      if (s > best.score) best = { root, mode, score: s };
+    }
+  });
+  return best;
+}
+
+/* frames -> notes: contiguous voiced frames that hold roughly one pitch */
+function framesToNotes(frames, hop) {
+  /* median-of-3 on the pitch track kills octave-jump glitches */
+  const midis = frames.map(f => f.hz > 0 ? 69 + 12 * Math.log2(f.hz / 440) : 0);
+  const sm = midis.slice();
+  for (let i = 1; i < midis.length - 1; i++) {
+    const a = [midis[i - 1], midis[i], midis[i + 1]].filter(v => v > 0).sort((x, y) => x - y);
+    if (a.length) sm[i] = a[Math.floor(a.length / 2)];
+  }
+
+  const notes = [];
+  let cur = null, gap = 0;
+  for (let i = 0; i < sm.length; i++) {
+    const m = sm[i], f = frames[i];
+    if (m > 0) {
+      if (cur && Math.abs(m - cur.ref) < 1.1) {
+        cur.vals.push(m); cur.rms.push(f.rms); cur.end = i; gap = 0;
+        cur.ref = cur.vals.reduce((x, y) => x + y, 0) / cur.vals.length;
+      } else {
+        if (cur) notes.push(cur);
+        cur = { startI: i, end: i, ref: m, vals: [m], rms: [f.rms] };
+        gap = 0;
+      }
+    } else if (cur) {
+      gap++;
+      if (gap > 2) { notes.push(cur); cur = null; }
+    }
+  }
+  if (cur) notes.push(cur);
+
+  return notes.map(n => {
+    const v = n.vals.slice().sort((x, y) => x - y);
+    return {
+      t: n.startI * hop,
+      dur: Math.max(hop, (n.end - n.startI + 1) * hop),
+      midi: v[Math.floor(v.length / 2)],
+      rms: n.rms.reduce((x, y) => x + y, 0) / n.rms.length
+    };
+  }).filter(n => n.dur >= .085);
+}
+
+/* snap what was sung onto the song's beat grid */
+function quantizeSung(notes, spb) {
+  const grid = spb / 2;                       /* eighth notes */
+  return notes.map(n => {
+    const t = Math.round(n.t / grid) * grid;
+    const d = Math.max(grid, Math.round(n.dur / grid) * grid);
+    return { t, dur: d, midi: n.midi, rms: n.rms };
+  });
+}
+
+function analyzeTake(audioBuf, leadInSec) {
+  const { data, sr } = toMonoLow(audioBuf);
+  const win = 1024, hopS = 512, hop = hopS / sr;
+  const frames = [];
+  for (let s = 0; s + win < data.length; s += hopS) frames.push(pitchAt(data, s, win, sr));
+
+  let notes = framesToNotes(frames, hop);
+  /* shift back so t=0 is the first beat of the song, not the count-in */
+  notes = notes.map(n => ({ ...n, t: n.t - leadInSec })).filter(n => n.t > -.4);
+  if (notes.length < 3) return null;
+
+  const key = detectKey(notes);
+  const q = quantizeSung(notes, 60 / state.bpm);
+  const lo = Math.min.apply(null, q.map(n => n.midi));
+  const hi = Math.max.apply(null, q.map(n => n.midi));
+  return { notes: q, key, range: Math.round(hi - lo), count: q.length };
 }
 
 function songTitleFrom(lines) {
@@ -641,7 +988,8 @@ function songTitleFrom(lines) {
 /* =====================================================================
    4. scheduling the arrangement
    ===================================================================== */
-function scheduleSong(t0) {
+function scheduleSong(t0, mute) {
+  mute = mute || {};
   const song = state.song, g = GENRES[state.genre];
   const scale = SCALES[state.scale] || SCALES.major;
   const spb = song.spb, barDur = song.barDur;
@@ -661,7 +1009,10 @@ function scheduleSong(t0) {
 
   song.bars.forEach(bar => {
     const b = bar.i, ch = bar.chord;
-    const heavy = bar.section === 'chorus' ? 1.15 : bar.section === 'intro' ? .5 : 1;
+    /* the band leans in on the lines that are being belted */
+    const ln = bar.lineIdx >= 0 ? song.lines[bar.lineIdx] : null;
+    const inten = ln ? ln.intensity : .4;
+    const heavy = (bar.section === 'chorus' ? 1.15 : bar.section === 'intro' ? .5 : 1) * (.82 + inten * .45);
     const quiet = bar.section === 'intro' || bar.section === 'outro';
 
     /* ---- chords / pad ---- */
@@ -711,11 +1062,17 @@ function scheduleSong(t0) {
   });
 
   /* ---- lead melody ---- */
-  const lv = state.leadVol * .5;
+  const lv = mute.lead ? 0 : state.leadVol * .5;
   song.lines.forEach(line => {
     line.notes.forEach(n => {
-      if (lv > 0.004) tone(t0 + n.t, midiHz(n.midi), n.dur, state.lead, lv);
-      if (state.harmony && lv > 0.004) tone(t0 + n.t + .012, midiHz(n.midi + (line.section === 'chorus' ? 7 : 12)), n.dur * .8, state.lead, lv * .3);
+      const v = lv * (n.vel === undefined ? 1 : n.vel);
+      if (v > 0.004) tone(t0 + n.t, midiHz(n.midi), n.dur, state.lead, v);
+      /* the harmony only doubles the notes that matter, so it stays out of the way.
+         High notes get harmonised underneath — doubling a belt an octave up shrieks. */
+      if (state.harmony && v > 0.004 && (n.peak || n.stress > .55)) {
+        const iv = n.midi > 82 ? -5 : (line.section === 'chorus' ? 7 : 12);
+        tone(t0 + n.t + .012, midiHz(n.midi + iv), n.dur * .8, state.lead, v * .32);
+      }
     });
   });
 
@@ -776,20 +1133,32 @@ function stopSong(silent) {
   if (!silent) renderKaraoke(-1);
 }
 
-function startSong(onEnd) {
+function startSong(onEnd, opts) {
+  opts = opts || {};
   ensureAudio();
   stopSong(true);
-  if (!state.song) return;
-  const t0 = AC.currentTime + .18;
+  if (!state.song) return 0;
+  /* a count-in gives the singer the tempo before the words start */
+  const lead = opts.countIn ? (60 / state.bpm) * 4 : 0;
+  const t0 = AC.currentTime + .18 + lead;
   songStartT = t0;
   playing = true;
-  scheduleSong(t0);
-  scheduleVocals(180);
+  if (opts.countIn) {
+    const spb = 60 / state.bpm;
+    for (let i = 0; i < 4; i++) {
+      const ct = t0 - lead + i * spb;
+      noise(ct, .05, 'highpass', 6000, .7, i === 0 ? .5 : .3);
+      tone(ct, i === 0 ? 1568 : 1046, .06, 'square', .12);
+    }
+  }
+  scheduleSong(t0, opts.mute);
+  if (!(opts.mute && opts.mute.vocals)) scheduleVocals(180 + lead * 1000);
   $('btnPlay').textContent = '⏹ Stop';
   endTimer = setTimeout(() => {
     stopSong();
     if (onEnd) onEnd();
-  }, (state.song.dur + .4) * 1000);
+  }, (state.song.dur + lead + .4) * 1000);
+  return lead;
 }
 
 function songPos() { return AC && playing ? AC.currentTime - songStartT : -1; }
@@ -806,7 +1175,11 @@ function renderKaraoke(activeIdx) {
       const d = document.createElement('div');
       d.className = 'kline'; d.dataset.i = i;
       const tag = document.createElement('span');
-      tag.className = 'tag'; tag.textContent = line.section === 'chorus' ? 'CHORUS' : 'VERSE';
+      tag.className = 'tag';
+      /* show how the melody read this line, so the link to the words is visible */
+      const heat = line.intensity > .62 ? 'BELT' : line.intensity > .38 ? 'LIFT' : 'SOFT';
+      tag.textContent = (line.section === 'chorus' ? 'CHORUS' : 'VERSE') + ' · ' + heat +
+                        (line.sung ? ' · YOURS' : '');
       d.appendChild(tag);
       line.words.forEach(wt => {
         const s = document.createElement('span');
@@ -1091,7 +1464,7 @@ function liveChange(rebuild) {
 function buildToggles() {
   const box = $('togs');
   box.innerHTML = '';
-  const mk = (label, key) => {
+  const mk = (label, key, rebuild) => {
     const d = document.createElement('div');
     d.className = 'tog' + (state[key] ? ' on' : '');
     d.textContent = (state[key] ? '✓ ' : '○ ') + label;
@@ -1099,12 +1472,13 @@ function buildToggles() {
       state[key] = !state[key];
       d.classList.toggle('on', state[key]);
       d.textContent = (state[key] ? '✓ ' : '○ ') + label;
-      liveChange(false);
+      liveChange(!!rebuild);
     });
     box.appendChild(d);
   };
   mk('Sing the words', 'vocals');
-  mk('Harmony line', 'harmony');
+  mk('Harmony line', 'harmony', true);
+  if (state.sung) mk('Use my singing', 'useSung', true);
   box.appendChild(buildVoiceSelect());
 }
 
@@ -1144,6 +1518,101 @@ $('btnReroll').addEventListener('click', () => {
   if (was) startSong();
   toast('New melody rolled 🎲');
 });
+/* ---------------- sing your own melody ---------------- */
+let micStream = null, micRec = null, micChunks = [], singing = false;
+
+async function startSinging() {
+  if (!state.song) { toast('Compose something first.'); return; }
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.MediaRecorder) {
+    $('singBox').style.display = 'block';
+    $('singMsg').textContent = 'This browser will not let the page use the microphone. Try Chrome, Edge or Firefox.';
+    return;
+  }
+  $('singBox').style.display = 'block';
+  $('singMsg').textContent = 'Headphones help — otherwise the backing track bleeds into the mic.';
+  $('singState').textContent = 'Asking for the mic…';
+  try {
+    micStream = await navigator.mediaDevices.getUserMedia({
+      audio: { echoCancellation: true, noiseSuppression: false, autoGainControl: false }
+    });
+  } catch (e) {
+    $('singState').textContent = 'No mic';
+    $('singMsg').textContent = 'Could not open the microphone (' + (e && e.name ? e.name : 'error') + ').';
+    return;
+  }
+
+  ensureAudio();
+  micChunks = [];
+  const mime = window.MediaRecorder && MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : '';
+  try { micRec = mime ? new MediaRecorder(micStream, { mimeType: mime }) : new MediaRecorder(micStream); }
+  catch (e) { $('singMsg').textContent = 'Recording failed: ' + e.message; return; }
+
+  micRec.ondataavailable = e => { if (e.data && e.data.size) micChunks.push(e.data); };
+  micRec.onstop = () => finishSinging();
+  micRec.start(120);
+  singing = true;
+  $('btnSing').disabled = true;
+  $('btnSingStop').style.display = 'inline-block';
+
+  /* backing track only — no lead, no robot vocal, so the mic hears you */
+  const leadIn = startSong(() => { if (micRec && micRec.state === 'recording') micRec.stop(); },
+                           { countIn: true, mute: { lead: true, vocals: true } });
+  singLeadIn = leadIn;
+  $('singState').textContent = 'Count-in… then sing the words as they light up';
+  setTimeout(() => { if (singing) $('singState').textContent = '🎙️ Listening…'; }, leadIn * 1000);
+}
+
+let singLeadIn = 0;
+function stopSinging() {
+  stopSong();
+  if (micRec && micRec.state === 'recording') micRec.stop();
+}
+
+async function finishSinging() {
+  singing = false;
+  $('btnSing').disabled = false;
+  $('btnSingStop').style.display = 'none';
+  if (micStream) { micStream.getTracks().forEach(t => t.stop()); micStream = null; }
+  if (!micChunks.length) { $('singState').textContent = 'Nothing recorded'; return; }
+
+  $('singState').textContent = 'Working out what you sang…';
+  await new Promise(r => setTimeout(r, 30));   /* let the label paint before the heavy loop */
+  try {
+    const blob = new Blob(micChunks, { type: micChunks[0].type || 'audio/webm' });
+    const buf = await AC.decodeAudioData(await blob.arrayBuffer());
+    const take = analyzeTake(buf, singLeadIn);
+    if (!take) {
+      $('singState').textContent = 'Could not hear a tune';
+      $('singMsg').textContent = 'Too quiet or too breathy to pitch-track. Try again a bit louder and closer to the mic.';
+      return;
+    }
+    state.sung = take;
+    state.useSung = true;
+    /* move the whole song into the key you actually sang in */
+    state.keyRoot = take.key.root;
+    if (take.key.mode === 'minor' && SCALES[state.scale] === SCALES.major) state.scale = 'minor';
+    else if (take.key.mode === 'minor' && (state.scale === 'major' || state.scale === 'pentaMaj')) state.scale = 'minor';
+    else if (take.key.mode === 'major' && (state.scale === 'minor' || state.scale === 'phrygian')) state.scale = 'major';
+
+    compose();
+    syncMixUI();
+    const covered = state.song.sungLines || 0;
+    $('singState').textContent = '✓ Got it';
+    $('singMsg').textContent = 'Heard ' + take.count + ' notes across a ' + take.range +
+      '-semitone range, in ' + KEYS[take.key.root] + ' ' + take.key.mode +
+      '. Your melody is now driving ' + covered + ' of ' + state.song.lines.length +
+      ' lines — turn off “Use my singing” to go back to the written one.';
+    toast('Your melody is in the song 🎙️', 3800);
+    startSong();
+  } catch (e) {
+    $('singState').textContent = 'Analysis failed';
+    $('singMsg').textContent = String(e && e.message ? e.message : e);
+  }
+}
+
+$('btnSing').addEventListener('click', startSinging);
+$('btnSingStop').addEventListener('click', stopSinging);
+
 $('btnEdit').addEventListener('click', () => { stopSong(); showScreen('screenWrite'); });
 $('btnToVideo').addEventListener('click', () => { stopSong(); showScreen('screenVideo'); });
 $('btnBackStudio').addEventListener('click', () => { stopSong(); stopCam(); showScreen('screenStudio'); });
