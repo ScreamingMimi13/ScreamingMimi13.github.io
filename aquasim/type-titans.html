@@ -114,6 +114,11 @@
     font-size: 1rem;
     cursor: pointer;
   }
+  /* comfortable finger-sized targets on phones/tablets */
+  @media (pointer: coarse), (max-width: 1024px) {
+    #muteBtn { min-height: 40px; min-width: 44px; }
+    .power { min-height: 52px; }
+  }
 
   /* ---------- Arena ---------- */
   #arenaWrap { flex: 1; position: relative; min-height: 0; padding: 10px; }
@@ -482,6 +487,21 @@
     border: none;
     z-index: 1;
   }
+  /* touch devices: an obvious way to summon (and re-summon) the keyboard */
+  #tapToType {
+    display: none;
+    position: absolute; left: 50%; transform: translateX(-50%);
+    bottom: 10px; z-index: 40;
+    background: #7e57c2; color: #fff; border: none;
+    border-radius: 999px; padding: 12px 22px;
+    font-family: inherit; font-size: 1rem; font-weight: bold;
+    box-shadow: 0 4px 12px rgba(0,0,0,.3);
+  }
+  @media (pointer: coarse), (max-width: 1024px) {
+    body.playing #tapToType { display: block; }
+    body.playing.kbd #tapToType { display: none; }
+    .power .keyhint { display: none; }   /* "press 1" is meaningless without a keyboard */
+  }
 
   @media (max-width: 640px) {
     .hud { font-size: 0.78rem; gap: 7px; }
@@ -524,6 +544,7 @@
     </div>
     <div id="toasts"></div>
     <input id="mobileInput" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-hidden="true" tabindex="-1">
+    <button id="tapToType">⌨️ Tap here to type</button>
   </div>
 
   <!-- START -->
@@ -1211,6 +1232,8 @@
     last = now;
     dt = Math.min(dt, 0.05);
     if (state === 'playing') update(dt);
+    // keep the touch "tap to type" prompt in sync with play state
+    document.body.classList.toggle('playing', state === 'playing');
   }
   function loop(now) {
     step(now);
@@ -1309,11 +1332,19 @@
   mi.addEventListener('input', () => {
     const v = mi.value;
     if (v) {
-      const ch = v[v.length - 1].toLowerCase();
-      if (/^[a-z]$/.test(ch)) handleChar(ch);
+      // soft keyboards can deliver several characters at once — take them all
+      for (const raw of v) {
+        const ch = raw.toLowerCase();
+        if (/^[a-z]$/.test(ch)) handleChar(ch);
+      }
     }
     mi.value = '';
   });
+  // touch devices: an obvious button to summon the keyboard, and a body class
+  // so the prompt hides while the keyboard is actually up
+  $('tapToType').addEventListener('click', e => { e.preventDefault(); mi.focus(); });
+  mi.addEventListener('focus', () => document.body.classList.add('kbd'));
+  mi.addEventListener('blur', () => document.body.classList.remove('kbd'));
 
   // ---------------------------------------------------------------
   // Screens / buttons

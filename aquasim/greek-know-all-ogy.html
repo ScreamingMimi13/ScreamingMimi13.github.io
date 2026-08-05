@@ -310,6 +310,32 @@
   .world-wrap canvas { display: block; width: 100%; height: auto; }
   .bargain-offers { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin: 14px 0; }
 
+  /* ---------- Touch controls (mobile/tablet) ---------- */
+  #touchPad {
+    position: fixed; bottom: 22px; left: 22px;
+    width: 120px; height: 120px; border-radius: 50%;
+    background: rgba(58,47,30,0.35); border: 2px solid rgba(255,253,246,0.5);
+    backdrop-filter: blur(4px);
+    display: none; touch-action: none; z-index: 500;
+  }
+  #touchStick {
+    position: absolute; width: 52px; height: 52px; border-radius: 50%;
+    background: rgba(212,175,55,0.6); border: 2px solid rgba(255,255,255,0.6);
+    left: 50%; top: 50%; transform: translate(-50%,-50%); pointer-events: none;
+  }
+  #touchActionBtn {
+    position: fixed; bottom: 34px; right: 26px;
+    width: 84px; height: 84px; border-radius: 50%;
+    background: rgba(123,45,62,0.75); border: 2px solid rgba(255,253,246,0.6);
+    color: #fffdf6; font-family: Georgia, serif; font-weight: bold; font-size: 0.8rem;
+    display: none; align-items: center; justify-content: center; text-align: center;
+    backdrop-filter: blur(4px); touch-action: none; z-index: 500; user-select: none;
+  }
+  #touchActionBtn:active { background: rgba(212,175,55,0.7); }
+  @media (hover: none) and (pointer: coarse) {
+    body.world-active #touchPad, body.world-active #touchActionBtn { display: flex; }
+  }
+
   /* ---------- Friends ---------- */
   .friend-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px,1fr)); gap: 14px; }
   .friend-card { background: var(--card); border-radius: 16px; padding: 16px; text-align: center; box-shadow: 0 5px 14px rgba(0,0,0,0.2); }
@@ -521,6 +547,9 @@
 <div class="modal-overlay" id="modalOverlay">
   <div class="modal-box" id="modalBox"></div>
 </div>
+
+<div id="touchPad"><div id="touchStick"></div></div>
+<div id="touchActionBtn">SPACE</div>
 
 <script>
 //DATA
@@ -1357,11 +1386,14 @@ let player = freshPlayer();
 // onboarding transient state
 let ob = { pqIndex:0, pqScores:{} };
 
+const WORLD_SCREENS = ['scr-market','scr-palace','scr-palace-interior'];
+
 function go(screenId){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   const el = document.getElementById(screenId);
   if (el) el.classList.add('active');
   document.querySelectorAll('.navbtn').forEach(b=>b.classList.toggle('active', b.dataset.screen===screenId));
+  document.body.classList.toggle('world-active', WORLD_SCREENS.includes(screenId));
   window.scrollTo(0,0);
   if (RENDERERS[screenId]) RENDERERS[screenId]();
   renderHeader();
@@ -1733,6 +1765,14 @@ function flashInsufficientFunds(){
 
 // ---------- Shared walking input ----------
 const heldKeys = {};
+
+function triggerWorldAction(){
+  if (document.getElementById('modalOverlay').classList.contains('active')) return;
+  if (document.getElementById('scr-market').classList.contains('active')) tryInteractMarket();
+  else if (document.getElementById('scr-palace').classList.contains('active')) tryInteractExterior();
+  else if (document.getElementById('scr-palace-interior').classList.contains('active')) tryInteractInterior();
+}
+
 document.addEventListener('keydown', (e) => {
   const marketActive = document.getElementById('scr-market').classList.contains('active');
   const palaceActive = document.getElementById('scr-palace').classList.contains('active');
@@ -1741,13 +1781,58 @@ document.addEventListener('keydown', (e) => {
   if ((marketActive || palaceActive || interiorActive) && !modalOpen && ['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key)) e.preventDefault();
   heldKeys[e.key] = true;
   if (modalOpen) return;
-  if (e.key === ' ') {
-    if (marketActive) tryInteractMarket();
-    else if (palaceActive) tryInteractExterior();
-    else if (interiorActive) tryInteractInterior();
-  }
+  if (e.key === ' ') triggerWorldAction();
 });
 document.addEventListener('keyup', (e) => { heldKeys[e.key] = false; });
+
+// ---------- Touch controls ----------
+(function(){
+  const pad = document.getElementById('touchPad');
+  const stick = document.getElementById('touchStick');
+  const actionBtn = document.getElementById('touchActionBtn');
+  let padActive = false, padId = null, padCenter = {x:0,y:0};
+
+  function setDirection(dx, dy){
+    const dead = 0.3;
+    heldKeys['ArrowLeft'] = dx < -dead;
+    heldKeys['ArrowRight'] = dx > dead;
+    heldKeys['ArrowUp'] = dy < -dead;
+    heldKeys['ArrowDown'] = dy > dead;
+  }
+
+  pad.addEventListener('touchstart', e => {
+    const t = e.changedTouches[0];
+    padActive = true; padId = t.identifier;
+    const r = pad.getBoundingClientRect();
+    padCenter = { x: r.left + r.width/2, y: r.top + r.height/2 };
+    e.preventDefault();
+  }, {passive:false});
+
+  pad.addEventListener('touchmove', e => {
+    if (!padActive) return;
+    for (const t of e.changedTouches) {
+      if (t.identifier !== padId) continue;
+      const dx = t.clientX - padCenter.x, dy = t.clientY - padCenter.y;
+      const max = 46;
+      const d = Math.min(max, Math.hypot(dx, dy));
+      const ang = Math.atan2(dy, dx);
+      stick.style.left = (50 + Math.cos(ang) * d / pad.clientWidth * 100) + '%';
+      stick.style.top  = (50 + Math.sin(ang) * d / pad.clientHeight * 100) + '%';
+      setDirection(dx/max, dy/max);
+    }
+    e.preventDefault();
+  }, {passive:false});
+
+  function endPad(){
+    padActive = false; padId = null;
+    stick.style.left = '50%'; stick.style.top = '50%';
+    setDirection(0, 0);
+  }
+  pad.addEventListener('touchend', endPad);
+  pad.addEventListener('touchcancel', endPad);
+
+  actionBtn.addEventListener('touchstart', e => { triggerWorldAction(); e.preventDefault(); }, {passive:false});
+})();
 
 // ---------- Market World ----------
 const MARKET_STALLS = [

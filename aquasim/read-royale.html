@@ -870,10 +870,13 @@
   // =============================================================
   // Real engines (each genuinely playable). Catalog entries are
   // themed variants that tune each engine's parameters.
-  const ENGINES = ['reaction','bubbles','catch','whack','memory','dodge','aim','simon','breakout','runner'];
+  const ENGINES = ['reaction','bubbles','catch','whack','memory','dodge','aim','simon','breakout','runner',
+    'flappy','snake','stack','slice','collect','rhythm','stroop','math'];
   const ENGINE_LABEL = {
     reaction:'Reaction', bubbles:'Pop', catch:'Catch', whack:'Whack', memory:'Memory',
-    dodge:'Dodge', aim:'Aim', simon:'Sequence', breakout:'Brick', runner:'Runner'
+    dodge:'Dodge', aim:'Aim', simon:'Sequence', breakout:'Brick', runner:'Runner',
+    flappy:'Flappy', snake:'Snake', stack:'Stack', slice:'Slice', collect:'Collect',
+    rhythm:'Rhythm', stroop:'Color', math:'Math'
   };
   const ENGINE_HOWTO = {
     reaction:'Tap the glowing targets the instant they appear. Fast taps score more.',
@@ -885,7 +888,15 @@
     aim:'Click each target before it shrinks away. Precision pays.',
     simon:'Watch the color pattern, then repeat it. It grows each round.',
     breakout:'Bounce the ball with your paddle to smash every brick.',
-    runner:'Jump the obstacles. Tap / Space to jump, hold for higher.'
+    runner:'Jump the obstacles. Tap / Space to jump, hold for higher.',
+    flappy:'Tap or press Space to flap through the pipe gaps. Don\'t crash.',
+    snake:'Eat apples to grow. Arrow keys or tap a direction. Don\'t hit yourself.',
+    stack:'Tap to drop each block. Overhang gets sliced off — keep it wide!',
+    slice:'Swipe through the fruit to slice it. Avoid the bombs!',
+    collect:'Steer to grab the stars while dodging the chaser.',
+    rhythm:'Hit the notes as they cross the line. Tap the lane or press A / S / D.',
+    stroop:'Tap the button matching the COLOR of the word, not what it reads.',
+    math:'Solve the problem and tap the correct answer before time runs out.'
   };
   const ADJ = ['Neon','Cosmic','Turbo','Mega','Pixel','Astro','Laser','Quantum','Retro','Hyper','Galaxy','Volcano',
     'Frost','Thunder','Shadow','Golden','Crystal','Jungle','Cyber','Diamond','Rocket','Ninja','Aqua','Solar',
@@ -900,12 +911,22 @@
     aim:['Aim','Sniper','Bullseye','Targets','Focus'],
     simon:['Sequence','Echo','Pattern','Simon','Signal'],
     breakout:['Breaker','Bricks','Smasher','Rebound','Wall'],
-    runner:['Runner','Dash','Sprint','Hopper','Rush']
+    runner:['Runner','Dash','Sprint','Hopper','Rush'],
+    flappy:['Flap','Wings','Soar','Glider','Flutter'],
+    snake:['Snake','Serpent','Coil','Slither','Viper'],
+    stack:['Stack','Tower','Blocks','Spire','Pile'],
+    slice:['Slice','Ninja','Chop','Blade','Katana'],
+    collect:['Collector','Gather','Sweep','Chase','Hoard'],
+    rhythm:['Rhythm','Beat','Groove','Tempo','Combo'],
+    stroop:['Colors','Ink','Hue','Prism','Shades'],
+    math:['Math','Numbers','Sums','Digits','Reckon']
   };
   const EMOJI = {
     reaction:['⚡','💥','🎯'], bubbles:['🫧','🎈','🔵'], catch:['🧺','🍎','🌟'], whack:['🔨','🐹','💢'],
     memory:['🃏','🧠','🔀'], dodge:['🚀','☄️','🛸'], aim:['🎯','🔫','🟢'], simon:['🎵','🟩','🔔'],
-    breakout:['🧱','🏓','⚪'], runner:['🏃','🌵','⬆️']
+    breakout:['🧱','🏓','⚪'], runner:['🏃','🌵','⬆️'],
+    flappy:['🐤','🕊️','🐥'], snake:['🐍','🍎','🟢'], stack:['🧱','📦','🗼'], slice:['🍉','🗡️','🍓'],
+    collect:['⭐','👾','💎'], rhythm:['🎵','🥁','🎶'], stroop:['🎨','🌈','🖍️'], math:['🔢','➗','🧮']
   };
 
   const CATALOG = [];
@@ -1138,6 +1159,14 @@
       case 'simon':    return engineSimon();
       case 'breakout': return engineBreakout(speedK);
       case 'runner':   return engineRunner(speedK);
+      case 'flappy':   return engineFlappy(speedK);
+      case 'snake':    return engineSnake(speedK);
+      case 'stack':    return engineStack(speedK);
+      case 'slice':    return engineSlice(speedK);
+      case 'collect':  return engineCollect(speedK);
+      case 'rhythm':   return engineRhythm(speedK);
+      case 'stroop':   return engineStroop(speedK);
+      case 'math':     return engineMath(speedK);
       default:         return engineReaction(speedK);
     }
   }
@@ -1570,6 +1599,274 @@
         ctx.font = '30px serif'; ctx.textAlign='center';
         ctx.fillText('🏃', player.x + player.w/2, player.y);
         for (const o of obstacles) { ctx.font = (o.h) + 'px serif'; ctx.fillText('🌵', o.x + o.w/2, groundY); }
+      }
+    };
+  }
+
+  // ---- Flappy: flap through pipe gaps ----
+  function engineFlappy(k) {
+    const bird = { x: 130, y: CH/2, vy: 0, r: 13 }; const pipes = []; let t = 0;
+    const flap = () => { bird.vy = -330; sfx.hit(); };
+    return {
+      duration: 32,
+      update(dt) {
+        bird.vy += 1250 * dt; bird.y += bird.vy * dt;
+        t += dt;
+        if (t > 1.5 / k) { t = 0; pipes.push({ x: CW+30, gapY: rand(90, CH-110), gap: Math.max(110, 170 - (k-1)*30), passed: false }); }
+        for (const p of pipes) p.x -= (150 * k) * dt;
+        for (let i=pipes.length-1;i>=0;i--) if (pipes[i].x < -60) pipes.splice(i,1);
+        if (bird.y > CH-14 || bird.y < 14) { sfx.bad(); mg.over = true; setTimeout(endMinigame,10); return; }
+        for (const p of pipes) {
+          if (!p.passed && p.x + 26 < bird.x) { p.passed = true; this.score += 10; sfx.pop(); }
+          if (bird.x + bird.r > p.x-26 && bird.x - bird.r < p.x+26 &&
+              (bird.y - bird.r < p.gapY - p.gap/2 || bird.y + bird.r > p.gapY + p.gap/2)) {
+            sfx.bad(); mg.over = true; setTimeout(endMinigame,10); return;
+          }
+        }
+      },
+      pointer(type) { if (type === 'down') flap(); },
+      key(e) { if (e.key === ' ' || e.key === 'ArrowUp') flap(); },
+      draw(ctx) {
+        bg(ctx, '#0d1b3a', '#164a6e');
+        for (const p of pipes) {
+          ctx.fillStyle = '#43a047';
+          ctx.fillRect(p.x-26, 0, 52, p.gapY - p.gap/2);
+          ctx.fillRect(p.x-26, p.gapY + p.gap/2, 52, CH - (p.gapY + p.gap/2));
+        }
+        ctx.font = '26px serif'; ctx.textAlign = 'center'; ctx.fillText('🐤', bird.x, bird.y + 9);
+      }
+    };
+  }
+
+  // ---- Snake: grow by eating, don't hit yourself ----
+  function engineSnake(k) {
+    const cell = 20, cols = Math.floor(CW/cell), rows = Math.floor(CH/cell);
+    let snake = [{x:5,y:6}], dir = {x:1,y:0}, nextDir = {x:1,y:0};
+    let food = { x: 12, y: 6 }, acc = 0; const step = Math.max(0.07, 0.16 - (k-1)*0.02);
+    const placeFood = () => { food = { x: randInt(0,cols-1), y: randInt(0,rows-1) }; };
+    return {
+      duration: 40,
+      update(dt) {
+        acc += dt; if (acc < step) return; acc = 0;
+        dir = nextDir;
+        const head = { x: snake[0].x + dir.x, y: snake[0].y + dir.y };
+        if (head.x < 0 || head.y < 0 || head.x >= cols || head.y >= rows || snake.some(s => s.x===head.x && s.y===head.y)) {
+          sfx.bad(); mg.over = true; setTimeout(endMinigame,10); return;
+        }
+        snake.unshift(head);
+        if (head.x === food.x && head.y === food.y) { this.score += 10; sfx.pop(); placeFood(); }
+        else snake.pop();
+      },
+      key(e) {
+        if (e.key==='ArrowLeft' && dir.x!==1) nextDir={x:-1,y:0};
+        if (e.key==='ArrowRight'&& dir.x!==-1) nextDir={x:1,y:0};
+        if (e.key==='ArrowUp'   && dir.y!==1) nextDir={x:0,y:-1};
+        if (e.key==='ArrowDown' && dir.y!==-1) nextDir={x:0,y:1};
+      },
+      pointer(type, x, y) {
+        if (type !== 'down') return;
+        const hx = snake[0].x*cell+cell/2, hy = snake[0].y*cell+cell/2, dx = x-hx, dy = y-hy;
+        if (Math.abs(dx) > Math.abs(dy)) { if (dx>0 && dir.x!==-1) nextDir={x:1,y:0}; else if (dx<0 && dir.x!==1) nextDir={x:-1,y:0}; }
+        else { if (dy>0 && dir.y!==-1) nextDir={x:0,y:1}; else if (dy<0 && dir.y!==1) nextDir={x:0,y:-1}; }
+      },
+      draw(ctx) {
+        bg(ctx, '#0a1a0a', '#123012');
+        ctx.font = cell+'px serif'; ctx.textAlign = 'center';
+        ctx.fillText('🍎', food.x*cell+cell/2, food.y*cell+cell-3);
+        for (let i=0;i<snake.length;i++){ ctx.fillStyle = i===0 ? '#a5d6a7' : '#66bb6a'; roundRect(ctx, snake[i].x*cell+1, snake[i].y*cell+1, cell-2, cell-2, 5); ctx.fill(); }
+      }
+    };
+  }
+
+  // ---- Stack: drop blocks and line them up ----
+  function engineStack(k) {
+    const H = 26; const blocks = []; let cur = null; let baseY = CH - 36;
+    const newBlock = () => {
+      const prev = blocks[blocks.length-1]; const w = prev ? prev.w : 190;
+      const y = baseY - blocks.length*H;
+      cur = { x: Math.random()<0.5 ? 0 : CW-w, y, w, dir: Math.random()<0.5?1:-1, speed: 120 + 45*k };
+    };
+    newBlock();
+    const drop = function() {
+      const prev = blocks[blocks.length-1];
+      if (prev) {
+        const left = Math.max(cur.x, prev.x), right = Math.min(cur.x+cur.w, prev.x+prev.w);
+        const overlap = right - left;
+        if (overlap <= 4) { sfx.bad(); mg.over = true; setTimeout(endMinigame,10); return; }
+        cur.x = left; cur.w = overlap;
+      }
+      cur.c = 'hsl(' + ((blocks.length*32) % 360) + ',68%,60%)';
+      blocks.push({ x: cur.x, y: cur.y, w: cur.w, c: cur.c });
+      this.score += 6 + Math.round(cur.w/24); sfx.hit();
+      if (cur.y < 44) { for (const b of blocks) b.y += H; baseY += H; }
+      newBlock();
+    };
+    return {
+      duration: 40,
+      update(dt) {
+        if (!cur) return;
+        cur.x += cur.dir * cur.speed * dt;
+        if (cur.x < 0) { cur.x = 0; cur.dir = 1; }
+        if (cur.x + cur.w > CW) { cur.x = CW - cur.w; cur.dir = -1; }
+      },
+      pointer(type) { if (type === 'down') drop.call(this); },
+      key(e) { if (e.key === ' ') drop.call(this); },
+      draw(ctx) {
+        bg(ctx, '#241a44', '#3a2a6e');
+        for (const b of blocks) { ctx.fillStyle = b.c; roundRect(ctx, b.x, b.y, b.w, H-3, 4); ctx.fill(); }
+        if (cur) { ctx.fillStyle = '#ffd54f'; roundRect(ctx, cur.x, cur.y, cur.w, H-3, 4); ctx.fill(); }
+      }
+    };
+  }
+
+  // ---- Slice: swipe through fruit, avoid bombs ----
+  function engineSlice(k) {
+    const items = []; let t = 0; let trail = [];
+    return {
+      duration: 30,
+      update(dt) {
+        t += dt;
+        if (t > 0.7 / k) { t = 0; items.push({ x: rand(60,CW-60), y: CH+30, vx: rand(-50,50), vy: -rand(300,390), r: 20, bomb: Math.random()<0.18 }); }
+        for (const it of items) { it.vy += 620*dt; it.x += it.vx*dt; it.y += it.vy*dt; }
+        for (let i=items.length-1;i>=0;i--) if (items[i].y > CH+40) items.splice(i,1);
+        if (mgPointer.down) trail.push({ x: mgPointer.x, y: mgPointer.y, life: 0.22 });
+        for (const p of trail) p.life -= dt; trail = trail.filter(p => p.life > 0);
+      },
+      pointer(type, x, y) {
+        for (let i=items.length-1;i>=0;i--){
+          const it = items[i];
+          if (Math.hypot(x-it.x, y-it.y) < it.r + 10) {
+            if (it.bomb) { sfx.bad(); this.score = Math.max(0, this.score - 8); }
+            else { this.score += 6; sfx.pop(); }
+            items.splice(i,1);
+          }
+        }
+      },
+      draw(ctx) {
+        bg(ctx, '#10240f', '#1e3a1e');
+        ctx.textAlign = 'center';
+        for (const it of items) { ctx.font = (it.r*2)+'px serif'; ctx.fillText(it.bomb ? '💣' : '🍉', it.x, it.y + it.r*0.7); }
+        ctx.strokeStyle = 'rgba(255,255,255,0.75)'; ctx.lineWidth = 3; ctx.beginPath();
+        trail.forEach((p,i) => { if (i===0) ctx.moveTo(p.x,p.y); else ctx.lineTo(p.x,p.y); }); ctx.stroke();
+      }
+    };
+  }
+
+  // ---- Collect: grab stars, flee the chaser ----
+  function engineCollect(k) {
+    const me = { x: CW/2, y: CH/2, r: 13 }; const stars = []; const hunter = { x: 40, y: 40, r: 15 };
+    for (let i=0;i<4;i++) stars.push({ x: rand(30,CW-30), y: rand(30,CH-30) });
+    return {
+      duration: 35,
+      update(dt) {
+        if (mgPointer.x) { const dx = mgPointer.x-me.x, dy = mgPointer.y-me.y, d = Math.hypot(dx,dy)||1, sp = 250; me.x += dx/d*Math.min(sp*dt,d); me.y += dy/d*Math.min(sp*dt,d); }
+        me.x = clamp(me.x, me.r, CW-me.r); me.y = clamp(me.y, me.r, CH-me.r);
+        const hx = me.x-hunter.x, hy = me.y-hunter.y, hd = Math.hypot(hx,hy)||1, hsp = 85 + 42*k;
+        hunter.x += hx/hd*hsp*dt; hunter.y += hy/hd*hsp*dt;
+        if (hd < me.r + hunter.r) { sfx.bad(); mg.over = true; setTimeout(endMinigame,10); return; }
+        for (let i=stars.length-1;i>=0;i--) if (Math.hypot(stars[i].x-me.x, stars[i].y-me.y) < me.r + 13) { this.score += 10; sfx.pop(); stars.splice(i,1); stars.push({ x: rand(30,CW-30), y: rand(30,CH-30) }); }
+      },
+      key(e) { const s = 26; if (e.key==='ArrowLeft') me.x-=s; if (e.key==='ArrowRight') me.x+=s; if (e.key==='ArrowUp') me.y-=s; if (e.key==='ArrowDown') me.y+=s; },
+      draw(ctx) {
+        bg(ctx, '#0b1030', '#1a1550');
+        ctx.textAlign = 'center'; ctx.font = '24px serif';
+        for (const s of stars) ctx.fillText('⭐', s.x, s.y + 8);
+        ctx.font = '26px serif'; ctx.fillText('👾', hunter.x, hunter.y + 9);
+        ctx.fillStyle = '#64ffda'; ctx.beginPath(); ctx.arc(me.x, me.y, me.r, 0, 7); ctx.fill();
+      }
+    };
+  }
+
+  // ---- Rhythm: hit falling notes on the line ----
+  function engineRhythm(k) {
+    const lanes = 3, laneW = CW/lanes, hitY = CH-50; const notes = []; let t = 0; const keys = ['a','s','d'];
+    const hit = function(lane) {
+      let best = -1, bestd = 1e9;
+      for (let i=0;i<notes.length;i++){ if (notes[i].lane!==lane) continue; const d = Math.abs(notes[i].y-hitY); if (d < bestd) { bestd = d; best = i; } }
+      if (best>=0 && bestd<42) { this.score += bestd<16 ? 12 : 6; sfx.pop(); notes.splice(best,1); }
+    };
+    return {
+      duration: 32,
+      update(dt) {
+        t += dt;
+        if (t > 0.55 / k) { t = 0; notes.push({ lane: randInt(0,lanes-1), y: -20, v: 180 + 55*k }); }
+        for (const n of notes) n.y += n.v*dt;
+        for (let i=notes.length-1;i>=0;i--) if (notes[i].y > CH+20) { notes.splice(i,1); this.score = Math.max(0, this.score-1); }
+      },
+      pointer(type, x) { if (type === 'down') hit.call(this, Math.floor(x/laneW)); },
+      key(e) { const idx = keys.indexOf(e.key.toLowerCase()); if (idx>=0) hit.call(this, idx); },
+      draw(ctx) {
+        bg(ctx, '#1a0f2e', '#2e1a4e');
+        for (let l=1;l<lanes;l++){ ctx.strokeStyle = 'rgba(255,255,255,0.12)'; ctx.beginPath(); ctx.moveTo(l*laneW,0); ctx.lineTo(l*laneW,CH); ctx.stroke(); }
+        ctx.strokeStyle = '#64ffda'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(0,hitY); ctx.lineTo(CW,hitY); ctx.stroke();
+        for (const n of notes) { ctx.fillStyle = '#ff6ec7'; const cx = n.lane*laneW+laneW/2; roundRect(ctx, cx-30, n.y-16, 60, 32, 8); ctx.fill(); }
+      }
+    };
+  }
+
+  // ---- Color (Stroop): tap the ink color, not the word ----
+  function engineStroop(k) {
+    const COLORS = [['RED','#ef5350'],['BLUE','#42a5f5'],['GREEN','#66bb6a'],['YELLOW','#ffd54f']];
+    let word = '', inkIdx = 0, buttons = [], tleft = 0;
+    const next = () => {
+      word = COLORS[randInt(0,3)][0]; inkIdx = randInt(0,3);
+      buttons = COLORS.map((c,i) => ({ i, color: c[1] }));
+      for (let i=buttons.length-1;i>0;i--){ const j = randInt(0,i); [buttons[i],buttons[j]] = [buttons[j],buttons[i]]; }
+      tleft = Math.max(0.9, 1.9 - (k-1)*0.2);
+    };
+    next();
+    return {
+      duration: 30,
+      update(dt) { tleft -= dt; if (tleft <= 0) { this.score = Math.max(0, this.score-2); sfx.bad(); next(); } },
+      pointer(type, x, y) {
+        if (type !== 'down' || y < CH-84) return;
+        const bw = CW/buttons.length, b = buttons[Math.floor(x/bw)];
+        if (!b) return;
+        if (b.i === inkIdx) { this.score += 10; sfx.pop(); } else { this.score = Math.max(0, this.score-4); sfx.bad(); }
+        next();
+      },
+      draw(ctx) {
+        bg(ctx, '#141034', '#241a54');
+        ctx.textAlign = 'center'; ctx.fillStyle = COLORS[inkIdx][1]; ctx.font = 'bold 58px "Comic Sans MS", sans-serif';
+        ctx.fillText(word, CW/2, CH/2-26);
+        ctx.fillStyle = '#b0a8d8'; ctx.font = '16px sans-serif'; ctx.fillText('Tap the COLOR of the word', CW/2, CH/2+16);
+        const bw = CW/buttons.length;
+        for (let i=0;i<buttons.length;i++){ ctx.fillStyle = buttons[i].color; roundRect(ctx, i*bw+8, CH-80, bw-16, 60, 10); ctx.fill(); }
+      }
+    };
+  }
+
+  // ---- Math: pick the correct answer ----
+  function engineMath(k) {
+    let a=0, b=0, op='+', ans=0, choices=[], tleft=0;
+    const next = () => {
+      const hard = k > 1.4;
+      a = randInt(2, hard?15:10); b = randInt(2, hard?12:9); op = pick(['+','-','×']);
+      if (op==='-' && b>a) { const tmp=a; a=b; b=tmp; }
+      ans = op==='+' ? a+b : op==='-' ? a-b : a*b;
+      const set = new Set([ans]); let guard = 0;
+      while (set.size < 4 && guard++ < 30) set.add(ans + randInt(-6,6));
+      choices = [...set];
+      for (let i=choices.length-1;i>0;i--){ const j = randInt(0,i); [choices[i],choices[j]] = [choices[j],choices[i]]; }
+      tleft = Math.max(1.4, 3.2 - (k-1)*0.25);
+    };
+    next();
+    return {
+      duration: 30,
+      update(dt) { tleft -= dt; if (tleft <= 0) { this.score = Math.max(0, this.score-2); sfx.bad(); next(); } },
+      pointer(type, x, y) {
+        if (type !== 'down' || y < CH-92) return;
+        const bw = CW/4, c = choices[Math.floor(x/bw)];
+        if (c === undefined) return;
+        if (c === ans) { this.score += 12; sfx.pop(); } else { this.score = Math.max(0, this.score-4); sfx.bad(); }
+        next();
+      },
+      draw(ctx) {
+        bg(ctx, '#0f2a24', '#164038');
+        ctx.textAlign = 'center'; ctx.fillStyle = '#fff'; ctx.font = 'bold 50px "Comic Sans MS", sans-serif';
+        ctx.fillText(a + ' ' + op + ' ' + b + ' = ?', CW/2, CH/2-24);
+        const bw = CW/4;
+        for (let i=0;i<4;i++){ ctx.fillStyle = '#7e57c2'; roundRect(ctx, i*bw+8, CH-88, bw-16, 68, 10); ctx.fill(); ctx.fillStyle = '#fff'; ctx.font = 'bold 28px "Comic Sans MS", sans-serif'; ctx.fillText(String(choices[i]), i*bw+bw/2, CH-46); }
       }
     };
   }

@@ -76,6 +76,8 @@
     transition: background 0.2s;
   }
   #mute-btn:hover { background: rgba(110, 224, 255, 0.2); }
+  /* comfortable finger-sized target on phones/tablets */
+  @media (pointer: coarse), (max-width: 1024px) { #mute-btn { min-height: 40px; font-size: 12px; } }
   #hud .title {
     font-family: 'Georgia', serif;
     font-style: italic;
@@ -2399,19 +2401,28 @@
           showMsg('The moray eel nipped at ' + betta.name + '!', 'warn');
         }
       }
+      // check if betta is under the open lid area
+      // chest at 4x: body x ± 72, top at tc.y-64; open lid extends up to ~tc.y-200
+      const _chestNear = (function() {
+        const cdx = Math.abs(betta.x - tc.x);
+        const cdy = betta.y - tc.y;
+        return cdx < 75 && cdy > -200 && cdy < 5;
+      })();
       if (tc.timer <= 0) {
         tc.state = 'closing';
         tc.timer = 2;
         tc.eelNip = 0;
+        tc.trapped = _chestNear;
+        if (tc.trapped) showMsg('The chest closed on ' + betta.name + '!', 'warn');
         sndCreak();
       }
     } else if (tc.state === 'closing') {
       tc.lidAngle = Math.max(0, tc.lidAngle - dt * 0.65);
-      // check if betta is inside the chest opening while lid closes
-      if (!tc.trapped && tc.lidAngle > 0.2) {
+      // check if betta is inside the chest/lid sweep while closing
+      if (!tc.trapped && tc.lidAngle > 0.15) {
         const cdx = Math.abs(betta.x - tc.x);
-        const cdy = betta.y - (tc.y - 32);
-        if (cdx < 36 && cdy > -30 && cdy < 20) {
+        const cdy = betta.y - tc.y;
+        if (cdx < 75 && cdy > -200 && cdy < 5) {
           tc.trapped = true;
           sndCreak();
           showMsg('The chest closed on ' + betta.name + '!', 'warn');

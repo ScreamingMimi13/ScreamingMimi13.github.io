@@ -475,7 +475,13 @@
     header h1 { font-size: 1.05rem; }
     .quest-grid { grid-template-columns: 1fr 1fr; }
     textarea#story { font-size: 1.05rem; }
+    /* phones: let the header wrap instead of running off the screen */
+    header { flex-wrap: wrap; gap: 6px; }
+    .header-right { flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
+    .book-btn, .shop-btn { padding: 8px 12px; font-size: .88rem; }
   }
+  /* comfortable touch targets everywhere */
+  .book-btn, .shop-btn, .chip, .modal-btn, .tab { min-height: 40px; }
 </style>
 </head>
 <body>

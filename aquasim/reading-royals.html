@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Reading Royals — Extreme Reading Arcade</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --royal: #5e35b1;
+    --royal-deep: #4527a0;
+    --gold: #ffc107;
+    --gold-deep: #ff8f00;
+    --teal: #26a69a;
+    --red: #ef5350;
+    --green: #66bb6a;
+    --pink: #ec407a;
+    --ink: #2b2838;
+    --paper: #fffdf6;
+    --card: #ffffff;
+    --muted: #8a80a8;
+  }
+
+  html, body { height: 100%; }
+
+  body {
+    font-family: "Comic Sans MS", "Chalkboard SE", "Segoe UI", sans-serif;
+    color: var(--ink);
+    background: linear-gradient(180deg, #d9c8f5 0%, #b7a4e8 45%, #f7d98c 100%);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ---------- Header ---------- */
+  header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 14px;
+    background: rgba(255,255,255,0.92);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    z-index: 40;
+    flex-wrap: wrap;
+  }
+  .logo {
+    display: flex; align-items: center; gap: 8px;
+    font-weight: bold; font-size: 1.1rem; color: var(--royal-deep);
+    white-space: nowrap; cursor: pointer;
+  }
+  .logo .ico { font-size: 1.4rem; }
+  .hud {
+    display: flex; align-items: center; gap: 10px; flex: 1;
+    justify-content: flex-end; flex-wrap: wrap; font-size: 0.92rem;
+  }
+  .stat {
+    display: flex; align-items: center; gap: 5px;
+    background: #f3eefe; border-radius: 999px; padding: 4px 12px;
+    font-weight: bold; white-space: nowrap;
+  }
+  .stat .lbl { color: var(--muted); font-weight: normal; font-size: 0.78rem; }
+  #hudCoins { background: #fff5d6; color: #b26a00; }
+  #hudTickets { background: #e0f7f4; color: #00695c; }
+  #hudStreak.hot { background: #ffe9dc; color: #e65100; animation: pulse 0.6s infinite alternate; }
+  @keyframes pulse { from { transform: scale(1); } to { transform: scale(1.08); } }
+  #muteBtn {
+    border: none; background: #f3eefe; border-radius: 999px;
+    padding: 4px 10px; font-size: 1rem; cursor: pointer;
+  }
+  /* comfortable finger-sized target on phones/tablets */
+  @media (pointer: coarse), (max-width: 1024px) {
+    #muteBtn { min-height: 40px; min-width: 44px; }
+  }
+
+  /* ---------- Screens ---------- */
+  main { flex: 1; min-height: 0; position: relative; }
+  .screen {
+    position: absolute; inset: 0; display: none;
+    overflow-y: auto; padding: 16px;
+  }
+  .screen.active { display: block; }
+
+  .wrap { max-width: 960px; margin: 0 auto; }
+
+  /* ---------- Menu ---------- */
+  #scr-menu .hero {
+    text-align: center; padding: 26px 10px 10px;
+  }
+  #scr-menu h1 {
+    font-size: 2.3rem; color: var(--royal-deep);
+    text-shadow: 0 2px 0 #fff;
+  }
+  #scr-menu .tag { color: #5d5480; margin-top: 4px; font-size: 1.02rem; }
+  .menu-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 14px; margin-top: 22px;
+  }
+  .bigbtn {
+    position: relative;
+    border: none; border-radius: 18px; cursor: pointer;
+    padding: 22px 16px; text-align: left;
+    background: var(--card); box-shadow: 0 4px 0 rgba(0,0,0,0.12);
+    transition: transform 0.1s;
+    font-family: inherit;
+  }
+  .bigbtn:hover { transform: translateY(-3px); }
+  .bigbtn .bico { font-size: 2rem; }
+  .bigbtn .bt { font-weight: bold; font-size: 1.15rem; margin-top: 6px; color: var(--royal-deep); }
+  .bigbtn .bd { font-size: 0.85rem; color: #6f678f; margin-top: 4px; line-height: 1.35; }
+  .bigbtn .badge {
+    position: absolute; top: -8px; right: -6px;
+    background: var(--red); color: #fff; border-radius: 999px;
+    min-width: 26px; height: 26px; display: flex; align-items: center; justify-content: center;
+    font-weight: bold; font-size: 0.85rem; padding: 0 7px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.25);
+  }
+  .breakbar {
+    margin-top: 20px; background: rgba(255,255,255,0.85);
+    border-radius: 14px; padding: 12px 16px;
+  }
+  .breakbar .t { font-size: 0.85rem; font-weight: bold; color: var(--royal-deep); margin-bottom: 6px; }
+  .pbar { height: 14px; background: #e4defa; border-radius: 999px; overflow: hidden; }
+  .pbar > div {
+    height: 100%; width: 0%;
+    background: linear-gradient(90deg, var(--teal), var(--gold));
+    border-radius: 999px; transition: width 0.4s;
+  }
+  .stats-row {
+    display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 18px;
+    font-size: 0.85rem;
+  }
+  .stats-row .chip { background: rgba(255,255,255,0.8); border-radius: 999px; padding: 5px 13px; font-weight: bold; color: #55496e; }
+
+  /* ---------- Quiz ---------- */
+  .quiz-cols { display: flex; gap: 16px; align-items: flex-start; }
+  @media (max-width: 760px) { .quiz-cols { flex-direction: column; } }
+  .passage {
+    flex: 1.1; background: var(--paper); border-radius: 16px;
+    padding: 18px 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.10);
+    max-height: calc(100vh - 170px); overflow-y: auto;
+    font-family: Georgia, "Times New Roman", serif;
+    line-height: 1.62; font-size: 0.99rem;
+  }
+  @media (max-width: 760px) { .passage { max-height: 34vh; width: 100%; } }
+  .passage h3 { font-family: inherit; color: var(--royal-deep); margin-bottom: 8px; }
+  .passage .topic {
+    display: inline-block; font-family: "Comic Sans MS", "Segoe UI", sans-serif;
+    font-size: 0.72rem; background: #ede7f6; color: var(--royal);
+    border-radius: 999px; padding: 2px 10px; margin-bottom: 10px; font-weight: bold;
+  }
+  .qpanel { flex: 1; width: 100%; }
+  .qcard {
+    background: var(--card); border-radius: 16px; padding: 18px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.10);
+  }
+  .qnum { font-size: 0.8rem; font-weight: bold; color: var(--muted); margin-bottom: 6px; }
+  .qtext { font-weight: bold; font-size: 1.02rem; line-height: 1.45; margin-bottom: 14px; }
+  .choice {
+    display: block; width: 100%; text-align: left;
+    border: 2px solid #e4defa; background: #faf8ff; border-radius: 12px;
+    padding: 11px 13px; margin-bottom: 9px; cursor: pointer;
+    font-family: inherit; font-size: 0.93rem; line-height: 1.35;
+    transition: transform 0.08s;
+  }
+  .choice:hover:not(:disabled) { transform: translateX(3px); border-color: var(--royal); }
+  .choice:disabled { cursor: default; opacity: 0.85; }
+  .choice.correct { background: #e6f7e8; border-color: var(--green); font-weight: bold; opacity: 1; }
+  .choice.wrong { background: #fdeaea; border-color: var(--red); }
+  .explain {
+    background: #fff8e1; border-left: 4px solid var(--gold);
+    border-radius: 0 10px 10px 0; padding: 10px 13px;
+    font-size: 0.87rem; line-height: 1.45; margin-top: 4px;
+    display: none;
+  }
+  .explain.show { display: block; }
+  .qactions { margin-top: 14px; display: flex; gap: 10px; align-items: center; }
+  .goldbtn {
+    border: none; border-radius: 999px; cursor: pointer;
+    background: linear-gradient(180deg, var(--gold), var(--gold-deep));
+    color: #4e2c00; font-weight: bold; font-family: inherit;
+    padding: 10px 26px; font-size: 1rem;
+    box-shadow: 0 3px 0 rgba(0,0,0,0.18);
+  }
+  .goldbtn:hover { filter: brightness(1.06); }
+  .goldbtn:disabled { filter: grayscale(0.6); cursor: default; }
+  .ghostbtn {
+    border: 2px solid var(--royal); border-radius: 999px; cursor: pointer;
+    background: transparent; color: var(--royal-deep); font-weight: bold;
+    font-family: inherit; padding: 8px 20px; font-size: 0.92rem;
+  }
+  .coinpop { font-weight: bold; color: #b26a00; }
+
+  /* ---------- Shop & Break Room ---------- */
+  .shop-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+  .shop-head h2 { color: var(--royal-deep); font-size: 1.4rem; }
+  .shop-head .sub { color: #5d5480; font-size: 0.88rem; flex: 1; min-width: 200px; }
+  .filters { display: flex; gap: 6px; flex-wrap: wrap; }
+  .fbtn {
+    border: 2px solid transparent; background: rgba(255,255,255,0.8);
+    border-radius: 999px; padding: 4px 12px; cursor: pointer;
+    font-family: inherit; font-size: 0.8rem; font-weight: bold; color: #55496e;
+  }
+  .fbtn.on { border-color: var(--royal); background: #fff; color: var(--royal-deep); }
+  .game-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(215px, 1fr));
+    gap: 12px; padding-bottom: 30px;
+  }
+  .gcard {
+    background: var(--card); border-radius: 14px; padding: 13px;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.10);
+    display: flex; flex-direction: column; gap: 6px;
+    border-top: 5px solid #cfc4ee;
+  }
+  .gcard.owned { border-top-color: var(--teal); }
+  .gcard .gname { font-weight: bold; font-size: 0.95rem; color: var(--royal-deep); }
+  .gcard .gico { font-size: 1.6rem; }
+  .gcard .gdesc { font-size: 0.78rem; color: #6f678f; line-height: 1.35; flex: 1; }
+  .gcard .gtier { font-size: 0.72rem; color: var(--gold-deep); letter-spacing: 1px; }
+  .gcard .grow { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .gcard .price { font-weight: bold; color: #b26a00; font-size: 0.9rem; white-space: nowrap; }
+  .buybtn {
+    border: none; border-radius: 999px; cursor: pointer; font-family: inherit;
+    font-weight: bold; font-size: 0.82rem; padding: 7px 16px;
+    background: linear-gradient(180deg, var(--gold), var(--gold-deep)); color: #4e2c00;
+    box-shadow: 0 2px 0 rgba(0,0,0,0.15);
+  }
+  .buybtn:disabled { filter: grayscale(0.7); cursor: default; }
+  .playbtn {
+    border: none; border-radius: 999px; cursor: pointer; font-family: inherit;
+    font-weight: bold; font-size: 0.82rem; padding: 7px 16px;
+    background: linear-gradient(180deg, #4dd0c4, #00897b); color: #fff;
+    box-shadow: 0 2px 0 rgba(0,0,0,0.15);
+  }
+  .playbtn:disabled { filter: grayscale(0.7); cursor: default; }
+  .ownedtag { font-size: 0.78rem; font-weight: bold; color: var(--teal); }
+  .empty-note {
+    background: rgba(255,255,255,0.85); border-radius: 14px; padding: 22px;
+    text-align: center; color: #5d5480; line-height: 1.5;
+  }
+
+  /* ---------- Minigame modal ---------- */
+  #mgOverlay {
+    position: fixed; inset: 0; background: rgba(28,20,54,0.82);
+    display: none; align-items: center; justify-content: center; z-index: 100;
+    padding: 12px;
+  }
+  #mgOverlay.open { display: flex; }
+  #mgBox {
+    background: var(--card); border-radius: 18px; width: 100%; max-width: 560px;
+    max-height: 94vh; display: flex; flex-direction: column; overflow: hidden;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+  }
+  #mgHead {
+    display: flex; align-items: center; gap: 10px; padding: 10px 14px;
+    background: linear-gradient(90deg, var(--royal), var(--royal-deep)); color: #fff;
+  }
+  #mgHead .mtitle { font-weight: bold; flex: 1; font-size: 0.98rem; }
+  #mgHead .mstat { background: rgba(255,255,255,0.18); border-radius: 999px; padding: 3px 11px; font-size: 0.82rem; font-weight: bold; white-space: nowrap; }
+  #mgQuit {
+    border: none; background: rgba(255,255,255,0.2); color: #fff; border-radius: 999px;
+    width: 28px; height: 28px; cursor: pointer; font-weight: bold; font-size: 0.95rem;
+  }
+  #mgHost { padding: 14px; overflow-y: auto; min-height: 300px; display: flex; flex-direction: column; gap: 10px; }
+  #mgHost canvas { width: 100%; border-radius: 12px; display: block; touch-action: none; }
+  .mg-note { text-align: center; font-size: 0.83rem; color: #6f678f; }
+  .mg-grid { display: grid; gap: 8px; }
+  .mg-tile {
+    border: none; border-radius: 12px; background: #ede7f6; cursor: pointer;
+    font-family: inherit; font-weight: bold; font-size: 1rem; color: var(--royal-deep);
+    padding: 16px 4px; transition: background 0.1s, transform 0.1s;
+  }
+  .mg-tile.lit { background: var(--gold); color: #4e2c00; transform: scale(1.05); }
+  .mg-tile.hit { background: var(--green); color: #fff; }
+  .mg-tile.matched { background: var(--teal); color: #fff; cursor: default; }
+  .mg-tile.faceup { background: #fff; border: 2px solid var(--royal); }
+  .mg-big {
+    border: none; border-radius: 16px; width: 100%; padding: 46px 10px;
+    font-family: inherit; font-weight: bold; font-size: 1.5rem; cursor: pointer; color: #fff;
+  }
+  .mg-input {
+    width: 100%; border: 2px solid var(--royal); border-radius: 12px;
+    font-family: inherit; font-size: 1.1rem; padding: 10px 14px; text-align: center;
+  }
+  .mg-word { text-align: center; font-size: 1.6rem; font-weight: bold; letter-spacing: 3px; color: var(--royal-deep); }
+  .mg-result { text-align: center; padding: 20px 8px; }
+  .mg-result .big { font-size: 2rem; font-weight: bold; color: var(--royal-deep); }
+  .mg-result .coins { font-size: 1.2rem; color: #b26a00; font-weight: bold; margin-top: 8px; }
+
+  /* ---------- Summary / banner ---------- */
+  #summary {
+    position: fixed; inset: 0; background: rgba(28,20,54,0.8);
+    display: none; align-items: center; justify-content: center; z-index: 90; padding: 14px;
+  }
+  #summary.open { display: flex; }
+  .sumbox {
+    background: var(--card); border-radius: 20px; padding: 26px 24px; max-width: 430px; width: 100%;
+    text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+  }
+  .sumbox h2 { color: var(--royal-deep); margin-bottom: 6px; }
+  .sumbox .line { margin: 8px 0; font-size: 1rem; }
+  .sumbox .breakalert {
+    background: #e0f7f4; border: 2px dashed var(--teal); border-radius: 14px;
+    padding: 12px; margin: 14px 0; font-weight: bold; color: #00695c;
+    display: none;
+  }
+  .sumbox .breakalert.show { display: block; animation: pulse 0.7s infinite alternate; }
+  .sumbtns { display: flex; gap: 10px; justify-content: center; margin-top: 14px; flex-wrap: wrap; }
+
+  #toast {
+    position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%);
+    background: var(--royal-deep); color: #fff; border-radius: 999px;
+    padding: 10px 22px; font-weight: bold; font-size: 0.92rem;
+    opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 120;
+    max-width: 92vw; text-align: center;
+  }
+  #toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo" id="logoHome"><span class="ico">📖👑</span> Reading Royals</div>
+  <div class="hud">
+    <div class="stat" id="hudCoins">🪙 <span id="coinsVal">0</span> <span class="lbl">crowns</span></div>
+    <div class="stat" id="hudTickets">🎟️ <span id="ticketsVal">0</span> <span class="lbl">break tickets</span></div>
+    <div class="stat" id="hudStreak">🔥 <span id="streakVal">0</span> <span class="lbl">streak</span></div>
+    <div class="stat">📚 <span id="quizzesVal">0</span> <span class="lbl">quizzes</span></div>
+    <button id="muteBtn" title="Sound on/off">🔊</button>
+  </div>
+</header>
+
+<main>
+  <!-- ============ MENU ============ -->
+  <section class="screen active" id="scr-menu">
+    <div class="wrap">
+      <div class="hero">
+        <h1>📖 Reading Royals 👑</h1>
+        <div class="tag">Survive EXTREMELY hard reading questions. Earn crowns. Buy your way through 100 mini-games.</div>
+      </div>
+      <div class="menu-grid">
+        <button class="bigbtn" id="btnQuiz">
+          <div class="bico">🧠</div>
+          <div class="bt">Face a Quiz</div>
+          <div class="bd">One savage passage, five brutal questions. Every correct answer pays crowns — streaks pay more.</div>
+        </button>
+        <button class="bigbtn" id="btnShop">
+          <div class="bico">🛒</div>
+          <div class="bt">Prize Shop</div>
+          <div class="bd">Spend crowns on any of <b>100 mini-games</b>, from Rookie to Mythic tier.</div>
+          <div class="badge" id="shopBadge" style="display:none">!</div>
+        </button>
+        <button class="bigbtn" id="btnBreak">
+          <div class="bico">🎮</div>
+          <div class="bt">Break Room</div>
+          <div class="bd">Every 5 quizzes earns break tickets. Spend a ticket to play a mini-game you own — and win bonus crowns.</div>
+          <div class="badge" id="breakBadge" style="display:none">0</div>
+        </button>
+      </div>
+      <div class="breakbar">
+        <div class="t" id="breakProgText">Quizzes until next break: 5</div>
+        <div class="pbar"><div id="breakProg"></div></div>
+      </div>
+      <div class="stats-row">
+        <div class="chip">🎯 Accuracy: <span id="accVal">—</span></div>
+        <div class="chip">🏆 Best streak: <span id="bestVal">0</span></div>
+        <div class="chip">🕹️ Games owned: <span id="ownedVal">0</span>/100</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ QUIZ ============ -->
+  <section class="screen" id="scr-quiz">
+    <div class="wrap">
+      <div class="quiz-cols">
+        <div class="passage" id="passageBox"></div>
+        <div class="qpanel">
+          <div class="qcard">
+            <div class="qnum" id="qNum"></div>
+            <div class="qtext" id="qText"></div>
+            <div id="choices"></div>
+            <div class="explain" id="explain"></div>
+            <div class="qactions">
+              <button class="goldbtn" id="btnNext" disabled>Next ▶</button>
+              <span class="coinpop" id="coinPop"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SHOP ============ -->
+  <section class="screen" id="scr-shop">
+    <div class="wrap">
+      <div class="shop-head">
+        <h2>🛒 Prize Shop</h2>
+        <div class="sub">100 mini-games. Higher tiers are faster, meaner, and pay bigger break bonuses.</div>
+        <button class="ghostbtn" id="shopBack">◀ Menu</button>
+      </div>
+      <div class="filters" id="shopFilters"></div>
+      <div class="game-grid" id="shopGrid" style="margin-top:12px"></div>
+    </div>
+  </section>
+
+  <!-- ============ BREAK ROOM ============ -->
+  <section class="screen" id="scr-break">
+    <div class="wrap">
+      <div class="shop-head">
+        <h2>🎮 Break Room</h2>
+        <div class="sub" id="breakSub"></div>
+        <button class="ghostbtn" id="breakBack">◀ Menu</button>
+      </div>
+      <div id="breakContent"></div>
+    </div>
+  </section>
+</main>
+
+<!-- ============ QUIZ SUMMARY ============ -->
+<div id="summary">
+  <div class="sumbox">
+    <h2 id="sumTitle">Quiz Complete!</h2>
+    <div class="line" id="sumScore"></div>
+    <div class="line" id="sumCoins"></div>
+    <div class="breakalert" id="sumBreak">🎉 BREAK TIME! You earned <b>2 break tickets</b> — go play a mini-game!</div>
+    <div class="sumbtns">
+      <button class="goldbtn" id="sumAgain">Next Quiz 🧠</button>
+      <button class="ghostbtn" id="sumBreakBtn" style="display:none">Break Room 🎮</button>
+      <button class="ghostbtn" id="sumMenu">Menu</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MINIGAME MODAL ============ -->
+<div id="mgOverlay">
+  <div id="mgBox">
+    <div id="mgHead">
+      <div class="mtitle" id="mgTitle"></div>
+      <div class="mstat">⭐ <span id="mgScore">0</span></div>
+      <div class="mstat">⏱ <span id="mgTime">–</span></div>
+      <button id="mgQuit" title="Quit (ticket is spent!)">✕</button>
+    </div>
+    <div id="mgHost"></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+(() => {
+  "use strict";
+
+  // ============================================================
+  // Utilities & audio
+  // ============================================================
+  const $ = id => document.getElementById(id);
+  const rand = (a, b) => a + Math.random() * (b - a);
+  const randi = (a, b) => Math.floor(rand(a, b + 1));
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const shuffle = arr => {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  };
+
+  let audioCtx = null, muted = false;
+  function beep(freq, dur = 0.09, type = "sine", vol = 0.12) {
+    if (muted) return;
+    try {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+      o.type = type; o.frequency.value = freq;
+      g.gain.setValueAtTime(vol, audioCtx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + dur);
+      o.connect(g); g.connect(audioCtx.destination);
+      o.start(); o.stop(audioCtx.currentTime + dur);
+    } catch (e) { /* audio unavailable */ }
+  }
+  const sfx = {
+    good: () => { beep(660, 0.08); beep(880, 0.1); },
+    bad: () => beep(180, 0.18, "sawtooth", 0.08),
+    coin: () => { beep(988, 0.06, "square", 0.06); beep(1319, 0.09, "square", 0.06); },
+    buy: () => { beep(523, 0.07); beep(659, 0.07); beep(784, 0.12); },
+    fanfare: () => { [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => beep(f, 0.14), i * 110)); },
+    tick: () => beep(700, 0.04, "square", 0.05)
+  };
+  $("muteBtn").addEventListener("click", () => {
+    muted = !muted;
+    $("muteBtn").textContent = muted ? "🔇" : "🔊";
+  });
+
+  let toastTimer = null;
+  function toast(msg) {
+    const t = $("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove("show"), 2200);
+  }
+
+  // ============================================================
+  // Game state (in-memory only — no storage APIs, by design)
+  // ============================================================
+  const S = {
+    coins: 100,          // welcome bonus so you can grab a mini-game right away
+    tickets: 0,
+    quizzes: 0,
+    streak: 0,
+    bestStreak: 0,
+    answered: 0,
+    correct: 0,
+    owned: new Set(),
+    passageOrder: [],
+    passageCursor: 0
+  };
+
+  function refreshHUD() {
+    $("coinsVal").textContent = S.coins;
+    $("ticketsVal").textContent = S.tickets;
+    $("streakVal").textContent = S.streak;
+    $("quizzesVal").textContent = S.quizzes;
+    $("hudStreak").classList.toggle("hot", S.streak >= 3);
+    $("bestVal").textContent = S.bestStreak;
+    $("ownedVal").textContent = S.owned.size;
+    $("accVal").textContent = S.answered ? Math.round(100 * S.correct / S.answered) + "%" : "—";
+    const toBreak = 5 - (S.quizzes % 5);
+    $("breakProgText").textContent = "Quizzes until next break: " + toBreak;
+    $("breakProg").style.width = ((S.quizzes % 5) / 5 * 100) + "%";
+    const bb = $("breakBadge");
+    bb.style.display = S.tickets > 0 ? "flex" : "none";
+    bb.textContent = S.tickets;
+    $("shopBadge").style.display = (S.owned.size === 0 && S.coins >= 40) ? "flex" : "none";
+  }
+
+  // ============================================================
+  // Navigation
+  // ============================================================
+  const SCREENS = ["menu", "quiz", "shop", "break"];
+  function show(name) {
+    SCREENS.forEach(s => $("scr-" + s).classList.toggle("active", s === name));
+    if (name === "shop") renderShop();
+    if (name === "break") renderBreak();
+    refreshHUD();
+  }
+  $("logoHome").addEventListener("click", () => show("menu"));
+  $("btnQuiz").addEventListener("click", startQuiz);
+  $("btnShop").addEventListener("click", () => show("shop"));
+  $("btnBreak").addEventListener("click", () => show("break"));
+  $("shopBack").addEventListener("click", () => show("menu"));
+  $("breakBack").addEventListener("click", () => show("menu"));
+  refreshHUD();   // reflect the starting balance on the menu right away
+
+  // ============================================================
+  // PASSAGES — extremely hard reading material
+  // Each: { title, topic, text, qs: [{q, c:[4], a, exp}] }
+  // ============================================================
+  const PASSAGES = [
+  {
+    title: "The Tribunal of the Senses",
+    topic: "Philosophy of Perception",
+    text: "The naive realist holds that perception delivers the world to us unmediated: to see the apple is simply to be presented with the apple itself, red and round, exactly as it is. Yet the argument from illusion has long embarrassed this comfortable picture. When a straight oar half-submerged in water appears bent, something bent is, in some sense, present to consciousness — and it cannot be the oar, which remains obstinately straight. The indirect realist concludes that what we immediately apprehend is never the object but a mental intermediary, a sense-datum, from which the external world must be inferred. This tidy solution, however, purchases coherence at ruinous cost: if all perception terminates in private intermediaries, the inference to a public world becomes not merely fallible but unmotivated, for we could never compare the intermediary against its supposed original. One does not adjudicate a dispute by consulting only one of the parties. The disjunctivist therefore proposes a more radical economy: veridical perception and illusion share no common experiential factor at all, and the appearance of a shared nature is itself the deepest illusion — a diagnosis that saves the world by sacrificing the tidiness of a unified theory of experience.",
+    qs: [
+      { q: "The primary purpose of the passage is to",
+        c: ["defend naive realism against the argument from illusion",
+            "trace how a problem for one theory of perception generates successor theories, each with its own cost",
+            "demonstrate that perception is always illusory and the external world unknowable",
+            "argue that the disjunctivist position is the only coherent theory of perception"],
+        a: 1,
+        exp: "The passage moves from naive realism to indirect realism to disjunctivism, presenting each as a response to the previous view's difficulty — and explicitly notes the cost each pays. It endorses none outright." },
+      { q: "The sentence \"One does not adjudicate a dispute by consulting only one of the parties\" functions primarily to",
+        c: ["illustrate why the sense-datum theorist cannot justify inferences to an external world",
+            "argue that courts of law provide a model for perceptual knowledge",
+            "show that naive realism fails to account for the bent oar",
+            "concede a point to the indirect realist before refuting it"],
+        a: 0,
+        exp: "The analogy dramatizes the preceding claim: if we only ever access the intermediary (one 'party'), we cannot check it against the original — so the inference to the world is unmotivated." },
+      { q: "In context, \"purchases coherence at ruinous cost\" most nearly means the indirect realist's view",
+        c: ["is internally contradictory and therefore incoherent",
+            "resolves the illusion problem but thereby undermines our justification for believing in an external world",
+            "is too expensive to test experimentally",
+            "explains illusion better than veridical perception"],
+        a: 1,
+        exp: "'Coherence' is what the view buys (it handles the bent oar); the 'ruinous cost' is that inference to a public world becomes unmotivated — a skeptical price." },
+      { q: "It can be inferred that the disjunctivist would say the bent-oar experience and a veridical view of a straight oar",
+        c: ["share a common sense-datum that differs only in accuracy",
+            "are indistinguishable to the subject and therefore identical in nature",
+            "may seem alike from the inside, but are fundamentally different kinds of mental state",
+            "are both direct perceptions of physical objects"],
+        a: 2,
+        exp: "The disjunctivist denies any 'common experiential factor'; the felt similarity is 'itself the deepest illusion.' Seeming alike does not make them alike." },
+      { q: "The author's attitude toward the disjunctivist proposal is best described as",
+        c: ["unqualified endorsement of its explanatory power",
+            "dismissive of its radical departure from common sense",
+            "appreciative of what it preserves while candid about what it abandons",
+            "neutral summary with no evaluative language whatsoever"],
+        a: 2,
+        exp: "'Saves the world by sacrificing the tidiness of a unified theory' is evaluative but balanced: a gain (the world) and a loss (tidiness) are both acknowledged." }
+    ]
+  },
+  {
+    title: "An Inheritance, Properly Managed",
+    topic: "Victorian Satire (fiction)",
+    text: "Mr. Pettigrew was universally acknowledged to be a man of principle, chief among which was the principle that money, like water, ought to flow downhill toward himself. His nephew's inheritance he administered with a scrupulousness that would have been admirable had any farthing of it survived the administration. \"The boy shall want for nothing,\" he assured the solicitors, and indeed the boy wanted for nothing, in the sense that wanting had long since ceased to produce anything. When at last young Edmund, having attained his majority, inquired after his fortune, his uncle produced a ledger of such immaculate penmanship that the absence of the fortune itself seemed a triviality — an untidiness of reality, which had failed to live up to the accounts. \"You will observe,\" said Mr. Pettigrew, tapping the volume with genuine reverence, \"that every expenditure was made in your interest.\" And this was true, for Mr. Pettigrew had long ago determined that his own comfort was the foundation of his nephew's prospects, and he funded that foundation lavishly.",
+    qs: [
+      { q: "The comparison of money to water \"flowing downhill toward himself\" is ironic chiefly because it",
+        c: ["presents Pettigrew's greed as if it were a natural law rather than a moral choice",
+            "suggests that Pettigrew lives at a lower elevation than his nephew",
+            "implies that money, like water, is impossible to contain",
+            "shows the narrator's admiration for Pettigrew's financial skill"],
+        a: 0,
+        exp: "Calling self-enrichment a 'principle' that operates like gravity dresses vice as inevitability — the narrator mock-adopts Pettigrew's own self-justifying view." },
+      { q: "\"The boy wanted for nothing, in the sense that wanting had long since ceased to produce anything\" derives its bite from",
+        c: ["a pun on two senses of 'wanting': lacking nothing versus desiring in vain",
+            "the boy's genuine contentment with his simple life",
+            "an allusion to Edmund's stoic philosophy",
+            "the narrator's uncertainty about the facts of the case"],
+        a: 0,
+        exp: "'Want for nothing' normally means 'lack nothing'; the narrator re-reads it as 'his wants produce nothing.' The reassuring idiom is hollowed out — Edmund lacks everything." },
+      { q: "The ledger's \"immaculate penmanship\" beside the missing fortune suggests the narrator's view that",
+        c: ["Pettigrew is guilty mainly of poor record-keeping",
+            "meticulous form can be deployed to disguise, and even outrank, corrupt substance",
+            "Victorian accounting standards were inadequate to detect fraud",
+            "Edmund is too naive to read a ledger correctly"],
+        a: 1,
+        exp: "Reality's failure 'to live up to the accounts' inverts the normal priority: the beautiful record is treated as truth, the vanished money as a clerical blemish. Form trumps substance — satirically." },
+      { q: "The final sentence's logic — Pettigrew's comfort as \"the foundation of his nephew's prospects\" — is best described as",
+        c: ["a sincere economic theory the narrator endorses",
+            "an example of sound Victorian trusteeship",
+            "self-serving rationalization presented deadpan, so the reader must supply the condemnation",
+            "evidence that Pettigrew genuinely loves his nephew"],
+        a: 2,
+        exp: "The narrator reports the absurd justification without comment ('and this was true'), a classic deadpan-ironic move: the sentence is literally true only inside Pettigrew's rationalization." },
+      { q: "\"Genuine reverence\" (of Pettigrew tapping the ledger) is pointed because it implies that Pettigrew",
+        c: ["secretly feels guilt about the missing money",
+            "reserves his authentic piety for the instrument of his fraud rather than for any moral object",
+            "is pretending to care about the accounts",
+            "worships wealth but not documentation"],
+        a: 1,
+        exp: "The one thing in the tale called 'genuine' is his reverence for the ledger — the tool that launders his theft. His sincerity is real, and aimed at exactly the wrong thing." }
+    ]
+  },
+  {
+    title: "The Second Score",
+    topic: "Molecular Biology",
+    text: "The metaphor of the genome as a blueprint has outlived its usefulness.
