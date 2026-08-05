@@ -657,21 +657,68 @@
   // ---------------------------------------------------------------
   // Sound (tiny WebAudio bleeps, no assets)
   // ---------------------------------------------------------------
-  let audioCtx = null, muted = false;
+  let audioCtx = null, masterGain = null, muted = false;
+
+  // Mobile browsers refuse to start an AudioContext outside a user gesture, and a
+  // context created outside one is born 'suspended' and stays silent forever. So we
+  // build/resume it from real touch & key events, and re-resume whenever it drops
+  // out (iOS suspends on lock, tab switch, and after phone calls).
+  function ensureAudio() {
+    try {
+      if (!audioCtx) {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return null;
+        audioCtx = new AC();
+        masterGain = audioCtx.createGain();
+        masterGain.gain.value = 1;
+        masterGain.connect(audioCtx.destination);
+        // iOS 16.4+: play through the ringer switch instead of being muted by it.
+        try {
+          if (navigator.audioSession) navigator.audioSession.type = 'playback';
+        } catch (e) { /* not supported — ringer switch will apply */ }
+      }
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      return audioCtx;
+    } catch (e) { return null; }
+  }
+
+  // The classic iOS unlock: start a zero-length buffer inside the gesture.
+  function unlockAudio() {
+    const ctx = ensureAudio();
+    if (!ctx || ctx.state !== 'running') return;
+    try {
+      const src = ctx.createBufferSource();
+      src.buffer = ctx.createBuffer(1, 1, 22050);
+      src.connect(ctx.destination);
+      src.start(0);
+    } catch (e) { /* already unlocked */ }
+  }
+
+  // Not {once:true} — the context can be suspended again by the OS, so every
+  // gesture gets a chance to wake it back up. Capture phase so overlay buttons
+  // and the hidden mobile input both count.
+  ['pointerdown', 'touchend', 'keydown'].forEach(ev =>
+    window.addEventListener(ev, unlockAudio, { capture: true, passive: true }));
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) ensureAudio();
+  });
+
   function beep(freq, dur, type = 'square', vol = 0.05, slide = 0) {
     if (muted) return;
+    const ctx = ensureAudio();
+    if (!ctx || ctx.state !== 'running') return;  // still locked; don't stack nodes
     try {
-      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      const o = audioCtx.createOscillator();
-      const g = audioCtx.createGain();
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
       o.type = type;
-      o.frequency.setValueAtTime(freq, audioCtx.currentTime);
-      if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(40, freq + slide), audioCtx.currentTime + dur);
-      g.gain.setValueAtTime(vol, audioCtx.currentTime);
-      g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + dur);
-      o.connect(g).connect(audioCtx.destination);
+      o.frequency.setValueAtTime(freq, ctx.currentTime);
+      if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(40, freq + slide), ctx.currentTime + dur);
+      g.gain.setValueAtTime(vol, ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + dur);
+      o.connect(g).connect(masterGain);
       o.start();
-      o.stop(audioCtx.currentTime + dur);
+      o.stop(ctx.currentTime + dur);
+      o.onended = () => { try { o.disconnect(); g.disconnect(); } catch (e) {} };
     } catch (e) { /* audio unavailable — fine */ }
   }
   const sfx = {
@@ -687,6 +734,7 @@
   $('muteBtn').addEventListener('click', () => {
     muted = !muted;
     $('muteBtn').textContent = muted ? '🔇' : '🔊';
+    if (!muted) { unlockAudio(); sfx.coin(); }   // audible proof it's back on
   });
 
   // ---------------------------------------------------------------

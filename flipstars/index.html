@@ -1,0 +1,2084 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Flip Stars — Gymnastics Drawing Game</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  :root {
+    --pink: #ff4f9a;
+    --pink-dark: #d81b60;
+    --gold: #ffb300;
+    --blue: #29b6f6;
+    --ink: #2e2a3a;
+    --panel: rgba(255,255,255,0.95);
+  }
+  html, body { height: 100%; overflow: hidden; }
+  body {
+    font-family: "Comic Sans MS", "Chalkboard SE", "Segoe UI", sans-serif;
+    color: var(--ink);
+    background: #1a1030;
+    user-select: none;
+    touch-action: none;
+  }
+  #scene { position: fixed; inset: 0; display: block; }
+
+  /* ---------- HUD ---------- */
+  .hud-top {
+    position: fixed; top: 0; left: 0; right: 0;
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 12px; z-index: 20;
+    pointer-events: none;
+  }
+  .hud-top > * { pointer-events: auto; }
+  .logo { font-size: 1.2rem; color: white; text-shadow: 0 2px 6px rgba(0,0,0,0.6); font-weight: bold; }
+  .coin-pill {
+    background: #fff3c4; border: 2px solid var(--gold); border-radius: 999px;
+    padding: 4px 14px; font-weight: bold; font-size: 1.05rem; transition: transform .15s;
+  }
+  .coin-pill.pop { transform: scale(1.3); }
+  .spacer { flex: 1; }
+  .btn {
+    border: none; border-radius: 12px; padding: 8px 14px;
+    font-family: inherit; font-size: .95rem; font-weight: bold; color: white;
+    cursor: pointer; box-shadow: 0 3px 0 rgba(0,0,0,0.25);
+  }
+  .btn:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0,0,0,0.25); }
+  .btn.pink { background: var(--pink); }
+  .btn.blue { background: var(--blue); }
+  .btn.gold { background: var(--gold); color: #5b3b00; }
+  .btn.green { background: #43c463; }
+  .btn.gray { background: #9aa0b0; }
+  .btn.purple { background: #9c47ff; }
+  .btn.on { outline: 3px solid white; }
+  .btn:disabled { opacity: .5; cursor: default; box-shadow: none; }
+
+  /* ---------- Level HUD + modals ---------- */
+  .level-hud {
+    position: fixed; top: 52px; left: 50%; transform: translateX(-50%); z-index: 20;
+    background: rgba(0,0,0,0.45); color: white; border-radius: 999px;
+    padding: 5px 16px; font-size: .95rem; font-weight: bold; white-space: nowrap;
+  }
+  .modal.center { text-align: center; }
+  .stars-row { font-size: 2.6rem; letter-spacing: 4px; margin-bottom: 4px; }
+  .modal-btns { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 12px; }
+  .level-grid { display: flex; flex-direction: column; gap: 4px; margin-bottom: 6px; }
+  .world-header {
+    display: flex; justify-content: space-between; align-items: center;
+    font-weight: bold; color: #7a2fd6; font-size: .9rem;
+    margin-top: 10px; padding: 0 2px;
+  }
+  .world-header .wh-stars { color: var(--gold); font-size: .82rem; }
+  .world-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+  .lvl-cell {
+    border: 2px solid #e6e6e6; border-radius: 10px; padding: 6px 2px; text-align: center;
+    font-family: inherit; cursor: pointer; background: #faf7ff;
+  }
+  .lvl-cell:active { transform: scale(.95); }
+  .lvl-cell.locked { opacity: .5; cursor: default; background: #f0f0f0; }
+  .lvl-cell.done { background: #fff8e1; border-color: #ffd54f; }
+  .lvl-cell.current { border-color: var(--pink); border-width: 3px; }
+  .lvl-cell .cell-num { display: block; font-size: .95rem; font-weight: bold; color: #4a3a6a; }
+  .lvl-cell .cell-stars { display: block; font-size: .62rem; letter-spacing: 0; min-height: 1em; }
+
+  /* ---------- Tool palette ---------- */
+  .toolbar {
+    position: fixed; left: 12px; top: 56px; z-index: 20;
+    background: var(--panel); border-radius: 16px; padding: 10px;
+    display: none; flex-direction: column; gap: 8px; width: 168px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+  }
+  .toolbar.show { display: flex; }
+  .toolbar h4 { font-size: .8rem; color: #888; margin-bottom: 2px; }
+  .mat-row { display: flex; flex-wrap: wrap; gap: 6px; }
+  .mat-chip {
+    border: 2px solid #ddd; border-radius: 10px; padding: 4px 8px;
+    font-family: inherit; font-size: .78rem; cursor: pointer; background: white;
+  }
+  .mat-chip.sel { border-color: var(--pink); background: #ffe6f1; }
+  .mat-dot { display: inline-block; width: 11px; height: 11px; border-radius: 3px;
+             margin-right: 5px; vertical-align: -1px; border: 1px solid rgba(0,0,0,.15); }
+
+  /* ---------- Phones & tablets ---------- */
+  @media (pointer: coarse), (max-width: 1024px) {
+    .mat-chip { min-height: 38px; }               /* finger-sized drawing chips */
+    .btn { padding: 10px 12px; min-height: 42px; }
+  }
+  /* Phones: one compact HUD row (icon-only buttons) and a slim toolbar that
+     leaves the gymnast and the action buttons visible. */
+  @media (max-width: 560px) {
+    .logo { display: none; }
+    .btxt { display: none; }                       /* icons only — keeps one row */
+    .hud-top { gap: 5px; padding: 6px; flex-wrap: nowrap; }
+    .btn { padding: 9px 11px; font-size: 1rem; min-height: 40px; }
+    .coin-pill { padding: 4px 9px; font-size: .92rem; }
+    .level-hud { top: 54px; font-size: .8rem; padding: 4px 12px; }
+    .toolbar {
+      top: auto; bottom: 108px; left: 8px; right: 8px; width: auto;
+      max-height: 40vh; overflow-y: auto; padding: 8px;
+      flex-direction: row; flex-wrap: wrap; align-items: center;
+    }
+    .toolbar h4 { width: 100%; margin: 0; }
+    .mat-row { flex: 1 1 100%; }
+    .toolbar .btn { flex: 1 1 45%; }
+    .action-btn { width: 76px; height: 76px; font-size: .82rem; }
+    .lane-btn { width: 56px; height: 56px; font-size: 1.2rem; }
+    .hint { font-size: .7rem; max-width: 38%; padding: 5px 8px; }
+    .modal { padding: 14px; }
+    .stars-row { font-size: 2rem; }
+  }
+  .mat-chip.locked { opacity: .45; }
+
+  /* ---------- Bottom controls ---------- */
+  .controls {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
+    display: flex; align-items: flex-end; justify-content: space-between;
+    padding: 14px; pointer-events: none;
+  }
+  .controls > * { pointer-events: auto; }
+  .hint {
+    background: rgba(0,0,0,0.45); color: white; border-radius: 10px;
+    padding: 6px 10px; font-size: .8rem; max-width: 46%;
+  }
+  .action-btn {
+    width: 92px; height: 92px; border-radius: 50%;
+    border: none; background: var(--gold); color: #5b3b00;
+    font-family: inherit; font-size: 1rem; font-weight: bold;
+    box-shadow: 0 5px 0 #c98a00; cursor: pointer;
+  }
+  .action-btn:active { transform: translateY(3px); box-shadow: 0 2px 0 #c98a00; }
+  .lane-btns { display: flex; gap: 10px; align-items: flex-end; }
+  .lane-btn {
+    width: 62px; height: 62px; border-radius: 50%; border: none;
+    background: rgba(255,255,255,0.9); color: #444;
+    font-family: inherit; font-size: 1.4rem; font-weight: bold;
+    box-shadow: 0 4px 0 rgba(0,0,0,0.25); cursor: pointer;
+  }
+  .lane-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 rgba(0,0,0,0.25); }
+
+  /* ---------- Popups ---------- */
+  .score-pop {
+    position: fixed; left: 50%; top: 38%; transform: translateX(-50%);
+    z-index: 25; text-align: center; pointer-events: none;
+    color: white; text-shadow: 0 3px 8px rgba(0,0,0,0.7);
+    opacity: 0; transition: opacity .2s;
+  }
+  .score-pop.show { opacity: 1; animation: pop 0.5s ease; }
+  @keyframes pop { 0% { transform: translateX(-50%) scale(.5);} 60%{transform:translateX(-50%) scale(1.15);} 100%{transform:translateX(-50%) scale(1);} }
+  .score-pop .big { font-size: 2.2rem; font-weight: bold; }
+  .score-pop .sub { font-size: 1.1rem; }
+
+  /* ---------- Modal / Shop ---------- */
+  .overlay {
+    position: fixed; inset: 0; background: rgba(20,10,40,0.6);
+    display: none; align-items: center; justify-content: center; z-index: 40; padding: 14px;
+  }
+  .overlay.show { display: flex; }
+  .modal {
+    background: white; border-radius: 22px; padding: 18px;
+    width: 100%; max-width: 460px; max-height: 88vh; overflow-y: auto;
+  }
+  .modal h2 { color: var(--pink-dark); text-align: center; margin-bottom: 4px; }
+  .modal .bal { text-align: center; font-weight: bold; margin-bottom: 10px; }
+  .tabs { display: flex; gap: 6px; margin-bottom: 12px; }
+  .tab {
+    flex: 1; border: none; border-radius: 10px; padding: 8px; cursor: pointer;
+    font-family: inherit; font-weight: bold; font-size: .85rem; background: #eee; color: #555;
+  }
+  .tab.sel { background: var(--pink); color: white; }
+  .shop-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .shop-item {
+    border: 3px solid #e6e6e6; border-radius: 14px; padding: 10px; text-align: center;
+    font-family: inherit; cursor: pointer; background: #fafafa; font-size: .9rem;
+  }
+  .shop-item:active { transform: scale(.97); }
+  .shop-item.owned { border-color: var(--blue); }
+  .shop-item.equipped { border-color: #43c463; background: #f0fff4; }
+  .shop-item:disabled { opacity: .55; cursor: default; }
+  .shop-item .sw { display: inline-block; width: 34px; height: 34px; border-radius: 8px; margin-bottom: 4px; border: 1px solid rgba(0,0,0,.1); }
+  .shop-item .nm { display: block; font-weight: bold; }
+  .shop-item .ct { display: block; font-size: .78rem; color: #b8860b; margin-top: 3px; }
+  .modal .close { display: block; margin: 14px auto 0; }
+
+  /* ---------- Start screen ---------- */
+  .start {
+    position: fixed; inset: 0; z-index: 50; background: linear-gradient(160deg,#7b2ff7,#ff4f9a);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    color: white; text-align: center; padding: 24px;
+  }
+  .start.hide { display: none; }
+  .start h1 { font-size: 2.6rem; text-shadow: 0 4px 10px rgba(0,0,0,.4); }
+  .start p { max-width: 420px; margin: 12px 0; line-height: 1.5; font-size: 1.02rem; }
+  .start .big-go {
+    margin-top: 14px; font-size: 1.3rem; padding: 14px 34px; border-radius: 16px;
+    border: none; background: var(--gold); color: #5b3b00; font-family: inherit; font-weight: bold;
+    box-shadow: 0 6px 0 #c98a00; cursor: pointer;
+  }
+  .start .big-go:active { transform: translateY(3px); box-shadow: 0 3px 0 #c98a00; }
+  .char-row { display: flex; gap: 12px; margin-top: 4px; }
+  .char-btn {
+    border: 3px solid rgba(255,255,255,0.5); background: rgba(255,255,255,0.15);
+    color: white; border-radius: 16px; padding: 10px 20px;
+    font-family: inherit; font-size: 1.05rem; font-weight: bold; cursor: pointer;
+  }
+  .char-btn small { font-weight: normal; font-size: 0.72rem; opacity: 0.9; }
+  .char-btn.sel { background: var(--gold); color: #5b3b00; border-color: white; }
+  .loaderr { margin-top: 16px; font-size: .9rem; opacity: .9; }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<canvas id="scene"></canvas>
+
+<!-- Start screen -->
+<div class="start" id="startScreen">
+  <h1>🤸 Flip Stars</h1>
+  <p>Your gymnast runs down the lane toward a row of bars. <b>Tap JUMP to leap over them</b> — and hold to <b>flip</b> for bonus ⭐!<br>
+  Draw your own ramps to launch even higher. Spend coins on outfits, drawing tools, and gyms.</p>
+  <div class="char-row">
+    <button class="char-btn" data-char="her" id="charHerBtn">🤸 Ava<br><small>Robo-Gymnast</small></button>
+    <button class="char-btn" data-char="him" id="charHimBtn">🛡️ Max<br><small>Knight Athlete</small></button>
+  </div>
+  <button class="big-go" id="startBtn">Let's Tumble!</button>
+  <div class="loaderr" id="loadErr"></div>
+</div>
+
+<!-- HUD -->
+<div class="hud-top">
+  <span class="logo">🤸 Flip Stars</span>
+  <div class="coin-pill" id="coinPill">⭐ 0</div>
+  <span class="spacer"></span>
+  <button class="btn blue" id="charBtn">🤸</button>
+  <button class="btn purple" id="levelsBtn">🗺️<span class="btxt"> Levels</span></button>
+  <button class="btn pink" id="drawBtn">✏️<span class="btxt"> Draw</span></button>
+  <button class="btn green" id="goBtn">▶<span class="btxt"> Go</span></button>
+  <button class="btn gold" id="shopBtn">🛍️<span class="btxt"> Shop</span></button>
+</div>
+
+<!-- Level progress banner -->
+<div class="level-hud" id="levelHud">Lv 1</div>
+
+<!-- Drawing toolbar -->
+<div class="toolbar" id="toolbar">
+  <h4>DRAWING MATERIAL</h4>
+  <div class="mat-row" id="matRow"></div>
+  <h4>THICKNESS</h4>
+  <div class="mat-row" id="thickRow"></div>
+  <button class="btn gray" id="undoBtn">↶ Undo</button>
+  <button class="btn gray" id="clearBtn">🗑 Clear all</button>
+</div>
+
+<!-- Score popup -->
+<div class="score-pop" id="scorePop"><div class="big" id="scoreBig"></div><div class="sub" id="scoreSub"></div></div>
+
+<!-- Bottom controls -->
+<div class="controls">
+  <div class="hint" id="hint">Tap <b>✏️ Draw</b> to make a ramp, then <b>▶ Go!</b></div>
+  <div class="lane-btns">
+    <button class="lane-btn" id="laneLBtn">◀</button>
+    <button class="lane-btn" id="laneRBtn">▶</button>
+  </div>
+  <button class="action-btn" id="flipBtn">JUMP<br>hold=flip</button>
+</div>
+
+<!-- Shop modal -->
+<div class="overlay" id="shopOverlay">
+  <div class="modal">
+    <h2>🛍️ Coin Shop</h2>
+    <div class="bal" id="shopBal">⭐ 0 coins</div>
+    <div class="tabs">
+      <button class="tab sel" data-cat="outfit">👕 Outfits</button>
+      <button class="tab" data-cat="material">✏️ Drawing</button>
+      <button class="tab" data-cat="background">🏟️ Gyms</button>
+    </div>
+    <div class="shop-grid" id="shopGrid"></div>
+    <button class="btn pink close" id="closeShopBtn">Done</button>
+  </div>
+</div>
+
+<!-- Level select modal -->
+<div class="overlay" id="levelOverlay">
+  <div class="modal">
+    <h2>🗺️ Choose a Level</h2>
+    <div class="bal">100 levels across 10 worlds — clear the bars to unlock the next!</div>
+    <div class="level-grid" id="levelGrid"></div>
+    <button class="btn pink close" id="closeLevelsBtn">Close</button>
+  </div>
+</div>
+
+<!-- Level complete modal -->
+<div class="overlay" id="completeOverlay">
+  <div class="modal center">
+    <div class="stars-row" id="completeStars">⭐⭐⭐</div>
+    <h2 id="completeTitle">Level Complete!</h2>
+    <p id="completeMsg"></p>
+    <div class="modal-btns">
+      <button class="btn green" id="nextLevelBtn">▶ Next Level</button>
+      <button class="btn gray" id="replayLevelBtn">↻ Replay</button>
+      <button class="btn purple" id="toLevelsBtn">🗺️ Levels</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+
+// ============================================================
+//  Flip Stars — a 3D gymnastics drawing game
+//  Single file. Three.js loaded from CDN via import map.
+// ============================================================
+
+const TWO_PI = Math.PI * 2;
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const lerp = (a, b, t) => a + (b - a) * t;
+
+// ---------- Persistent save (guarded for sandboxed environments) ----------
+const SAVE_KEY = 'flipstars_v1';
+function loadSave() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch (e) {}
+  return null;
+}
+function persist() {
+  try {
+    localStorage.setItem(SAVE_KEY, JSON.stringify({
+      coins: game.coins,
+      owned: [...shop.owned],
+      equipped: shop.equipped,
+      unlocked: game.unlocked,
+      stars: game.stars,
+      character: game.character
+    }));
+  } catch (e) {}
+}
+
+// ---------- Shop catalog ----------
+// grip   = how much the runner can accelerate/steer on it (ice ≈ none → sliding)
+// bounce = guaranteed launch speed when landing on it (trampoline → BOING)
+const MATERIALS = {
+  chalk:      { name: 'Chalk',      color: 0xf4f4f4, rest: 0.05, fric: 0.16, grip: 1 },
+  wood:       { name: 'Wood Ramp',  color: 0xb5793a, rest: 0.15, fric: 0.10, grip: 1 },
+  trampoline: { name: 'Trampoline', color: 0x21d4b4, rest: 0.90, fric: 0.06, grip: 0.8, bounce: 19 },
+  ice:        { name: 'Ice',        color: 0xaee5ff, rest: 0.02, fric: 0.0,  grip: 0.05, slick: true },
+  rainbow:    { name: 'Rainbow',    color: 0xff66cc, rest: 0.30, fric: 0.10, grip: 1, rainbow: true }
+};
+
+const SHOP = {
+  outfit: [
+    { id: 'leo-pink',   name: 'Pink Leo',    cost: 0,   data: { leo: 0xff4f9a, hair: 0x4a2c1a, acc: null } },
+    { id: 'leo-blue',   name: 'Blue Leo',    cost: 60,  data: { leo: 0x3d7bff, hair: 0x4a2c1a, acc: null } },
+    { id: 'leo-purple', name: 'Purple Leo',  cost: 60,  data: { leo: 0x9c47ff, hair: 0x2a1a0f, acc: null } },
+    { id: 'leo-gold',   name: 'Gold Sparkle',cost: 150, data: { leo: 0xffc63d, hair: 0x5a3a1a, acc: null } },
+    { id: 'acc-cape',   name: 'Hero Cape',   cost: 220, data: { leo: null,     hair: null,     acc: 'cape' } },
+    { id: 'acc-crown',  name: 'Champ Crown', cost: 350, data: { leo: null,     hair: null,     acc: 'crown' } },
+    // Ava's hairstyles
+    { id: 'hair-bun',      name: 'Gym Bun',   cost: 0,  data: { hair: 'bun' } },
+    { id: 'hair-ponytail', name: 'Ponytail',  cost: 45, data: { hair: 'ponytail' } },
+    { id: 'hair-pigtails', name: 'Pigtails',  cost: 70, data: { hair: 'pigtails' } },
+    { id: 'hair-long',     name: 'Long Hair', cost: 90, data: { hair: 'long' } },
+    // Ava's bow colors
+    { id: 'bow-pink', name: 'Pink Bow', cost: 0,  data: { bowColor: 0xff4f9a } },
+    { id: 'bow-blue', name: 'Blue Bow', cost: 35, data: { bowColor: 0x3d7bff } },
+    { id: 'bow-mint', name: 'Mint Bow', cost: 45, data: { bowColor: 0x21d4b4 } },
+    { id: 'bow-gold', name: 'Gold Bow', cost: 60, data: { bowColor: 0xffc63d } }
+  ],
+  material: [
+    { id: 'mat-chalk',      name: 'Chalk',      cost: 0,   data: { mat: 'chalk' } },
+    { id: 'mat-wood',       name: 'Wood Ramp',  cost: 70,  data: { mat: 'wood' } },
+    { id: 'mat-trampoline', name: 'Trampoline', cost: 180, data: { mat: 'trampoline' } },
+    { id: 'mat-ice',        name: 'Ice Slide',  cost: 120, data: { mat: 'ice' } },
+    { id: 'mat-rainbow',    name: 'Rainbow',    cost: 260, data: { mat: 'rainbow' } },
+    { id: 'thick-thin',     name: 'Thin Pen',   cost: 0,   data: { thick: 0 } },
+    { id: 'thick-bold',     name: 'Bold Pen',   cost: 45,  data: { thick: 1 } },
+    { id: 'thick-mega',     name: 'Mega Pen',   cost: 110, data: { thick: 2 } }
+  ],
+  background: [
+    { id: 'bg-auto',   name: 'World Themes', cost: 0,   data: { auto: true } },
+    { id: 'bg-gym',    name: 'Home Gym',    cost: 90,  data: { sky: 0xffe3ef, ground: 0xcf7a4a, wall: 0xffc4dd, stars: false } },
+    { id: 'bg-arena',  name: 'Big Arena',   cost: 120, data: { sky: 0x123a6b, ground: 0x2f6f4f, wall: 0x1d4f8a, stars: false } },
+    { id: 'bg-beach',  name: 'Beach Mats',  cost: 150, data: { sky: 0x8fe3ff, ground: 0xf2d79b, wall: 0x57c8ff, stars: false } },
+    { id: 'bg-sunset', name: 'Sunset Park', cost: 180, data: { sky: 0xff9966, ground: 0x6b8e3a, wall: 0xffb37a, stars: false } },
+    { id: 'bg-space',  name: 'Moon Gym',    cost: 320, data: { sky: 0x0a0626, ground: 0x9fa3b3, wall: 0x1a1440, stars: true } }
+  ]
+};
+
+const DEFAULT_OWNED = ['leo-pink', 'mat-chalk', 'thick-thin', 'bg-auto', 'hair-bun', 'bow-pink'];
+
+const shop = {
+  owned: new Set(DEFAULT_OWNED),
+  equipped: { outfit: 'leo-pink', acc: null, material: 'mat-chalk', thick: 'thick-thin', background: 'bg-auto', hairstyle: 'hair-bun', bow: 'bow-pink' }
+};
+
+// ---------- Game state ----------
+const game = {
+  coins: 0,
+  mode: 'idle',        // idle | draw | run
+  drawMat: 'chalk',
+  drawThick: 0,
+  started: false,
+  level: 0,            // index of the level currently loaded
+  unlocked: 1,         // how many levels are unlocked (>=1)
+  stars: {},           // best star rating per level index: { 0: 3, 1: 2, ... }
+  cleared: 0,          // hurdles cleared this run
+  crashes: 0,          // crashes this run
+  finished: false,     // reached the finish line this run
+  character: 'her',    // 'her' (Ava) or 'him' (Max)
+  fx: { turbo: 0, spring: 0, shield: 0 }   // active powerup timers
+};
+
+// load save
+const saved = loadSave();
+if (saved) {
+  game.coins = saved.coins || 0;
+  (saved.owned || []).forEach(id => shop.owned.add(id));
+  if (saved.equipped) Object.assign(shop.equipped, saved.equipped);
+  // Repair saves written while leotards were mis-filed into the hairstyle slot:
+  // every equip slot must actually hold an item of that kind.
+  {
+    const find = id => SHOP.outfit.find(o => o.id === id);
+    const eq = shop.equipped;
+    const hs = find(eq.hairstyle);
+    if (!hs || typeof hs.data.hair !== 'string') {
+      // a leotard landed here — put it back in the outfit slot where it belongs
+      if (hs && hs.data.leo != null) eq.outfit = hs.id;
+      eq.hairstyle = 'hair-bun';
+    }
+    const out = find(eq.outfit);
+    if (!out || out.data.leo == null) eq.outfit = 'leo-pink';
+    const bow = find(eq.bow);
+    if (!bow || bow.data.bowColor == null) eq.bow = 'bow-pink';
+    const acc = eq.acc ? find(eq.acc) : null;
+    if (eq.acc && (!acc || !acc.data.acc)) eq.acc = null;
+  }
+  game.unlocked = Math.max(1, saved.unlocked || 1);   // clamped to LEVELS.length at boot
+  game.stars = saved.stars || {};
+  game.character = saved.character === 'him' ? 'him' : 'her';
+  // the Headband was removed from the game (floated like a halo) — refund owners
+  if (shop.owned.has('acc-band')) { shop.owned.delete('acc-band'); game.coins += 15; }
+  if (shop.equipped.acc === 'acc-band') shop.equipped.acc = null;
+}
+
+// ============================================================
+//  Three.js setup
+// ============================================================
+const canvas = document.getElementById('scene');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(55, 1, 0.1, 400);
+
+const hemi = new THREE.HemisphereLight(0xffffff, 0x444466, 0.9);
+scene.add(hemi);
+const sun = new THREE.DirectionalLight(0xffffff, 1.1);
+sun.position.set(6, 16, 10);
+sun.castShadow = true;
+sun.shadow.mapSize.set(1024, 1024);
+sun.shadow.camera.left = -30; sun.shadow.camera.right = 30;
+sun.shadow.camera.top = 30; sun.shadow.camera.bottom = -30;
+scene.add(sun);
+
+// Ground (the gym floor) — long strip
+const GROUND_LEN = 2000;
+const groundMat = new THREE.MeshStandardMaterial({ color: 0xcf7a4a });
+const ground = new THREE.Mesh(new THREE.BoxGeometry(GROUND_LEN, 1, 14), groundMat);
+ground.position.set(GROUND_LEN / 2 - 40, -0.5, 0);
+ground.receiveShadow = true;
+scene.add(ground);
+
+// Back wall
+const wallMat = new THREE.MeshStandardMaterial({ color: 0xffc4dd });
+const wall = new THREE.Mesh(new THREE.BoxGeometry(GROUND_LEN, 60, 1), wallMat);
+wall.position.set(GROUND_LEN / 2 - 40, 28, -7);
+scene.add(wall);
+
+// Start podium marker
+const podium = new THREE.Mesh(new THREE.BoxGeometry(2, 0.4, 6),
+  new THREE.MeshStandardMaterial({ color: 0xffffff }));
+podium.position.set(-2, 0.2, 0); podium.receiveShadow = true;
+scene.add(podium);
+
+// Stars group (for space background)
+let starField = null;
+function buildStars() {
+  const g = new THREE.BufferGeometry();
+  const pts = [];
+  for (let i = 0; i < 400; i++) {
+    pts.push((Math.random() - 0.5) * GROUND_LEN, Math.random() * 50 + 4, -6.5);
+  }
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
+  starField = new THREE.Points(g, new THREE.PointsMaterial({ color: 0xffffff, size: 0.35 }));
+  starField.visible = false;
+  scene.add(starField);
+}
+buildStars();
+
+// ============================================================
+//  Levels & hurdles — obstacles you must get OVER
+// ============================================================
+// 100 levels, grouped into 10 themed worlds (10 levels each). Every level gets
+// harder: more bars, taller, closer together, faster running.
+const WORLD_NAMES = [
+  'Backyard Gym', 'Bouncy Blocks', 'Speed Street', 'High Bar Hall', 'Turbo Town',
+  'Sky Stadium', 'Mega Dome', 'Cosmic Court', 'Dragon Arena', 'Champion Peak'
+];
+// each world has its own gym scenery (sky / ground / back wall / star sparkle)
+const WORLD_BG = [
+  { sky: 0xffe3ef, ground: 0xcf7a4a, wall: 0xffc4dd, stars: false }, // Backyard Gym — warm home
+  { sky: 0xcdeafd, ground: 0x7ec8a0, wall: 0xa6d8ff, stars: false }, // Bouncy Blocks — playful
+  { sky: 0xb0c4d4, ground: 0x566072, wall: 0x8095a8, stars: false }, // Speed Street — city
+  { sky: 0x123a6b, ground: 0x2f6f4f, wall: 0x1d4f8a, stars: false }, // High Bar Hall — indoor arena
+  { sky: 0xff9966, ground: 0x6b8e3a, wall: 0xffb37a, stars: false }, // Turbo Town — sunset
+  { sky: 0x8fe3ff, ground: 0xd9e6ef, wall: 0x57c8ff, stars: false }, // Sky Stadium — bright & high
+  { sky: 0x3a2a6b, ground: 0x4a4a6a, wall: 0x5a3a8a, stars: true  }, // Mega Dome — purple dome
+  { sky: 0x0a1030, ground: 0x6a6f8f, wall: 0x1a2050, stars: true  }, // Cosmic Court — space
+  { sky: 0x5a1a1a, ground: 0x7a4a2a, wall: 0x8a2a2a, stars: false }, // Dragon Arena — fiery
+  { sky: 0x241a52, ground: 0xb58a3a, wall: 0x4a3a7a, stars: true  }  // Champion Peak — golden night
+];
+const NUM_LEVELS = 100;
+const LEVELS = Array.from({ length: NUM_LEVELS }, (_, i) => ({
+  name: WORLD_NAMES[Math.floor(i / 10)],
+  world: Math.floor(i / 10),
+  n: Math.round(6 + i * 0.19),                                    // 6 -> ~25 bars
+  h0: Math.min(1.9, 0.7 + i * 0.013),                            // base height 0.7 -> ~1.9
+  hStep: 0.05 + i * 0.0008,                                       // grows within a level
+  sp: [Math.max(9, 17 - i * 0.08), Math.max(11, 19 - i * 0.08)], // spacing narrows
+  speed: Math.min(15, 8 + i * 0.072)                             // run speed 8 -> 15
+}));
+const MAX_H = 2.7;
+
+let hurdles = [];
+let finishX = 999;
+const hurdleGroup = new THREE.Group();
+scene.add(hurdleGroup);
+let powerups = [];
+const powerGroup = new THREE.Group();
+scene.add(powerGroup);
+let tramps = [];
+const trampGroup = new THREE.Group();
+scene.add(trampGroup);
+const HURDLE_COLORS = [0xff5252, 0x42a5f5, 0xffca28, 0xab47bc, 0x26c6da, 0x66bb6a];
+
+// finish-line banner (gate)
+const finishGroup = new THREE.Group();
+{
+  const postMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
+  const postL = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 5, 10), postMat);
+  postL.position.set(0, 2.5, 1.1);
+  const postR = postL.clone(); postR.position.z = -1.1;
+  const banner = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.9, 2.4),
+    new THREE.MeshStandardMaterial({ color: 0xffd23d }));
+  banner.position.y = 4.6;
+  finishGroup.add(postL, postR, banner);
+  scene.add(finishGroup);
+}
+
+// deterministic pseudo-random so a level plays the same each retry
+function seededRand(seed) { let s = seed; return () => (s = (s * 9301 + 49297) % 233280) / 233280; }
+
+// ---------- Powerups ----------
+const POWER_SPECS = {
+  turbo:  { color: 0xff8f2b, label: 'TURBO!',        sub: 'Super speed for 5 seconds!' },
+  spring: { color: 0x43e463, label: 'SPRING SHOES!', sub: 'Mega jumps for 8 seconds!' },
+  star:   { color: 0xffd23d, label: 'COIN STAR!',    sub: '+25 ⭐' },
+  shield: { color: 0x3d9bff, label: 'SHIELD!',       sub: 'One free crash!' },
+  triple: { color: 0xffd23d, label: 'TRIPLE POWER!', sub: 'Turbo + Spring + Shield!' }
+};
+function spawnPowerup(x, z, y, rnd, forceType) {
+  const types = Object.keys(POWER_SPECS).filter(k => k !== 'triple');   // triple never spawns randomly
+  const type = forceType || types[Math.floor(rnd() * types.length)];
+  const spec = POWER_SPECS[type];
+  let mesh;
+  if (type === 'triple') {
+    // three glowing orbs orbiting together — the trampoline-only treasure
+    mesh = new THREE.Group();
+    const cols = [0xff8f2b, 0x43e463, 0x3d9bff];
+    for (let i = 0; i < 3; i++) {
+      const orb = new THREE.Mesh(new THREE.OctahedronGeometry(0.32),
+        new THREE.MeshStandardMaterial({ color: cols[i], emissive: cols[i], emissiveIntensity: 0.45 }));
+      orb.position.set(Math.cos(i * TWO_PI / 3) * 0.45, 0, Math.sin(i * TWO_PI / 3) * 0.45);
+      orb.castShadow = true;
+      mesh.add(orb);
+    }
+  } else {
+    let geo;
+    if (type === 'turbo') geo = new THREE.ConeGeometry(0.32, 0.62, 10);
+    else if (type === 'spring') geo = new THREE.TorusGeometry(0.3, 0.11, 10, 18);
+    else if (type === 'star') geo = new THREE.OctahedronGeometry(0.38);
+    else geo = new THREE.IcosahedronGeometry(0.34);
+    mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({
+      color: spec.color, emissive: spec.color, emissiveIntensity: 0.35 }));
+    mesh.castShadow = true;
+  }
+  mesh.position.set(x, y, z);
+  powerGroup.add(mesh);
+  powerups.push({ x, y, z, type, mesh, taken: false });
+}
+
+// where a trampoline bounce peaks — gems are placed here so the arc goes
+// THROUGH them rather than over the top
+function trampApexT() { return TRAMP_V / -GRAV; }
+function trampApexY() { return R + (TRAMP_V * TRAMP_V) / (2 * -GRAV); }
+
+// mini trampoline — land on it for a MEGA bounce (way higher than a jump)
+function spawnTramp(x, z) {
+  const g = new THREE.Group();
+  const rim = new THREE.Mesh(new THREE.CylinderGeometry(1.0, 1.08, 0.22, 18),
+    new THREE.MeshStandardMaterial({ color: 0x2b6cb8 }));
+  rim.position.y = 0.11; rim.castShadow = true;
+  const bed = new THREE.Mesh(new THREE.CylinderGeometry(0.82, 0.82, 0.1, 18),
+    new THREE.MeshStandardMaterial({ color: 0x1a2230 }));
+  bed.position.y = 0.2;
+  g.add(rim, bed);
+  g.position.set(x, 0, z);
+  trampGroup.add(g);
+  tramps.push({ x, z, r: 1.0, mesh: g, squash: 0 });
+}
+
+function buildLevel(idx) {
+  const L = LEVELS[idx];
+  runSpeed = L.speed;
+  hurdles.forEach(h => hurdleGroup.remove(h.mesh));
+  hurdles = [];
+  powerups.forEach(p => powerGroup.remove(p.mesh));
+  powerups = [];
+  tramps.forEach(t => trampGroup.remove(t.mesh));
+  tramps = [];
+  const rnd = seededRand(idx * 1000 + 7);
+  const t = idx / (NUM_LEVELS - 1);          // 0 -> 1 across the campaign
+  let cursor = 17;
+  let prevRight = 4;                          // right edge of the previous obstacle
+  for (let i = 0; i < L.n; i++) {
+    const baseH = clamp(L.h0 + i * L.hStep + (rnd() - 0.5) * 0.3, 0.7, MAX_H);
+    // obstacle variety — different SHAPES, and bigger as the game goes on
+    const roll = rnd();
+    let w, h, color, kind;
+    if (roll < 0.38 - t * 0.15) {
+      kind = 'bar';                          // classic narrow bar
+      w = 0.55; h = baseH;
+      color = HURDLE_COLORS[i % HURDLE_COLORS.length];
+    } else if (roll < 0.56) {
+      kind = 'barrel';                       // round rolling-log barrel
+      h = clamp(baseH, 0.7, 1.9);
+      w = h / 2;
+      color = rnd() < 0.5 ? 0x8a5a2a : 0x6d7f8f;
+    } else if (roll < 0.7) {
+      kind = 'dome';                         // smooth bump you can bounce over
+      w = 1.0 + t * 1.3 + rnd() * 0.5;
+      h = clamp(baseH * 0.8, 0.7, 1.9);
+      color = rnd() < 0.5 ? 0x2fa88a : 0x5a78d6;
+    } else if (roll < 0.88) {
+      kind = 'vault';                        // WIDE vault box — run over the top
+      w = 1.1 + t * 2.4 + rnd() * 0.9;
+      h = clamp(baseH * 0.85, 0.7, 2.1);
+      color = rnd() < 0.5 ? 0xc98a4b : 0xa4713c;
+    } else {
+      kind = 'wall';                         // tall solid wall — big flip or ramp
+      w = 0.7;
+      h = clamp(baseH * 1.3 + 0.3 + t * 0.5, 1.0, 3.2);
+      color = rnd() < 0.5 ? 0xb54a3c : 0x8a8f98;
+    }
+    // lanes: walls span the whole lane; others increasingly sit in ONE lane —
+    // steer into their lane to catch them (extra coins) or around to skip
+    const single = kind !== 'wall' && rnd() < 0.2 + t * 0.4;
+    const z = single ? LANE_Z[Math.floor(rnd() * 3)] : 0;
+    const d = single ? 1.7 : FULL_D;
+    const cx = cursor + w;
+    const g = new THREE.Group();
+    g.position.set(cx, 0, z);
+    const mat = new THREE.MeshStandardMaterial({ color });
+    let mesh;
+    if (kind === 'barrel') {
+      mesh = new THREE.Mesh(new THREE.CylinderGeometry(h / 2, h / 2, d, 16), mat);
+      mesh.rotation.x = Math.PI / 2;
+      mesh.position.y = h / 2;
+    } else if (kind === 'dome') {
+      mesh = new THREE.Mesh(new THREE.SphereGeometry(1, 20, 14), mat);
+      mesh.scale.set(w, h, d / 2);           // squashed half-in-ground dome
+    } else {
+      mesh = new THREE.Mesh(new THREE.BoxGeometry(w * 2, h, d), mat);
+      mesh.position.y = h / 2;
+      const stripe = new THREE.Mesh(new THREE.BoxGeometry(w * 2 + 0.06, 0.16, d + 0.1),
+        new THREE.MeshStandardMaterial({ color: 0xffffff }));
+      stripe.position.y = h; g.add(stripe);
+    }
+    mesh.castShadow = true; mesh.receiveShadow = true;
+    g.add(mesh);
+    hurdleGroup.add(g);
+    hurdles.push({ x: cx, h, w, z, d, kind, mesh: g, scored: false, crashed: false, tip: 0 });
+    // every wall gets a mini trampoline on the run-up — bounce over the top!
+    if (kind === 'wall') {
+      const tx = clamp(cx - w - runSpeed * 0.7, prevRight + 1.6, cx - w - 2.5);
+      spawnTramp(tx, 0);
+      // TRIPLE POWER sits exactly at the TOP of the bounce arc, so a trampoline
+      // launch flies straight through it (never over it)
+      if (rnd() < 0.5) spawnPowerup(tx + runSpeed * trampApexT(), 0, trampApexY(), rnd, 'triple');
+    }
+    prevRight = cx + w;
+    const gap = L.sp[0] + rnd() * (L.sp[1] - L.sp[0]);
+    // sprinkle powerups into some of the gaps (some up high — jump to grab!)
+    if (gap > 6 && rnd() < 0.4) {
+      spawnPowerup(cx + w + gap * 0.55, LANE_Z[Math.floor(rnd() * 3)],
+        rnd() < 0.3 ? 2.3 : 1.25, rnd);
+    }
+    // and the occasional bonus trampoline in a side lane, just for fun
+    if (gap > 8 && rnd() < 0.15) {
+      const bx = cx + w + gap * 0.3, bz = LANE_Z[Math.floor(rnd() * 3)];
+      spawnTramp(bx, bz);
+      if (rnd() < 0.6) spawnPowerup(bx + runSpeed * trampApexT(), bz, trampApexY(), rnd, 'triple');
+    }
+    cursor = cx + w + gap;
+  }
+  finishX = cursor + 6;
+  finishGroup.position.x = finishX;
+}
+
+function resetHurdles() {
+  hurdles.forEach(h => { h.scored = false; h.crashed = false; h.tip = 0; h.mesh.rotation.z = 0; });
+}
+function updateHurdleVisuals(dt) {
+  for (const h of hurdles) {
+    const target = h.crashed ? 1 : 0;
+    h.tip = lerp(h.tip, target, 1 - Math.pow(0.02, dt));
+    // tip forward when knocked over — wide boxes only slump a little
+    h.mesh.rotation.z = h.tip * (h.w > 1 ? 0.45 : 1.35);
+  }
+}
+let powerTime = 0;
+function updatePowerups(dt) {
+  powerTime += dt;
+  for (const p of powerups) {
+    if (p.taken) continue;
+    p.mesh.rotation.y += dt * 3;
+    p.mesh.position.y = p.y + Math.sin(powerTime * 3 + p.x) * 0.15;
+  }
+  // trampoline squash-and-rebound animation
+  for (const tp of tramps) {
+    if (tp.squash > 0.001) {
+      tp.squash = Math.max(0, tp.squash - dt * 3);
+      tp.mesh.scale.y = 1 - 0.55 * tp.squash;
+    }
+  }
+}
+
+// ============================================================
+//  Gymnast figure (articulated, built from capsules)
+// ============================================================
+const SKIN = 0xf3c08b;
+const gymnast = new THREE.Group();
+scene.add(gymnast);
+
+let leoMatMesh = [];   // meshes recolored by outfit
+let accGroup = null;
+
+// satin "printed resin" finish shared by every body part
+function bodyMat(color) { return new THREE.MeshStandardMaterial({ color, roughness: 0.5 }); }
+
+function capsule(len, r, color) {
+  const m = new THREE.Mesh(new THREE.CapsuleGeometry(r, len, 8, 24), bodyMat(color));
+  m.castShadow = true;
+  return m;
+}
+function jointBall(r, color) {
+  const m = new THREE.Mesh(new THREE.SphereGeometry(r, 20, 16), bodyMat(color));
+  m.castShadow = true;
+  return m;
+}
+// A limb welded like one printed piece: a ball is fused INTO each joint (it
+// rides with the pivot), so no matter how far the limb bends, the surface
+// stays continuous — no doll-style gaps. rUpper (muscle) tapers to rLower.
+function makeLimb(upperLen, lowerLen, rUpper, rLower, color) {
+  const pivot = new THREE.Group();
+  pivot.add(jointBall(rUpper * 1.12, color));            // shoulder/hip muscle ball
+  const upper = capsule(upperLen, rUpper, color);
+  upper.position.y = -upperLen / 2;
+  pivot.add(upper);
+  const knee = new THREE.Group();
+  knee.position.y = -upperLen;
+  pivot.add(knee);
+  knee.add(jointBall((rUpper + rLower) * 0.52, color));  // elbow/knee ball
+  const lower = capsule(lowerLen, rLower, color);
+  lower.position.y = -lowerLen / 2;
+  knee.add(lower);
+  return { pivot, knee, upper, lower };
+}
+
+const primFig = new THREE.Group();   // the built-from-shapes figurine (fallback if the real model can't load)
+gymnast.add(primFig);
+const fig = {};
+function buildFigure() {
+  const leo = SHOP.outfit[0].data.leo;
+
+  // torso + hips as ONE continuous lathe-curved surface (like a printed shell):
+  // profile runs bottom -> top: leotard hem, hips, waist, chest, shoulders, neck
+  const prof = [
+    [0.04, -0.20], [0.16, -0.15], [0.215, -0.06], [0.20, 0.02], [0.185, 0.12],
+    [0.26, 0.30], [0.285, 0.40], [0.22, 0.50], [0.085, 0.585]
+  ].map(p => new THREE.Vector2(p[0], p[1]));
+  const torso = new THREE.Mesh(new THREE.LatheGeometry(prof, 32), bodyMat(leo));
+  torso.scale.z = 0.74;             // flatten front-to-back like a real torso
+  torso.castShadow = true;
+  primFig.add(torso);
+
+  // neck — overlaps down into the torso shell so there is no seam
+  const neckCyl = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.098, 0.2, 16), bodyMat(SKIN));
+  neckCyl.position.y = 0.58; neckCyl.castShadow = true; primFig.add(neckCyl);
+
+  // head + hair + bun
+  const neck = new THREE.Group(); neck.position.y = 0.64; primFig.add(neck);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.185, 26, 20), bodyMat(SKIN));
+  head.position.y = 0.13; head.scale.z = 0.96; head.castShadow = true; neck.add(head);
+  const hair = new THREE.Mesh(new THREE.SphereGeometry(0.197, 26, 18, 0, TWO_PI, 0, Math.PI * 0.58),
+    bodyMat(0x4a2c1a));
+  hair.position.y = 0.155; neck.add(hair);
+  const bun = new THREE.Mesh(new THREE.SphereGeometry(0.09, 16, 14), bodyMat(0x4a2c1a));
+  bun.position.set(0, 0.23, -0.155); neck.add(bun);
+
+  // arms — the deltoid ball is fused into the shoulder pivot, biceps taper to forearms
+  fig.armL = makeLimb(0.34, 0.32, 0.095, 0.064, SKIN);
+  fig.armL.pivot.position.set(-0.27, 0.47, 0); primFig.add(fig.armL.pivot);
+  fig.armR = makeLimb(0.34, 0.32, 0.095, 0.064, SKIN);
+  fig.armR.pivot.position.set(0.27, 0.47, 0); primFig.add(fig.armR.pivot);
+  for (const arm of [fig.armL, fig.armR]) {
+    const hand = new THREE.Mesh(new THREE.SphereGeometry(0.074, 14, 12), bodyMat(SKIN));
+    hand.position.y = -0.33; hand.castShadow = true; arm.knee.add(hand);
+  }
+  // legs — glute/thigh ball fused into the hip pivot, thighs taper to calves
+  fig.legL = makeLimb(0.42, 0.42, 0.135, 0.088, SKIN);
+  fig.legL.pivot.position.set(-0.115, -0.09, 0); primFig.add(fig.legL.pivot);
+  fig.legR = makeLimb(0.42, 0.42, 0.135, 0.088, SKIN);
+  fig.legR.pivot.position.set(0.115, -0.09, 0); primFig.add(fig.legR.pivot);
+  // feet — smooth rounded slippers (no boxy edges)
+  for (const leg of [fig.legL, fig.legR]) {
+    const foot = new THREE.Mesh(new THREE.SphereGeometry(0.1, 18, 14), bodyMat(0xffffff));
+    foot.scale.set(0.8, 0.5, 1.7);
+    foot.position.set(0, -0.44, 0.09); foot.castShadow = true; leg.knee.add(foot);
+  }
+  fig.head = neck; fig.hair = hair; fig.bun = bun;
+  leoMatMesh = [torso];
+}
+buildFigure();
+
+// ============================================================
+//  Real humans — rigged, skinned people with motion-captured
+//  animations, loaded from the three.js model library.
+//  Two characters: Her (Athletic Ava) and Him (Soldier Sam).
+//  If a model can't load (offline), the figurine stays as fallback.
+// ============================================================
+const MODEL_BASE = 'https://raw.githubusercontent.com/mrdoob/three.js/r160/examples/models/gltf/';
+const CHARACTERS = {
+  // Both characters use the same friendly athlete model (Xbot) with different
+  // paint schemes: Ava wears a leotard bodysuit, Max wears knight armor.
+  // (Soldier Sam was retired — military gear was too scary for little kids.)
+  her: { name: 'Ava the Robo-Gymnast', url: MODEL_BASE + 'Xbot.glb', height: 1.42, face: Math.PI / 2 },
+  him: { name: 'Max the Knight',       url: MODEL_BASE + 'Xbot.glb', height: 1.42, face: Math.PI / 2 }
+};
+let human = null;        // active: { key, mixer, actions, model, current, clips }
+const charCache = {};
+
+function activateCharacter(entry) {
+  if (human) gymnast.remove(human.model);
+  gymnast.add(entry.model);
+  primFig.visible = false;                   // the figurine steps aside
+  entry.actions.run.stop();
+  entry.actions.idle.reset().play();
+  entry.current = 'idle';
+  human = entry;
+  applyOutfit();                             // tint to the equipped outfit
+}
+
+const charFetching = {};
+
+// The file's bounding box lies for skinned models (bind pose ≠ posed body),
+// which made characters render giant and sink into the floor. Measure the
+// REAL skinned body after posing one frame of idle, then correct the scale
+// and put the feet exactly at the bottom of the collision disc.
+function fitCharacter(entry, targetH) {
+  try {
+    entry.actions.idle.play();
+    entry.mixer.update(0.05);                 // pose one frame
+    entry.model.updateMatrixWorld(true);
+    let minY = Infinity, maxY = -Infinity;
+    entry.model.traverse(o => {
+      if (o.isSkinnedMesh) {
+        o.computeBoundingBox();               // skinning-aware bounds
+        const bb = o.boundingBox.clone().applyMatrix4(o.matrixWorld);
+        minY = Math.min(minY, bb.min.y);
+        maxY = Math.max(maxY, bb.max.y);
+      }
+    });
+    const h = maxY - minY;
+    if (!isFinite(h) || h < 0.05) return;     // nothing measurable — keep estimate
+    const k = targetH / h;
+    entry.model.scale.multiplyScalar(k);
+    // rescaling happens about the model origin: recompute where the feet land
+    const footAfter = entry.model.position.y + (minY - entry.model.position.y) * k;
+    entry.model.position.y += -R - footAfter;
+    entry.fit = { measured: +h.toFixed(2), correction: +k.toFixed(2) };
+  } catch (e) { /* keep the estimated fit */ }
+}
+
+// Both characters use Mixamo-named skeletons, so a run clip from one file can
+// drive the other rig. If a character has no run clip of its own, borrow one.
+function attemptRunDonation() {
+  const donor = Object.values(charCache).find(e => e.runClipObj);
+  if (!donor) return;
+  for (const e of Object.values(charCache)) {
+    if (!e.needsRun || e === donor) continue;
+    const root = donor.runClipObj.tracks[0] && donor.runClipObj.tracks[0].name.split('.')[0];
+    if (root && e.model.getObjectByName(root)) {
+      e.actions.run = e.mixer.clipAction(donor.runClipObj);
+      e.needsRun = false;
+    }
+  }
+}
+
+// Dress a character: clothes are painted per-vertex by bone region (their
+// bodies are single continuous meshes), so edges land exactly at the wrists,
+// neck, and ankles, blended smoothly by skin weights.
+//   her -> leotard bodysuit in the outfit color, white gym shoes
+//   him -> knight armor (steel tinted by the outfit color), dark boots
+function dressCharacter(entry, leoHex) {
+  try {
+    const isHer = entry.key === 'her';
+    const cSuit = isHer
+      ? new THREE.Color(leoHex)
+      : new THREE.Color(0xb8c4d6).lerp(new THREE.Color(leoHex), 0.3);   // tinted steel
+    const cSuitDark = cSuit.clone().multiplyScalar(isHer ? 0.8 : 0.6);  // joints/armor gaps
+    const cSkin = new THREE.Color(0xf3c08b);
+    const cShoe = isHer ? new THREE.Color(0xf5f5f5) : new THREE.Color(0x4a5566);
+    entry.model.traverse(o => {
+      if (!o.isSkinnedMesh || !o.geometry.attributes.skinIndex) return;
+      const geo = o.geometry;
+      const si = geo.attributes.skinIndex, sw = geo.attributes.skinWeight;
+      const isJoints = /joint/i.test(o.name + ' ' + (o.material.name || ''));
+      const regions = o.skeleton.bones.map(b => {
+        const n = b.name.toLowerCase();
+        if (/(head|neck)/.test(n)) return cSkin;
+        if (/(hand|thumb|index|middle|ring|pinky)/.test(n)) return cSkin;
+        if (/(foot|toe)/.test(n)) return cShoe;
+        return isJoints ? cSuitDark : cSuit;
+      });
+      const count = geo.attributes.position.count;
+      const colors = new Float32Array(count * 3);
+      for (let i = 0; i < count; i++) {
+        let r = 0, g = 0, b = 0, wsum = 0;
+        for (const [idx, w] of [[si.getX(i), sw.getX(i)], [si.getY(i), sw.getY(i)],
+                                 [si.getZ(i), sw.getZ(i)], [si.getW(i), sw.getW(i)]]) {
+          const c = regions[idx] || cSuit;
+          r += c.r * w; g += c.g * w; b += c.b * w; wsum += w;
+        }
+        if (wsum > 0) { r /= wsum; g /= wsum; b /= wsum; }
+        colors[i * 3] = r; colors[i * 3 + 1] = g; colors[i * 3 + 2] = b;
+      }
+      geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+      o.material.vertexColors = true;
+      o.material.color.set(0xffffff);
+      o.material.needsUpdate = true;
+    });
+  } catch (e) { /* keep previous coloring */ }
+}
+
+// Ava's hair — style + bow color chosen in the shop, attached to her HEAD
+// BONE so it moves with every animation. Built in bone space with world-unit
+// sizing (must run after fitCharacter). Rebuilt whenever the equips change.
+function buildHair(entry) {
+  try {
+    if (!entry.headBone) {
+      let head = null, top = null;
+      entry.model.traverse(o => {
+        if (!o.isBone) return;
+        const n = o.name.toLowerCase();
+        if (n.includes('headtop')) top = o;
+        else if (n.endsWith('head')) head = o;
+      });
+      entry.headBone = head; entry.topBone = top;
+    }
+    const head = entry.headBone, top = entry.topBone;
+    if (!head) return;
+    (entry.hairMeshes || []).forEach(m => m.parent && m.parent.remove(m));
+    entry.hairMeshes = [];
+    entry.model.updateMatrixWorld(true);
+    const pHead = new THREE.Vector3(); head.getWorldPosition(pHead);
+    const pTop = new THREE.Vector3(); (top || head).getWorldPosition(pTop);
+    const headH = top ? Math.max(pHead.distanceTo(pTop), 0.1) : 0.18;
+    const center = top ? pHead.clone().lerp(pTop, 0.6) : pHead.clone().setY(pHead.y + 0.08);
+    const r = headH * 0.5;                        // skull radius-ish (world)
+    const sc = new THREE.Vector3(); head.getWorldScale(sc);
+    const k = 1 / (sc.x || 1);                    // world units -> bone-space units
+    // Max always wears short hair; Ava's style + bow come from the shop
+    const style = entry.key === 'him' ? 'short'
+      : (SHOP.outfit.find(o => o.id === shop.equipped.hairstyle)?.data.hair || 'bun');
+    const bowHex = SHOP.outfit.find(o => o.id === shop.equipped.bow)?.data.bowColor ?? 0xff4f9a;
+    const hairMat = new THREE.MeshStandardMaterial({ color: entry.key === 'him' ? 0x3e2a18 : 0x5a3620, roughness: 0.6 });
+    const bowMat = new THREE.MeshStandardMaterial({ color: bowHex, roughness: 0.5 });
+    // put a hair sphere at a world-space offset from the head center
+    // (the character faces +X, so x<0 = the back of the head)
+    const put = (radius, mat, x, y, z, squashY) => {
+      const m = new THREE.Mesh(new THREE.SphereGeometry(radius * k, 18, 14), mat);
+      if (squashY) m.scale.y = squashY;
+      m.castShadow = true; m.userData.isHair = true;
+      m.position.copy(head.worldToLocal(center.clone().add(new THREE.Vector3(x, y, z))));
+      head.add(m); entry.hairMeshes.push(m);
+    };
+    if (style === 'short') {
+      put(r * 1.05, hairMat, -r * 0.2, r * 0.22, 0, 0.8);        // neat short crop
+      entry.hasHair = true;
+      return;
+    }
+    put(r * 1.12, hairMat, -r * 0.15, r * 0.18, 0, 0.92);        // cap (all styles)
+    if (style === 'bun') {
+      put(r * 0.55, hairMat, -r * 1.15, r * 0.25, 0);
+      put(r * 0.24, bowMat, -r * 1.1, r * 0.75, r * 0.3);
+      put(r * 0.24, bowMat, -r * 1.1, r * 0.75, -r * 0.3);
+    } else if (style === 'ponytail') {
+      put(r * 0.42, hairMat, -r * 1.05, r * 0.35, 0);
+      put(r * 0.36, hairMat, -r * 1.25, -r * 0.3, 0);
+      put(r * 0.30, hairMat, -r * 1.35, -r * 0.95, 0);
+      put(r * 0.24, hairMat, -r * 1.4, -r * 1.5, 0);
+      put(r * 0.26, bowMat, -r * 1.05, r * 0.75, 0);
+    } else if (style === 'pigtails') {
+      for (const s of [1, -1]) {
+        put(r * 0.38, hairMat, -r * 0.45, r * 0.05, s * r * 0.95);
+        put(r * 0.30, hairMat, -r * 0.55, -r * 0.55, s * r * 1.05);
+        put(r * 0.24, bowMat, -r * 0.4, r * 0.55, s * r * 0.85);
+      }
+    } else if (style === 'long') {
+      put(r * 0.50, hairMat, -r * 0.85, -r * 0.45, r * 0.5);
+      put(r * 0.50, hairMat, -r * 0.85, -r * 0.45, -r * 0.5);
+      put(r * 0.55, hairMat, -r * 1.0, -r * 0.5, 0);
+      put(r * 0.45, hairMat, -r * 1.05, -r * 1.15, r * 0.35);
+      put(r * 0.45, hairMat, -r * 1.05, -r * 1.15, -r * 0.35);
+      put(r * 0.24, bowMat, -r * 0.2, r * 1.0, 0);
+    }
+    entry.hasHair = true;
+  } catch (e) { /* no hair — still fine */ }
+}
+
+async function fetchCharacter(key) {
+  if (charCache[key] || charFetching[key]) return;
+  charFetching[key] = true;
+  try {
+    const { GLTFLoader } = await import('three/addons/loaders/GLTFLoader.js');
+    const spec = CHARACTERS[key];
+    new GLTFLoader().load(spec.url, gltf => {
+      if (!gltf.animations.length) return;   // needs animations to be usable
+      const model = gltf.scene;
+      model.traverse(o => {
+        if (o.isMesh) { o.castShadow = true; o.frustumCulled = false; }
+      });
+      // scale so the person is spec.height tall with feet at the bottom of the
+      // collision disc, spinning about the body center during flips
+      const bbox = new THREE.Box3().setFromObject(model);
+      const rawH = (bbox.max.y - bbox.min.y) || 1.7;
+      const s = spec.height / rawH;
+      model.scale.setScalar(s);
+      model.position.y = -R - bbox.min.y * s;
+      model.rotation.y = spec.face;          // face the direction of travel
+      const mixer = new THREE.AnimationMixer(model);
+      const find = n => gltf.animations.find(c => c.name.toLowerCase().includes(n));
+      const notTPose = gltf.animations.filter(c => !/t-?pose/i.test(c.name));
+      const idleClip = find('idle') || notTPose[0] || gltf.animations[0];
+      const runClip = find('run') || find('walk') || null;
+      const entry = {
+        key, model, mixer,
+        actions: {
+          idle: mixer.clipAction(idleClip),
+          // never T-pose down the lane: no run clip -> lively double-speed idle
+          run: runClip ? mixer.clipAction(runClip) : mixer.clipAction(idleClip).setEffectiveTimeScale(2)
+        },
+        current: 'idle',
+        clips: gltf.animations.map(c => c.name),
+        runClipObj: runClip,
+        needsRun: !runClip
+      };
+      fitCharacter(entry, spec.height);      // correct size + foot placement
+      buildHair(entry);                      // Ava gets her chosen hair + bow
+      charCache[key] = entry;
+      attemptRunDonation();                  // borrow/lend run clips across rigs
+      if (game.character === key) activateCharacter(entry);   // still the wanted one?
+    }, undefined, () => { /* load failed — figurine stays */ });
+  } catch (e) { /* no addons available — figurine stays */ }
+}
+
+function loadCharacter(key) {
+  if (!CHARACTERS[key]) key = 'her';
+  game.character = key;
+  persist();
+  if (charCache[key]) activateCharacter(charCache[key]);
+  else fetchCharacter(key);
+}
+
+function updateHuman(dt) {
+  const running = game.mode === 'run' && body.grounded && body.stumble <= 0;
+  const want = running ? 'run' : 'idle';
+  if (want !== human.current) {
+    human.actions[human.current].fadeOut(0.2);
+    human.actions[want].reset().fadeIn(0.2).play();
+    human.current = want;
+  }
+  // in the air the run cycle slows right down so the flip reads clearly
+  human.mixer.timeScale = (game.mode === 'run' && !body.grounded) ? 0.25 : 1;
+  human.mixer.update(dt);
+}
+
+// Accessory (crown / cape) rebuilt on equip. On the real characters,
+// accessories attach to SKELETON BONES (like the hair) so they track the
+// animated body — group-anchored accessories floated beside the head.
+function applyAccessory(type) {
+  if (accGroup) { if (accGroup.parent) accGroup.parent.remove(accGroup); accGroup = null; }
+  if (!type) return;
+  accGroup = new THREE.Group();
+  const onHuman = !!(human && human.headBone);
+  if (onHuman) {
+    human.model.updateMatrixWorld(true);
+    const head = human.headBone;
+    const pHead = new THREE.Vector3(); head.getWorldPosition(pHead);
+    const pTop = new THREE.Vector3(); (human.topBone || head).getWorldPosition(pTop);
+    const headH = human.topBone ? Math.max(pHead.distanceTo(pTop), 0.1) : 0.18;
+    const center = pHead.clone().lerp(pTop, 0.6);
+    const r = headH * 0.5;
+    if (type === 'crown') {
+      const sc = new THREE.Vector3(); head.getWorldScale(sc);
+      const k = 1 / (sc.x || 1);
+      const crown = new THREE.Mesh(
+        new THREE.CylinderGeometry(r * 0.95 * k, r * 1.15 * k, r * 0.85 * k, 8, 1, true),
+        new THREE.MeshStandardMaterial({ color: 0xffd23d, side: THREE.DoubleSide }));
+      crown.castShadow = true;
+      crown.position.copy(head.worldToLocal(center.clone().add(new THREE.Vector3(0, r * 1.45, 0))));
+      accGroup.add(crown);
+      head.add(accGroup);
+    } else if (type === 'cape') {
+      // hang from the chest bone, flat against the back (characters face +X)
+      let s2 = null, s1 = null, s0 = null;
+      human.model.traverse(o => {
+        if (!o.isBone) return;
+        if (/spine2$/i.test(o.name)) s2 = o;
+        else if (/spine1$/i.test(o.name)) s1 = o;
+        else if (/spine$/i.test(o.name)) s0 = o;
+      });
+      const anchor = s2 || s1 || s0 || head;
+      const pA = new THREE.Vector3(); anchor.getWorldPosition(pA);
+      const sA = new THREE.Vector3(); anchor.getWorldScale(sA);
+      const kA = 1 / (sA.x || 1);
+      const cape = new THREE.Mesh(new THREE.PlaneGeometry(0.42 * kA, 0.6 * kA),
+        new THREE.MeshStandardMaterial({ color: 0xd81b60, side: THREE.DoubleSide }));
+      cape.castShadow = true;
+      cape.position.copy(anchor.worldToLocal(pA.clone().add(new THREE.Vector3(-0.17, -0.12, 0))));
+      // orient the plane to lie flat against the back
+      const qWorld = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, Math.PI / 2, 0.1));
+      const qBone = new THREE.Quaternion(); anchor.getWorldQuaternion(qBone);
+      cape.quaternion.copy(qBone.invert().multiply(qWorld));
+      accGroup.add(cape);
+      anchor.add(accGroup);
+    }
+  } else {
+    // figurine fallback keeps the original fixed placements
+    if (type === 'crown') {
+      const crown = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.2, 0.16, 8, 1, true),
+        new THREE.MeshStandardMaterial({ color: 0xffd23d, side: THREE.DoubleSide }));
+      crown.position.y = 0.82; accGroup.add(crown);
+    } else if (type === 'cape') {
+      const cape = new THREE.Mesh(new THREE.PlaneGeometry(0.6, 0.8),
+        new THREE.MeshStandardMaterial({ color: 0xd81b60, side: THREE.DoubleSide }));
+      cape.position.set(0, 0.25, -0.22); cape.rotation.x = -0.15; accGroup.add(cape);
+    }
+    gymnast.add(accGroup);
+  }
+}
+
+// ============================================================
+//  Physics
+// ============================================================
+const R = 0.8;             // collision radius (disc)
+const GRAV = -22;
+let runSpeed = 9;          // set per level by buildLevel()
+const RUN_ACCEL = 9;
+const JUMP_V = 13;
+const TRAMP_V = 22;        // mini-trampoline launch — enough hang time to DOUBLE FLIP
+const SPIN_ACCEL = 13;
+const MAX_SPIN = 8.5;
+const LAND_TOL = 0.85;     // how upright you must be to "stick" a landing (radians)
+const LANE_Z = [-1.9, 0, 1.9];   // three lanes — steer with arrow keys / ◀ ▶
+const FULL_D = 5.6;              // depth of an obstacle that spans all lanes
+
+const body = {
+  x: 0, y: R, vx: 0, vy: 0,
+  lane: 1, z: 0,
+  angle: 0, angVel: 0,
+  grounded: true, airTime: 0, airStartAngle: 0, wasAir: false,
+  stumble: 0
+};
+
+let segments = [];   // colliders: {ax,ay,bx,by,rest,fric}
+let strokes = [];    // for undo: { meshes:[], segs:[] }
+let curStroke = null;
+
+function resetRun() {
+  body.x = 0; body.y = R; body.vx = 0; body.vy = 0;
+  body.lane = 1; body.z = 0;
+  body.angle = 0; body.angVel = 0; body.grounded = true;
+  body.airTime = 0; body.wasAir = false; body.stumble = 0;
+  resetHurdles();
+  powerups.forEach(p => { p.taken = false; p.mesh.visible = true; });
+  game.fx.turbo = 0; game.fx.spring = 0; game.fx.shield = 0;
+  game.cleared = 0; game.crashes = 0; game.finished = false;
+  game.mode = 'idle';
+  updateLevelHud();
+  setHint('Tap <b>▶ Go!</b> — JUMP the bars, steer with ◀ ▶, grab the glowing powerups!');
+}
+
+// load a level (rebuilds its bars) and reset the run onto it
+function loadLevel(idx) {
+  idx = clamp(idx, 0, LEVELS.length - 1);
+  if (idx !== game.level) clearAll();   // a different course starts with fresh ramps
+  game.level = idx;
+  buildLevel(game.level);
+  if (shop.equipped.background === 'bg-auto') applyWorldBackground(LEVELS[game.level].world);
+  resetRun();
+}
+
+// closest point on segment to (px,py)
+function closestOnSeg(px, py, ax, ay, bx, by) {
+  const dx = bx - ax, dy = by - ay;
+  const len2 = dx * dx + dy * dy || 1e-6;
+  let t = ((px - ax) * dx + (py - ay) * dy) / len2;
+  t = clamp(t, 0, 1);
+  return { x: ax + t * dx, y: ay + t * dy };
+}
+
+function physics(dt) {
+  if (game.mode !== 'run') return;
+  // powerup timers tick down
+  game.fx.turbo = Math.max(0, game.fx.turbo - dt);
+  game.fx.spring = Math.max(0, game.fx.spring - dt);
+  // lane steering — slide toward the chosen lane (works on the ground and in the air)
+  body.z = lerp(body.z, LANE_Z[body.lane], 1 - Math.pow(0.0005, dt));
+  // gravity + integrate (a couple of substeps for stability)
+  const steps = 2; const h = dt / steps;
+  for (let s = 0; s < steps; s++) {
+    body.vy += GRAV * h;
+    body.x += body.vx * h;
+    body.y += body.vy * h;
+
+    let grounded = false;
+    let nx = 0, ny = 1, surfFric = 0.15, surfRest = 0.05, surfGrip = 1, surfSlick = false;
+
+    // base floor
+    if (body.y - R < 0) {
+      body.y = R;
+      if (body.vy < 0) body.vy = 0;
+      grounded = true; nx = 0; ny = 1; surfFric = 0.16; surfRest = 0.05; surfGrip = 1; surfSlick = false;
+    }
+    // drawn segments
+    for (const seg of segments) {
+      const c = closestOnSeg(body.x, body.y, seg.ax, seg.ay, seg.bx, seg.by);
+      let ddx = body.x - c.x, ddy = body.y - c.y;
+      let d = Math.hypot(ddx, ddy);
+      if (d < R) {
+        if (d < 1e-4) { ddx = 0; ddy = 1; d = 1; }
+        const inx = ddx / d, iny = ddy / d;
+        const push = R - d;
+        body.x += inx * push; body.y += iny * push;
+        const vn = body.vx * inx + body.vy * iny;
+        if (vn < 0) {
+          body.vx -= (1 + seg.rest) * vn * inx;
+          body.vy -= (1 + seg.rest) * vn * iny;
+          // TRAMPOLINE ink: a real landing gets a guaranteed big launch
+          if (seg.bounce && vn < -1.5) {
+            const nvAfter = body.vx * inx + body.vy * iny;
+            if (nvAfter < seg.bounce) {
+              const boost = seg.bounce - nvAfter;
+              body.vx += boost * inx; body.vy += boost * iny;
+            }
+            showScore('BOING!', 'Trampoline ink launch!');
+            continue;                     // launched — not grounded on it
+          }
+        }
+        grounded = true; nx = inx; ny = iny;
+        surfFric = seg.fric; surfRest = seg.rest;
+        surfGrip = seg.grip == null ? 1 : seg.grip;
+        surfSlick = !!seg.slick;
+      }
+    }
+    // hurdles — solid blocks you must get over
+    for (const hd of hurdles) {
+      if (hd.crashed) continue;
+      if (Math.abs(hd.x - body.x) > hd.w + 3) continue;
+      if (Math.abs(body.z - hd.z) > hd.d / 2 + 0.35) continue;   // different lane
+      const left = hd.x - hd.w, right = hd.x + hd.w, top = hd.h;
+      const cx = clamp(body.x, left, right);
+      const cy = clamp(body.y, 0, top);
+      const dx = body.x - cx, dy = body.y - cy;
+      if (dx * dx + dy * dy < R * R) {
+        if (body.y - R >= top - 0.28) {
+          // landed on top of the hurdle — stand on it like ground
+          body.y = top + R;
+          if (body.vy < 0) body.vy = 0;
+          grounded = true; nx = 0; ny = 1; surfFric = 0.16; surfRest = 0.05;
+        } else {
+          // smacked into the side below the top — crash & tip it over
+          crashHurdle(hd);
+        }
+      }
+    }
+
+    // mini trampolines — land on one and BOING
+    if (grounded && body.y <= R + 0.3) {
+      for (const tp of tramps) {
+        if (Math.abs(tp.x - body.x) < tp.r + 0.4 && Math.abs(tp.z - body.z) < tp.r + 0.4) {
+          body.vy = TRAMP_V;
+          grounded = false;
+          tp.squash = 1;
+          showScore('BOING!', 'Mini trampoline launch!');
+          break;
+        }
+      }
+    }
+
+    if (grounded) {
+      // tangent along surface (pointing forward, +x-ish)
+      let tx = -ny, ty = nx;
+      if (tx < 0) { tx = -tx; ty = -ty; }
+      // accelerate along tangent up to run speed
+      const tv = body.vx * tx + body.vy * ty;
+      // ICE: almost no grip — you can't push off, so you just glide and slide
+      const add = (runSpeed * (game.fx.turbo > 0 ? 1.35 : 1) - tv) * RUN_ACCEL * surfGrip * h;
+      body.vx += tx * add; body.vy += ty * add;
+      // surface friction (light) — ice has none, so momentum carries you
+      body.vx *= (1 - surfFric * h);
+      if (surfSlick) body.slide = 0.35;   // brief slide look after leaving the ice
+    }
+
+    checkPickups();          // per-substep so fast flights can't tunnel past a gem
+
+    // air vs ground bookkeeping
+    if (!grounded) {
+      body.airTime += h;
+      body.angle += body.angVel * h;
+      if (!body.wasAir) { body.wasAir = true; body.airStartAngle = body.angle; }
+      if (flipHeld) {
+        body.angVel = clamp(body.angVel + SPIN_ACCEL * h, -MAX_SPIN, MAX_SPIN);
+      } else {
+        // open up out of the tuck — rotation eases off so you can spot the landing
+        body.angVel *= Math.pow(0.05, h);
+      }
+    } else {
+      if (body.wasAir) landTrick();
+      body.wasAir = false; body.airTime = 0;
+      // settle upright while running
+      const up = Math.round(body.angle / TWO_PI) * TWO_PI;
+      body.angle = lerp(body.angle, up, 1 - Math.pow(0.0001, h));
+      body.angVel *= Math.pow(0.02, h);
+      if (body.stumble > 0) { body.stumble -= h; body.vx *= 0.9; }
+    }
+  }
+  body.grounded = (body.y <= R + 0.02) || segments.some(seg => {
+    const c = closestOnSeg(body.x, body.y, seg.ax, seg.ay, seg.bx, seg.by);
+    return Math.hypot(body.x - c.x, body.y - c.y) < R + 0.02;
+  });
+  // award coins for clearing hurdles (passing their far edge without crashing)
+  for (const hd of hurdles) {
+    if (hd.scored || hd.crashed) continue;
+    if (body.x > hd.x + hd.w) {
+      hd.scored = true;
+      // only counts if you were actually in its lane — steering around it is
+      // allowed, but catching it over the top is what pays
+      if (Math.abs(body.z - hd.z) > hd.d / 2 + 0.35) continue;
+      game.cleared++;
+      updateLevelHud();
+      let coins = 4 + Math.floor(hd.h * 3 + hd.w);   // bigger obstacle, more coins
+      if (!body.grounded) coins += 4;                // cleared it in mid-air
+      addCoins(coins);
+      showScore(hd.w > 1 ? 'Over the big one!' : 'Over the bar!', '+' + coins + ' ⭐');
+    }
+  }
+  checkPickups();
+  // reached the finish line — level complete!
+  if (!game.finished && body.x > finishX) {
+    completeLevel();
+  }
+}
+
+// generous grab window — kids shouldn't miss a gem by a whisker. Checked every
+// physics substep so a fast trampoline flight can't skip past one.
+function checkPickups() {
+  for (const p of powerups) {
+    if (p.taken) continue;
+    if (Math.abs(p.x - body.x) < 1.7 && Math.abs(p.z - body.z) < 1.3 &&
+        Math.abs(p.y - body.y) < 2.0) {
+      p.taken = true;
+      p.mesh.visible = false;
+      applyPower(p.type);
+    }
+  }
+}
+
+function applyPower(type) {
+  const spec = POWER_SPECS[type];
+  if (type === 'star') addCoins(25);
+  else if (type === 'turbo') game.fx.turbo = 5;
+  else if (type === 'spring') game.fx.spring = 8;
+  else if (type === 'shield') game.fx.shield = 1;
+  else if (type === 'triple') { game.fx.turbo = 6; game.fx.spring = 8; game.fx.shield = 1; }
+  showScore(spec.label, spec.sub);
+  updateLevelHud();
+}
+
+function crashHurdle(hd) {
+  if (hd.crashed) return;
+  hd.crashed = true;
+  if (game.fx.shield > 0) {
+    // the shield takes the hit — no stumble, doesn't count as a crash
+    game.fx.shield = 0;
+    updateLevelHud();
+    showScore('SHIELD!', 'Saved by your shield!');
+    return;
+  }
+  game.crashes++;
+  body.stumble = 1.0;
+  body.vx *= 0.25;
+  showScore('CRASH!', 'Jump OVER the bars next time!');
+}
+
+function completeLevel() {
+  game.finished = true;
+  game.mode = 'idle';                       // stop the run
+  const stars = game.crashes === 0 ? 3 : game.crashes <= 2 ? 2 : 1;
+  if (stars > (game.stars[game.level] || 0)) game.stars[game.level] = stars;
+  const isLast = game.level >= LEVELS.length - 1;
+  if (!isLast) game.unlocked = Math.min(LEVELS.length, Math.max(game.unlocked, game.level + 2));
+  const bonus = 15 + game.level * 10 + stars * 5;
+  addCoins(bonus);
+  persist();
+  showLevelComplete(stars, bonus, isLast);
+}
+
+let flipHeld = false;
+
+function landTrick() {
+  if (body.airTime < 0.3) return;          // tiny hops don't count
+  const rot = Math.abs(body.angle - body.airStartAngle);
+  const flips = Math.floor(rot / TWO_PI + 0.18);
+  const up = Math.round(body.angle / TWO_PI) * TWO_PI;
+  const err = Math.abs(body.angle - up);
+  const upright = err < LAND_TOL;
+
+  if (upright) {
+    body.angle = up;
+    let label, sub;
+    if (flips >= 3) label = 'INCREDIBLE!';
+    else if (flips === 2) label = 'DOUBLE FLIP!';
+    else if (flips === 1) label = 'NICE FLIP!';
+    else label = 'CLEAN LANDING!';
+    if (flips > 0) {
+      // landing coins are for FLIPS only
+      let coins = flips * 14 + Math.floor(body.airTime * 5);
+      if (err < 0.22) { coins += 12; sub = 'Perfect landing bonus! +' + coins + ' ⭐'; }
+      else sub = '+' + coins + ' ⭐';
+      addCoins(coins);
+    } else {
+      sub = 'Do a flip to earn ⭐!';
+    }
+    showScore(label, sub);
+  } else {
+    // wipeout — gentle, kid friendly
+    body.stumble = 0.8;
+    const coins = flips * 2;
+    if (coins > 0) addCoins(coins);
+    showScore('Oops, tumble!', flips > 0 ? 'So close! +' + coins + ' ⭐' : 'Land on your feet!');
+  }
+}
+
+// ============================================================
+//  Figure posing
+// ============================================================
+const pose = { run: 0, tuck: 0, land: 0 };  // blend weights
+
+function setRot(limb, upper, lower, twist) {
+  limb.pivot.rotation.x = upper;
+  limb.pivot.rotation.z = twist || 0;   // z-twist flares limbs out to the side
+  limb.knee.rotation.x = lower;
+}
+
+function updateFigure(dt) {
+  // decide target blend
+  let tRun = 0, tTuck = 0, tLand = 0;
+  if (game.mode === 'run') {
+    if (!body.grounded) {
+      tTuck = flipHeld ? 1 : 0.5;
+    } else if (body.stumble > 0) {
+      tLand = 1;
+    } else {
+      tRun = 1;
+    }
+  }
+  pose.run = lerp(pose.run, tRun, 1 - Math.pow(0.001, dt));
+  pose.tuck = lerp(pose.tuck, tTuck, 1 - Math.pow(0.001, dt));
+  pose.land = lerp(pose.land, tLand, 1 - Math.pow(0.001, dt));
+
+  const tuck = pose.tuck, land = pose.land;
+  if (human) {
+    // real skinned human: motion-captured animation drives the limbs
+    updateHuman(dt);
+  } else {
+    // fallback figurine: procedural sprint cycle — high knees, strong arm drive
+    runPhase += dt * 15;
+    const sw = Math.sin(runPhase) * 1.15 * pose.run;        // thigh drive
+    const swKnee = Math.max(0, Math.sin(runPhase)) * 1.3 * pose.run;  // high-knee tuck
+    const swA = Math.sin(runPhase + Math.PI) * 1.0 * pose.run;        // arm pump
+
+    // legs: sprint drive + knee bend, folding into a tight ball for tuck, bent for landing
+    setRot(fig.legL, sw - 1.7 * tuck - 0.7 * land, -0.25 - swKnee - 2.0 * tuck - 1.1 * land);
+    setRot(fig.legR, -sw - 1.7 * tuck - 0.7 * land, -0.25 - Math.max(0, -Math.sin(runPhase)) * 1.3 * pose.run - 2.0 * tuck - 1.1 * land);
+    // arms: driving pump when running, hugging tight when tucking, out for landing
+    setRot(fig.armL, -swA + 2.6 * tuck - 0.5 - 1.4 * land, -0.5 - 1.6 * tuck);
+    setRot(fig.armR, swA + 2.6 * tuck - 0.5 - 1.4 * land, -0.5 - 1.6 * tuck);
+
+    // athletic ready stance when not running (chest up, arms flared out, slight crouch)
+    if (game.mode !== 'run') {
+      setRot(fig.armL, 0.2, -0.55, -0.7);   // arm out to the side, elbow bent
+      setRot(fig.armR, 0.2, -0.55, 0.7);
+      setRot(fig.legL, 0.12, -0.3, 0.1);    // athletic stance, feet apart, knees soft
+      setRot(fig.legR, -0.12, -0.3, -0.1);
+    }
+    fig.head.rotation.x = -0.5 * tuck;
+  }
+
+  // place + orient
+  gymnast.position.set(body.x, body.y, body.z);
+  // forward sprint lean while running (on top of the flip rotation)
+  gymnast.rotation.z = -body.angle - 0.28 * pose.run;
+  // tuck curls the body into a tighter ball
+  const sc = 1 - 0.14 * pose.tuck;
+  gymnast.scale.set(sc, sc, sc);
+}
+let runPhase = 0;
+
+// ============================================================
+//  Drawing obstacles
+// ============================================================
+const drawPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
+const raycaster = new THREE.Raycaster();
+const ndc = new THREE.Vector2();
+let drawing = false, lastPt = null;
+
+const THICKS = [0.12, 0.22, 0.36];
+
+function screenToWorld(clientX, clientY) {
+  const rect = canvas.getBoundingClientRect();
+  ndc.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+  ndc.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+  raycaster.setFromCamera(ndc, camera);
+  const pt = new THREE.Vector3();
+  raycaster.ray.intersectPlane(drawPlane, pt);
+  return pt;
+}
+
+function segMesh(ax, ay, bx, by, color, thick, spec) {
+  const len = Math.hypot(bx - ax, by - ay);
+  // drawn lines span the lanes (their physics already applies in every lane)
+  const geo = new THREE.BoxGeometry(len, thick, FULL_D);
+  const opts = { color };
+  if (spec && spec.rainbow) { opts.emissive = color; opts.emissiveIntensity = 0.55; opts.roughness = 0.35; }
+  if (spec && spec.slick) { opts.roughness = 0.05; opts.metalness = 0.25; opts.transparent = true; opts.opacity = 0.8; }
+  if (spec && spec.bounce) { opts.emissive = color; opts.emissiveIntensity = 0.3; }
+  const mat = new THREE.MeshStandardMaterial(opts);
+  const m = new THREE.Mesh(geo, mat);
+  m.position.set((ax + bx) / 2, (ay + by) / 2, 0);
+  m.rotation.z = Math.atan2(by - ay, bx - ax);
+  m.castShadow = true; m.receiveShadow = true;
+  return m;
+}
+
+function beginStroke(pt) {
+  curStroke = { meshes: [], segs: [] };
+  lastPt = pt;
+}
+function extendStroke(pt) {
+  if (!lastPt) { lastPt = pt; return; }
+  const dx = pt.x - lastPt.x, dy = pt.y - lastPt.y;
+  if (Math.hypot(dx, dy) < 0.35) return;        // sample spacing
+  const mspec = MATERIALS[game.drawMat];
+  let color = mspec.color;
+  if (mspec.rainbow) {
+    // vivid, fast-cycling spectrum so every stroke is a real rainbow
+    color = new THREE.Color().setHSL((rainbowHue % 360) / 360, 1.0, 0.55).getHex();
+    rainbowHue += 42;
+  }
+  const thick = THICKS[game.drawThick];
+  const mesh = segMesh(lastPt.x, lastPt.y, pt.x, pt.y, color, thick, mspec);
+  scene.add(mesh);
+  const seg = { ax: lastPt.x, ay: lastPt.y, bx: pt.x, by: pt.y, rest: mspec.rest, fric: mspec.fric,
+                grip: mspec.grip, bounce: mspec.bounce, slick: mspec.slick };
+  segments.push(seg);
+  curStroke.meshes.push(mesh); curStroke.segs.push(seg);
+  lastPt = pt;
+}
+function endStroke() {
+  if (curStroke && curStroke.segs.length) strokes.push(curStroke);
+  curStroke = null; lastPt = null;
+}
+let rainbowHue = 0;
+
+function undoStroke() {
+  const s = strokes.pop();
+  if (!s) return;
+  s.meshes.forEach(m => { scene.remove(m); m.geometry.dispose(); m.material.dispose(); });
+  segments = segments.filter(seg => !s.segs.includes(seg));
+}
+function clearAll() {
+  strokes.forEach(s => s.meshes.forEach(m => { scene.remove(m); m.geometry.dispose(); m.material.dispose(); }));
+  strokes = []; segments = [];
+}
+
+// pointer handlers (only active in draw mode)
+canvas.addEventListener('pointerdown', e => {
+  if (game.mode !== 'draw') return;
+  drawing = true; beginStroke(screenToWorld(e.clientX, e.clientY));
+  canvas.setPointerCapture(e.pointerId);
+});
+canvas.addEventListener('pointermove', e => {
+  if (!drawing || game.mode !== 'draw') return;
+  extendStroke(screenToWorld(e.clientX, e.clientY));
+});
+canvas.addEventListener('pointerup', () => { if (drawing) { drawing = false; endStroke(); } });
+canvas.addEventListener('pointercancel', () => { if (drawing) { drawing = false; endStroke(); } });
+
+// ============================================================
+//  Camera
+// ============================================================
+const camFollow = new THREE.Vector3(0, 1, 0);
+const camLook = new THREE.Vector3();
+function updateCamera(dt) {
+  const gy = clamp(body.y, 0.8, 12.5);   // follow even huge trampoline arcs
+  camFollow.lerp(new THREE.Vector3(body.x, gy, 0), 1 - Math.pow(0.0009, dt));
+  // close chase: behind (-x) and to the side (+z), low to the ground
+  camera.position.set(camFollow.x - 5, camFollow.y + 2.4, 8.2);
+  camLook.set(camFollow.x + 6.5, camFollow.y + 0.1, -0.5);
+  camera.lookAt(camLook);
+}
+
+// ============================================================
+//  Backgrounds & outfit application
+// ============================================================
+function applyBgData(d) {
+  scene.background = new THREE.Color(d.sky);
+  groundMat.color.setHex(d.ground);
+  wallMat.color.setHex(d.wall);
+  if (starField) starField.visible = !!d.stars;
+  scene.fog = d.stars ? new THREE.Fog(d.sky, 30, 90) : null;
+}
+function applyWorldBackground(w) { applyBgData(WORLD_BG[clamp(w, 0, WORLD_BG.length - 1)]); }
+// applies the equipped background; 'bg-auto' means "use each world's own scenery"
+function applyBackground(id) {
+  if (id === 'bg-auto') { applyWorldBackground(LEVELS[game.level].world); return; }
+  const item = SHOP.background.find(b => b.id === id); if (!item) return;
+  applyBgData(item.data);
+}
+function applyOutfit() {
+  // base leo color from equipped outfit color item
+  const outItem = SHOP.outfit.find(o => o.id === shop.equipped.outfit);
+  if (outItem && outItem.data.leo != null) {
+    leoMatMesh.forEach(m => m.material.color.setHex(outItem.data.leo));
+    if (outItem.data.hair != null) { fig.hair.material.color.setHex(outItem.data.hair); fig.bun.material.color.setHex(outItem.data.hair); }
+    // real characters: dress the model to match the outfit
+    if (human) dressCharacter(human, outItem.data.leo);
+  }
+  // hair style / bow color may have changed
+  if (human) buildHair(human);
+  // accessory
+  const accId = shop.equipped.acc;
+  const accItem = accId ? SHOP.outfit.find(o => o.id === accId) : null;
+  applyAccessory(accItem ? accItem.data.acc : null);
+}
+
+// ============================================================
+//  UI wiring
+// ============================================================
+const el = id => document.getElementById(id);
+
+function addCoins(n) {
+  game.coins += n;
+  el('coinPill').textContent = '⭐ ' + game.coins;
+  const p = el('coinPill'); p.classList.add('pop'); setTimeout(() => p.classList.remove('pop'), 160);
+  persist();
+}
+function showScore(big, sub) {
+  el('scoreBig').textContent = big; el('scoreSub').textContent = sub;
+  const p = el('scorePop'); p.classList.remove('show'); void p.offsetWidth; p.classList.add('show');
+  clearTimeout(showScore._t); showScore._t = setTimeout(() => p.classList.remove('show'), 1600);
+}
+function setHint(html) { el('hint').innerHTML = html; }
+
+function setMode(m) {
+  game.mode = m;
+  el('drawBtn').classList.toggle('on', m === 'draw');
+  el('toolbar').classList.toggle('show', m === 'draw');
+  el('goBtn').textContent = (m === 'run') ? '↻ Restart' : '▶ Go';
+  if (m === 'draw') setHint('Drag on the screen to draw a ramp. Then press <b>▶ Go!</b>');
+}
+
+el('drawBtn').addEventListener('click', () => {
+  if (game.mode === 'draw') { setMode('idle'); }
+  else { if (game.mode === 'run') resetRun(); setMode('draw'); }
+});
+el('goBtn').addEventListener('click', () => {
+  if (game.mode === 'run') { resetRun(); }
+  else { resetRun(); setMode('idle'); game.mode = 'run'; setHint('Tap <b>JUMP</b> to clear the bars — hold to <b>flip</b> for bonus ⭐!'); }
+});
+el('undoBtn').addEventListener('click', undoStroke);
+el('clearBtn').addEventListener('click', clearAll);
+
+// action button + keyboard — tap to JUMP (on the ground), hold to FLIP (in the air)
+function pressAction() {
+  if (game.mode === 'run' && body.grounded) {
+    body.vy = JUMP_V * (game.fx.spring > 0 ? 1.4 : 1);   // spring shoes jump higher
+    body.grounded = false;
+  } else flipHeld = true;
+}
+function releaseAction() { flipHeld = false; }
+el('flipBtn').addEventListener('pointerdown', e => { e.preventDefault(); pressAction(); });
+el('flipBtn').addEventListener('pointerup', releaseAction);
+el('flipBtn').addEventListener('pointercancel', releaseAction);
+el('laneLBtn').addEventListener('pointerdown', e => { e.preventDefault(); body.lane = Math.max(0, body.lane - 1); });
+el('laneRBtn').addEventListener('pointerdown', e => { e.preventDefault(); body.lane = Math.min(2, body.lane + 1); });
+window.addEventListener('keydown', e => {
+  if (e.code === 'Space' || e.code === 'ArrowUp') { e.preventDefault(); if (!e.repeat) pressAction(); else flipHeld = true; }
+  if (e.code === 'ArrowLeft' || e.code === 'KeyA') { e.preventDefault(); if (!e.repeat) body.lane = Math.max(0, body.lane - 1); }
+  if (e.code === 'ArrowRight' || e.code === 'KeyD') { e.preventDefault(); if (!e.repeat) body.lane = Math.min(2, body.lane + 1); }
+});
+window.addEventListener('keyup', e => { if (e.code === 'Space' || e.code === 'ArrowUp') releaseAction(); });
+
+// ---------- Drawing toolbar ----------
+function renderToolbar() {
+  const matRow = el('matRow'); matRow.innerHTML = '';
+  SHOP.material.filter(i => i.data.mat).forEach(item => {
+    const owned = shop.owned.has(item.id);
+    const matKey = item.data.mat;
+    const chip = document.createElement('button');
+    chip.className = 'mat-chip' + (game.drawMat === matKey ? ' sel' : '') + (owned ? '' : ' locked');
+    const ms = MATERIALS[matKey];
+    const sw = ms.rainbow
+      ? 'linear-gradient(90deg,#ff2d2d,#ffb300,#43e463,#3d9bff,#a855f7)'
+      : '#' + ms.color.toString(16).padStart(6, '0');
+    chip.innerHTML = `<span class="mat-dot" style="background:${sw}"></span>` +
+      ms.name + (owned ? '' : ' 🔒');
+    chip.addEventListener('click', () => { if (!owned) { openShop('material'); return; } game.drawMat = matKey; renderToolbar(); });
+    matRow.appendChild(chip);
+  });
+  const thickRow = el('thickRow'); thickRow.innerHTML = '';
+  SHOP.material.filter(i => i.data.thick != null).forEach(item => {
+    const owned = shop.owned.has(item.id);
+    const chip = document.createElement('button');
+    chip.className = 'mat-chip' + (game.drawThick === item.data.thick ? ' sel' : '') + (owned ? '' : ' locked');
+    chip.textContent = item.name + (owned ? '' : ' 🔒');
+    chip.addEventListener('click', () => { if (!owned) { openShop('material'); return; } game.drawThick = item.data.thick; renderToolbar(); });
+    thickRow.appendChild(chip);
+  });
+}
+
+// ---------- Shop ----------
+let shopCat = 'outfit';
+function openShop(cat) {
+  shopCat = cat || shopCat;
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('sel', t.dataset.cat === shopCat));
+  renderShop();
+  el('shopOverlay').classList.add('show');
+}
+// Leotards carry data.hair as a COLOR NUMBER (hair tint); hairstyle items carry
+// it as a STRING ('bun'). Never test data.hair for truthiness alone — that
+// misroutes every leotard into the hairstyle slot.
+const isHairstyle = item => typeof item.data.hair === 'string';
+
+function isEquipped(item) {
+  if (shopCat === 'outfit') {
+    if (item.data.acc) return shop.equipped.acc === item.id;
+    if (isHairstyle(item)) return shop.equipped.hairstyle === item.id;
+    if (item.data.bowColor != null) return shop.equipped.bow === item.id;
+    return shop.equipped.outfit === item.id;
+  }
+  if (shopCat === 'material') {
+    if (item.data.mat) return shop.equipped.material === item.id;
+    return shop.equipped.thick === item.id;
+  }
+  return shop.equipped.background === item.id;
+}
+function swatch(item) {
+  if (shopCat === 'background') {
+    if (item.data.auto) return 'linear-gradient(135deg,#ff5252,#ffca28,#42a5f5,#ab47bc)';
+    return '#' + item.data.sky.toString(16).padStart(6, '0');
+  }
+  if (shopCat === 'outfit') {
+    if (item.data.leo != null) return '#' + item.data.leo.toString(16).padStart(6, '0');
+    if (item.data.bowColor != null) return '#' + item.data.bowColor.toString(16).padStart(6, '0');
+    if (item.data.hair) return '#5a3620';
+    return '#ffe0ef';
+  }
+  if (item.data.mat) {
+    const ms = MATERIALS[item.data.mat];
+    return ms.rainbow ? 'linear-gradient(135deg,#ff2d2d,#ffb300,#43e463,#3d9bff,#a855f7)'
+                      : '#' + ms.color.toString(16).padStart(6, '0');
+  }
+  return '#e8e8e8';
+}
+function renderShop() {
+  el('shopBal').textContent = '⭐ ' + game.coins + ' coins';
+  const grid = el('shopGrid'); grid.innerHTML = '';
+  SHOP[shopCat].forEach(item => {
+    const owned = shop.owned.has(item.id);
+    const eq = isEquipped(item);
+    const btn = document.createElement('button');
+    btn.className = 'shop-item' + (eq ? ' equipped' : owned ? ' owned' : '');
+    if (!owned && game.coins < item.cost) btn.disabled = true;
+    const label = eq ? '✓ Wearing' : owned ? 'Tap to use' : '⭐ ' + item.cost;
+    let emoji = '';
+    if (shopCat === 'outfit') {
+      if (item.data.acc) emoji = { band: '🎀', cape: '🦸', crown: '👑' }[item.data.acc] || '';
+      else if (isHairstyle(item)) emoji = '💇';
+      else if (item.data.bowColor != null) emoji = '🎀';
+      else if (item.data.leo != null) emoji = '👕';
+    }
+    btn.innerHTML = `<span class="sw" style="background:${swatch(item)}"></span>` +
+      `<span class="nm">${emoji} ${item.name}</span><span class="ct">${label}</span>`;
+    btn.addEventListener('click', () => buyOrEquip(item));
+    grid.appendChild(btn);
+  });
+}
+function buyOrEquip(item) {
+  const owned = shop.owned.has(item.id);
+  if (!owned) {
+    if (game.coins < item.cost) return;
+    game.coins -= item.cost; shop.owned.add(item.id);
+    el('coinPill').textContent = '⭐ ' + game.coins;
+  }
+  // equip
+  if (shopCat === 'outfit') {
+    if (item.data.acc) shop.equipped.acc = item.id;
+    else if (isHairstyle(item)) shop.equipped.hairstyle = item.id;
+    else if (item.data.bowColor != null) shop.equipped.bow = item.id;
+    else shop.equipped.outfit = item.id;
+    applyOutfit();
+  } else if (shopCat === 'material') {
+    if (item.data.mat) { shop.equipped.material = item.id; game.drawMat = item.data.mat; }
+    else { shop.equipped.thick = item.id; game.drawThick = item.data.thick; }
+    renderToolbar();
+  } else {
+    shop.equipped.background = item.id; applyBackground(item.id);
+  }
+  persist();
+  renderShop();
+}
+document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => openShop(t.dataset.cat)));
+el('shopBtn').addEventListener('click', () => openShop('outfit'));
+el('closeShopBtn').addEventListener('click', () => el('shopOverlay').classList.remove('show'));
+
+// ---------- Levels ----------
+function updateLevelHud() {
+  const L = LEVELS[game.level];
+  const fx = (game.fx.turbo > 0 ? ' ⚡' : '') + (game.fx.spring > 0 ? ' 🐸' : '') +
+             (game.fx.shield > 0 ? ' 🛡️' : '');
+  el('levelHud').innerHTML = `Lv ${game.level + 1} · ${L.name} · Bars ${game.cleared}/${L.n}${fx}`;
+}
+function openLevels() {
+  renderLevelSelect();
+  el('levelOverlay').classList.add('show');
+  // scroll the current level into view so you don't hunt for it
+  const cur = el('levelGrid').querySelector('.lvl-cell.current');
+  if (cur) cur.scrollIntoView({ block: 'center' });
+}
+function renderLevelSelect() {
+  const grid = el('levelGrid'); grid.innerHTML = '';
+  const worlds = Math.ceil(NUM_LEVELS / 10);
+  for (let w = 0; w < worlds; w++) {
+    const done = game.unlocked > w * 10;
+    const header = document.createElement('div');
+    header.className = 'world-header';
+    const totalStars = Array.from({ length: 10 }, (_, k) => game.stars[w * 10 + k] || 0).reduce((a, b) => a + b, 0);
+    header.innerHTML = `<span>${done ? '' : '🔒 '}World ${w + 1}: ${WORLD_NAMES[w]}</span><span class="wh-stars">${totalStars ? '⭐' + totalStars : ''}</span>`;
+    grid.appendChild(header);
+    const row = document.createElement('div');
+    row.className = 'world-row';
+    for (let k = 0; k < 10; k++) {
+      const i = w * 10 + k;
+      const locked = i >= game.unlocked;
+      const s = game.stars[i] || 0;
+      const cell = document.createElement('button');
+      cell.className = 'lvl-cell' + (locked ? ' locked' : '') + (i === game.level ? ' current' : '') + (s ? ' done' : '');
+      cell.innerHTML = `<span class="cell-num">${i + 1}</span>` +
+        `<span class="cell-stars">${locked ? '🔒' : (s ? '⭐'.repeat(s) : '·')}</span>`;
+      if (!locked) cell.addEventListener('click', () => { el('levelOverlay').classList.remove('show'); startLevel(i); });
+      row.appendChild(cell);
+    }
+    grid.appendChild(row);
+  }
+}
+function startLevel(i) {
+  loadLevel(i);
+  game.mode = 'run';                  // start running right away
+  if (game.started) setHint('Tap <b>JUMP</b> to clear the bars — hold to <b>flip</b>!');
+}
+function showLevelComplete(stars, bonus, isLast) {
+  el('completeStars').textContent = '⭐'.repeat(stars) + '☆'.repeat(3 - stars);
+  el('completeTitle').textContent = isLast ? '🏆 You beat every level!' : 'Level Complete!';
+  el('completeMsg').innerHTML =
+    `You cleared <b>Lv ${game.level + 1}: ${LEVELS[game.level].name}</b> with ` +
+    `${game.crashes} crash${game.crashes === 1 ? '' : 'es'}.<br>Bonus: +${bonus} ⭐` +
+    (isLast ? '<br>Amazing gymnastics! 🎉' : '');
+  el('nextLevelBtn').style.display = isLast ? 'none' : '';
+  el('completeOverlay').classList.add('show');
+}
+// ---------- Character choice (Her / Him) ----------
+function setCharChoiceUI() {
+  document.querySelectorAll('.char-btn').forEach(b =>
+    b.classList.toggle('sel', b.dataset.char === game.character));
+  el('charBtn').textContent = game.character === 'her' ? '🤸' : '🛡️';
+}
+document.querySelectorAll('.char-btn').forEach(b =>
+  b.addEventListener('click', () => { loadCharacter(b.dataset.char); setCharChoiceUI(); }));
+el('charBtn').addEventListener('click', () => {
+  loadCharacter(game.character === 'her' ? 'him' : 'her');
+  setCharChoiceUI();
+});
+
+el('levelsBtn').addEventListener('click', openLevels);
+el('closeLevelsBtn').addEventListener('click', () => el('levelOverlay').classList.remove('show'));
+el('nextLevelBtn').addEventListener('click', () => { el('completeOverlay').classList.remove('show'); startLevel(Math.min(game.level + 1, LEVELS.length - 1)); });
+el('replayLevelBtn').addEventListener('click', () => { el('completeOverlay').classList.remove('show'); startLevel(game.level); });
+el('toLevelsBtn').addEventListener('click', () => { el('completeOverlay').classList.remove('show'); openLevels(); });
+
+// ============================================================
+//  Boot
+// ============================================================
+function resize() {
+  const w = innerWidth, h = innerHeight;
+  if (!w || !h) return;                 // tab not sized yet — try again next frame
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h; camera.updateProjectionMatrix();
+}
+addEventListener('resize', resize);
+document.addEventListener('visibilitychange', resize);
+// if the page loaded while the tab was hidden/zero-sized, the canvas starts 0x0 —
+// keep checking until the tab has real dimensions
+function ensureSized() {
+  if (canvas.width === 0 && innerWidth > 0) resize();
+}
+
+// apply saved equips
+game.drawMat = (SHOP.material.find(i => i.id === shop.equipped.material)?.data.mat) || 'chalk';
+game.drawThick = (SHOP.material.find(i => i.id === shop.equipped.thick)?.data.thick) ?? 0;
+el('coinPill').textContent = '⭐ ' + game.coins;
+applyBackground(shop.equipped.background);
+applyOutfit();
+renderToolbar();
+// levels: clamp saved progress and build the starting level
+game.unlocked = clamp(game.unlocked, 1, LEVELS.length);
+game.level = clamp(game.level, 0, game.unlocked - 1);
+buildLevel(game.level);
+updateLevelHud();
+loadCharacter(game.character);   // load the saved character (async)
+fetchCharacter(game.character === 'her' ? 'him' : 'her');   // prefetch the other (also donates run clips)
+setCharChoiceUI();
+resize();
+
+let last = performance.now();
+let __frames = 0, __lastErr = '';
+function loop(now) {
+  const dt = clamp((now - last) / 1000, 0, 0.05);
+  last = now;
+  __frames++;
+  ensureSized();
+  if (game.started) {
+    try {
+      physics(dt);
+      updateFigure(dt);
+      updateHurdleVisuals(dt);
+      updatePowerups(dt);
+      updateCamera(dt);
+      renderer.render(scene, camera);
+    } catch (err) { __lastErr = (err && err.stack) || String(err); }
+  }
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+// debug hook for automated testing (harmless; reads live game state)
+window.__fs = { body, game, segCount: () => segments.length, setFlip: v => { flipHeld = v; },
+  hurdles: () => hurdles.map(h => ({ x: h.x, h: h.h, w: h.w, z: h.z, d: h.d, kind: h.kind, scored: h.scored, crashed: h.crashed })),
+  powerups: () => powerups.map(p => ({ x: p.x, z: p.z, y: p.y, type: p.type, taken: p.taken })),
+  tramps: () => tramps.map(t => ({ x: t.x, z: t.z })),
+  strokeColors: () => strokes.flatMap(s => s.meshes.map(m => '#' + m.material.color.getHexString())),
+  drawLine: (mat, ax, ay, bx, by) => {   // test helper: place a line of any material
+    const prev = game.drawMat; game.drawMat = mat;
+    beginStroke(new THREE.Vector3(ax, ay, 0));
+    extendStroke(new THREE.Vector3(bx, by, 0));
+    endStroke(); game.drawMat = prev;
+    return segments.length;
+  },
+  fx: () => ({ ...game.fx }), setLane: l => { body.lane = clamp(l, 0, 2); },
+  jump: () => pressAction(), frames: () => __frames, lastErr: () => __lastErr,
+  tick: (dt, n) => { for (let i = 0; i < (n || 1); i++) { physics(dt); updateHurdleVisuals(dt); } },
+  render: () => { ensureSized(); updateFigure(0.016); updateHurdleVisuals(0.016); updatePowerups(0.016); updateCamera(0.016); renderer.render(scene, camera); },
+  startLevel: i => startLevel(i), finishX: () => finishX, runSpeed: () => runSpeed,
+  human: () => human ? { key: human.key, current: human.current, clips: human.clips, needsRun: human.needsRun, fit: human.fit, hasHair: !!human.hasHair, hairCount: (human.hairMeshes || []).length, hairstyle: shop.equipped.hairstyle, bow: shop.equipped.bow, faceY: +human.model.rotation.y.toFixed(2), primHidden: !primFig.visible } : null,
+  loadCharacter: k => loadCharacter(k),
+  suitColors: () => {                    // test helper: dominant painted colors
+    if (!human) return null;
+    const out = [];
+    human.model.traverse(o => {
+      if (!o.isSkinnedMesh || !o.geometry.attributes.color) return;
+      const a = o.geometry.attributes.color, tally = {};
+      for (let i = 0; i < a.count; i += 29) {
+        const k = [Math.round(a.getX(i)*255), Math.round(a.getY(i)*255), Math.round(a.getZ(i)*255)].join(',');
+        tally[k] = (tally[k] || 0) + 1;
+      }
+      const top = Object.entries(tally).sort((x, y) => y[1] - x[1]).slice(0, 4);
+      out.push({ mesh: o.name, palette: top.map(t => t[0] + ' x' + t[1]) });
+    });
+    return out;
+  },
+  accInfo: () => accGroup ? { parent: accGroup.parent ? (accGroup.parent.name || accGroup.parent.type) : null, pieces: accGroup.children.length, acc: shop.equipped.acc } : { acc: shop.equipped.acc },
+  dressInfo: () => {
+    if (!human) return null;
+    const out = [];
+    human.model.traverse(o => {
+      if (o.isSkinnedMesh) out.push({
+        name: o.name, matName: o.material && o.material.name,
+        hasSkinIndex: !!o.geometry.attributes.skinIndex,
+        hasColorAttr: !!o.geometry.attributes.color,
+        vertexColors: !!(o.material && o.material.vertexColors),
+        matColor: o.material && o.material.color ? '#' + o.material.color.getHexString() : null,
+        hasMap: !!(o.material && o.material.map)
+      });
+    });
+    return out;
+  },
+  bgInfo: () => ({ sky: scene.background && scene.background.getHexString(), ground: groundMat.color.getHexString(), stars: !!(starField && starField.visible), equipped: shop.equipped.background }),
+  levelInfo: () => ({ level: game.level, unlocked: game.unlocked, stars: game.stars, cleared: game.cleared, crashes: game.crashes, finished: game.finished, n: LEVELS[game.level].n }) };
+
+// start screen
+el('startBtn').addEventListener('click', () => {
+  el('startScreen').classList.add('hide');
+  game.started = true;
+  resetRun();
+  setMode('draw');     // start in draw mode so the first thing kids do is make a ramp
+  setHint('Draw ramps, then <b>▶ Go!</b> and JUMP the bars. Tap <b>🗺️ Levels</b> to pick a level!');
+});
+
+// surface load errors (e.g., if the 3D library is blocked)
+window.addEventListener('error', e => {
+  el('loadErr').textContent = '⚠️ ' + (e.message || 'Something went wrong loading 3D.');
+});
+</script>
+</body>
+</html>
