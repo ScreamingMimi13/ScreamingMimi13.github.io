@@ -1,0 +1,1787 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Lyric Lab — Type Lyrics, Make a Hit</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  :root {
+    --bg1:#140b2e; --bg2:#251047; --bg3:#3a1259;
+    --panel:#1e1440; --panel2:#2a1c56; --line:#43307e;
+    --ink:#f4eeff; --muted:#b3a4de;
+    --hot:#ff4d94; --neon:#4be3ff; --gold:#ffd166; --lime:#8ef58a;
+  }
+  html, body { height: 100%; }
+  body {
+    font-family: "Comic Sans MS", "Chalkboard SE", "Segoe UI", sans-serif;
+    color: var(--ink);
+    background:
+      radial-gradient(1100px 600px at 12% -8%, rgba(255,77,148,.30), transparent 60%),
+      radial-gradient(900px 620px at 96% 8%, rgba(75,227,255,.26), transparent 60%),
+      linear-gradient(165deg, var(--bg1), var(--bg2) 50%, var(--bg3));
+    background-attachment: fixed;
+    min-height: 100%;
+    padding: 14px 12px 40px;
+    overflow-x: hidden;
+  }
+  .wrap { max-width: 940px; margin: 0 auto; }
+
+  header.top { text-align: center; margin-bottom: 14px; }
+  header.top h1 {
+    font-size: clamp(1.6rem, 6vw, 2.5rem);
+    letter-spacing: .5px;
+    text-shadow: 0 0 18px rgba(255,77,148,.7), 0 3px 0 rgba(0,0,0,.35);
+  }
+  header.top .sub { color: var(--muted); font-size: .92rem; margin-top: 4px; }
+  .backlink {
+    display: inline-block; margin-bottom: 8px; color: var(--muted);
+    text-decoration: none; font-size: .85rem; border: 2px solid var(--line);
+    padding: 4px 12px; border-radius: 999px; background: rgba(0,0,0,.2);
+  }
+  .backlink:hover { color: var(--ink); border-color: var(--neon); }
+
+  .card {
+    background: linear-gradient(180deg, var(--panel), var(--panel2));
+    border: 3px solid var(--line);
+    border-radius: 20px;
+    padding: 16px;
+    box-shadow: 0 14px 34px rgba(0,0,0,.42);
+    margin-bottom: 14px;
+  }
+  .card h2 { font-size: 1.12rem; margin-bottom: 4px; }
+  .card .hint { color: var(--muted); font-size: .84rem; line-height: 1.45; margin-bottom: 10px; }
+
+  textarea#lyrics {
+    width: 100%; min-height: 210px; resize: vertical;
+    background: rgba(0,0,0,.32); color: var(--ink);
+    border: 2px solid var(--line); border-radius: 14px;
+    padding: 12px 14px; font: inherit; font-size: 1rem; line-height: 1.7;
+  }
+  textarea#lyrics:focus { outline: none; border-color: var(--neon); box-shadow: 0 0 0 3px rgba(75,227,255,.18); }
+
+  .btn {
+    font: inherit; font-weight: bold; cursor: pointer;
+    border: none; border-radius: 999px;
+    padding: 12px 22px; font-size: 1rem;
+    background: linear-gradient(180deg, #ff6ba7, var(--hot));
+    color: #fff; box-shadow: 0 6px 0 #a52a5c, 0 10px 22px rgba(0,0,0,.35);
+    transition: transform .08s ease, box-shadow .08s ease, filter .12s ease;
+    min-height: 46px;
+  }
+  .btn:active { transform: translateY(4px); box-shadow: 0 2px 0 #a52a5c, 0 6px 12px rgba(0,0,0,.3); }
+  .btn:disabled { filter: grayscale(.7) brightness(.7); cursor: not-allowed; }
+  .btn.ghost { background: rgba(255,255,255,.08); box-shadow: 0 4px 0 rgba(0,0,0,.35); border: 2px solid var(--line); }
+  .btn.cyan { background: linear-gradient(180deg, #7ef0ff, var(--neon)); color: #05303a; box-shadow: 0 6px 0 #1f8ea6, 0 10px 22px rgba(0,0,0,.35); }
+  .btn.gold { background: linear-gradient(180deg, #ffe49b, var(--gold)); color: #4a3200; box-shadow: 0 6px 0 #b58723, 0 10px 22px rgba(0,0,0,.35); }
+  .btn.lime { background: linear-gradient(180deg, #c0ffbb, var(--lime)); color: #143a12; box-shadow: 0 6px 0 #4f9c4b, 0 10px 22px rgba(0,0,0,.35); }
+  .btn.sm { padding: 8px 14px; font-size: .85rem; min-height: 38px; }
+  .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .row.end { justify-content: flex-end; }
+  .spacer { flex: 1 1 auto; }
+
+  .vibes { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 8px; margin: 4px 0 12px; }
+  .vibe {
+    cursor: pointer; text-align: center; padding: 10px 6px; border-radius: 14px;
+    background: rgba(0,0,0,.25); border: 2px solid var(--line);
+    font-size: .82rem; line-height: 1.25; transition: .12s;
+  }
+  .vibe .ico { font-size: 1.5rem; display: block; }
+  .vibe.on { border-color: var(--gold); background: rgba(255,209,102,.16); box-shadow: 0 0 14px rgba(255,209,102,.3) inset; }
+
+  /* ---- studio ---- */
+  #viz { width: 100%; height: 120px; display: block; border-radius: 14px; background: rgba(0,0,0,.4); border: 2px solid var(--line); }
+  .karaoke {
+    margin-top: 12px; border-radius: 14px; background: rgba(0,0,0,.3);
+    border: 2px solid var(--line); padding: 10px 12px;
+    height: 190px; overflow-y: auto; scroll-behavior: smooth;
+  }
+  .kline {
+    padding: 6px 8px; border-radius: 10px; font-size: 1.02rem; line-height: 1.5;
+    color: var(--muted); transition: color .15s, background .15s; opacity: .8;
+  }
+  .kline.done { opacity: .45; }
+  .kline.now { color: #fff; background: rgba(255,77,148,.18); opacity: 1; font-size: 1.14rem; text-shadow: 0 0 12px rgba(255,77,148,.8); }
+  .kline .w.lit { color: var(--gold); text-shadow: 0 0 14px rgba(255,209,102,.9); }
+  .kline .tag { font-size: .68rem; color: var(--neon); opacity: .8; margin-right: 6px; }
+
+  .mix { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px 16px; }
+  .ctl label { display: block; font-size: .8rem; color: var(--muted); margin-bottom: 4px; }
+  .ctl label b { color: var(--ink); font-weight: bold; }
+  .ctl input[type=range] { width: 100%; accent-color: var(--hot); height: 26px; }
+  .ctl select {
+    width: 100%; font: inherit; font-size: .9rem; padding: 8px 10px; border-radius: 10px;
+    background: rgba(0,0,0,.35); color: var(--ink); border: 2px solid var(--line);
+  }
+  .toggles { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .tog {
+    cursor: pointer; user-select: none; padding: 8px 14px; border-radius: 999px;
+    border: 2px solid var(--line); background: rgba(0,0,0,.25); font-size: .84rem;
+  }
+  .tog.on { border-color: var(--lime); background: rgba(142,245,138,.16); }
+
+  /* ---- video ---- */
+  .stagewrap { position: relative; width: 100%; border-radius: 16px; overflow: hidden; border: 3px solid var(--line); background: #000; }
+  .stagewrap canvas, .stagewrap video { width: 100%; display: block; background: #000; }
+  #liveCam { transform: scaleX(-1); }
+  .countdown {
+    position: absolute; inset: 0; display: none; align-items: center; justify-content: center;
+    font-size: 5rem; font-weight: bold; color: #fff; text-shadow: 0 0 30px var(--hot);
+    background: rgba(0,0,0,.35);
+  }
+  .reclamp {
+    position: absolute; top: 10px; left: 10px; display: none; align-items: center; gap: 8px;
+    background: rgba(0,0,0,.55); padding: 6px 12px; border-radius: 999px; font-size: .8rem;
+  }
+  .reclamp i { width: 11px; height: 11px; border-radius: 50%; background: #ff3b3b; display: block; animation: blink 1s infinite; }
+  @keyframes blink { 50% { opacity: .15; } }
+
+  .fxlist { display: flex; flex-direction: column; gap: 8px; max-height: 320px; overflow-y: auto; padding-right: 4px; }
+  .fxrow {
+    display: grid; grid-template-columns: 1fr auto auto; gap: 8px; align-items: center;
+    background: rgba(0,0,0,.25); border: 2px solid var(--line); border-radius: 12px; padding: 8px 10px;
+  }
+  .fxrow.armed { border-color: var(--gold); box-shadow: 0 0 12px rgba(255,209,102,.28); }
+  .fxrow .txt { font-size: .88rem; line-height: 1.35; }
+  .fxrow .tm { font-size: .7rem; color: var(--muted); }
+  .fxrow select { font: inherit; font-size: .82rem; padding: 6px 8px; border-radius: 9px; background: rgba(0,0,0,.4); color: var(--ink); border: 2px solid var(--line); max-width: 140px; }
+  .fxrow .spot { font: inherit; font-size: .74rem; padding: 6px 10px; border-radius: 9px; cursor: pointer; border: 2px solid var(--line); background: rgba(255,255,255,.06); color: var(--ink); }
+  .fxrow .spot.set { border-color: var(--lime); color: var(--lime); }
+
+  .toast {
+    position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%) translateY(140%);
+    background: rgba(10,4,28,.96); border: 2px solid var(--neon); color: var(--ink);
+    padding: 11px 20px; border-radius: 999px; font-size: .9rem; z-index: 90;
+    transition: transform .28s cubic-bezier(.2,1.4,.4,1); max-width: 92vw; text-align: center;
+    box-shadow: 0 10px 30px rgba(0,0,0,.5);
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  .screen { display: none; }
+  .screen.on { display: block; animation: pop .22s ease; }
+  @keyframes pop { from { opacity: 0; transform: translateY(10px); } }
+
+  .pill { display:inline-block; background: rgba(0,0,0,.3); border:2px solid var(--line); border-radius:999px; padding:4px 12px; font-size:.78rem; color:var(--muted); }
+  .warn { color: var(--gold); font-size: .84rem; line-height: 1.5; }
+  @media (max-width: 560px) {
+    body { padding: 10px 8px 34px; }
+    .card { padding: 13px; border-radius: 16px; }
+    .btn { padding: 11px 16px; font-size: .94rem; }
+    .karaoke { height: 160px; }
+    .fxrow { grid-template-columns: 1fr; }
+    .fxrow select { max-width: none; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="backlink" href="index.html">← Arcade</a>
+  <header class="top">
+    <h1>🎤 Lyric Lab</h1>
+    <div class="sub">Type your lyrics. The studio writes the music. Then film your video.</div>
+  </header>
+
+  <!-- ============ SCREEN 1: WRITE ============ -->
+  <section class="screen on" id="screenWrite">
+    <div class="card">
+      <h2>1. Write your lyrics</h2>
+      <div class="hint">One line per line — that's how the melody gets split up. Two to twenty-four lines works best. Stuck? Hit the help button and the studio assistant hands you a melody and a first draft.</div>
+      <textarea id="lyrics" placeholder="I woke up with the thunder in my chest&#10;and I burned up my life to start again..." spellcheck="true"></textarea>
+      <div class="row" style="margin-top:10px">
+        <button class="btn gold" id="btnHelp">💡 Need Some Help</button>
+        <span class="pill" id="lineCount">0 lines</span>
+        <span class="spacer"></span>
+        <button class="btn ghost sm" id="btnClear">Clear</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>2. Pick a vibe</h2>
+      <div class="hint">This sets the starting tempo, key and instruments. You can change every knob later.</div>
+      <div class="vibes" id="vibes"></div>
+      <div class="row">
+        <button class="btn cyan" id="btnCompose">🎧 Compose My Song</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SCREEN 2: STUDIO ============ -->
+  <section class="screen" id="screenStudio">
+    <div class="card">
+      <div class="row" style="margin-bottom:8px">
+        <h2 id="songTitle">Untitled</h2>
+        <span class="spacer"></span>
+        <span class="pill" id="songInfo">—</span>
+      </div>
+      <canvas id="viz" width="900" height="120"></canvas>
+      <div class="karaoke" id="karaoke"></div>
+      <div class="row" style="margin-top:12px">
+        <button class="btn" id="btnPlay">▶ Play</button>
+        <button class="btn ghost sm" id="btnReroll">🎲 New Melody</button>
+        <span class="spacer"></span>
+        <button class="btn ghost sm" id="btnEdit">✏️ Lyrics</button>
+        <button class="btn lime" id="btnToVideo">🎥 Make Video</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Tune it</h2>
+      <div class="hint">Move anything — the song rebuilds instantly and keeps playing.</div>
+      <div class="mix" id="mix"></div>
+      <div class="toggles" id="togs"></div>
+    </div>
+  </section>
+
+  <!-- ============ SCREEN 3: VIDEO ============ -->
+  <section class="screen" id="screenVideo">
+    <div class="card">
+      <div class="row" style="margin-bottom:8px">
+        <h2>🎥 Music video booth</h2>
+        <span class="spacer"></span>
+        <button class="btn ghost sm" id="btnBackStudio">← Studio</button>
+      </div>
+      <div class="hint">Turn on the camera, hit record, and perform to your song. The song plays while you film, so everything lines up.</div>
+      <div class="stagewrap" id="camWrap">
+        <video id="liveCam" playsinline muted autoplay></video>
+        <div class="countdown" id="countdown">3</div>
+        <div class="reclamp" id="recLamp"><i></i> REC <span id="recTime">0:00</span></div>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <button class="btn cyan" id="btnCam">📷 Turn On Camera</button>
+        <button class="btn" id="btnRec" disabled>⏺ Record Video</button>
+        <button class="btn ghost sm" id="btnStopRec" style="display:none">⏹ Stop</button>
+        <span class="spacer"></span>
+        <button class="btn ghost sm" id="btnSkipCam">Skip camera →</button>
+      </div>
+      <div class="warn" id="camWarn" style="margin-top:10px"></div>
+    </div>
+  </section>
+
+  <!-- ============ SCREEN 4: EDIT ============ -->
+  <section class="screen" id="screenEdit">
+    <div class="card">
+      <div class="row" style="margin-bottom:8px">
+        <h2>✨ Effects editor</h2>
+        <span class="spacer"></span>
+        <button class="btn ghost sm" id="btnReshoot">🎥 Re-shoot</button>
+      </div>
+      <div class="stagewrap">
+        <canvas id="stage" width="640" height="480"></canvas>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <button class="btn" id="btnPreview">▶ Play Video</button>
+        <button class="btn gold" id="btnExport">⬇ Save Video</button>
+        <span class="spacer"></span>
+        <span class="pill" id="expInfo"></span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Effects per lyric</h2>
+      <div class="hint">Give any line an effect — like fire on <i>"I burned up my life"</i>. Tap <b>Set spot</b> then tap the video to aim it (right at your jacket, for example).</div>
+      <div class="fxlist" id="fxlist"></div>
+    </div>
+  </section>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function () {
+'use strict';
+
+/* =====================================================================
+   0. tiny helpers
+   ===================================================================== */
+const $ = id => document.getElementById(id);
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+const lerp = (a, b, t) => a + (b - a) * t;
+
+function hashStr(s) {
+  let h = 2166136261 >>> 0;
+  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return h >>> 0;
+}
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+/* deterministic 0..1 from an integer — used by the video effects so a
+   particle looks the same on preview and on export */
+function frnd(i) {
+  const x = Math.sin(i * 127.1 + 311.7) * 43758.5453;
+  return x - Math.floor(x);
+}
+
+let toastTimer = null;
+function toast(msg, ms) {
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), ms || 2600);
+}
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.toggle('on', s.id === id));
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/* rough English syllable count — good enough to space notes out */
+function syllables(word) {
+  const w = word.toLowerCase().replace(/[^a-z']/g, '');
+  if (!w) return 0;
+  const groups = w.match(/[aeiouy]+/g);
+  let n = groups ? groups.length : 1;
+  if (n > 1 && /e$/.test(w) && !/[aeiouy]e$/.test(w)) n--;
+  return Math.max(1, n);
+}
+
+/* =====================================================================
+   1. music theory tables
+   ===================================================================== */
+const SCALES = {
+  major:      [0, 2, 4, 5, 7, 9, 11],
+  minor:      [0, 2, 3, 5, 7, 8, 10],
+  dorian:     [0, 2, 3, 5, 7, 9, 10],
+  mixolydian: [0, 2, 4, 5, 7, 9, 10],
+  phrygian:   [0, 1, 3, 5, 7, 8, 10],
+  pentaMaj:   [0, 2, 4, 7, 9],
+  pentaMin:   [0, 3, 5, 7, 10],
+  blues:      [0, 3, 5, 6, 7, 10]
+};
+const KEYS = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+
+/* semitones above A4=440 -> hz */
+const midiHz = m => 440 * Math.pow(2, (m - 69) / 12);
+
+const GENRES = {
+  pop:     { name: 'Pop',      ico: '✨', bpm: 112, key: 7,  scale: 'major',      prog: [0, 5, 3, 4], lead: 'pluck', pad: 'saw',  drums: 'pop',    swing: 0,   rev: .28, energy: .72 },
+  ballad:  { name: 'Ballad',   ico: '🕯️', bpm: 72,  key: 5,  scale: 'major',      prog: [0, 4, 5, 3], lead: 'bell',  pad: 'sine', drums: 'soft',   swing: 0,   rev: .55, energy: .40 },
+  rock:    { name: 'Rock',     ico: '🎸', bpm: 138, key: 4,  scale: 'pentaMin',   prog: [0, 3, 4, 3], lead: 'saw',   pad: 'saw',  drums: 'rock',   swing: 0,   rev: .22, energy: .88 },
+  hiphop:  { name: 'Hip-Hop',  ico: '🎧', bpm: 86,  key: 2,  scale: 'minor',      prog: [0, 5, 3, 4], lead: 'pluck', pad: 'sine', drums: 'trap',   swing: .08, rev: .3,  energy: .62 },
+  edm:     { name: 'EDM',      ico: '🔊', bpm: 128, key: 9,  scale: 'minor',      prog: [5, 3, 0, 4], lead: 'square',pad: 'saw',  drums: 'four',   swing: 0,   rev: .35, energy: .95 },
+  lofi:    { name: 'Lo-Fi',    ico: '🌙', bpm: 76,  key: 0,  scale: 'dorian',     prog: [0, 3, 5, 4], lead: 'bell',  pad: 'sine', drums: 'lofi',   swing: .2,  rev: .48, energy: .34 },
+  country: { name: 'Country',  ico: '🤠', bpm: 104, key: 7,  scale: 'major',      prog: [0, 3, 4, 0], lead: 'pluck', pad: 'tri',  drums: 'shuffle',swing: .16, rev: .3,  energy: .58 },
+  metal:   { name: 'Metal',    ico: '🤘', bpm: 158, key: 4,  scale: 'phrygian',   prog: [0, 1, 0, 6], lead: 'saw',   pad: 'saw',  drums: 'metal',  swing: 0,   rev: .2,  energy: 1.0 },
+  dream:   { name: 'Dreamy',   ico: '☁️', bpm: 92,  key: 11, scale: 'mixolydian', prog: [0, 4, 5, 3], lead: 'bell',  pad: 'sine', drums: 'soft',   swing: 0,   rev: .65, energy: .38 },
+  disco:   { name: 'Disco',    ico: '🪩', bpm: 118, key: 2,  scale: 'pentaMaj',   prog: [0, 3, 4, 5], lead: 'square',pad: 'saw',  drums: 'four',   swing: .06, rev: .32, energy: .8 }
+};
+
+/* =====================================================================
+   2. audio engine
+   ===================================================================== */
+let AC = null, master = null, comp = null, analyser = null, revNode = null, revGain = null,
+    dlyNode = null, dlyGain = null, noiseBuf = null, recDest = null;
+let liveSources = [];
+let playing = false, songStartT = 0, endTimer = null, speechTimers = [];
+
+function ensureAudio() {
+  if (AC) { if (AC.state === 'suspended') AC.resume(); return; }
+  AC = new (window.AudioContext || window.webkitAudioContext)();
+  master = AC.createGain(); master.gain.value = 0.9;
+  comp = AC.createDynamicsCompressor();
+  comp.threshold.value = -14; comp.knee.value = 22; comp.ratio.value = 4;
+  comp.attack.value = .004; comp.release.value = .22;
+  analyser = AC.createAnalyser(); analyser.fftSize = 512; analyser.smoothingTimeConstant = .78;
+
+  /* reverb: synthesised impulse response, no files needed */
+  revNode = AC.createConvolver();
+  const len = Math.floor(AC.sampleRate * 2.4), ir = AC.createBuffer(2, len, AC.sampleRate);
+  for (let ch = 0; ch < 2; ch++) {
+    const d = ir.getChannelData(ch);
+    for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.6);
+  }
+  revNode.buffer = ir;
+  revGain = AC.createGain(); revGain.gain.value = .3;
+
+  dlyNode = AC.createDelay(1.2); dlyNode.delayTime.value = .34;
+  const fb = AC.createGain(); fb.gain.value = .3;
+  dlyNode.connect(fb); fb.connect(dlyNode);
+  dlyGain = AC.createGain(); dlyGain.gain.value = .16;
+
+  master.connect(comp);
+  master.connect(revNode); revNode.connect(revGain); revGain.connect(comp);
+  master.connect(dlyNode); dlyNode.connect(dlyGain); dlyGain.connect(comp);
+  comp.connect(analyser); analyser.connect(AC.destination);
+
+  recDest = AC.createMediaStreamDestination();
+  comp.connect(recDest);
+
+  const n = Math.floor(AC.sampleRate * 1.2);
+  noiseBuf = AC.createBuffer(1, n, AC.sampleRate);
+  const nd = noiseBuf.getChannelData(0);
+  for (let i = 0; i < n; i++) nd[i] = Math.random() * 2 - 1;
+}
+
+function track(node) { liveSources.push(node); }
+
+function env(g, t, a, d, s, r, dur, peak) {
+  const p = peak === undefined ? 1 : peak;
+  g.gain.cancelScheduledValues(t);
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.linearRampToValueAtTime(p, t + a);
+  g.gain.linearRampToValueAtTime(p * s, t + a + d);
+  g.gain.setValueAtTime(p * s, t + Math.max(a + d, dur));
+  g.gain.exponentialRampToValueAtTime(0.0001, t + Math.max(a + d, dur) + r);
+}
+
+/* one melodic/harmonic voice */
+function tone(t, hz, dur, kind, vol, dest) {
+  if (!isFinite(hz) || hz <= 0 || vol <= 0.0005) return;
+  const out = dest || master;
+  const g = AC.createGain();
+  let o = AC.createOscillator();
+  let filt = null;
+
+  if (kind === 'pluck') {
+    o.type = 'sawtooth'; o.frequency.value = hz;
+    filt = AC.createBiquadFilter(); filt.type = 'lowpass';
+    filt.frequency.setValueAtTime(Math.min(9000, hz * 9), t);
+    filt.frequency.exponentialRampToValueAtTime(Math.max(220, hz * 1.6), t + dur * .85);
+    filt.Q.value = 3;
+    env(g, t, .006, dur * .55, .12, .16, dur, vol);
+  } else if (kind === 'bell') {
+    o.type = 'sine'; o.frequency.value = hz;
+    const o2 = AC.createOscillator(); o2.type = 'sine'; o2.frequency.value = hz * 2.01;
+    const g2 = AC.createGain(); g2.gain.value = .3;
+    o2.connect(g2); g2.connect(g); o2.start(t); o2.stop(t + dur + 1.2); track(o2);
+    env(g, t, .008, dur * .9, .18, .9, dur, vol);
+  } else if (kind === 'square') {
+    o.type = 'square'; o.frequency.value = hz;
+    filt = AC.createBiquadFilter(); filt.type = 'lowpass'; filt.frequency.value = Math.min(7000, hz * 7); filt.Q.value = 1;
+    env(g, t, .01, .05, .7, .12, dur, vol * .7);
+  } else if (kind === 'saw') {
+    o.type = 'sawtooth'; o.frequency.value = hz;
+    filt = AC.createBiquadFilter(); filt.type = 'lowpass'; filt.frequency.value = Math.min(6500, hz * 6); filt.Q.value = 2;
+    env(g, t, .014, .08, .68, .18, dur, vol * .8);
+  } else if (kind === 'tri') {
+    o.type = 'triangle'; o.frequency.value = hz;
+    env(g, t, .02, .1, .7, .2, dur, vol);
+  } else { /* sine pad */
+    o.type = 'sine'; o.frequency.value = hz;
+    env(g, t, .08, .2, .8, .5, dur, vol);
+  }
+
+  if (filt) { o.connect(filt); filt.connect(g); } else { o.connect(g); }
+  g.connect(out);
+  o.start(t); o.stop(t + dur + 1.4);
+  track(o);
+}
+
+function noise(t, dur, type, freq, q, vol) {
+  const s = AC.createBufferSource(); s.buffer = noiseBuf;
+  const f = AC.createBiquadFilter(); f.type = type; f.frequency.value = freq; f.Q.value = q;
+  const g = AC.createGain();
+  g.gain.setValueAtTime(vol, t);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  s.connect(f); f.connect(g); g.connect(master);
+  s.start(t); s.stop(t + dur + .05);
+  track(s);
+}
+
+function kick(t, vol) {
+  const o = AC.createOscillator(), g = AC.createGain();
+  o.type = 'sine';
+  o.frequency.setValueAtTime(155, t);
+  o.frequency.exponentialRampToValueAtTime(44, t + .13);
+  g.gain.setValueAtTime(vol, t);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + .34);
+  o.connect(g); g.connect(master);
+  o.start(t); o.stop(t + .4); track(o);
+}
+function snare(t, vol) {
+  noise(t, .19, 'bandpass', 1900, .8, vol * .9);
+  const o = AC.createOscillator(), g = AC.createGain();
+  o.type = 'triangle'; o.frequency.setValueAtTime(196, t);
+  g.gain.setValueAtTime(vol * .5, t);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + .13);
+  o.connect(g); g.connect(master); o.start(t); o.stop(t + .18); track(o);
+}
+function hat(t, vol, open) { noise(t, open ? .26 : .045, 'highpass', 8200, .7, vol * .5); }
+function clap(t, vol) { for (let i = 0; i < 3; i++) noise(t + i * .012, .12, 'bandpass', 1500, 1.2, vol * .6); }
+
+/* =====================================================================
+   3. song builder — lyrics in, arrangement out
+   ===================================================================== */
+const state = {
+  lyrics: '',
+  genre: 'pop',
+  seed: 1,
+  bpm: 112, keyRoot: 7, scale: 'major', barsPerLine: 2,
+  lead: 'pluck', pad: 'saw', drumKit: 'pop',
+  drumVol: .8, bassVol: .8, chordVol: .55, leadVol: .5, vocalVol: 1,
+  reverb: .3, delay: .16, swing: 0, brightness: .5,
+  vocals: true, harmony: true, voiceIdx: -1,
+  song: null
+};
+
+function lyricLines() {
+  return state.lyrics.split('\n').map(s => s.trim()).filter(Boolean).slice(0, 24);
+}
+
+function buildSong() {
+  const lines = lyricLines();
+  if (!lines.length) return null;
+
+  const rng = mulberry32(state.seed ^ hashStr(state.lyrics));
+  const g = GENRES[state.genre];
+  const scale = SCALES[state.scale] || SCALES.major;
+  const spb = 60 / state.bpm;                    // seconds per beat
+  const barDur = spb * 4;
+  const bpl = state.barsPerLine;
+  const introBars = 2, outroBars = 2;
+
+  const prog = g.prog;
+  const chordAt = bar => prog[bar % prog.length];
+
+  /* scale degree -> midi note (root octave 4 => key + 60) */
+  const noteOf = (deg, oct) => {
+    const len = scale.length;
+    let i = ((deg % len) + len) % len;
+    let o = Math.floor(deg / len) + (oct === undefined ? 0 : oct);
+    return 60 + state.keyRoot + scale[i] + 12 * o;
+  };
+
+  const song = { bars: [], lines: [], barDur, spb, introBars, dur: 0 };
+
+  const totalBars = introBars + lines.length * bpl + outroBars;
+  for (let b = 0; b < totalBars; b++) {
+    const isIntro = b < introBars;
+    const isOutro = b >= totalBars - outroBars;
+    const lineIdx = isIntro || isOutro ? -1 : Math.floor((b - introBars) / bpl);
+    /* every other block of 4 lines lifts into a "chorus" feel */
+    const section = lineIdx < 0 ? (isIntro ? 'intro' : 'outro')
+                  : (Math.floor(lineIdx / 4) % 2 === 1 ? 'chorus' : 'verse');
+    song.bars.push({ i: b, t: b * barDur, chord: chordAt(b), section, lineIdx });
+  }
+  song.dur = totalBars * barDur + 1.6;
+
+  /* --- melody: one phrase per lyric line --- */
+  let deg = 7; /* start an octave above the root */
+  lines.forEach((text, li) => {
+    const startBar = introBars + li * bpl;
+    const start = startBar * barDur;
+    const dur = barDur * bpl;
+    const chord = chordAt(startBar);
+    const section = Math.floor(li / 4) % 2 === 1 ? 'chorus' : 'verse';
+
+    const words = text.split(/\s+/).filter(Boolean);
+    const wordSyl = words.map(syllables);
+    const totalSyl = Math.max(1, wordSyl.reduce((a, b) => a + b, 0));
+
+    /* fit the syllables into an 8th (or 16th) note grid */
+    const slots = bpl * 8;
+    const step = totalSyl <= slots ? dur / slots : dur / (slots * 2);
+    const gridN = Math.round(dur / step);
+    const useN = Math.min(totalSyl, gridN - 1);
+    const spread = Math.max(1, Math.floor((gridN - 1) / Math.max(1, useN)));
+
+    const notes = [];
+    let slot = 0;
+    for (let s = 0; s < useN; s++) {
+      /* walk the scale, favour chord tones on the downbeats */
+      const jump = rng() < .18 ? (rng() < .5 ? -2 : 2) : (rng() < .5 ? -1 : 1);
+      deg += rng() < .34 ? 0 : jump;
+      if (slot % 4 === 0 && rng() < .7) {
+        const tones = [chord, chord + 2, chord + 4];
+        let best = tones[0], bd = 99;
+        tones.forEach(tn => {
+          for (let o = -1; o <= 2; o++) {
+            const c = tn + o * scale.length;
+            if (Math.abs(c - deg) < bd) { bd = Math.abs(c - deg); best = c; }
+          }
+        });
+        deg = best;
+      }
+      deg = clamp(deg, 2, 15);
+      const lift = section === 'chorus' ? 2 : 0;
+      const t = start + slot * step;
+      const nd = step * (rng() < .22 ? 1.9 : 1.05);
+      notes.push({ t, dur: Math.min(nd, start + dur - t + .2), midi: noteOf(deg + lift), slot });
+      slot += spread + (rng() < .2 ? 1 : 0);
+      if (slot >= gridN) break;
+    }
+    /* land the phrase on a chord tone */
+    if (notes.length) {
+      const lastDeg = chord + (rng() < .5 ? 0 : 4);
+      notes[notes.length - 1].midi = noteOf(clamp(lastDeg + 7, 2, 15));
+    }
+
+    /* map words to time so karaoke can light them up one at a time */
+    const wordTimes = [];
+    let acc = 0;
+    words.forEach((w, i) => {
+      const share = wordSyl[i] / totalSyl;
+      wordTimes.push({ w, a: start + acc * dur * .92, b: start + (acc + share) * dur * .92 });
+      acc += share;
+    });
+
+    song.lines.push({ text, start, dur, notes, words: wordTimes, section, syl: totalSyl });
+  });
+
+  return song;
+}
+
+function songTitleFrom(lines) {
+  if (!lines.length) return 'Untitled';
+  const skip = new Set(['the', 'a', 'an', 'and', 'i', 'you', 'my', 'me', 'to', 'of', 'in', 'it', 'is', 'on', 'we', 'but', 'so', 'up', 'that', 'this', 'with', 'for']);
+  const pool = lines.join(' ').split(/\s+/).map(w => w.replace(/[^A-Za-z']/g, '')).filter(w => w.length > 2 && !skip.has(w.toLowerCase()));
+  if (!pool.length) return lines[0].slice(0, 28);
+  const rng = mulberry32(hashStr(state.lyrics));
+  const a = pool[Math.floor(rng() * pool.length)], b = pool[Math.floor(rng() * pool.length)];
+  const t = (a === b ? a : a + ' ' + b);
+  return t.charAt(0).toUpperCase() + t.slice(1).toLowerCase();
+}
+
+/* =====================================================================
+   4. scheduling the arrangement
+   ===================================================================== */
+function scheduleSong(t0) {
+  const song = state.song, g = GENRES[state.genre];
+  const scale = SCALES[state.scale] || SCALES.major;
+  const spb = song.spb, barDur = song.barDur;
+  const rng = mulberry32(state.seed + 7);
+  const swing = state.swing;
+
+  const noteOf = (deg, oct) => {
+    const len = scale.length;
+    const i = ((deg % len) + len) % len;
+    const o = Math.floor(deg / len) + (oct || 0);
+    return 60 + state.keyRoot + scale[i] + 12 * o;
+  };
+  const sw = (bar, beatPos) => {
+    const off = (Math.round(beatPos * 2) % 2 === 1) ? swing * spb * .3 : 0;
+    return t0 + bar * barDur + beatPos * spb + off;
+  };
+
+  song.bars.forEach(bar => {
+    const b = bar.i, ch = bar.chord;
+    const heavy = bar.section === 'chorus' ? 1.15 : bar.section === 'intro' ? .5 : 1;
+    const quiet = bar.section === 'intro' || bar.section === 'outro';
+
+    /* ---- chords / pad ---- */
+    const cv = state.chordVol * (quiet ? .7 : 1) * heavy * .5;
+    if (cv > 0.004) {
+      const voicing = [0, 2, 4, 6];
+      voicing.forEach((iv, k) => {
+        if (k === 3 && rng() < .55) return;
+        tone(t0 + b * barDur + .01, midiHz(noteOf(ch + iv, -1)), barDur * .96, state.pad, cv * (k === 0 ? 1 : .7));
+      });
+    }
+
+    /* ---- bass ---- */
+    const bv = state.bassVol * (quiet ? .5 : 1) * heavy * .55;
+    if (bv > 0.004) {
+      const patt = state.drumKit === 'trap' ? [0, 1.5, 2.5, 3] :
+                   state.drumKit === 'four' ? [0, 1, 2, 3] :
+                   state.drumKit === 'metal' ? [0, .5, 1, 1.5, 2, 2.5, 3, 3.5] :
+                   [0, 1.5, 2, 3.5];
+      patt.forEach(p => {
+        const alt = p > 0 && rng() < .3 ? 4 : 0;
+        tone(sw(b, p), midiHz(noteOf(ch + alt, -2)), spb * .8, 'tri', bv);
+      });
+    }
+
+    /* ---- drums ---- */
+    const dv = state.drumVol * (quiet ? .45 : 1) * heavy;
+    if (dv > 0.004) {
+      const kit = state.drumKit;
+      const hatEvery = kit === 'trap' ? .25 : kit === 'four' || kit === 'metal' ? .5 : .5;
+      for (let p = 0; p < 4; p += hatEvery) {
+        if (kit === 'lofi' && p % 1 !== 0 && rng() < .35) continue;
+        hat(sw(b, p), dv * (p % 1 === 0 ? .5 : .32), kit === 'four' && p % 1 === .5);
+      }
+      if (kit === 'four' || kit === 'metal') { for (let p = 0; p < 4; p++) kick(sw(b, p), dv * .9); }
+      else if (kit === 'trap') { [0, .75, 2.5].forEach(p => kick(sw(b, p), dv * .95)); }
+      else if (kit === 'soft') { [0, 2].forEach(p => kick(sw(b, p), dv * .55)); }
+      else { [0, 2.5].forEach(p => kick(sw(b, p), dv * .9)); if (rng() < .3) kick(sw(b, 3.5), dv * .6); }
+
+      if (kit === 'soft' || kit === 'lofi') { [1, 3].forEach(p => snare(sw(b, p), dv * .35)); }
+      else if (kit === 'trap' || kit === 'four') { [1, 3].forEach(p => clap(sw(b, p), dv * .8)); }
+      else { [1, 3].forEach(p => snare(sw(b, p), dv * .7)); }
+
+      /* fill at the end of every 4th bar */
+      if (b % 4 === 3 && !quiet) for (let i = 0; i < 4; i++) snare(sw(b, 3 + i * .25), dv * (.3 + i * .12));
+    }
+  });
+
+  /* ---- lead melody ---- */
+  const lv = state.leadVol * .5;
+  song.lines.forEach(line => {
+    line.notes.forEach(n => {
+      if (lv > 0.004) tone(t0 + n.t, midiHz(n.midi), n.dur, state.lead, lv);
+      if (state.harmony && lv > 0.004) tone(t0 + n.t + .012, midiHz(n.midi + (line.section === 'chorus' ? 7 : 12)), n.dur * .8, state.lead, lv * .3);
+    });
+  });
+
+  /* intro/outro arpeggio sparkle */
+  song.bars.filter(x => x.section === 'intro' || x.section === 'outro').forEach(bar => {
+    for (let i = 0; i < 8; i++) {
+      tone(t0 + bar.t + i * spb * .5, midiHz(noteOf(bar.chord + (i % 4) * 2, 0)), spb * .5, 'bell', state.leadVol * .22);
+    }
+  });
+
+  /* tuned sends */
+  revGain.gain.setValueAtTime(state.reverb, AC.currentTime);
+  dlyGain.gain.setValueAtTime(state.delay, AC.currentTime);
+  master.gain.setValueAtTime(lerp(.65, 1.05, state.brightness), AC.currentTime);
+}
+
+/* ---- vocals via the browser's speech voice, timed to the bars ---- */
+let voices = [];
+function loadVoices() {
+  if (!('speechSynthesis' in window)) return;
+  voices = speechSynthesis.getVoices().filter(v => /^en/i.test(v.lang));
+  if (!voices.length) voices = speechSynthesis.getVoices();
+  buildVoiceSelect();
+}
+
+function scheduleVocals(delayMs) {
+  if (!state.vocals || !('speechSynthesis' in window)) return;
+  speechSynthesis.cancel();
+  state.song.lines.forEach(line => {
+    const when = delayMs + line.start * 1000;
+    const id = setTimeout(() => {
+      const u = new SpeechSynthesisUtterance(line.text);
+      const v = voices[state.voiceIdx];
+      if (v) u.voice = v;
+      const spoken = Math.max(1, line.syl);
+      /* ~4.2 syllables/sec at rate 1 — stretch or squeeze to fit the phrase */
+      u.rate = clamp((spoken / 4.2) / line.dur, .55, 1.9);
+      const avg = line.notes.length ? line.notes.reduce((a, n) => a + n.midi, 0) / line.notes.length : 72;
+      u.pitch = clamp(.6 + (avg - 62) / 22, .3, 1.9);
+      u.volume = clamp(state.vocalVol, 0, 1);
+      speechSynthesis.speak(u);
+    }, when);
+    speechTimers.push(id);
+  });
+}
+
+/* =====================================================================
+   5. transport
+   ===================================================================== */
+function stopSong(silent) {
+  playing = false;
+  liveSources.forEach(s => { try { s.stop(0); } catch (e) {} });
+  liveSources = [];
+  speechTimers.forEach(clearTimeout); speechTimers = [];
+  if ('speechSynthesis' in window) speechSynthesis.cancel();
+  clearTimeout(endTimer);
+  $('btnPlay').textContent = '▶ Play';
+  if (!silent) renderKaraoke(-1);
+}
+
+function startSong(onEnd) {
+  ensureAudio();
+  stopSong(true);
+  if (!state.song) return;
+  const t0 = AC.currentTime + .18;
+  songStartT = t0;
+  playing = true;
+  scheduleSong(t0);
+  scheduleVocals(180);
+  $('btnPlay').textContent = '⏹ Stop';
+  endTimer = setTimeout(() => {
+    stopSong();
+    if (onEnd) onEnd();
+  }, (state.song.dur + .4) * 1000);
+}
+
+function songPos() { return AC && playing ? AC.currentTime - songStartT : -1; }
+
+/* =====================================================================
+   6. karaoke + visualiser
+   ===================================================================== */
+function renderKaraoke(activeIdx) {
+  const box = $('karaoke');
+  if (!state.song) return;
+  if (box.childElementCount !== state.song.lines.length) {
+    box.innerHTML = '';
+    state.song.lines.forEach((line, i) => {
+      const d = document.createElement('div');
+      d.className = 'kline'; d.dataset.i = i;
+      const tag = document.createElement('span');
+      tag.className = 'tag'; tag.textContent = line.section === 'chorus' ? 'CHORUS' : 'VERSE';
+      d.appendChild(tag);
+      line.words.forEach(wt => {
+        const s = document.createElement('span');
+        s.className = 'w'; s.textContent = wt.w + ' ';
+        d.appendChild(s);
+      });
+      box.appendChild(d);
+    });
+  }
+  const pos = songPos();
+  [...box.children].forEach((el, i) => {
+    const line = state.song.lines[i];
+    const now = pos >= line.start && pos < line.start + line.dur;
+    el.classList.toggle('now', now);
+    el.classList.toggle('done', pos > line.start + line.dur);
+    const ws = el.querySelectorAll('.w');
+    line.words.forEach((wt, k) => {
+      if (ws[k]) ws[k].classList.toggle('lit', now && pos >= wt.a && pos < wt.b);
+    });
+    if (now && el.dataset.scrolled !== '1') {
+      el.dataset.scrolled = '1';
+      box.scrollTop = el.offsetTop - box.clientHeight / 2 + el.clientHeight / 2;
+    }
+    if (!now) el.dataset.scrolled = '0';
+  });
+}
+
+const vizC = $('viz'), vizX = vizC.getContext('2d');
+let freqData = null;
+function drawViz() {
+  const w = vizC.width, h = vizC.height;
+  vizX.clearRect(0, 0, w, h);
+  vizX.fillStyle = 'rgba(0,0,0,.35)'; vizX.fillRect(0, 0, w, h);
+  if (!analyser) return;
+  if (!freqData) freqData = new Uint8Array(analyser.frequencyBinCount);
+  analyser.getByteFrequencyData(freqData);
+  const bars = 56, step = Math.floor(freqData.length / bars);
+  for (let i = 0; i < bars; i++) {
+    let v = 0;
+    for (let k = 0; k < step; k++) v = Math.max(v, freqData[i * step + k]);
+    const bh = (v / 255) * (h - 14);
+    const x = i * (w / bars) + 2, bw = w / bars - 4;
+    const grd = vizX.createLinearGradient(0, h, 0, h - bh);
+    grd.addColorStop(0, '#4be3ff'); grd.addColorStop(.6, '#ff4d94'); grd.addColorStop(1, '#ffd166');
+    vizX.fillStyle = grd;
+    vizX.fillRect(x, h - bh - 6, bw, bh);
+  }
+}
+
+function studioLoop() {
+  if ($('screenStudio').classList.contains('on')) { drawViz(); renderKaraoke(); }
+  requestAnimationFrame(studioLoop);
+}
+requestAnimationFrame(studioLoop);
+
+/* =====================================================================
+   7. screen 1 — writing
+   ===================================================================== */
+const STARTERS = [
+  { genre: 'rock', lines: [
+    'I woke up with the thunder in my chest',
+    'I burned up my life to start again',
+    'Every door I shut is a match I lit',
+    'And I am not going back, not going back',
+    'Watch the smoke turn gold above the town',
+    'Watch the kid they wrote off wear a crown',
+    'I burned up my life to start again',
+    'And the fire says my name'] },
+  { genre: 'pop', lines: [
+    'Two o clock and the city is humming',
+    'You text me a map to a rooftop somewhere',
+    'We are counting the buses instead of the stars',
+    'And nothing is broken tonight',
+    'Turn it up, turn it up, let the summer stay loud',
+    'We are the best kind of trouble in town',
+    'Nothing is broken tonight',
+    'Nothing is broken tonight'] },
+  { genre: 'ballad', lines: [
+    'You left a jacket on the back of my chair',
+    'It still knows the shape of you',
+    'I keep the kitchen light on out of habit',
+    'Like the room is still waiting too',
+    'And if you find a softer sky',
+    'I hope it holds you kind',
+    'I will be here learning how to be okay',
+    'One quiet morning at a time'] },
+  { genre: 'hiphop', lines: [
+    'Started with a notebook and a busted pair of shoes',
+    'Every no they handed me I folded into fuel',
+    'Mama working doubles while I chased a dumb idea',
+    'Now the dumb idea is loud and the whole block hear',
+    'Look, I am not lucky, I am left over from the grind',
+    'Turned the empty into engine, turned the pressure into shine',
+    'Every no they handed me I folded into fuel',
+    'And the fuel is running out of room'] },
+  { genre: 'lofi', lines: [
+    'Rain is drawing lines across the window',
+    'The kettle sings a note I almost know',
+    'Nothing much is happening today',
+    'And that is the best thing I could say',
+    'Slow down, the world can wait a minute',
+    'Slow down, there is no race to finish',
+    'Nothing much is happening today',
+    'And I am okay, I am okay'] },
+  { genre: 'edm', lines: [
+    'Hands up, the ceiling is a rumor',
+    'The bass is a heartbeat we all share',
+    'Count it down, we are lifting off the floor',
+    'Three, two, one, we are not here anymore',
+    'Feel it, feel it, feel it in the walls',
+    'We are electric till the morning calls',
+    'Three, two, one, we are not here anymore',
+    'Take me higher than before'] }
+];
+
+function buildVibes() {
+  const box = $('vibes');
+  box.innerHTML = '';
+  Object.keys(GENRES).forEach(k => {
+    const g = GENRES[k];
+    const d = document.createElement('div');
+    d.className = 'vibe' + (k === state.genre ? ' on' : '');
+    d.dataset.k = k;
+    d.innerHTML = '<span class="ico">' + g.ico + '</span>' + g.name + '<br><span style="opacity:.6;font-size:.72rem">' + g.bpm + ' bpm</span>';
+    d.addEventListener('click', () => {
+      state.genre = k;
+      applyGenreDefaults();
+      [...box.children].forEach(c => c.classList.toggle('on', c.dataset.k === k));
+    });
+    box.appendChild(d);
+  });
+}
+
+function applyGenreDefaults() {
+  const g = GENRES[state.genre];
+  state.bpm = g.bpm; state.keyRoot = g.key; state.scale = g.scale;
+  state.lead = g.lead; state.pad = g.pad; state.drumKit = g.drums;
+  state.swing = g.swing; state.reverb = g.rev;
+  state.drumVol = clamp(.45 + g.energy * .5, 0, 1);
+  state.barsPerLine = g.bpm > 130 ? 2 : 2;
+  syncMixUI();
+}
+
+$('lyrics').addEventListener('input', () => {
+  state.lyrics = $('lyrics').value;
+  const n = lyricLines().length;
+  $('lineCount').textContent = n + (n === 1 ? ' line' : ' lines');
+});
+$('btnClear').addEventListener('click', () => {
+  $('lyrics').value = ''; state.lyrics = ''; $('lineCount').textContent = '0 lines';
+});
+
+$('btnHelp').addEventListener('click', () => {
+  const pick = STARTERS[Math.floor(Math.random() * STARTERS.length)];
+  $('lyrics').value = pick.lines.join('\n');
+  state.lyrics = $('lyrics').value;
+  $('lineCount').textContent = pick.lines.length + ' lines';
+  state.genre = pick.genre;
+  state.seed = Math.floor(Math.random() * 1e9);
+  applyGenreDefaults();
+  [...$('vibes').children].forEach(c => c.classList.toggle('on', c.dataset.k === state.genre));
+  toast('Here is a ' + GENRES[pick.genre].name + ' starter melody + first draft. Change any word you like!', 4200);
+});
+
+$('btnCompose').addEventListener('click', () => {
+  state.lyrics = $('lyrics').value;
+  if (!lyricLines().length) { toast('Type at least one line first — or press Need Some Help.'); return; }
+  compose();
+  showScreen('screenStudio');
+  ensureAudio();
+  startSong();
+});
+
+function compose() {
+  state.song = buildSong();
+  if (!state.song) return;
+  $('songTitle').textContent = '"' + songTitleFrom(lyricLines()) + '"';
+  $('songInfo').textContent = GENRES[state.genre].name + ' · ' + state.bpm + ' bpm · ' +
+    KEYS[state.keyRoot] + ' ' + (state.scale.indexOf('Min') > -1 || state.scale === 'minor' || state.scale === 'phrygian' ? 'minor' : 'major') +
+    ' · ' + Math.round(state.song.dur) + 's';
+  $('karaoke').innerHTML = '';
+  renderKaraoke(-1);
+  buildFxRows();
+}
+
+/* =====================================================================
+   8. screen 2 — the mixing desk
+   ===================================================================== */
+const CONTROLS = [
+  { k: 'bpm',       label: 'Tempo',      type: 'range', min: 50, max: 190, step: 1,   fmt: v => v + ' bpm', rebuild: true },
+  { k: 'keyRoot',   label: 'Key',        type: 'select', opts: KEYS.map((k, i) => [i, k]), rebuild: true },
+  { k: 'scale',     label: 'Mood scale', type: 'select', opts: [['major', 'Happy (major)'], ['minor', 'Sad (minor)'], ['dorian', 'Chill (dorian)'], ['mixolydian', 'Dreamy'], ['phrygian', 'Dark'], ['pentaMaj', 'Simple bright'], ['pentaMin', 'Simple moody'], ['blues', 'Bluesy']], rebuild: true },
+  { k: 'barsPerLine', label: 'Line length', type: 'select', opts: [[1, 'Fast (1 bar)'], [2, 'Normal (2 bars)'], [4, 'Slow (4 bars)']], num: true, rebuild: true },
+  { k: 'lead',      label: 'Melody sound', type: 'select', opts: [['pluck', 'Plucky'], ['bell', 'Bells'], ['saw', 'Buzzy'], ['square', 'Retro'], ['tri', 'Soft'], ['sine', 'Pure']] },
+  { k: 'pad',       label: 'Chord sound',  type: 'select', opts: [['saw', 'Strings'], ['sine', 'Warm pad'], ['tri', 'Organ'], ['square', 'Retro']] },
+  { k: 'drumKit',   label: 'Drum kit',     type: 'select', opts: [['pop', 'Pop'], ['rock', 'Rock'], ['trap', 'Trap'], ['four', 'Dance'], ['soft', 'Soft'], ['lofi', 'Lo-fi'], ['shuffle', 'Shuffle'], ['metal', 'Metal']] },
+  { k: 'drumVol',   label: 'Drums',      type: 'range', min: 0, max: 1, step: .01, pct: true },
+  { k: 'bassVol',   label: 'Bass',       type: 'range', min: 0, max: 1, step: .01, pct: true },
+  { k: 'chordVol',  label: 'Chords',     type: 'range', min: 0, max: 1, step: .01, pct: true },
+  { k: 'leadVol',   label: 'Melody',     type: 'range', min: 0, max: 1, step: .01, pct: true },
+  { k: 'vocalVol',  label: 'Vocals',     type: 'range', min: 0, max: 1, step: .01, pct: true },
+  { k: 'reverb',    label: 'Reverb',     type: 'range', min: 0, max: 1, step: .01, pct: true },
+  { k: 'delay',     label: 'Echo',       type: 'range', min: 0, max: .6, step: .01, pct: true },
+  { k: 'swing',     label: 'Swing',      type: 'range', min: 0, max: 1, step: .01, pct: true },
+  { k: 'brightness',label: 'Loudness',   type: 'range', min: 0, max: 1, step: .01, pct: true }
+];
+
+function buildMix() {
+  const box = $('mix');
+  box.innerHTML = '';
+  CONTROLS.forEach(c => {
+    const wrap = document.createElement('div');
+    wrap.className = 'ctl';
+    const lab = document.createElement('label');
+    lab.innerHTML = c.label + ' — <b id="lb_' + c.k + '"></b>';
+    wrap.appendChild(lab);
+    let el;
+    if (c.type === 'range') {
+      el = document.createElement('input');
+      el.type = 'range'; el.min = c.min; el.max = c.max; el.step = c.step;
+      el.value = state[c.k];
+      el.addEventListener('input', () => {
+        state[c.k] = parseFloat(el.value);
+        updateLabel(c);
+        liveChange(c.rebuild);
+      });
+    } else {
+      el = document.createElement('select');
+      c.opts.forEach(([v, t]) => {
+        const o = document.createElement('option');
+        o.value = v; o.textContent = t; el.appendChild(o);
+      });
+      el.value = state[c.k];
+      el.addEventListener('change', () => {
+        state[c.k] = (c.num || c.k === 'keyRoot') ? parseFloat(el.value) : el.value;
+        updateLabel(c);
+        liveChange(true);
+      });
+    }
+    el.id = 'in_' + c.k;
+    wrap.appendChild(el);
+    box.appendChild(wrap);
+    updateLabel(c);
+  });
+}
+
+function updateLabel(c) {
+  const el = $('lb_' + c.k);
+  if (!el) return;
+  const v = state[c.k];
+  if (c.type === 'range') el.textContent = c.pct ? Math.round(v * 100) + '%' : (c.fmt ? c.fmt(v) : v);
+  else {
+    const found = c.opts.find(o => String(o[0]) === String(v));
+    el.textContent = found ? found[1] : v;
+  }
+}
+
+function syncMixUI() {
+  CONTROLS.forEach(c => {
+    const el = $('in_' + c.k);
+    if (el) el.value = state[c.k];
+    updateLabel(c);
+  });
+  buildToggles();
+}
+
+let rebuildTimer = null;
+function liveChange(rebuild) {
+  clearTimeout(rebuildTimer);
+  rebuildTimer = setTimeout(() => {
+    const wasPlaying = playing;
+    if (rebuild || !state.song) compose();
+    if (wasPlaying) startSong();
+    else if (AC) {
+      revGain.gain.value = state.reverb;
+      dlyGain.gain.value = state.delay;
+      master.gain.value = lerp(.65, 1.05, state.brightness);
+    }
+  }, 130);
+}
+
+function buildToggles() {
+  const box = $('togs');
+  box.innerHTML = '';
+  const mk = (label, key) => {
+    const d = document.createElement('div');
+    d.className = 'tog' + (state[key] ? ' on' : '');
+    d.textContent = (state[key] ? '✓ ' : '○ ') + label;
+    d.addEventListener('click', () => {
+      state[key] = !state[key];
+      d.classList.toggle('on', state[key]);
+      d.textContent = (state[key] ? '✓ ' : '○ ') + label;
+      liveChange(false);
+    });
+    box.appendChild(d);
+  };
+  mk('Sing the words', 'vocals');
+  mk('Harmony line', 'harmony');
+  box.appendChild(buildVoiceSelect());
+}
+
+let voiceSel = null;
+function buildVoiceSelect() {
+  if (!voiceSel) {
+    voiceSel = document.createElement('select');
+    voiceSel.style.maxWidth = '190px';
+    voiceSel.style.borderRadius = '999px';
+    voiceSel.style.padding = '8px 12px';
+    voiceSel.style.background = 'rgba(0,0,0,.25)';
+    voiceSel.style.color = 'var(--ink)';
+    voiceSel.style.border = '2px solid var(--line)';
+    voiceSel.style.font = 'inherit';
+    voiceSel.style.fontSize = '.84rem';
+    voiceSel.addEventListener('change', () => { state.voiceIdx = parseInt(voiceSel.value, 10); });
+  }
+  const cur = voiceSel.value;
+  voiceSel.innerHTML = '';
+  const d0 = document.createElement('option');
+  d0.value = '-1'; d0.textContent = 'Singer: default';
+  voiceSel.appendChild(d0);
+  voices.forEach((v, i) => {
+    const o = document.createElement('option');
+    o.value = i; o.textContent = 'Singer: ' + v.name.replace(/\(.*\)/, '').trim().slice(0, 22);
+    voiceSel.appendChild(o);
+  });
+  if (cur) voiceSel.value = cur;
+  return voiceSel;
+}
+
+$('btnPlay').addEventListener('click', () => { if (playing) stopSong(); else startSong(); });
+$('btnReroll').addEventListener('click', () => {
+  state.seed = Math.floor(Math.random() * 1e9);
+  const was = playing;
+  compose();
+  if (was) startSong();
+  toast('New melody rolled 🎲');
+});
+$('btnEdit').addEventListener('click', () => { stopSong(); showScreen('screenWrite'); });
+$('btnToVideo').addEventListener('click', () => { stopSong(); showScreen('screenVideo'); });
+$('btnBackStudio').addEventListener('click', () => { stopSong(); stopCam(); showScreen('screenStudio'); });
+
+/* =====================================================================
+   9. screen 3 — camera + recording
+   ===================================================================== */
+let camStream = null, recorder = null, chunks = [], clipBlob = null, clipURL = null;
+const liveCam = $('liveCam'), clipVid = document.createElement('video');
+clipVid.playsInline = true; clipVid.muted = true; clipVid.preload = 'auto';
+
+function recMime() {
+  const opts = ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm', 'video/mp4'];
+  for (const m of opts) if (window.MediaRecorder && MediaRecorder.isTypeSupported(m)) return m;
+  return '';
+}
+
+$('btnCam').addEventListener('click', async () => {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    $('camWarn').textContent = 'This browser will not let a page use the camera. You can still skip ahead and put effects on a plain stage.';
+    return;
+  }
+  try {
+    camStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'user', width: { ideal: 960 }, height: { ideal: 720 } },
+      audio: false
+    });
+    liveCam.srcObject = camStream;
+    await liveCam.play().catch(() => {});
+    $('btnRec').disabled = false;
+    $('btnCam').textContent = '📷 Camera On';
+    $('camWarn').textContent = 'Camera is on. Nothing leaves this page — the video stays on your device.';
+  } catch (e) {
+    $('camWarn').textContent = 'Could not open the camera (' + (e && e.name ? e.name : 'error') + '). Check the permission prompt, or press “Skip camera” to keep going.';
+  }
+});
+
+function stopCam() {
+  if (camStream) { camStream.getTracks().forEach(t => t.stop()); camStream = null; }
+  liveCam.srcObject = null;
+  $('btnCam').textContent = '📷 Turn On Camera';
+  $('btnRec').disabled = true;
+}
+
+$('btnRec').addEventListener('click', () => {
+  if (!camStream) return;
+  if (!window.MediaRecorder) { $('camWarn').textContent = 'This browser cannot record video. Try Chrome, Edge or Firefox.'; return; }
+  countdownThenRecord();
+});
+
+function countdownThenRecord() {
+  const cd = $('countdown');
+  let n = 3;
+  cd.style.display = 'flex'; cd.textContent = n;
+  $('btnRec').disabled = true;
+  const iv = setInterval(() => {
+    n--;
+    if (n > 0) { cd.textContent = n; }
+    else {
+      clearInterval(iv);
+      cd.textContent = '🎤';
+      setTimeout(() => { cd.style.display = 'none'; beginRecord(); }, 420);
+    }
+  }, 800);
+}
+
+let recStart = 0, recTick = null;
+function beginRecord() {
+  chunks = [];
+  const mime = recMime();
+  try {
+    recorder = mime ? new MediaRecorder(camStream, { mimeType: mime, videoBitsPerSecond: 2500000 })
+                    : new MediaRecorder(camStream);
+  } catch (e) {
+    $('camWarn').textContent = 'Recording is not available here: ' + e.message;
+    $('btnRec').disabled = false;
+    return;
+  }
+  recorder.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
+  recorder.onstop = finishRecord;
+  recorder.start(100);
+  recStart = performance.now();
+  $('recLamp').style.display = 'flex';
+  $('btnStopRec').style.display = 'inline-block';
+  recTick = setInterval(() => {
+    const s = Math.floor((performance.now() - recStart) / 1000);
+    $('recTime').textContent = Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+  }, 250);
+  startSong(() => { if (recorder && recorder.state === 'recording') recorder.stop(); });
+}
+
+$('btnStopRec').addEventListener('click', () => {
+  stopSong();
+  if (recorder && recorder.state === 'recording') recorder.stop();
+});
+
+function finishRecord() {
+  clearInterval(recTick);
+  $('recLamp').style.display = 'none';
+  $('btnStopRec').style.display = 'none';
+  $('btnRec').disabled = false;
+  if (!chunks.length) { toast('Nothing got recorded — try again.'); return; }
+  clipBlob = new Blob(chunks, { type: chunks[0].type || 'video/webm' });
+  if (clipURL) URL.revokeObjectURL(clipURL);
+  clipURL = URL.createObjectURL(clipBlob);
+  clipVid.src = clipURL;
+  clipVid.load();
+  stopCam();
+  hasClip = true;
+  showScreen('screenEdit');
+  toast('Nice take! Now add effects to your lines ✨');
+  drawStageOnce();
+}
+
+$('btnSkipCam').addEventListener('click', () => {
+  hasClip = false;
+  stopCam();
+  showScreen('screenEdit');
+  toast('No camera — effects will play over a studio backdrop.');
+});
+$('btnReshoot').addEventListener('click', () => { stopPreview(); showScreen('screenVideo'); });
+
+/* =====================================================================
+   10. video effects
+   ===================================================================== */
+const EFFECTS = {
+  none:      { name: '— none —' },
+  fire:      { name: '🔥 Fire',          col: '#ff8a1e' },
+  sparkle:   { name: '✨ Sparkles',      col: '#ffe680' },
+  lightning: { name: '⚡ Lightning',     col: '#bfe9ff' },
+  hearts:    { name: '💗 Hearts',        col: '#ff7ab8' },
+  confetti:  { name: '🎉 Confetti',      col: '#ffd166' },
+  snow:      { name: '❄️ Snow',          col: '#eaf6ff' },
+  rain:      { name: '🌧️ Rain',          col: '#9fd8ff' },
+  bubbles:   { name: '🫧 Bubbles',       col: '#a8f0ff' },
+  smoke:     { name: '💨 Smoke',         col: '#cfc9e8' },
+  aura:      { name: '🌟 Glow aura',     col: '#ffd166' },
+  stars:     { name: '💫 Orbiting stars',col: '#fff2a8' },
+  glitch:    { name: '📺 Glitch',        col: '#4be3ff' },
+  shake:     { name: '📳 Camera shake',  col: '#ffffff' },
+  zoom:      { name: '🔍 Zoom pulse',    col: '#ffffff' },
+  tint:      { name: '🎨 Colour wash',   col: '#ff4d94' },
+  spotlight: { name: '🔦 Spotlight',     col: '#ffffff' }
+};
+
+const stage = $('stage'), sx = stage.getContext('2d');
+let hasClip = false, armedRow = -1;
+/* per-line effect config: { fx, x, y }  (x,y are 0..1 of the frame) */
+let fxCfg = [];
+
+function buildFxRows() {
+  const box = $('fxlist');
+  box.innerHTML = '';
+  if (!state.song) return;
+  const old = fxCfg;
+  fxCfg = state.song.lines.map((l, i) => old[i] || { fx: 'none', x: .5, y: .55 });
+
+  state.song.lines.forEach((line, i) => {
+    const row = document.createElement('div');
+    row.className = 'fxrow'; row.dataset.i = i;
+
+    const left = document.createElement('div');
+    left.innerHTML = '<div class="txt">' + escapeHtml(line.text) + '</div>' +
+      '<div class="tm">' + fmtT(line.start) + ' → ' + fmtT(line.start + line.dur) + '</div>';
+    row.appendChild(left);
+
+    const sel = document.createElement('select');
+    Object.keys(EFFECTS).forEach(k => {
+      const o = document.createElement('option');
+      o.value = k; o.textContent = EFFECTS[k].name;
+      sel.appendChild(o);
+    });
+    sel.value = fxCfg[i].fx;
+    sel.addEventListener('change', () => {
+      fxCfg[i].fx = sel.value;
+      if (sel.value !== 'none') previewLine(i);
+    });
+    row.appendChild(sel);
+
+    const spot = document.createElement('button');
+    spot.className = 'spot';
+    spot.textContent = '🎯 Set spot';
+    spot.addEventListener('click', () => {
+      armedRow = armedRow === i ? -1 : i;
+      [...box.children].forEach(c => c.classList.toggle('armed', +c.dataset.i === armedRow));
+      if (armedRow === i) toast('Now tap the video where the effect should sit.');
+    });
+    row.appendChild(spot);
+
+    box.appendChild(row);
+  });
+}
+function escapeHtml(s) { return s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+function fmtT(s) { return Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0'); }
+
+stage.addEventListener('click', e => {
+  if (armedRow < 0) return;
+  const r = stage.getBoundingClientRect();
+  fxCfg[armedRow].x = clamp((e.clientX - r.left) / r.width, 0, 1);
+  fxCfg[armedRow].y = clamp((e.clientY - r.top) / r.height, 0, 1);
+  const row = $('fxlist').children[armedRow];
+  if (row) { row.classList.remove('armed'); row.querySelector('.spot').classList.add('set'); row.querySelector('.spot').textContent = '🎯 Spot set'; }
+  const i = armedRow;
+  armedRow = -1;
+  previewLine(i);
+});
+
+/* ---------- the effect painters ---------- */
+function paintEffect(ctx, w, h, kind, p, cfg, srcFrame) {
+  /* p = { age (s in the line), t (0..1), x, y (px) } */
+  const x = p.x, y = p.y, age = p.age, t = p.t;
+  const fade = Math.min(1, t * 6) * Math.min(1, (1 - t) * 6 + .3);
+  ctx.save();
+  switch (kind) {
+    case 'fire': {
+      ctx.globalCompositeOperation = 'lighter';
+      const N = 90;
+      for (let i = 0; i < N; i++) {
+        const ph = frnd(i * 3.1), sp = .6 + frnd(i * 7.7) * .9;
+        const life = (age * sp + ph) % 1;
+        const rise = life * h * .34;
+        const wob = Math.sin((age * 4 + i) * 1.7) * 16 * life;
+        const px = x + (frnd(i * 2.3) - .5) * w * .085 + wob;
+        const py = y - rise;
+        const r = (16 + frnd(i * 5.5) * 14) * (1 - life * .75) * (1 + p.pulse * .3);
+        const a = (1 - life) * .55 * fade;
+        const g = ctx.createRadialGradient(px, py, 0, px, py, r);
+        const hot = life < .35;
+        g.addColorStop(0, 'rgba(255,255,' + (hot ? 210 : 120) + ',' + a + ')');
+        g.addColorStop(.45, 'rgba(255,' + Math.round(150 - life * 90) + ',20,' + a * .75 + ')');
+        g.addColorStop(1, 'rgba(180,20,0,0)');
+        ctx.fillStyle = g;
+        ctx.beginPath(); ctx.arc(px, py, r, 0, 6.283); ctx.fill();
+      }
+      const gl = ctx.createRadialGradient(x, y, 0, x, y, w * .3);
+      gl.addColorStop(0, 'rgba(255,120,20,' + (.22 * fade) + ')');
+      gl.addColorStop(1, 'rgba(255,80,0,0)');
+      ctx.fillStyle = gl; ctx.fillRect(0, 0, w, h);
+      break;
+    }
+    case 'sparkle': {
+      ctx.globalCompositeOperation = 'lighter';
+      for (let i = 0; i < 46; i++) {
+        const ph = frnd(i * 1.7);
+        const life = (age * (.5 + frnd(i * 4.4) * .7) + ph) % 1;
+        const px = x + (frnd(i * 9.1) - .5) * w * .5;
+        const py = y + (frnd(i * 3.9) - .5) * h * .5 - life * 26;
+        const s = (5 + frnd(i * 6.2) * 10) * Math.sin(life * Math.PI);
+        ctx.fillStyle = 'rgba(255,235,150,' + (.9 * Math.sin(life * Math.PI) * fade) + ')';
+        star(ctx, px, py, s);
+      }
+      break;
+    }
+    case 'lightning': {
+      const boltI = Math.floor(age * 3.2);
+      const local = age * 3.2 - boltI;
+      if (local < .34) {
+        const a = (1 - local / .34) * fade;
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.fillStyle = 'rgba(150,220,255,' + (a * .22) + ')';
+        ctx.fillRect(0, 0, w, h);
+        ctx.strokeStyle = 'rgba(235,250,255,' + a + ')';
+        ctx.lineWidth = 3 + a * 4;
+        ctx.shadowColor = '#9fd8ff'; ctx.shadowBlur = 24;
+        for (let b = 0; b < 2; b++) {
+          ctx.beginPath();
+          let px = x + (frnd(boltI * 3 + b) - .5) * w * .4, py = 0;
+          ctx.moveTo(px, py);
+          const steps = 9;
+          for (let s = 1; s <= steps; s++) {
+            px += (frnd(boltI * 31 + b * 7 + s) - .5) * w * .17;
+            py = (y / steps) * s;
+            ctx.lineTo(px, py);
+          }
+          ctx.stroke();
+        }
+      }
+      break;
+    }
+    case 'hearts': case 'confetti': case 'snow': case 'bubbles': {
+      const N = kind === 'confetti' ? 80 : 46;
+      for (let i = 0; i < N; i++) {
+        const ph = frnd(i * 2.7), sp = .18 + frnd(i * 5.1) * .35;
+        const life = (age * sp + ph) % 1;
+        let px, py, a = fade;
+        if (kind === 'snow' || kind === 'confetti') {
+          px = frnd(i * 8.3) * w + Math.sin(age * 1.4 + i) * 22;
+          py = life * (h + 60) - 30;
+        } else {
+          px = x + (frnd(i * 8.3) - .5) * w * .55 + Math.sin(age * 2 + i) * 14;
+          py = y - life * h * .6 + h * .1;
+          a *= (1 - life);
+        }
+        const s = 7 + frnd(i * 4.9) * 12;
+        ctx.globalAlpha = clamp(a, 0, 1);
+        if (kind === 'hearts') { ctx.fillStyle = i % 3 ? '#ff7ab8' : '#ffd1e6'; heart(ctx, px, py, s); }
+        else if (kind === 'confetti') {
+          ctx.fillStyle = ['#ffd166', '#ff4d94', '#4be3ff', '#8ef58a', '#c9a8ff'][i % 5];
+          ctx.save(); ctx.translate(px, py); ctx.rotate(age * 3 + i); ctx.fillRect(-s / 2, -s / 4, s, s / 2); ctx.restore();
+        } else if (kind === 'snow') {
+          ctx.fillStyle = '#ffffff';
+          ctx.beginPath(); ctx.arc(px, py, s * .28, 0, 6.283); ctx.fill();
+        } else {
+          ctx.strokeStyle = 'rgba(200,245,255,.9)'; ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.arc(px, py, s * .55, 0, 6.283); ctx.stroke();
+          ctx.fillStyle = 'rgba(180,240,255,.16)'; ctx.fill();
+        }
+      }
+      ctx.globalAlpha = 1;
+      break;
+    }
+    case 'rain': {
+      ctx.strokeStyle = 'rgba(180,225,255,' + (.55 * fade) + ')';
+      ctx.lineWidth = 2;
+      for (let i = 0; i < 120; i++) {
+        const life = (age * (1.3 + frnd(i) * .8) + frnd(i * 3.3)) % 1;
+        const px = frnd(i * 7.1) * w + life * 40;
+        const py = life * (h + 40) - 20;
+        ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px - 7, py - 18); ctx.stroke();
+      }
+      break;
+    }
+    case 'smoke': {
+      ctx.globalCompositeOperation = 'screen';
+      for (let i = 0; i < 34; i++) {
+        const life = (age * (.22 + frnd(i * 2.2) * .18) + frnd(i * 5.7)) % 1;
+        const px = x + (frnd(i * 3.7) - .5) * w * .2 + Math.sin(age + i) * 26 * life;
+        const py = y - life * h * .5;
+        const r = 26 + life * 90;
+        const g = ctx.createRadialGradient(px, py, 0, px, py, r);
+        const a = (1 - life) * .2 * fade;
+        g.addColorStop(0, 'rgba(220,215,235,' + a + ')');
+        g.addColorStop(1, 'rgba(200,195,220,0)');
+        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(px, py, r, 0, 6.283); ctx.fill();
+      }
+      break;
+    }
+    case 'aura': {
+      ctx.globalCompositeOperation = 'lighter';
+      const pr = (Math.sin(age * 5) * .5 + .5);
+      for (let k = 0; k < 3; k++) {
+        const r = w * (.14 + k * .07) * (1 + pr * .1);
+        const g = ctx.createRadialGradient(x, y, r * .5, x, y, r);
+        g.addColorStop(0, 'rgba(255,215,120,0)');
+        g.addColorStop(.7, 'rgba(255,205,90,' + (.16 * fade) + ')');
+        g.addColorStop(1, 'rgba(255,180,40,0)');
+        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, 6.283); ctx.fill();
+      }
+      break;
+    }
+    case 'stars': {
+      ctx.globalCompositeOperation = 'lighter';
+      for (let i = 0; i < 14; i++) {
+        const ang = age * 1.7 + i * (6.283 / 14);
+        const rx = w * .16 * (1 + Math.sin(age + i) * .12);
+        const ry = h * .09;
+        const px = x + Math.cos(ang) * rx, py = y + Math.sin(ang) * ry;
+        ctx.fillStyle = 'rgba(255,244,170,' + (.9 * fade) + ')';
+        star(ctx, px, py, 9 + Math.sin(age * 6 + i) * 3);
+      }
+      break;
+    }
+    case 'glitch': {
+      if (srcFrame) {
+        const slices = 9;
+        for (let i = 0; i < slices; i++) {
+          const sh = h / slices;
+          const off = (frnd(Math.floor(age * 14) * 13 + i) - .5) * w * .16;
+          ctx.globalAlpha = .55 * fade;
+          ctx.globalCompositeOperation = i % 2 ? 'screen' : 'lighter';
+          try { ctx.drawImage(srcFrame, 0, i * sh, w, sh, off, i * sh, w, sh); } catch (e) {}
+        }
+        ctx.globalAlpha = 1;
+      }
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.fillStyle = 'rgba(75,227,255,' + (.05 * fade) + ')';
+      ctx.fillRect(0, 0, w, h);
+      break;
+    }
+    case 'tint': {
+      const hue = (age * 60) % 360;
+      ctx.globalCompositeOperation = 'overlay';
+      ctx.fillStyle = 'hsla(' + hue + ',85%,55%,' + (.4 * fade) + ')';
+      ctx.fillRect(0, 0, w, h);
+      break;
+    }
+    case 'spotlight': {
+      ctx.globalCompositeOperation = 'source-over';
+      const r = w * (.26 + Math.sin(age * 3) * .02);
+      const g = ctx.createRadialGradient(x, y, r * .35, x, y, r * 1.7);
+      g.addColorStop(0, 'rgba(0,0,0,0)');
+      g.addColorStop(1, 'rgba(0,0,0,' + (.72 * fade) + ')');
+      ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+      break;
+    }
+  }
+  ctx.restore();
+}
+function star(ctx, x, y, r) {
+  ctx.beginPath();
+  for (let i = 0; i < 8; i++) {
+    const a = i * Math.PI / 4, rr = i % 2 ? r * .38 : r;
+    ctx.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr);
+  }
+  ctx.closePath(); ctx.fill();
+}
+function heart(ctx, x, y, s) {
+  ctx.beginPath();
+  ctx.moveTo(x, y + s * .3);
+  ctx.bezierCurveTo(x + s * .55, y - s * .35, x + s * .95, y + s * .3, x, y + s * .85);
+  ctx.bezierCurveTo(x - s * .95, y + s * .3, x - s * .55, y - s * .35, x, y + s * .3);
+  ctx.fill();
+}
+
+/* geometry effects need to move the whole frame, so they run before drawing */
+function frameTransform(ctx, w, h, kind, age, t) {
+  if (kind === 'shake') {
+    const a = 9 * Math.min(1, (1 - t) * 5);
+    ctx.translate(Math.sin(age * 41) * a, Math.cos(age * 37) * a);
+  } else if (kind === 'zoom') {
+    const z = 1 + Math.sin(age * 6.283 * 1.5) * .06;
+    ctx.translate(w / 2, h / 2); ctx.scale(z, z); ctx.translate(-w / 2, -h / 2);
+  }
+}
+
+/* =====================================================================
+   11. stage rendering + preview + export
+   ===================================================================== */
+let previewing = false, previewRAF = 0, exporting = false;
+
+function stageSize() {
+  const w = hasClip && clipVid.videoWidth ? clipVid.videoWidth : 640;
+  const h = hasClip && clipVid.videoHeight ? clipVid.videoHeight : 480;
+  if (stage.width !== w || stage.height !== h) { stage.width = w; stage.height = h; }
+  return [w, h];
+}
+
+function activeLineAt(pos) {
+  if (!state.song) return -1;
+  for (let i = 0; i < state.song.lines.length; i++) {
+    const l = state.song.lines[i];
+    if (pos >= l.start && pos < l.start + l.dur) return i;
+  }
+  return -1;
+}
+
+function drawBackdrop(ctx, w, h, pos) {
+  const g = ctx.createLinearGradient(0, 0, 0, h);
+  g.addColorStop(0, '#20103f'); g.addColorStop(1, '#0c0620');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+  for (let i = 0; i < 40; i++) {
+    const px = ((i * 97) % w), py = ((i * 61) % h);
+    ctx.fillStyle = 'rgba(255,255,255,' + (.05 + .05 * Math.sin(pos * 2 + i)) + ')';
+    ctx.fillRect(px, py, 2, 2);
+  }
+  ctx.fillStyle = 'rgba(255,255,255,.9)';
+  ctx.font = 'bold ' + Math.round(h * .07) + 'px "Segoe UI", sans-serif';
+  ctx.textAlign = 'center';
+  const li = activeLineAt(pos);
+  if (li >= 0) ctx.fillText(state.song.lines[li].text.slice(0, 42), w / 2, h * .55);
+  ctx.textAlign = 'left';
+}
+
+function renderStage(pos) {
+  const [w, h] = stageSize();
+  const li = activeLineAt(pos);
+  const cfg = li >= 0 ? fxCfg[li] : null;
+  const kind = cfg ? cfg.fx : 'none';
+  const line = li >= 0 ? state.song.lines[li] : null;
+  const age = line ? pos - line.start : 0;
+  const t = line ? clamp(age / line.dur, 0, 1) : 0;
+
+  sx.setTransform(1, 0, 0, 1, 0, 0);
+  sx.clearRect(0, 0, w, h);
+  sx.save();
+  frameTransform(sx, w, h, kind, age, t);
+
+  if (hasClip && clipVid.readyState >= 2) {
+    sx.save(); sx.translate(w, 0); sx.scale(-1, 1);   /* un-mirror the selfie view */
+    try { sx.drawImage(clipVid, 0, 0, w, h); } catch (e) {}
+    sx.restore();
+  } else {
+    drawBackdrop(sx, w, h, pos);
+  }
+  sx.restore();
+
+  if (kind && kind !== 'none' && kind !== 'shake' && kind !== 'zoom' && line) {
+    paintEffect(sx, w, h, kind, {
+      age, t,
+      x: cfg.x * w, y: cfg.y * h,
+      pulse: Math.sin(age * 9) * .5 + .5
+    }, cfg, hasClip && clipVid.readyState >= 2 ? clipVid : null);
+  }
+
+  /* burned-in lyric caption */
+  if (line) {
+    const fs = Math.round(h * .052);
+    sx.font = 'bold ' + fs + 'px "Segoe UI", Arial, sans-serif';
+    sx.textAlign = 'center';
+    sx.lineWidth = Math.max(3, fs * .16);
+    sx.strokeStyle = 'rgba(0,0,0,.75)';
+    sx.fillStyle = '#fff';
+    const words = line.text.split(' ');
+    const rows = [];
+    let cur = '';
+    words.forEach(wd => {
+      if ((cur + ' ' + wd).trim().length > 34) { rows.push(cur.trim()); cur = wd; }
+      else cur += ' ' + wd;
+    });
+    if (cur.trim()) rows.push(cur.trim());
+    rows.forEach((r, i) => {
+      const yy = h - 26 - (rows.length - 1 - i) * fs * 1.2;
+      sx.strokeText(r, w / 2, yy); sx.fillText(r, w / 2, yy);
+    });
+    sx.textAlign = 'left';
+  }
+}
+
+function drawStageOnce() {
+  stageSize();
+  if (hasClip) { clipVid.currentTime = 0.05; setTimeout(() => renderStage(0), 220); }
+  else renderStage(0);
+}
+
+/* jump to one line so the user can see the effect immediately */
+function previewLine(i) {
+  if (previewing || exporting || !state.song) return;
+  const line = state.song.lines[i];
+  const t0 = performance.now();
+  if (hasClip) { try { clipVid.currentTime = line.start; clipVid.play().catch(() => {}); } catch (e) {} }
+  const tick = () => {
+    const el = (performance.now() - t0) / 1000;
+    if (el > line.dur || previewing || exporting) {
+      if (hasClip) clipVid.pause();
+      return;
+    }
+    renderStage(line.start + el);
+    requestAnimationFrame(tick);
+  };
+  tick();
+}
+
+function stopPreview() {
+  previewing = false;
+  cancelAnimationFrame(previewRAF);
+  clipVid.pause();
+  stopSong();
+  $('btnPreview').textContent = '▶ Play Video';
+}
+
+$('btnPreview').addEventListener('click', () => {
+  if (previewing) { stopPreview(); return; }
+  previewing = true;
+  $('btnPreview').textContent = '⏹ Stop';
+  if (hasClip) { clipVid.currentTime = 0; clipVid.play().catch(() => {}); }
+  startSong(() => { stopPreview(); });
+  const tick = () => {
+    if (!previewing) return;
+    const pos = playing ? songPos() : 0;
+    renderStage(Math.max(0, pos));
+    previewRAF = requestAnimationFrame(tick);
+  };
+  tick();
+});
+
+/* ---------- export ---------- */
+$('btnExport').addEventListener('click', async () => {
+  if (exporting) return;
+  if (!window.MediaRecorder || !stage.captureStream) {
+    toast('This browser cannot save video. Try Chrome, Edge or Firefox.', 3800);
+    return;
+  }
+  ensureAudio();
+  stopPreview();
+  exporting = true;
+  $('btnExport').disabled = true;
+  $('btnPreview').disabled = true;
+
+  const [w, h] = stageSize();
+  const vStream = stage.captureStream(30);
+  const mixed = new MediaStream([...vStream.getVideoTracks(), ...recDest.stream.getAudioTracks()]);
+  const mime = recMime();
+  let mr;
+  try {
+    mr = mime ? new MediaRecorder(mixed, { mimeType: mime, videoBitsPerSecond: 4000000 }) : new MediaRecorder(mixed);
+  } catch (e) {
+    toast('Save failed: ' + e.message); exporting = false;
+    $('btnExport').disabled = false; $('btnPreview').disabled = false;
+    return;
+  }
+  const parts = [];
+  mr.ondataavailable = e => { if (e.data && e.data.size) parts.push(e.data); };
+  mr.onstop = () => {
+    const blob = new Blob(parts, { type: parts.length ? parts[0].type : 'video/webm' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const safe = ($('songTitle').textContent || 'my-song').replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'my-song';
+    a.href = url; a.download = safe + '.webm';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 30000);
+    exporting = false;
+    $('btnExport').disabled = false; $('btnPreview').disabled = false;
+    $('expInfo').textContent = 'saved · ' + Math.round(blob.size / 1024 / 1024 * 10) / 10 + ' MB';
+    toast('Saved to your downloads 🎬');
+  };
+
+  mr.start(200);
+  if (hasClip) { clipVid.currentTime = 0; clipVid.play().catch(() => {}); }
+  startSong(() => {
+    if (hasClip) clipVid.pause();
+    setTimeout(() => { if (mr.state !== 'inactive') mr.stop(); }, 260);
+  });
+  const tick = () => {
+    if (!exporting) return;
+    const pos = playing ? songPos() : state.song.dur;
+    renderStage(Math.max(0, pos));
+    $('expInfo').textContent = 'recording ' + fmtT(Math.max(0, pos)) + ' / ' + fmtT(state.song.dur);
+    if (playing) requestAnimationFrame(tick);
+  };
+  tick();
+});
+
+/* =====================================================================
+   12. boot
+   ===================================================================== */
+buildVibes();
+buildMix();
+buildToggles();
+applyGenreDefaults();
+if ('speechSynthesis' in window) {
+  loadVoices();
+  speechSynthesis.onvoiceschanged = loadVoices;
+}
+$('lyrics').value = '';
+window.addEventListener('pagehide', () => { stopSong(true); stopCam(); });
+document.addEventListener('visibilitychange', () => { if (document.hidden && playing) stopSong(); });
+
+})();
+</script>
+</body>
+</html>
