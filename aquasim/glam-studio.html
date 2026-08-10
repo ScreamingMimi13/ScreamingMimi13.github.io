@@ -1365,6 +1365,18 @@
       lips: lipsPath
     },
 
+    // Foundation and highlighter belong on skin — not on the eyeballs or the
+    // lips. These get punched out of the cleanup stencil.
+    holes: {
+      face: function (ctx) {
+        multiPath(ctx, function () {
+          eyeShape(ctx, F.cx - F.eyeDX, F.eyeY, -1);
+          eyeShape(ctx, F.cx + F.eyeDX, F.eyeY, 1);
+          lipsPath(ctx);
+        });
+      }
+    },
+
     /* ---- the portrait, drawn under the player's makeup ---- */
     back: function (ctx, L) {
       var skin = SKIN_TONES[L.client.skin];
@@ -2092,7 +2104,7 @@
   // you lift the brush the overspill is wiped back to that line — the same thing
   // a real artist does with a clean-up brush (Guide #65).
   var BRUSH = {
-    foundation: { r: 42, a: 0.10, soft: 1, clean: 18 },
+    foundation: { r: 42, a: 0.10, soft: 1, clean: 18, even: 3 },
     blush:      { r: 34, a: 0.085, soft: 1, clean: 22 },
     glow:       { r: 20, a: 0.11, soft: 1, shine: 1, clean: 16 },
     shadow:     { r: 21, a: 0.13, soft: 1, clean: 13 },
@@ -2102,6 +2114,8 @@
     lipstick:   { r: 11, a: 0.5, soft: 0.25, clean: 4 },
     gloss:      { r: 11, a: 0.3, soft: 0.4, shine: 1, clean: 4 },
     polish:     { r: 9, a: 0.55, soft: 0.15, clean: 3 },
+    // No `even` on the shine products: they paint white and screen-blend, so
+    // pushing them to full opacity turns a manicure chalky.
     base:       { r: 10, a: 0.2, soft: 0.3, shine: 1, clean: 3 },
     top:        { r: 11, a: 0.2, soft: 0.3, shine: 1, clean: 3 },
     cuticle:    { r: 7, a: 0.22, soft: 0.5, shine: 1, clean: 5 },
@@ -2394,6 +2408,7 @@
   function cleanMask(group, clean) {
     var key = group + '|c' + clean;
     if (cleanCache[key]) return cleanCache[key];
+    var subj = SUBJECTS[P.L.subject];
     var cv = document.createElement('canvas');
     cv.width = SW; cv.height = SH;
     var c = cv.getContext('2d');
@@ -2403,9 +2418,17 @@
     c.strokeStyle = '#ffffff';
     c.lineWidth = clean * 2;
     c.lineJoin = 'round';
-    SUBJECTS[P.L.subject].regions[group](c);
+    subj.regions[group](c);
     c.fill();
     c.stroke();
+    if (subj.holes && subj.holes[group]) {
+      if ('filter' in c) c.filter = 'blur(3px)';
+      c.globalCompositeOperation = 'destination-out';
+      subj.holes[group](c);
+      c.fill();
+      c.globalCompositeOperation = 'source-over';
+    }
+    if ('filter' in c) c.filter = 'none';
     cleanCache[key] = cv;
     return cv;
   }
@@ -2413,6 +2436,9 @@
   function cleanEdges(layer) {
     var spec = BRUSH[layer.product] || {};
     if (spec.stamp || spec.file || spec.clean === undefined) return;
+    // Products that are meant to sit as one flat film get blended out, so
+    // overlapping swipes stop reading as stripes.
+    for (var i = 0; i < (spec.even || 0); i++) layer.ctx.drawImage(layer.cv, 0, 0);
     layer.ctx.globalCompositeOperation = 'destination-in';
     layer.ctx.drawImage(cleanMask(layer.group, spec.clean), 0, 0);
     layer.ctx.globalCompositeOperation = 'source-over';
@@ -2649,7 +2675,7 @@
   function popSparkles(x, y, col, n) {
     for (var i = 0; i < n; i++) {
       P.sparkles.push({
-        x: x + (Math.random() - 0.5) * 80, y: y + (Math.random() - 0.5) * 56,
+        x: x + (Math.random() - 0.5) * 44, y: y + (Math.random() - 0.5) * 30,
         s: 4 + Math.random() * 7, r: Math.random() * TAU, c: col,
         life: 1, vy: -0.3 - Math.random() * 0.5
       });
@@ -2659,8 +2685,11 @@
   /* ---------------- composite the scene ---------------- */
   // Shine products screen-blend; each has its own strength so a scrubbed heel
   // does not end up looking bleached.
-  var SHINE = { glow: 0.85, gloss: 0.8, base: 0.7, top: 0.75, cuticle: 0.6, lotion: 0.45, scrub: 0.45, massage: 0.45 };
-  var LAYER_ALPHA = { foundation: 0.9, blush: 0.92, shadow: 0.95, brow: 0.9 };
+  // Screen-blending white over colour washes it out, so the coats that are meant
+  // to read as shine rather than as paint are kept faint — a top coat's gloss
+  // comes from the highlight pass in front(), not from the film itself.
+  var SHINE = { glow: 0.7, gloss: 0.55, base: 0.18, top: 0.22, cuticle: 0.3, lotion: 0.3, scrub: 0.34, massage: 0.3 };
+  var LAYER_ALPHA = { foundation: 0.78, blush: 0.92, shadow: 0.95, brow: 0.9 };
 
   function drawScene() {
     var ctx = sctx;
