@@ -199,6 +199,12 @@
   .shop-item .sw { display: inline-block; width: 34px; height: 34px; border-radius: 8px; margin-bottom: 4px; border: 1px solid rgba(0,0,0,.1); }
   .shop-item .nm { display: block; font-weight: bold; }
   .shop-item .ct { display: block; font-size: .78rem; color: #b8860b; margin-top: 3px; }
+  .shop-note {
+    grid-column: 1 / -1; background: #f3ecff; border: 2px solid #d9c8ff;
+    border-radius: 12px; padding: 8px 10px; text-align: center;
+    font-size: .92rem; font-weight: bold; color: #5b3b8a;
+  }
+  .shop-note small { font-weight: normal; color: #7d6a9c; font-size: .76rem; }
   .modal .close { display: block; margin: 14px auto 0; }
 
   /* ---------- Start screen ---------- */
@@ -296,6 +302,7 @@
       <button class="tab sel" data-cat="outfit">👕 Outfits</button>
       <button class="tab" data-cat="material">✏️ Drawing</button>
       <button class="tab" data-cat="background">🏟️ Gyms</button>
+      <button class="tab" data-cat="power">⚡ Powers</button>
     </div>
     <div class="shop-grid" id="shopGrid"></div>
     <button class="btn pink close" id="closeShopBtn">Done</button>
@@ -355,7 +362,8 @@ function persist() {
       equipped: shop.equipped,
       unlocked: game.unlocked,
       stars: game.stars,
-      character: game.character
+      character: game.character,
+      stock: game.stock
     }));
   } catch (e) {}
 }
@@ -407,6 +415,15 @@ const SHOP = {
     { id: 'bg-beach',  name: 'Beach Mats',  cost: 150, data: { sky: 0x8fe3ff, ground: 0xf2d79b, wall: 0x57c8ff, stars: false } },
     { id: 'bg-sunset', name: 'Sunset Park', cost: 180, data: { sky: 0xff9966, ground: 0x6b8e3a, wall: 0xffb37a, stars: false } },
     { id: 'bg-space',  name: 'Moon Gym',    cost: 320, data: { sky: 0x0a0626, ground: 0x9fa3b3, wall: 0x1a1440, stars: true } }
+  ],
+  // Consumable packs — each pack adds charges to your stock, and your whole
+  // stock is activated at the start of every run (3 shields = 3 free crashes).
+  power: [
+    { id: 'pk-shield1', name: 'Shield x1',  cost: 40,  data: { power: 'shield', qty: 1 } },
+    { id: 'pk-shield3', name: 'Shield x3',  cost: 100, data: { power: 'shield', qty: 3 } },
+    { id: 'pk-turbo3',  name: 'Turbo x3',   cost: 90,  data: { power: 'turbo',  qty: 3 } },
+    { id: 'pk-spring3', name: 'Spring x3',  cost: 90,  data: { power: 'spring', qty: 3 } },
+    { id: 'pk-mega',    name: 'Mega Pack',  cost: 250, data: { power: 'mega',   qty: 2 } }
   ]
 };
 
@@ -431,7 +448,8 @@ const game = {
   crashes: 0,          // crashes this run
   finished: false,     // reached the finish line this run
   character: 'her',    // 'her' (Ava) or 'him' (Max)
-  fx: { turbo: 0, spring: 0, shield: 0 }   // active powerup timers
+  fx: { turbo: 0, spring: 0, shield: 0 },  // active powerup timers / shield count
+  stock: { turbo: 0, spring: 0, shield: 0 } // packs bought in the shop
 };
 
 // load save
@@ -461,6 +479,8 @@ if (saved) {
   game.unlocked = Math.max(1, saved.unlocked || 1);   // clamped to LEVELS.length at boot
   game.stars = saved.stars || {};
   game.character = saved.character === 'him' ? 'him' : 'her';
+  if (saved.stock) for (const k of ['turbo', 'spring', 'shield'])
+    game.stock[k] = Math.max(0, saved.stock[k] | 0);
   // the Headband was removed from the game (floated like a halo) — refund owners
   if (shop.owned.has('acc-band')) { shop.owned.delete('acc-band'); game.coins += 15; }
   if (shop.equipped.acc === 'acc-band') shop.equipped.acc = null;
@@ -1120,7 +1140,9 @@ function loadCharacter(key) {
 }
 
 function updateHuman(dt) {
-  const running = game.mode === 'run' && body.grounded && body.stumble <= 0;
+  // sliding on ice: feet together, gliding — not a run cycle
+  const sliding = game.mode === 'run' && body.grounded && (body.slide || 0) > 0;
+  const running = game.mode === 'run' && body.grounded && body.stumble <= 0 && !sliding;
   const want = running ? 'run' : 'idle';
   if (want !== human.current) {
     human.actions[human.current].fadeOut(0.2);
@@ -1229,9 +1251,11 @@ function resetRun() {
   body.lane = 1; body.z = 0;
   body.angle = 0; body.angVel = 0; body.grounded = true;
   body.airTime = 0; body.wasAir = false; body.stumble = 0;
+  body.slide = 0; body.slideMsg = 0; body.trampCd = 0;
   resetHurdles();
   powerups.forEach(p => { p.taken = false; p.mesh.visible = true; });
   game.fx.turbo = 0; game.fx.spring = 0; game.fx.shield = 0;
+  game.fx.turboStacks = 0; game.fx.springStacks = 0;
   game.cleared = 0; game.crashes = 0; game.finished = false;
   game.mode = 'idle';
   updateLevelHud();
@@ -1262,6 +1286,7 @@ function physics(dt) {
   // powerup timers tick down
   game.fx.turbo = Math.max(0, game.fx.turbo - dt);
   game.fx.spring = Math.max(0, game.fx.spring - dt);
+  body.slide = Math.max(0, (body.slide || 0) - dt);   // sliding pose fades out
   // lane steering — slide toward the chosen lane (works on the ground and in the air)
   body.z = lerp(body.z, LANE_Z[body.lane], 1 - Math.pow(0.0005, dt));
   // gravity + integrate (a couple of substeps for stability)
@@ -1272,13 +1297,13 @@ function physics(dt) {
     body.y += body.vy * h;
 
     let grounded = false;
-    let nx = 0, ny = 1, surfFric = 0.15, surfRest = 0.05, surfGrip = 1, surfSlick = false;
+    let nx = 0, ny = 1, surfFric = 0.15, surfRest = 0.05, surfGrip = 1, surfSlick = false, surfBounce = 0;
 
     // base floor
     if (body.y - R < 0) {
       body.y = R;
       if (body.vy < 0) body.vy = 0;
-      grounded = true; nx = 0; ny = 1; surfFric = 0.16; surfRest = 0.05; surfGrip = 1; surfSlick = false;
+      grounded = true; nx = 0; ny = 1; surfFric = 0.16; surfRest = 0.05; surfGrip = 1; surfSlick = false; surfBounce = 0;
     }
     // drawn segments
     for (const seg of segments) {
@@ -1294,21 +1319,12 @@ function physics(dt) {
         if (vn < 0) {
           body.vx -= (1 + seg.rest) * vn * inx;
           body.vy -= (1 + seg.rest) * vn * iny;
-          // TRAMPOLINE ink: a real landing gets a guaranteed big launch
-          if (seg.bounce && vn < -1.5) {
-            const nvAfter = body.vx * inx + body.vy * iny;
-            if (nvAfter < seg.bounce) {
-              const boost = seg.bounce - nvAfter;
-              body.vx += boost * inx; body.vy += boost * iny;
-            }
-            showScore('BOING!', 'Trampoline ink launch!');
-            continue;                     // launched — not grounded on it
-          }
         }
         grounded = true; nx = inx; ny = iny;
         surfFric = seg.fric; surfRest = seg.rest;
         surfGrip = seg.grip == null ? 1 : seg.grip;
         surfSlick = !!seg.slick;
+        surfBounce = seg.bounce || 0;
       }
     }
     // hurdles — solid blocks you must get over
@@ -1326,6 +1342,7 @@ function physics(dt) {
           body.y = top + R;
           if (body.vy < 0) body.vy = 0;
           grounded = true; nx = 0; ny = 1; surfFric = 0.16; surfRest = 0.05;
+          surfGrip = 1; surfSlick = false; surfBounce = 0;
         } else {
           // smacked into the side below the top — crash & tip it over
           crashHurdle(hd);
@@ -1346,18 +1363,39 @@ function physics(dt) {
       }
     }
 
+    // TRAMPOLINE ink: bounces you the moment you touch it — running along a
+    // flat trampoline line launches you too, not just hard landings.
+    if (grounded) { __surf.contacts = (__surf.contacts || 0) + 1; __surf.slick = surfSlick; __surf.bounce = surfBounce; __surf.grip = surfGrip; }
+    body.trampCd = Math.max(0, (body.trampCd || 0) - h);
+    if (grounded && surfBounce && body.trampCd <= 0) {
+      const nv = body.vx * nx + body.vy * ny;
+      const boost = Math.max(0, surfBounce - nv);
+      body.vx += boost * nx; body.vy += boost * ny;
+      body.trampCd = 0.25;                 // stops jitter while resting on it
+      grounded = false;
+      __surf.bounces = (__surf.bounces || 0) + 1;
+      showScore('BOING!', 'Trampoline ink launch!');
+    }
+    if (grounded && surfSlick) __surf.glides = (__surf.glides || 0) + 1;
     if (grounded) {
       // tangent along surface (pointing forward, +x-ish)
       let tx = -ny, ty = nx;
       if (tx < 0) { tx = -tx; ty = -ty; }
-      // accelerate along tangent up to run speed
       const tv = body.vx * tx + body.vy * ty;
-      // ICE: almost no grip — you can't push off, so you just glide and slide
-      const add = (runSpeed * (game.fx.turbo > 0 ? 1.35 : 1) - tv) * RUN_ACCEL * surfGrip * h;
-      body.vx += tx * add; body.vy += ty * add;
-      // surface friction (light) — ice has none, so momentum carries you
-      body.vx *= (1 - surfFric * h);
-      if (surfSlick) body.slide = 0.35;   // brief slide look after leaving the ice
+      if (surfSlick) {
+        // ICE: no grip to push off with, but frictionless — so you keep every
+        // bit of speed AND pick up glide speed, sliding faster and faster.
+        const glideTop = runSpeed * 1.7;
+        if (tv < glideTop) { const g = 7 * h; body.vx += tx * g; body.vy += ty * g; }
+        body.slide = 0.35;                 // sliding pose (and a moment after)
+        if (!body.slideMsg) { body.slideMsg = 1; showScore('SLIDING!', 'Whee — no brakes on ice!'); }
+      } else {
+        // accelerate along the tangent up to run speed
+        const add = (runSpeed * (game.fx.turbo > 0 ? 1.35 : 1) - tv) * RUN_ACCEL * surfGrip * h;
+        body.vx += tx * add; body.vy += ty * add;
+        body.vx *= (1 - surfFric * h);
+        body.slideMsg = 0;
+      }
     }
 
     checkPickups();          // per-substep so fast flights can't tunnel past a gem
@@ -1424,14 +1462,29 @@ function checkPickups() {
   }
 }
 
-function applyPower(type) {
+// Powerups STACK. Grab a second shield and you get "x2 SHIELD!" and two free
+// crashes; stacked turbo/spring add their time on top of what's left.
+function applyPower(type, silent) {
   const spec = POWER_SPECS[type];
-  if (type === 'star') addCoins(25);
-  else if (type === 'turbo') game.fx.turbo = 5;
-  else if (type === 'spring') game.fx.spring = 8;
-  else if (type === 'shield') game.fx.shield = 1;
-  else if (type === 'triple') { game.fx.turbo = 6; game.fx.spring = 8; game.fx.shield = 1; }
-  showScore(spec.label, spec.sub);
+  let label = spec.label, sub = spec.sub;
+  if (type === 'star') {
+    addCoins(25);
+  } else if (type === 'turbo') {
+    game.fx.turbo += 5; game.fx.turboStacks = (game.fx.turboStacks || 0) + 1;
+    if (game.fx.turboStacks > 1) { label = 'x' + game.fx.turboStacks + ' TURBO!'; sub = Math.ceil(game.fx.turbo) + ' seconds of super speed!'; }
+  } else if (type === 'spring') {
+    game.fx.spring += 8; game.fx.springStacks = (game.fx.springStacks || 0) + 1;
+    if (game.fx.springStacks > 1) { label = 'x' + game.fx.springStacks + ' SPRING!'; sub = Math.ceil(game.fx.spring) + ' seconds of mega jumps!'; }
+  } else if (type === 'shield') {
+    game.fx.shield += 1;
+    if (game.fx.shield > 1) { label = 'x' + game.fx.shield + ' SHIELD!'; sub = game.fx.shield + ' free crashes!'; }
+  } else if (type === 'triple') {
+    game.fx.turbo += 6; game.fx.spring += 8; game.fx.shield += 1;
+    game.fx.turboStacks = (game.fx.turboStacks || 0) + 1;
+    game.fx.springStacks = (game.fx.springStacks || 0) + 1;
+    if (game.fx.shield > 1) sub = 'Turbo + Spring + ' + game.fx.shield + ' shields!';
+  }
+  if (!silent) showScore(label, sub);
   updateLevelHud();
 }
 
@@ -1439,10 +1492,12 @@ function crashHurdle(hd) {
   if (hd.crashed) return;
   hd.crashed = true;
   if (game.fx.shield > 0) {
-    // the shield takes the hit — no stumble, doesn't count as a crash
-    game.fx.shield = 0;
+    // one shield takes the hit — no stumble, doesn't count as a crash
+    game.fx.shield -= 1;
     updateLevelHud();
-    showScore('SHIELD!', 'Saved by your shield!');
+    showScore('SHIELD!', game.fx.shield > 0
+      ? game.fx.shield + ' shield' + (game.fx.shield === 1 ? '' : 's') + ' left!'
+      : 'Saved by your shield!');
     return;
   }
   game.crashes++;
@@ -1465,6 +1520,7 @@ function completeLevel() {
 }
 
 let flipHeld = false;
+let __surf = {};          // last surface the runner touched (debug)
 
 function landTrick() {
   if (body.airTime < 0.3) return;          // tiny hops don't count
@@ -1735,7 +1791,7 @@ el('drawBtn').addEventListener('click', () => {
 });
 el('goBtn').addEventListener('click', () => {
   if (game.mode === 'run') { resetRun(); }
-  else { resetRun(); setMode('idle'); game.mode = 'run'; setHint('Tap <b>JUMP</b> to clear the bars — hold to <b>flip</b> for bonus ⭐!'); }
+  else { resetRun(); setMode('idle'); activateStock(); game.mode = 'run'; setHint('Tap <b>JUMP</b> to clear the bars — hold to <b>flip</b> for bonus ⭐!'); }
 });
 el('undoBtn').addEventListener('click', undoStroke);
 el('clearBtn').addEventListener('click', clearAll);
@@ -1802,6 +1858,7 @@ function openShop(cat) {
 const isHairstyle = item => typeof item.data.hair === 'string';
 
 function isEquipped(item) {
+  if (shopCat === 'power') return false;      // packs are consumable, never "worn"
   if (shopCat === 'outfit') {
     if (item.data.acc) return shop.equipped.acc === item.id;
     if (isHairstyle(item)) return shop.equipped.hairstyle === item.id;
@@ -1815,6 +1872,10 @@ function isEquipped(item) {
   return shop.equipped.background === item.id;
 }
 function swatch(item) {
+  if (shopCat === 'power') {
+    return { shield: '#3d9bff', turbo: '#ff8f2b', spring: '#43e463',
+             mega: 'linear-gradient(135deg,#ff8f2b,#43e463,#3d9bff)' }[item.data.power];
+  }
   if (shopCat === 'background') {
     if (item.data.auto) return 'linear-gradient(135deg,#ff5252,#ffca28,#42a5f5,#ab47bc)';
     return '#' + item.data.sky.toString(16).padStart(6, '0');
@@ -1835,19 +1896,31 @@ function swatch(item) {
 function renderShop() {
   el('shopBal').textContent = '⭐ ' + game.coins + ' coins';
   const grid = el('shopGrid'); grid.innerHTML = '';
+  if (shopCat === 'power') {
+    const s = game.stock;
+    const note = document.createElement('div');
+    note.className = 'shop-note';
+    note.innerHTML = `In your kit: 🛡️ ${s.shield} &nbsp; ⚡ ${s.turbo} &nbsp; 🐸 ${s.spring}` +
+      `<br><small>Your whole kit switches on at the start of every run.</small>`;
+    grid.appendChild(note);
+  }
   SHOP[shopCat].forEach(item => {
-    const owned = shop.owned.has(item.id);
+    const consumable = shopCat === 'power';
+    const owned = !consumable && shop.owned.has(item.id);
     const eq = isEquipped(item);
     const btn = document.createElement('button');
     btn.className = 'shop-item' + (eq ? ' equipped' : owned ? ' owned' : '');
     if (!owned && game.coins < item.cost) btn.disabled = true;
-    const label = eq ? '✓ Wearing' : owned ? 'Tap to use' : '⭐ ' + item.cost;
+    const label = consumable ? '⭐ ' + item.cost
+      : eq ? '✓ Wearing' : owned ? 'Tap to use' : '⭐ ' + item.cost;
     let emoji = '';
     if (shopCat === 'outfit') {
       if (item.data.acc) emoji = { band: '🎀', cape: '🦸', crown: '👑' }[item.data.acc] || '';
       else if (isHairstyle(item)) emoji = '💇';
       else if (item.data.bowColor != null) emoji = '🎀';
       else if (item.data.leo != null) emoji = '👕';
+    } else if (consumable) {
+      emoji = { shield: '🛡️', turbo: '⚡', spring: '🐸', mega: '🎁' }[item.data.power] || '';
     }
     btn.innerHTML = `<span class="sw" style="background:${swatch(item)}"></span>` +
       `<span class="nm">${emoji} ${item.name}</span><span class="ct">${label}</span>`;
@@ -1856,6 +1929,20 @@ function renderShop() {
   });
 }
 function buyOrEquip(item) {
+  // powerup packs are consumables — buy them as many times as you like
+  if (shopCat === 'power') {
+    if (game.coins < item.cost) return;
+    game.coins -= item.cost;
+    el('coinPill').textContent = '⭐ ' + game.coins;
+    const q = item.data.qty;
+    if (item.data.power === 'mega') {
+      game.stock.shield += q; game.stock.turbo += q; game.stock.spring += q;
+    } else {
+      game.stock[item.data.power] += q;
+    }
+    persist(); renderShop();
+    return;
+  }
   const owned = shop.owned.has(item.id);
   if (!owned) {
     if (game.coins < item.cost) return;
@@ -1886,8 +1973,9 @@ el('closeShopBtn').addEventListener('click', () => el('shopOverlay').classList.r
 // ---------- Levels ----------
 function updateLevelHud() {
   const L = LEVELS[game.level];
-  const fx = (game.fx.turbo > 0 ? ' ⚡' : '') + (game.fx.spring > 0 ? ' 🐸' : '') +
-             (game.fx.shield > 0 ? ' 🛡️' : '');
+  const fx = (game.fx.turbo > 0 ? ' ⚡' + Math.ceil(game.fx.turbo) + 's' : '') +
+             (game.fx.spring > 0 ? ' 🐸' + Math.ceil(game.fx.spring) + 's' : '') +
+             (game.fx.shield > 0 ? ' 🛡️' + (game.fx.shield > 1 ? '×' + game.fx.shield : '') : '');
   el('levelHud').innerHTML = `Lv ${game.level + 1} · ${L.name} · Bars ${game.cleared}/${L.n}${fx}`;
 }
 function openLevels() {
@@ -1923,8 +2011,27 @@ function renderLevelSelect() {
     grid.appendChild(row);
   }
 }
+// switch on everything bought in the shop — your kit powers the whole run
+function activateStock() {
+  const s = game.stock;
+  let used = false;
+  while (s.shield > 0) { s.shield--; applyPower('shield', true); used = true; }
+  while (s.turbo > 0)  { s.turbo--;  applyPower('turbo',  true); used = true; }
+  while (s.spring > 0) { s.spring--; applyPower('spring', true); used = true; }
+  if (used) {
+    persist();
+    const bits = [];
+    if (game.fx.shield) bits.push('🛡️×' + game.fx.shield);
+    if (game.fx.turbo)  bits.push('⚡' + Math.ceil(game.fx.turbo) + 's');
+    if (game.fx.spring) bits.push('🐸' + Math.ceil(game.fx.spring) + 's');
+    showScore('KIT READY!', bits.join('  '));
+  }
+  updateLevelHud();
+}
+
 function startLevel(i) {
   loadLevel(i);
+  activateStock();
   game.mode = 'run';                  // start running right away
   if (game.started) setHint('Tap <b>JUMP</b> to clear the bars — hold to <b>flip</b>!');
 }
@@ -2017,6 +2124,9 @@ window.__fs = { body, game, segCount: () => segments.length, setFlip: v => { fli
   hurdles: () => hurdles.map(h => ({ x: h.x, h: h.h, w: h.w, z: h.z, d: h.d, kind: h.kind, scored: h.scored, crashed: h.crashed })),
   powerups: () => powerups.map(p => ({ x: p.x, z: p.z, y: p.y, type: p.type, taken: p.taken })),
   tramps: () => tramps.map(t => ({ x: t.x, z: t.z })),
+  surf: () => __surf, resetSurf: () => { __surf = {}; },
+  applyPower: t => applyPower(t), crashTest: () => { const hd = hurdles.find(h => !h.crashed); if (hd) crashHurdle(hd); },
+  segInfo: () => segments[0] || null,
   strokeColors: () => strokes.flatMap(s => s.meshes.map(m => '#' + m.material.color.getHexString())),
   drawLine: (mat, ax, ay, bx, by) => {   // test helper: place a line of any material
     const prev = game.drawMat; game.drawMat = mat;
