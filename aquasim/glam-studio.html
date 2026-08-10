@@ -2088,24 +2088,27 @@
   };
 
   // How each product goes on: soft powder, creamy colour, fine liner, stamp, file.
+  // `clean` is how far past the edge a finished product is allowed to sit. When
+  // you lift the brush the overspill is wiped back to that line — the same thing
+  // a real artist does with a clean-up brush (Guide #65).
   var BRUSH = {
-    foundation: { r: 42, a: 0.10, soft: 1 },
-    blush:      { r: 34, a: 0.085, soft: 1 },
-    glow:       { r: 20, a: 0.11, soft: 1, shine: 1 },
-    shadow:     { r: 21, a: 0.13, soft: 1 },
-    liner:      { r: 4.5, a: 0.8, soft: 0.1 },
-    brow:       { r: 5, a: 0.3, soft: 0.4 },
-    mascara:    { r: 7.5, a: 0.5, soft: 0.2 },
-    lipstick:   { r: 11, a: 0.5, soft: 0.25 },
-    gloss:      { r: 11, a: 0.3, soft: 0.4, shine: 1 },
-    polish:     { r: 9, a: 0.55, soft: 0.15 },
-    base:       { r: 10, a: 0.2, soft: 0.3, shine: 1 },
-    top:        { r: 11, a: 0.2, soft: 0.3, shine: 1 },
-    cuticle:    { r: 7, a: 0.22, soft: 0.5, shine: 1 },
-    glitter:    { r: 11, a: 0.5, soft: 0, glitter: 1 },
-    lotion:     { r: 38, a: 0.09, soft: 1, shine: 1 },
-    scrub:      { r: 32, a: 0.08, soft: 1, shine: 1 },
-    massage:    { r: 36, a: 0.09, soft: 1, shine: 1 },
+    foundation: { r: 42, a: 0.10, soft: 1, clean: 18 },
+    blush:      { r: 34, a: 0.085, soft: 1, clean: 22 },
+    glow:       { r: 20, a: 0.11, soft: 1, shine: 1, clean: 16 },
+    shadow:     { r: 21, a: 0.13, soft: 1, clean: 13 },
+    liner:      { r: 4.5, a: 0.8, soft: 0.1, clean: 4 },
+    brow:       { r: 5, a: 0.3, soft: 0.4, clean: 4 },
+    mascara:    { r: 7.5, a: 0.5, soft: 0.2, clean: 5 },
+    lipstick:   { r: 11, a: 0.5, soft: 0.25, clean: 4 },
+    gloss:      { r: 11, a: 0.3, soft: 0.4, shine: 1, clean: 4 },
+    polish:     { r: 9, a: 0.55, soft: 0.15, clean: 3 },
+    base:       { r: 10, a: 0.2, soft: 0.3, shine: 1, clean: 3 },
+    top:        { r: 11, a: 0.2, soft: 0.3, shine: 1, clean: 3 },
+    cuticle:    { r: 7, a: 0.22, soft: 0.5, shine: 1, clean: 5 },
+    glitter:    { r: 11, a: 0.5, soft: 0, glitter: 1, clean: 3 },
+    lotion:     { r: 38, a: 0.09, soft: 1, shine: 1, clean: 26 },
+    scrub:      { r: 32, a: 0.08, soft: 1, shine: 1, clean: 24 },
+    massage:    { r: 36, a: 0.09, soft: 1, shine: 1, clean: 26 },
     gems:       { r: 10, a: 1, stamp: 1 },
     art:        { r: 10, a: 1, stamp: 1 },
     file:       { r: 22, a: 1, file: 1 }
@@ -2116,6 +2119,7 @@
     P.layers = [];
     P.shape = 'round';
     buildSilhouette(L.subject);
+    clearMaskCaches();
     P.selProduct = null;
     P.selColor = 0;
     P.painting = false;
@@ -2301,6 +2305,61 @@
   maskCv.width = SW; maskCv.height = SH;
   var maskCtx = maskCv.getContext('2d', { willReadFrequently: true });
 
+  // Region stencils never change during a level, so build each one once.
+  var regionCache = {}, cleanCache = {};
+  function clearMaskCaches() { regionCache = {}; cleanCache = {}; }
+
+  // Green = the region plus a blending tolerance band; red = the region itself.
+  // Feathering just past an edge is how makeup works, so only paint beyond the
+  // green band counts as going outside the lines.
+  function measureMask(group, tol) {
+    var key = group + '|' + tol;
+    if (regionCache[key]) return regionCache[key];
+    var subj = SUBJECTS[P.L.subject];
+    maskCtx.setTransform(1, 0, 0, 1, 0, 0);
+    maskCtx.globalCompositeOperation = 'source-over';
+    maskCtx.clearRect(0, 0, SW, SH);
+    maskCtx.fillStyle = '#00ff00';
+    maskCtx.strokeStyle = '#00ff00';
+    maskCtx.lineWidth = tol * 2;
+    maskCtx.lineJoin = 'round';
+    subj.regions[group](maskCtx);
+    maskCtx.fill();
+    maskCtx.stroke();
+    maskCtx.globalCompositeOperation = 'lighter';
+    maskCtx.fillStyle = '#ff0000';
+    subj.regions[group](maskCtx);
+    maskCtx.fill();
+    maskCtx.globalCompositeOperation = 'source-over';
+
+    // Crop to what the stencil actually covers, so later reads stay small.
+    var full = maskCtx.getImageData(0, 0, SW, SH).data;
+    var minX = SW, minY = SH, maxX = 0, maxY = 0, found = false;
+    for (var y = 0; y < SH; y += 2) {
+      for (var x = 0; x < SW; x += 2) {
+        var i = (y * SW + x) * 4;
+        if (full[i] > 100 || full[i + 1] > 100) {
+          found = true;
+          if (x < minX) minX = x;
+          if (x > maxX) maxX = x;
+          if (y < minY) minY = y;
+          if (y > maxY) maxY = y;
+        }
+      }
+    }
+    var pad = 60;
+    var box = found
+      ? [Math.max(0, minX - pad), Math.max(0, minY - pad),
+         Math.min(SW, maxX + pad) - Math.max(0, minX - pad),
+         Math.min(SH, maxY + pad) - Math.max(0, minY - pad)]
+      : SUBJECTS[P.L.subject].bounds;
+    var data = maskCtx.getImageData(box[0], box[1], box[2], box[3]).data;
+    var inTotal = 0;
+    for (var j = 0; j < data.length; j += 16) if (data[j] > 100) inTotal++;
+    regionCache[key] = { box: box, data: data, inTotal: inTotal };
+    return regionCache[key];
+  }
+
   function measureLayer(layer) {
     var spec = BRUSH[layer.product] || { r: 12 };
     if (spec.stamp || spec.file) {
@@ -2309,34 +2368,14 @@
       layer.spill = 0;
       return;
     }
-    var subj = SUBJECTS[P.L.subject];
-    // Green = the region plus a blending tolerance band; red = the region itself.
-    // Feathering just past an edge is how makeup works, so only paint beyond the
-    // green band counts as going outside the lines.
     var tol = clamp((spec.r || 12) * 0.95, 9, 30);
-    maskCtx.globalCompositeOperation = 'source-over';
-    maskCtx.clearRect(0, 0, SW, SH);
-    maskCtx.fillStyle = '#00ff00';
-    maskCtx.strokeStyle = '#00ff00';
-    maskCtx.lineWidth = tol * 2;
-    maskCtx.lineJoin = 'round';
-    subj.regions[layer.group](maskCtx);
-    maskCtx.fill();
-    maskCtx.stroke();
-    maskCtx.globalCompositeOperation = 'lighter';
-    maskCtx.fillStyle = '#ff0000';
-    subj.regions[layer.group](maskCtx);
-    maskCtx.fill();
-    maskCtx.globalCompositeOperation = 'source-over';
-
-    var b = subj.bounds;
-    var m = maskCtx.getImageData(b[0], b[1], b[2], b[3]).data;
+    var mk = measureMask(layer.group, tol);
+    var b = mk.box, m = mk.data;
     var p = layer.ctx.getImageData(b[0], b[1], b[2], b[3]).data;
-    var inTotal = 0, inPaint = 0, inWeight = 0, outWeight = 0;
+    var inPaint = 0, inWeight = 0, outWeight = 0;
     for (var i = 0; i < m.length; i += 16) {           // every 4th pixel
       var a = p[i + 3];
       if (m[i] > 100) {                                // inside the region
-        inTotal++;
         if (a > 22) inPaint++;
         inWeight += a;
       } else if (m[i + 1] > 100) {                     // tolerance band — free
@@ -2345,13 +2384,44 @@
         outWeight += a;
       }
     }
-    layer.cover = inTotal ? inPaint / inTotal : 0;
-    layer.spill = (inWeight + outWeight) ? outWeight / (inWeight + outWeight) : 0;
+    layer.cover = mk.inTotal ? inPaint / mk.inTotal : 0;
+    // Only this stroke's mess — earlier strokes were already tidied away.
+    layer.lastSpill = (inWeight + outWeight) ? outWeight / (inWeight + outWeight) : 0;
+  }
+
+  // Wipe everything that ended up past the product's clean line, with a feathered
+  // edge so powders still fade out instead of looking stencilled.
+  function cleanMask(group, clean) {
+    var key = group + '|c' + clean;
+    if (cleanCache[key]) return cleanCache[key];
+    var cv = document.createElement('canvas');
+    cv.width = SW; cv.height = SH;
+    var c = cv.getContext('2d');
+    var blur = Math.max(1, clean * 0.42);
+    if ('filter' in c) c.filter = 'blur(' + blur.toFixed(1) + 'px)';
+    c.fillStyle = '#ffffff';
+    c.strokeStyle = '#ffffff';
+    c.lineWidth = clean * 2;
+    c.lineJoin = 'round';
+    SUBJECTS[P.L.subject].regions[group](c);
+    c.fill();
+    c.stroke();
+    cleanCache[key] = cv;
+    return cv;
+  }
+
+  function cleanEdges(layer) {
+    var spec = BRUSH[layer.product] || {};
+    if (spec.stamp || spec.file || spec.clean === undefined) return;
+    layer.ctx.globalCompositeOperation = 'destination-in';
+    layer.ctx.drawImage(cleanMask(layer.group, spec.clean), 0, 0);
+    layer.ctx.globalCompositeOperation = 'source-over';
   }
 
   function qualityOf(layer) {
     var c = clamp(layer.cover * 1.15, 0, 1);
-    var neat = 1 - Math.min(0.65, layer.spill * 1.25);
+    // The edges get tidied for you, so sloppiness costs a little polish, not the job.
+    var neat = 1 - Math.min(0.28, layer.spill * 0.7);
     return clamp(c * neat, 0, 1);
   }
 
@@ -2424,7 +2494,7 @@
     var layer = findLayer(group, P.selProduct);
     if (!layer) return;
     if ((BRUSH[P.selProduct] || {}).file) fileAt(layer, pt.x, pt.y);
-    else { strokeTo(layer, pt.x, pt.y); trimToSubject(layer); }
+    else strokeTo(layer, pt.x, pt.y);
   }, { passive: false });
 
   function endStroke() {
@@ -2443,8 +2513,19 @@
     P.strokes++;
     trimToSubject(layer);       // paint can go outside the lines, but not off the person
     measureLayer(layer);
+    // Neatness is the average tidiness of your strokes, judged before cleanup.
+    layer.strokeCount = (layer.strokeCount || 0) + 1;
+    if (layer.lastSpill !== undefined) {
+      layer.spill = (layer.spill * (layer.strokeCount - 1) + layer.lastSpill) / layer.strokeCount;
+    }
+    cleanEdges(layer);
     if ((BRUSH[layer.product] || {}).file && layer.cover > 0) {
-      P.shape = layer.color && layer.color.shape ? layer.color.shape : P.shape;
+      var newShape = layer.color && layer.color.shape ? layer.color.shape : P.shape;
+      if (newShape !== P.shape) {
+        P.shape = newShape;              // the nail stencils just changed
+        buildSilhouette(P.L.subject);
+        clearMaskCaches();
+      }
     }
     var before = P.L.tasks.map(function (t) { return t.done; });
     syncTasks();
@@ -2653,6 +2734,12 @@
     var dt = Math.min(50, now - lastT);
     lastT = now;
     if (P.showZone > 0) P.showZone -= dt;
+    // Keep wet paint on the person while the brush is down — once per frame
+    // rather than once per pointer event.
+    if (P.painting && P.selProduct) {
+      var wet = findLayer(targetGroup(P.selProduct), P.selProduct);
+      if (wet) trimToSubject(wet);
+    }
     for (var i = P.sparkles.length - 1; i >= 0; i--) {
       var s = P.sparkles[i];
       s.life -= dt / 900;
@@ -2732,12 +2819,12 @@
     var group = targetGroup(P.selProduct);
     var layer = findLayer(group, P.selProduct);
     var cover = layer ? layer.cover : 0;
-    var neat = layer ? 1 - Math.min(0.65, layer.spill * 1.25) : 1;
+    var neat = layer ? 1 - Math.min(0.28, layer.spill * 0.7) : 1;
     $('coverFill').style.width = Math.round(clamp(cover, 0, 1) * 100) + '%';
     $('neatFill').style.width = Math.round(neat * 100) + '%';
     $('coverLabel').innerHTML = PRODUCTS[P.selProduct].label + ' on ' + GROUP_LABEL[group] +
       ' — <b>' + Math.round(cover * 100) + '%</b> covered, <b>' + Math.round(neat * 100) + '%</b> neat' +
-      (layer && layer.spill > 0.12 ? ' <span style="color:#e0518e">(watch the edges!)</span>' : '');
+      (layer && layer.spill > 0.2 ? ' <span style="color:#e0518e">(tidied the edges for you ✨)</span>' : '');
   }
 
   function renderTasks() {
@@ -2878,6 +2965,7 @@
       return;
     }
     P.finished = true;
+    P.layers.forEach(cleanEdges);      // final tidy-up before she looks in the mirror
     var r = scoreLevel();
     var L = P.L;
 
@@ -2899,7 +2987,7 @@
       '<div class="muted">Satisfaction: <b>' + Math.round(r.sat * 100) + '%</b>' +
       (r.missing ? ' · ' + r.missing + ' skipped' : '') +
       (r.wrongColor ? ' · ' + r.wrongColor + ' wrong shade' : '') +
-      (r.messy ? ' · ' + r.messy + ' outside the lines' : '') + '</div>';
+      (r.messy ? ' · ' + r.messy + ' needed tidying up' : '') + '</div>';
 
     if (r.bonuses.length) html += '<div class="muted" style="margin-top:6px">' + r.bonuses.join(' · ') + '</div>';
 
