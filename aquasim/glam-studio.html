@@ -177,7 +177,8 @@
   #stageCanvas {
     width: 100%; height: auto; display: block; border-radius: 18px;
     background: linear-gradient(170deg, #fff0f7, #f3e7ff);
-    box-shadow: var(--shadow); touch-action: manipulation; cursor: pointer;
+    box-shadow: var(--shadow); touch-action: none; cursor: crosshair;
+    -webkit-user-select: none; user-select: none;
   }
   .stagebar {
     display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
@@ -187,13 +188,15 @@
 
   .meterwrap { margin-top: 10px; display: none; }
   .meterwrap.on { display: block; }
-  .meter {
-    position: relative; height: 30px; border-radius: 999px; overflow: hidden;
-    background: linear-gradient(90deg, #ffd0d0, #ffe6a8 26%, #b6f0c4 46%, #7be09a 50%, #b6f0c4 54%, #ffe6a8 74%, #ffd0d0);
-    border: 3px solid var(--line);
-  }
-  .meter .needle { position: absolute; top: -3px; bottom: -3px; width: 6px; background: #3c2b45; border-radius: 3px; transform: translateX(-3px); }
-  .meterlabel { font-size: .84rem; color: var(--muted); margin-top: 4px; text-align: center; }
+  .bars { display: flex; gap: 14px; flex-wrap: wrap; }
+  .barrow { display: flex; align-items: center; gap: 7px; flex: 1; min-width: 150px; font-size: .78rem; font-weight: bold; color: var(--muted); }
+  .bar { flex: 1; height: 13px; border-radius: 999px; background: var(--line); overflow: hidden; display: block; }
+  .bar b { display: block; height: 100%; width: 0; transition: width .18s ease; }
+  .bar.cov b { background: linear-gradient(90deg, var(--pink), var(--purple)); }
+  .bar.neat b { background: linear-gradient(90deg, #7ad9a5, #3fb883); }
+  .meterlabel { font-size: .82rem; color: var(--muted); margin-top: 6px; text-align: center; line-height: 1.4; }
+  .tbar { display: block; height: 5px; border-radius: 999px; background: var(--line); margin-top: 4px; overflow: hidden; }
+  .tbar b { display: block; height: 100%; background: linear-gradient(90deg, var(--pink), var(--purple)); }
 
   .tray { background: var(--card); border-radius: 18px; padding: 12px; box-shadow: var(--shadow); }
   .tray h3 { display: flex; justify-content: space-between; align-items: center; }
@@ -312,7 +315,7 @@
     <p class="muted">Run your own beauty salon. Makeup, manicures, pedicures — <b>10,000 levels</b> of clients
       who pay real (pretend) money when they love your work.</p>
     <div class="featgrid">
-      <div class="feat"><div class="ic">🖱️</div><b>Watch the hand work</b><span>Pick a product, tap a spot — your cursor glides over and applies it right in front of you.</span></div>
+      <div class="feat"><div class="ic">🖌️</div><b>You paint it yourself</b><span>Press and drag. The brush follows your hand, and going outside the lines really shows.</span></div>
       <div class="feat"><div class="ic">🛍️</div><b>Absurdly fancy shop</b><span>From a $12 lip balm to a $40,000,000 meteorite chrome powder.</span></div>
       <div class="feat"><div class="ic">📖</div><b>100 lessons</b><span>Real makeup and nail-care exercises. Every one you finish makes your hands steadier.</span></div>
       <div class="feat"><div class="ic">🧍‍♀️</div><b>Your own avatar</b><span>Design the stylist who runs the place, then climb from Trainee to Legend.</span></div>
@@ -390,14 +393,16 @@
       <div class="stage">
         <canvas id="stageCanvas" width="720" height="560"></canvas>
       </div>
-      <div class="meterwrap" id="meterWrap">
-        <div class="meter"><div class="needle" id="needle" style="left:0%"></div></div>
-        <div class="meterlabel" id="meterLabel">Tap <b>Steady!</b> when the line is in the green</div>
-        <button class="btn big pink" id="steadyBtn" style="width:100%;margin-top:8px">Steady!</button>
+      <div class="meterwrap" id="coverWrap">
+        <div class="bars">
+          <div class="barrow"><span>Covered</span><i class="bar cov"><b id="coverFill"></b></i></div>
+          <div class="barrow"><span>Neatness</span><i class="bar neat"><b id="neatFill" style="width:100%"></b></i></div>
+        </div>
+        <div class="meterlabel" id="coverLabel"></div>
       </div>
       <div class="stagebar">
-        <span class="hint" id="playHint">Pick a product, then tap where it goes.</span>
-        <button class="btn small ghost" id="demoBtn">👀 Show me</button>
+        <span class="hint" id="playHint">Pick a product, then press and drag to put it on.</span>
+        <button class="btn small ghost" id="demoBtn">👀 Where does it go?</button>
         <button class="btn small ghost" id="undoBtn">↩ Wipe off</button>
         <button class="btn small gold" id="finishBtn">✅ Finish</button>
       </div>
@@ -487,14 +492,20 @@
     var c = hexToRgb(hex);
     return 'rgba(' + c.r + ',' + c.g + ',' + c.b + ',' + a + ')';
   }
+  // Always return hex so results can be fed back into rgba()/mix().
+  function toHex(r, g, b) {
+    return '#' + [r, g, b].map(function (v) {
+      var s = clamp(Math.round(v), 0, 255).toString(16);
+      return s.length < 2 ? '0' + s : s;
+    }).join('');
+  }
   function shade(hex, amt) {
     var c = hexToRgb(hex);
-    var f = function (v) { return clamp(Math.round(v + 255 * amt), 0, 255); };
-    return 'rgb(' + f(c.r) + ',' + f(c.g) + ',' + f(c.b) + ')';
+    return toHex(c.r + 255 * amt, c.g + 255 * amt, c.b + 255 * amt);
   }
   function mix(h1, h2, t) {
     var a = hexToRgb(h1), b = hexToRgb(h2);
-    return 'rgb(' + Math.round(lerp(a.r, b.r, t)) + ',' + Math.round(lerp(a.g, b.g, t)) + ',' + Math.round(lerp(a.b, b.b, t)) + ')';
+    return toHex(lerp(a.r, b.r, t), lerp(a.g, b.g, t), lerp(a.b, b.b, t));
   }
 
   var toastTimer = null;
@@ -1154,49 +1165,502 @@
   }
 
   /* ================================================================
-     5. Drawing the subject: face, hand, foot
+     5. The subject — silhouettes, regions, and the portrait art
      ================================================================ */
   var stage = $('stageCanvas');
   var sctx = stage.getContext('2d');
   var SW = 720, SH = 560;
 
-  // Where each product group lives on screen (for tapping + the glowing outline).
-  var HOTSPOTS = {
-    face: {
-      face:   { x: 360, y: 205, rx: 100, ry: 26, label: 'Face' },
-      brows:  { x: 360, y: 240, rx: 105, ry: 20, label: 'Brows' },
-      lids:   { x: 360, y: 268, rx: 105, ry: 24, label: 'Eyelids' },
-      lashes: { x: 360, y: 296, rx: 105, ry: 18, label: 'Lashes' },
-      cheeks: { x: 360, y: 352, rx: 130, ry: 38, label: 'Cheeks' },
-      lips:   { x: 360, y: 402, rx: 62, ry: 30, label: 'Lips' }
-    },
-    hand: {
-      nails: { x: 358, y: 168, rx: 178, ry: 74, label: 'Nails' },
-      skin:  { x: 360, y: 402, rx: 138, ry: 96, label: 'Hand' }
-    },
-    foot: {
-      toes: { x: 352, y: 158, rx: 168, ry: 62, label: 'Toenails' },
-      heel: { x: 360, y: 452, rx: 118, ry: 60, label: 'Heel' }
-    }
-  };
-
-  function withClip(ctx, box, prog, fn) {
-    if (prog >= 1) { fn(); return; }
-    if (prog <= 0) return;
-    ctx.save();
+  function ellipsePath(ctx, x, y, rx, ry, rot) {
+    var r = rot || 0;
     ctx.beginPath();
-    ctx.rect(box[0], box[1], box[2] * prog, box[3]);
-    ctx.clip();
-    fn();
+    ctx.moveTo(x + Math.cos(r) * rx, y + Math.sin(r) * rx);  // start a fresh subpath
+    ctx.ellipse(x, y, rx, ry, r, 0, TAU);
+  }
+
+  // Build one path out of several shape helpers that each call beginPath().
+  // Without this, only the last piece survives — two cheeks become one.
+  function multiPath(ctx, build) {
+    ctx.beginPath();
+    var real = ctx.beginPath;
+    ctx.beginPath = function () {};
+    try { build(); } finally { delete ctx.beginPath; if (ctx.beginPath !== real) ctx.beginPath = real; }
+  }
+  function softBlob(ctx, x, y, rx, ry, hex, alpha, rot) {
+    var g = ctx.createRadialGradient(x, y, 1, x, y, Math.max(rx, ry));
+    g.addColorStop(0, rgba(hex, alpha));
+    g.addColorStop(0.6, rgba(hex, alpha * 0.55));
+    g.addColorStop(1, rgba(hex, 0));
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(rot || 0);
+    ctx.scale(1, ry / rx);
+    ctx.translate(-x, -y);
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(x, y, rx, 0, TAU);
+    ctx.fill();
     ctx.restore();
   }
 
-  function ellipsePath(ctx, x, y, rx, ry, rot) {
+  /* ---------------- FACE ---------------- */
+  var F = {
+    cx: 360, cy: 306, rx: 134, ry: 168,
+    eyeY: 300, eyeDX: 60, eyeRX: 31, eyeRY: 17,
+    browY: 254, noseY: 368, lipY: 416, cheekY: 356, hairline: 216
+  };
+
+  // An egg, not a circle: wide cheekbones tapering to a chin.
+  function facePath(ctx) {
+    var cx = F.cx, cy = F.cy, rx = F.rx, ry = F.ry;
     ctx.beginPath();
-    ctx.ellipse(x, y, rx, ry, rot || 0, 0, TAU);
+    ctx.moveTo(cx, cy - ry);
+    ctx.bezierCurveTo(cx + rx * 0.92, cy - ry * 0.94, cx + rx, cy + ry * 0.08, cx + rx * 0.88, cy + ry * 0.42);
+    ctx.bezierCurveTo(cx + rx * 0.74, cy + ry * 0.78, cx + rx * 0.34, cy + ry, cx, cy + ry);
+    ctx.bezierCurveTo(cx - rx * 0.34, cy + ry, cx - rx * 0.74, cy + ry * 0.78, cx - rx * 0.88, cy + ry * 0.42);
+    ctx.bezierCurveTo(cx - rx, cy + ry * 0.08, cx - rx * 0.92, cy - ry * 0.94, cx, cy - ry);
+    ctx.closePath();
+  }
+  function insetFacePath(ctx) {
+    ctx.save();
+    ctx.translate(F.cx, F.cy + 26);
+    ctx.scale(0.93, 0.8);
+    ctx.translate(-F.cx, -F.cy);
+    facePath(ctx);
+    ctx.restore();
   }
 
-  // ---------- nails ----------
+  function eyeShape(ctx, ex, ey, side) {
+    var rx = F.eyeRX, ry = F.eyeRY;
+    ctx.save();
+    ctx.translate(ex, ey);
+    ctx.scale(side, 1);
+    ctx.translate(-ex, -ey);
+    ctx.beginPath();
+    ctx.moveTo(ex - rx, ey + 1);
+    ctx.bezierCurveTo(ex - rx * 0.6, ey - ry * 1.5, ex + rx * 0.35, ey - ry * 1.35, ex + rx, ey - ry * 0.15);
+    ctx.bezierCurveTo(ex + rx * 0.6, ey + ry * 1.15, ex - rx * 0.25, ey + ry * 1.25, ex - rx, ey + 1);
+    ctx.closePath();
+    ctx.restore();
+  }
+
+  function lidShape(ctx, ex, ey, side) {
+    // From the lash line up over the crease — where eyeshadow belongs.
+    var rx = F.eyeRX + 12, ry = F.eyeRY;
+    ctx.save();
+    ctx.translate(ex, ey);
+    ctx.scale(side, 1);
+    ctx.translate(-ex, -ey);
+    ctx.beginPath();
+    ctx.moveTo(ex - rx, ey + 2);
+    ctx.bezierCurveTo(ex - rx * 0.8, ey - ry * 3.4, ex + rx * 0.5, ey - ry * 3.2, ex + rx, ey - ry * 0.9);
+    ctx.bezierCurveTo(ex + rx * 0.55, ey + ry * 0.4, ex - rx * 0.3, ey + ry * 0.5, ex - rx, ey + 2);
+    ctx.closePath();
+    ctx.restore();
+  }
+
+  function lipsPath(ctx) {
+    var cx = F.cx, y = F.lipY, w = 54;
+    ctx.beginPath();
+    ctx.moveTo(cx - w, y);
+    ctx.bezierCurveTo(cx - w * 0.68, y - 15, cx - 22, y - 20, cx - 9, y - 8);   // left peak
+    ctx.quadraticCurveTo(cx, y - 15, cx + 9, y - 8);                            // cupid's bow dip
+    ctx.bezierCurveTo(cx + 22, y - 20, cx + w * 0.68, y - 15, cx + w, y);       // right peak
+    ctx.bezierCurveTo(cx + w * 0.72, y + 28, cx + 26, y + 36, cx, y + 36);      // lower lip
+    ctx.bezierCurveTo(cx - 26, y + 36, cx - w * 0.72, y + 28, cx - w, y);
+    ctx.closePath();
+  }
+
+  function browShape(ctx, side) {
+    var ex = F.cx + side * F.eyeDX, y = F.browY;
+    ctx.save();
+    ctx.translate(ex, y);
+    ctx.scale(side, 1);
+    ctx.translate(-ex, -y);
+    ctx.beginPath();
+    ctx.moveTo(ex - 34, y + 5);
+    ctx.quadraticCurveTo(ex - 6, y - 13, ex + 32, y - 2);
+    ctx.quadraticCurveTo(ex + 34, y + 4, ex + 30, y + 6);
+    ctx.quadraticCurveTo(ex - 4, y - 4, ex - 32, y + 11);
+    ctx.closePath();
+    ctx.restore();
+  }
+
+  var FACE_SUBJECT = {
+    bounds: [176, 110, 372, 400],
+    // Every piece is filled on its own — one compound path would punch holes
+    // wherever two subpaths wind in opposite directions.
+    paintParts: function (ctx) {
+      facePath(ctx);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(F.cx - 58, F.cy + 96);
+      ctx.lineTo(F.cx - 58, F.cy + 172);
+      ctx.quadraticCurveTo(F.cx, F.cy + 196, F.cx + 58, F.cy + 172);
+      ctx.lineTo(F.cx + 58, F.cy + 96);
+      ctx.closePath();
+      ctx.fill();
+      ctx.beginPath(); ctx.ellipse(F.cx - F.rx + 3, F.cy + 12, 19, 30, 0, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(F.cx + F.rx - 3, F.cy + 12, 19, 30, 0, 0, TAU); ctx.fill();
+    },
+    anchors: {
+      face: { x: F.cx, y: 246, label: 'Face' },
+      brows: { x: F.cx, y: F.browY, label: 'Brows' },
+      lids: { x: F.cx, y: F.eyeY - 22, label: 'Eyelids' },
+      lashes: { x: F.cx, y: F.eyeY - 12, label: 'Lashes' },
+      cheeks: { x: F.cx, y: F.cheekY, label: 'Cheeks' },
+      lips: { x: F.cx, y: F.lipY + 8, label: 'Lips' }
+    },
+    regions: {
+      face: insetFacePath,
+      brows: function (ctx) {
+        multiPath(ctx, function () { browShape(ctx, -1); browShape(ctx, 1); });
+      },
+      lids: function (ctx) {
+        multiPath(ctx, function () {
+          lidShape(ctx, F.cx - F.eyeDX, F.eyeY, -1);
+          lidShape(ctx, F.cx + F.eyeDX, F.eyeY, 1);
+        });
+      },
+      lashes: function (ctx) {
+        multiPath(ctx, function () {
+          [-1, 1].forEach(function (s) {
+            var ex = F.cx + s * F.eyeDX;
+            ctx.save();
+            ctx.translate(ex, F.eyeY);
+            ctx.scale(s, 1);
+            ctx.translate(-ex, -F.eyeY);
+            ctx.moveTo(ex - F.eyeRX - 4, F.eyeY - 2);
+            ctx.bezierCurveTo(ex - 18, F.eyeY - F.eyeRY * 2.1, ex + 14, F.eyeY - F.eyeRY * 2, ex + F.eyeRX + 8, F.eyeY - F.eyeRY * 0.6);
+            ctx.lineTo(ex + F.eyeRX + 4, F.eyeY + 6);
+            ctx.bezierCurveTo(ex + 12, F.eyeY - F.eyeRY * 0.3, ex - 14, F.eyeY - F.eyeRY * 0.2, ex - F.eyeRX - 4, F.eyeY + 8);
+            ctx.closePath();
+            ctx.restore();
+          });
+        });
+      },
+      cheeks: function (ctx) {
+        multiPath(ctx, function () {
+          ellipsePath(ctx, F.cx - 88, F.cheekY, 46, 32, 0.22);
+          ellipsePath(ctx, F.cx + 88, F.cheekY, 46, 32, -0.22);
+        });
+      },
+      lips: lipsPath
+    },
+
+    /* ---- the portrait, drawn under the player's makeup ---- */
+    back: function (ctx, L) {
+      var skin = SKIN_TONES[L.client.skin];
+      var hair = HAIR_COLORS[L.client.hairColor];
+      var dark = mix(skin, '#5f2f22', 0.34);
+      var deep = mix(skin, '#3a1a12', 0.5);
+      var pale = mix(skin, '#fff4ea', 0.55);
+
+      // hair, back mass — a slightly irregular silhouette reads as hair, not a helmet
+      var hairDark = mix(hair, '#1d1014', 0.35);
+      function hairBlob(ctx2, pad, drop) {
+        ctx2.beginPath();
+        ctx2.moveTo(F.cx, F.cy - F.ry - pad);
+        ctx2.bezierCurveTo(F.cx + F.rx + pad * 1.5, F.cy - F.ry * 0.9, F.cx + F.rx + pad * 1.3, F.cy + 60, F.cx + F.rx + pad * 0.6, F.cy + drop);
+        ctx2.quadraticCurveTo(F.cx, F.cy + drop + 34, F.cx - F.rx - pad * 0.6, F.cy + drop);
+        ctx2.bezierCurveTo(F.cx - F.rx - pad * 1.3, F.cy + 60, F.cx - F.rx - pad * 1.5, F.cy - F.ry * 0.9, F.cx, F.cy - F.ry - pad);
+        ctx2.closePath();
+        ctx2.fill();
+      }
+      ctx.fillStyle = hairDark;
+      hairBlob(ctx, 30, 164);
+      ctx.fillStyle = hair;
+      hairBlob(ctx, 22, 150);
+      if (L.client.hair === 0 || L.client.hair === 5 || L.client.hair === 3) {
+        ctx.beginPath(); ctx.ellipse(F.cx - F.rx - 14, F.cy + 128, 34, 100, 0.12, 0, TAU); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(F.cx + F.rx + 14, F.cy + 128, 34, 100, -0.12, 0, TAU); ctx.fill();
+      }
+
+      // shoulders / top
+      var shirt = OUTFITS[(L.client.hairColor + 3) % OUTFITS.length];
+      ctx.fillStyle = shirt;
+      ctx.beginPath();
+      ctx.moveTo(F.cx - 232, SH);
+      ctx.bezierCurveTo(F.cx - 196, F.cy + 196, F.cx - 118, F.cy + 168, F.cx - 60, F.cy + 162);
+      ctx.lineTo(F.cx + 60, F.cy + 162);
+      ctx.bezierCurveTo(F.cx + 118, F.cy + 168, F.cx + 196, F.cy + 196, F.cx + 232, SH);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = 'rgba(0,0,0,.12)';
+      ctx.beginPath();
+      ctx.ellipse(F.cx, F.cy + 168, 62, 18, 0, 0, Math.PI);
+      ctx.fill();
+
+      // neck, with the shadow the jaw casts on it
+      ctx.fillStyle = mix(skin, '#7a4028', 0.1);
+      ctx.beginPath();
+      ctx.moveTo(F.cx - 58, F.cy + 90);
+      ctx.bezierCurveTo(F.cx - 56, F.cy + 140, F.cx - 62, F.cy + 158, F.cx - 66, F.cy + 176);
+      ctx.quadraticCurveTo(F.cx, F.cy + 196, F.cx + 66, F.cy + 176);
+      ctx.bezierCurveTo(F.cx + 62, F.cy + 158, F.cx + 56, F.cy + 140, F.cx + 58, F.cy + 90);
+      ctx.closePath();
+      ctx.fill();
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(F.cx - 58, F.cy + 90);
+      ctx.bezierCurveTo(F.cx - 56, F.cy + 140, F.cx - 62, F.cy + 158, F.cx - 66, F.cy + 176);
+      ctx.quadraticCurveTo(F.cx, F.cy + 196, F.cx + 66, F.cy + 176);
+      ctx.bezierCurveTo(F.cx + 62, F.cy + 158, F.cx + 56, F.cy + 140, F.cx + 58, F.cy + 90);
+      ctx.closePath();
+      ctx.clip();
+      softBlob(ctx, F.cx, F.cy + 104, 74, 34, mix(skin, '#4a2416', 0.55), 0.4);
+      ctx.restore();
+
+      // ears
+      ctx.fillStyle = skin;
+      ellipsePath(ctx, F.cx - F.rx + 3, F.cy + 12, 19, 30); ctx.fill();
+      ellipsePath(ctx, F.cx + F.rx - 3, F.cy + 12, 19, 30); ctx.fill();
+      ctx.strokeStyle = rgba(dark, 0.35);
+      ctx.lineWidth = 2;
+      [-1, 1].forEach(function (s) {
+        ctx.beginPath();
+        ctx.ellipse(F.cx + s * (F.rx - 3), F.cy + 12, 8, 14, 0, 0, TAU);
+        ctx.stroke();
+      });
+
+      // face, lit from the upper left
+      var fg = ctx.createRadialGradient(F.cx - 40, F.cy - 60, 20, F.cx, F.cy + 10, F.ry * 1.15);
+      fg.addColorStop(0, pale);
+      fg.addColorStop(0.45, skin);
+      fg.addColorStop(1, mix(skin, '#8a4a30', 0.22));
+      ctx.fillStyle = fg;
+      facePath(ctx);
+      ctx.fill();
+
+      // contour: temples, jaw, under the cheekbones
+      ctx.save();
+      facePath(ctx);
+      ctx.clip();
+      softBlob(ctx, F.cx - 116, F.cy - 44, 44, 74, dark, 0.24);
+      softBlob(ctx, F.cx + 116, F.cy - 44, 44, 74, dark, 0.24);
+      softBlob(ctx, F.cx - 92, F.cy + 96, 50, 40, dark, 0.22, -0.5);
+      softBlob(ctx, F.cx + 92, F.cy + 96, 50, 40, dark, 0.22, 0.5);
+      softBlob(ctx, F.cx - 94, F.cheekY + 22, 44, 20, dark, 0.18, 0.28);
+      softBlob(ctx, F.cx + 94, F.cheekY + 22, 44, 20, dark, 0.18, -0.28);
+      softBlob(ctx, F.cx, F.cy + 158, 54, 22, dark, 0.18);
+      // forehead + chin + cheekbone light
+      softBlob(ctx, F.cx - 18, 252, 60, 32, pale, 0.32);
+      softBlob(ctx, F.cx, F.cy + 122, 28, 18, pale, 0.24);
+      softBlob(ctx, F.cx - 78, F.cheekY - 16, 42, 20, pale, 0.2, 0.2);
+      softBlob(ctx, F.cx + 78, F.cheekY - 16, 42, 20, pale, 0.2, -0.2);
+      ctx.restore();
+
+      // freckles / a spot or two that foundation can cover
+      ctx.fillStyle = rgba('#8a4a34', 0.3);
+      [[318, 336, 3], [402, 344, 2.4], [340, 352, 2], [430, 300, 3.2], [292, 300, 2.6], [396, 250, 3]].forEach(function (b) {
+        ctx.beginPath(); ctx.arc(b[0], b[1], b[2], 0, TAU); ctx.fill();
+      });
+
+      // nose
+      ctx.save();
+      softBlob(ctx, F.cx + 13, F.noseY - 14, 13, 34, dark, 0.2);
+      softBlob(ctx, F.cx - 7, F.noseY - 22, 8, 40, pale, 0.34);
+      ctx.fillStyle = rgba(deep, 0.45);
+      ctx.beginPath(); ctx.ellipse(F.cx - 11, F.noseY + 4, 5, 3.4, -0.35, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(F.cx + 11, F.noseY + 4, 5, 3.4, 0.35, 0, TAU); ctx.fill();
+      ctx.strokeStyle = rgba('#6b3320', 0.28);
+      ctx.lineWidth = 2.4;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(F.cx + 12, F.noseY - 22);
+      ctx.quadraticCurveTo(F.cx + 15, F.noseY + 2, F.cx + 4, F.noseY + 6);
+      ctx.stroke();
+      ctx.restore();
+
+      // eye sockets
+      [-1, 1].forEach(function (s) {
+        var ex = F.cx + s * F.eyeDX;
+        // socket shadow
+        softBlob(ctx, ex, F.eyeY - 14, 40, 22, dark, 0.16);
+        // white
+        ctx.save();
+        eyeShape(ctx, ex, F.eyeY, s);
+        ctx.clip();
+        var wg = ctx.createLinearGradient(0, F.eyeY - F.eyeRY, 0, F.eyeY + F.eyeRY);
+        wg.addColorStop(0, '#e8dfe0');
+        wg.addColorStop(0.35, '#fffdfa');
+        wg.addColorStop(1, '#f3e9e6');
+        ctx.fillStyle = wg;
+        ctx.fillRect(ex - 50, F.eyeY - 40, 100, 80);
+
+        // iris
+        var irisCol = ['#5f7f4e', '#3f6a9c', '#6b4326', '#3a3340', '#8a6a3a'][L.client.hairColor % 5];
+        var ig = ctx.createRadialGradient(ex - 3, F.eyeY - 4, 2, ex, F.eyeY, 15);
+        ig.addColorStop(0, mix(irisCol, '#ffffff', 0.45));
+        ig.addColorStop(0.65, irisCol);
+        ig.addColorStop(1, mix(irisCol, '#000000', 0.55));
+        ctx.fillStyle = ig;
+        ctx.beginPath(); ctx.arc(ex, F.eyeY, 15, 0, TAU); ctx.fill();
+        ctx.strokeStyle = 'rgba(30,20,25,.5)';
+        ctx.lineWidth = 1.6;
+        ctx.beginPath(); ctx.arc(ex, F.eyeY, 15, 0, TAU); ctx.stroke();
+        ctx.fillStyle = '#1b141c';
+        ctx.beginPath(); ctx.arc(ex, F.eyeY, 6.4, 0, TAU); ctx.fill();
+        // lid shadow across the top of the eyeball
+        ctx.fillStyle = 'rgba(70,40,45,.28)';
+        ctx.beginPath();
+        ctx.ellipse(ex, F.eyeY - F.eyeRY - 3, F.eyeRX, 12, 0, 0, TAU);
+        ctx.fill();
+        ctx.restore();
+      });
+
+      // natural brows (under any brow product)
+      [-1, 1].forEach(function (s) {
+        ctx.fillStyle = rgba(mix(hair, '#241318', 0.4), 0.85);
+        browShape(ctx, s);
+        ctx.fill();
+      });
+
+      // natural lips
+      var lipBase = mix(skin, '#b5455c', 0.55);
+      var lg = ctx.createLinearGradient(0, F.lipY - 20, 0, F.lipY + 36);
+      lg.addColorStop(0, mix(lipBase, '#6d2436', 0.35));
+      lg.addColorStop(0.45, lipBase);
+      lg.addColorStop(1, mix(lipBase, '#ffd0d8', 0.3));
+      ctx.fillStyle = lg;
+      lipsPath(ctx);
+      ctx.fill();
+    },
+
+    /* ---- drawn on top of the makeup: lashes, creases, fringe ---- */
+    front: function (ctx, L) {
+      var hair = HAIR_COLORS[L.client.hairColor];
+      var lashLayer = findLayer('lashes', 'mascara');
+      var lashCover = lashLayer ? lashLayer.cover : 0;
+      var lashCol = lashLayer ? lashLayer.color.h : '#3b2a26';
+
+      [-1, 1].forEach(function (s) {
+        var ex = F.cx + s * F.eyeDX;
+        // lash line
+        ctx.save();
+        ctx.translate(ex, F.eyeY);
+        ctx.scale(s, 1);
+        ctx.translate(-ex, -F.eyeY);
+        ctx.strokeStyle = rgba(lashCol, 0.9);
+        ctx.lineWidth = 3 + lashCover * 3.5;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(ex - F.eyeRX + 2, F.eyeY - 1);
+        ctx.bezierCurveTo(ex - 16, F.eyeY - F.eyeRY * 1.6, ex + 12, F.eyeY - F.eyeRY * 1.5, ex + F.eyeRX, F.eyeY - F.eyeRY * 0.3);
+        ctx.stroke();
+        // individual lashes, longer once mascara is on
+        var n = 6, base = 7 + lashCover * 13;
+        for (var i = 0; i < n; i++) {
+          var t = i / (n - 1);
+          var lx = ex - F.eyeRX * 0.7 + t * F.eyeRX * 1.7;
+          var ly = F.eyeY - F.eyeRY * (1.35 - Math.abs(t - 0.45) * 0.9);
+          var len = base * (0.6 + t * 0.7);
+          ctx.lineWidth = 1.6 + lashCover * 1.6;
+          ctx.beginPath();
+          ctx.moveTo(lx, ly);
+          ctx.quadraticCurveTo(lx + 3 + t * 4, ly - len * 0.7, lx + 5 + t * 9, ly - len);
+          ctx.stroke();
+        }
+        // lower lash line
+        ctx.strokeStyle = 'rgba(70,45,45,.45)';
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        ctx.moveTo(ex - F.eyeRX + 4, F.eyeY + 4);
+        ctx.bezierCurveTo(ex - 10, F.eyeY + F.eyeRY * 1.2, ex + 10, F.eyeY + F.eyeRY * 1.2, ex + F.eyeRX - 2, F.eyeY + 2);
+        ctx.stroke();
+        // crease
+        ctx.strokeStyle = 'rgba(90,55,55,.22)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(ex - F.eyeRX - 4, F.eyeY - F.eyeRY * 1.4);
+        ctx.quadraticCurveTo(ex, F.eyeY - F.eyeRY * 2.6, ex + F.eyeRX + 6, F.eyeY - F.eyeRY * 1.5);
+        ctx.stroke();
+        ctx.restore();
+        // catchlights, always on top
+        ctx.fillStyle = 'rgba(255,255,255,.95)';
+        ctx.beginPath(); ctx.arc(ex - 5, F.eyeY - 6, 3.8, 0, TAU); ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,.6)';
+        ctx.beginPath(); ctx.arc(ex + 5, F.eyeY + 4, 1.8, 0, TAU); ctx.fill();
+      });
+
+      // lip separation line, over lipstick
+      ctx.strokeStyle = 'rgba(90,30,45,.4)';
+      ctx.lineWidth = 1.8;
+      ctx.beginPath();
+      ctx.moveTo(F.cx - 52, F.lipY + 1);
+      ctx.quadraticCurveTo(F.cx - 22, F.lipY + 7, F.cx, F.lipY + 6);
+      ctx.quadraticCurveTo(F.cx + 22, F.lipY + 7, F.cx + 52, F.lipY + 1);
+      ctx.stroke();
+
+      // hair fringe, clipped to the hair silhouette so the crown stays round
+      ctx.save();
+      ctx.beginPath();
+      ctx.ellipse(F.cx, F.cy - 20, F.rx + 34, F.ry + 32, 0, 0, TAU);
+      ctx.clip();
+      ctx.fillStyle = hair;
+      ctx.beginPath();
+      ctx.moveTo(F.cx - F.rx - 44, F.hairline + 8);
+      ctx.bezierCurveTo(F.cx - 92, F.hairline - 34, F.cx - 26, F.hairline - 24, F.cx - 2, F.hairline - 10);
+      ctx.bezierCurveTo(F.cx + 34, F.hairline - 30, F.cx + 96, F.hairline - 28, F.cx + F.rx + 44, F.hairline + 2);
+      ctx.lineTo(F.cx + F.rx + 44, 20);
+      ctx.lineTo(F.cx - F.rx - 44, 20);
+      ctx.closePath();
+      ctx.fill();
+      // strand highlights
+      ctx.globalAlpha = 0.2;
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineCap = 'round';
+      for (var i = 0; i < 5; i++) {
+        ctx.lineWidth = 3 - i * 0.35;
+        ctx.beginPath();
+        ctx.moveTo(F.cx - 96 + i * 15, 132 + i * 5);
+        ctx.quadraticCurveTo(F.cx - 118 + i * 16, 178 + i * 6, F.cx - 104 + i * 18, 216 + i * 8);
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 0.14;
+      for (var j = 0; j < 4; j++) {
+        ctx.lineWidth = 2.4;
+        ctx.beginPath();
+        ctx.moveTo(F.cx + 46 + j * 16, 130 + j * 6);
+        ctx.quadraticCurveTo(F.cx + 96 + j * 12, 170 + j * 8, F.cx + 88 + j * 14, 226 + j * 6);
+        ctx.stroke();
+      }
+      ctx.restore();
+      // a couple of loose strands falling in front of the face
+      ctx.save();
+      ctx.strokeStyle = rgba(hair, 0.85);
+      ctx.lineWidth = 5;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(F.cx - F.rx - 6, F.hairline - 4);
+      ctx.quadraticCurveTo(F.cx - F.rx - 28, F.cy + 40, F.cx - F.rx - 4, F.cy + 132);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(F.cx + F.rx + 4, F.hairline - 10);
+      ctx.quadraticCurveTo(F.cx + F.rx + 30, F.cy + 30, F.cx + F.rx + 2, F.cy + 120);
+      ctx.stroke();
+      ctx.restore();
+    }
+  };
+
+  /* ---------------- HAND ---------------- */
+  function handNails() {
+    return [
+      { x: 196, y: 272, w: 34, h: 42, a: -0.62 },
+      { x: 280, y: 150, w: 33, h: 43, a: -0.06 },
+      { x: 356, y: 126, w: 35, h: 46, a: 0 },
+      { x: 430, y: 148, w: 33, h: 43, a: 0.06 },
+      { x: 496, y: 200, w: 28, h: 36, a: 0.24 }
+    ];
+  }
+  var HAND_FINGERS = [
+    { x1: 254, y1: 372, x2: 197, y2: 292, w: 44 },
+    { x1: 288, y1: 254, x2: 280, y2: 172, w: 40 },
+    { x1: 356, y1: 244, x2: 356, y2: 146, w: 42 },
+    { x1: 424, y1: 252, x2: 430, y2: 168, w: 40 },
+    { x1: 474, y1: 278, x2: 496, y2: 218, w: 34 }
+  ];
+
   function nailPath(ctx, x, y, w, h, shape) {
     var hw = w / 2;
     ctx.beginPath();
@@ -1211,26 +1675,542 @@
       ctx.closePath();
     } else if (shape === 'almond') {
       ctx.moveTo(x - hw, y + h / 2);
-      ctx.quadraticCurveTo(x - hw, y - h * 0.2, x, y - h / 2);
-      ctx.quadraticCurveTo(x + hw, y - h * 0.2, x + hw, y + h / 2);
+      ctx.quadraticCurveTo(x - hw, y - h * 0.22, x, y - h / 2);
+      ctx.quadraticCurveTo(x + hw, y - h * 0.22, x + hw, y + h / 2);
       ctx.closePath();
     } else if (shape === 'coffin') {
       ctx.moveTo(x - hw, y + h / 2);
-      ctx.lineTo(x - hw * 0.62, y - h / 2);
-      ctx.lineTo(x + hw * 0.62, y - h / 2);
+      ctx.lineTo(x - hw * 0.6, y - h / 2);
+      ctx.lineTo(x + hw * 0.6, y - h / 2);
       ctx.lineTo(x + hw, y + h / 2);
       ctx.closePath();
     } else if (shape === 'stiletto') {
       ctx.moveTo(x - hw, y + h / 2);
-      ctx.quadraticCurveTo(x - hw * 0.5, y - h * 0.3, x, y - h * 0.72);
+      ctx.quadraticCurveTo(x - hw * 0.5, y - h * 0.3, x, y - h * 0.78);
       ctx.quadraticCurveTo(x + hw * 0.5, y - h * 0.3, x + hw, y + h / 2);
       ctx.closePath();
-    } else { // round
+    } else {
       ctx.moveTo(x - hw, y + h / 2);
       ctx.quadraticCurveTo(x - hw, y - h / 2, x, y - h / 2);
       ctx.quadraticCurveTo(x + hw, y - h / 2, x + hw, y + h / 2);
       ctx.closePath();
     }
+  }
+
+  function nailAt(ctx, n, shape, fn) {
+    ctx.save();
+    ctx.translate(n.x, n.y);
+    ctx.rotate(n.a || 0);
+    ctx.translate(-n.x, -n.y);
+    fn();
+    ctx.restore();
+  }
+
+  function drawNaturalNail(ctx, n, shape, skin) {
+    nailAt(ctx, n, shape, function () {
+      // nail bed
+      var g = ctx.createLinearGradient(n.x - n.w / 2, n.y - n.h / 2, n.x + n.w / 2, n.y + n.h / 2);
+      g.addColorStop(0, mix(skin, '#ffffff', 0.55));
+      g.addColorStop(0.5, mix(skin, '#ffe9ea', 0.45));
+      g.addColorStop(1, mix(skin, '#f0c9c4', 0.4));
+      ctx.fillStyle = g;
+      nailPath(ctx, n.x, n.y, n.w, n.h, shape);
+      ctx.fill();
+      ctx.save();
+      nailPath(ctx, n.x, n.y, n.w, n.h, shape);
+      ctx.clip();
+      // free edge
+      ctx.fillStyle = 'rgba(255,255,255,.8)';
+      ctx.fillRect(n.x - n.w, n.y - n.h / 2, n.w * 2, n.h * 0.17);
+      // lunula
+      ctx.fillStyle = 'rgba(255,255,255,.45)';
+      ctx.beginPath();
+      ctx.ellipse(n.x, n.y + n.h * 0.4, n.w * 0.3, n.h * 0.13, 0, 0, TAU);
+      ctx.fill();
+      // side shading
+      ctx.fillStyle = 'rgba(160,110,105,.16)';
+      ctx.fillRect(n.x + n.w * 0.28, n.y - n.h, n.w * 0.22, n.h * 2);
+      ctx.restore();
+      // cuticle arc + rim
+      ctx.strokeStyle = 'rgba(150,105,100,.42)';
+      ctx.lineWidth = 1.4;
+      nailPath(ctx, n.x, n.y, n.w, n.h, shape);
+      ctx.stroke();
+      ctx.strokeStyle = rgba(mix(skin, '#8a5040', 0.4), 0.5);
+      ctx.lineWidth = 2.6;
+      ctx.beginPath();
+      ctx.ellipse(n.x, n.y + n.h * 0.52, n.w * 0.46, n.h * 0.1, 0, Math.PI, TAU);
+      ctx.stroke();
+    });
+  }
+
+  function nailGloss(ctx, n, shape, strength) {
+    nailAt(ctx, n, shape, function () {
+      ctx.save();
+      nailPath(ctx, n.x, n.y, n.w, n.h, shape);
+      ctx.clip();
+      ctx.globalAlpha = 0.35 * strength;
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.ellipse(n.x - n.w * 0.16, n.y - n.h * 0.1, n.w * 0.15, n.h * 0.3, -0.25, 0, TAU);
+      ctx.fill();
+      ctx.globalAlpha = 0.18 * strength;
+      ctx.beginPath();
+      ctx.ellipse(n.x + n.w * 0.2, n.y + n.h * 0.12, n.w * 0.09, n.h * 0.2, -0.2, 0, TAU);
+      ctx.fill();
+      ctx.restore();
+    });
+  }
+
+  var HAND_SUBJECT = {
+    bounds: [140, 96, 440, 400],
+    paintParts: function (ctx) {
+      ctx.beginPath();
+      ctx.moveTo(246, 336);
+      ctx.quadraticCurveTo(230, 250, 268, 214);
+      ctx.quadraticCurveTo(302, 188, 322, 200);
+      ctx.quadraticCurveTo(360, 174, 400, 200);
+      ctx.quadraticCurveTo(442, 184, 468, 222);
+      ctx.quadraticCurveTo(508, 254, 488, 336);
+      ctx.quadraticCurveTo(500, 424, 452, 492);
+      ctx.quadraticCurveTo(398, 548, 328, 526);
+      ctx.quadraticCurveTo(266, 506, 248, 434);
+      ctx.closePath();
+      ctx.fill();
+      var prevCap = ctx.lineCap, prevW = ctx.lineWidth;
+      ctx.lineCap = 'round';
+      HAND_FINGERS.forEach(function (f) {
+        ctx.lineWidth = f.w;
+        ctx.beginPath();
+        ctx.moveTo(f.x1, f.y1);
+        ctx.lineTo(f.x2, f.y2);
+        ctx.stroke();
+      });
+      ctx.lineCap = prevCap;
+      ctx.lineWidth = prevW;
+      handNails().forEach(function (n) {
+        ctx.beginPath();
+        ctx.ellipse(n.x, n.y, n.w * 0.62, n.h * 0.62, n.a, 0, TAU);
+        ctx.fill();
+      });
+    },
+    anchors: {
+      nails: { x: 356, y: 104, label: 'Nails' },
+      skin: { x: 360, y: 400, label: 'Hand' }
+    },
+    regions: {
+      nails: function (ctx) {
+        multiPath(ctx, function () {
+          handNails().forEach(function (n) {
+            ctx.save();
+            ctx.translate(n.x, n.y); ctx.rotate(n.a); ctx.translate(-n.x, -n.y);
+            nailPath(ctx, n.x, n.y, n.w, n.h, P.shape);
+            ctx.restore();
+          });
+        });
+      },
+      skin: function (ctx) {
+        ctx.beginPath();
+        ctx.ellipse(360, 400, 116, 100, 0, 0, TAU);
+      }
+    },
+    back: function (ctx, L) {
+      var skin = SKIN_TONES[L.client.skin];
+      var dark = mix(skin, '#6b3520', 0.32);
+      var pale = mix(skin, '#fff2e6', 0.5);
+
+      // wrist, tapering off the bottom of the frame
+      ctx.fillStyle = mix(skin, '#7a4028', 0.08);
+      ctx.beginPath();
+      ctx.moveTo(300, 460);
+      ctx.quadraticCurveTo(286, 520, 292, SH);
+      ctx.lineTo(438, SH);
+      ctx.quadraticCurveTo(444, 520, 430, 460);
+      ctx.closePath();
+      ctx.fill();
+
+      // back of the hand + fingers
+      ctx.fillStyle = skin;
+      ctx.strokeStyle = skin;
+      HAND_SUBJECT.paintParts(ctx);
+
+      maskedPass(ctx, function (s) {
+        softBlob(s, 360, 400, 110, 90, pale, 0.4);
+        softBlob(s, 262, 380, 40, 110, dark, 0.22);
+        softBlob(s, 470, 380, 42, 100, dark, 0.22);
+        HAND_FINGERS.forEach(function (f, i) {
+          var mx = (f.x1 + f.x2) / 2, my = (f.y1 + f.y2) / 2;
+          softBlob(s, mx - f.w * 0.34, my, f.w * 0.3, Math.abs(f.y2 - f.y1) * 0.6 + 12, dark, 0.2);
+          softBlob(s, mx + f.w * 0.2, my, f.w * 0.2, Math.abs(f.y2 - f.y1) * 0.5 + 10, pale, 0.32);
+          if (i > 0) {
+            s.strokeStyle = rgba('#8a4a34', 0.2);
+            s.lineWidth = 2;
+            s.beginPath();
+            s.moveTo(f.x1 - f.w * 0.3, f.y1 + 6);
+            s.quadraticCurveTo(f.x1, f.y1 + 12, f.x1 + f.w * 0.3, f.y1 + 6);
+            s.stroke();
+          }
+        });
+      });
+
+      handNails().forEach(function (n) { drawNaturalNail(ctx, n, P.shape, skin); });
+    },
+    front: function (ctx, L) {
+      var g = glossStrength('nails');
+      if (g > 0) handNails().forEach(function (n) { nailGloss(ctx, n, P.shape, g); });
+    }
+  };
+
+  /* ---------------- FOOT ---------------- */
+  function footNails() {
+    return [
+      { x: 288, y: 190, w: 38, h: 32, a: -0.18 },
+      { x: 348, y: 158, w: 28, h: 25, a: -0.06 },
+      { x: 396, y: 154, w: 25, h: 23, a: 0.02 },
+      { x: 438, y: 162, w: 22, h: 20, a: 0.1 },
+      { x: 474, y: 180, w: 19, h: 17, a: 0.18 }
+    ];
+  }
+  var FOOT_TOES = [
+    { x: 290, y: 208, rx: 29, ry: 33, a: -0.18 },
+    { x: 348, y: 174, rx: 22, ry: 27, a: -0.06 },
+    { x: 396, y: 170, rx: 19, ry: 24, a: 0.02 },
+    { x: 438, y: 178, rx: 17, ry: 21, a: 0.1 },
+    { x: 474, y: 196, rx: 15, ry: 18, a: 0.18 }
+  ];
+
+  var FOOT_SUBJECT = {
+    bounds: [200, 110, 360, 430],
+    paintParts: function (ctx) {
+      ctx.beginPath();
+      ctx.moveTo(262, 254);
+      ctx.quadraticCurveTo(264, 206, 300, 198);
+      ctx.quadraticCurveTo(342, 174, 396, 176);
+      ctx.quadraticCurveTo(452, 174, 486, 214);
+      ctx.quadraticCurveTo(504, 258, 480, 308);
+      ctx.quadraticCurveTo(462, 374, 450, 432);
+      ctx.quadraticCurveTo(442, 498, 380, 510);
+      ctx.quadraticCurveTo(316, 508, 302, 448);
+      ctx.quadraticCurveTo(288, 382, 274, 328);
+      ctx.quadraticCurveTo(260, 292, 262, 254);
+      ctx.closePath();
+      ctx.fill();
+      FOOT_TOES.forEach(function (t) {
+        ctx.beginPath();
+        ctx.ellipse(t.x, t.y, t.rx, t.ry, t.a, 0, TAU);
+        ctx.fill();
+      });
+    },
+    anchors: {
+      toes: { x: 360, y: 116, label: 'Toenails' },
+      heel: { x: 360, y: 462, label: 'Heel' }
+    },
+    regions: {
+      toes: function (ctx) {
+        multiPath(ctx, function () {
+          footNails().forEach(function (n) {
+            ctx.save();
+            ctx.translate(n.x, n.y); ctx.rotate(n.a); ctx.translate(-n.x, -n.y);
+            nailPath(ctx, n.x, n.y, n.w, n.h, P.shape);
+            ctx.restore();
+          });
+        });
+      },
+      heel: function (ctx) {
+        ctx.beginPath();
+        ctx.ellipse(378, 452, 78, 54, 0, 0, TAU);
+      }
+    },
+    back: function (ctx, L) {
+      var skin = SKIN_TONES[L.client.skin];
+      var dark = mix(skin, '#6b3520', 0.32);
+      var pale = mix(skin, '#fff2e6', 0.5);
+
+      // ankle + leg heading off the bottom of the frame
+      ctx.fillStyle = mix(skin, '#7a4028', 0.08);
+      ctx.beginPath();
+      ctx.moveTo(322, SH);
+      ctx.quadraticCurveTo(318, 500, 336, 458);
+      ctx.lineTo(424, 458);
+      ctx.quadraticCurveTo(440, 500, 436, SH);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.fillStyle = skin;
+      FOOT_SUBJECT.paintParts(ctx);
+
+      maskedPass(ctx, function (s) {
+        softBlob(s, 378, 320, 78, 120, pale, 0.42);
+        softBlob(s, 288, 330, 34, 110, dark, 0.26);     // instep, inner edge
+        softBlob(s, 466, 292, 36, 100, dark, 0.22);     // outer edge
+        softBlob(s, 316, 440, 30, 30, dark, 0.22);      // ankle bone
+        softBlob(s, 380, 466, 68, 36, pale, 0.3);       // heel pad
+        softBlob(s, 370, 258, 96, 30, pale, 0.26);      // ball of the foot
+        FOOT_TOES.forEach(function (t) {
+          softBlob(s, t.x - t.rx * 0.4, t.y + t.ry * 0.2, t.rx * 0.5, t.ry * 0.7, dark, 0.18);
+          softBlob(s, t.x + t.rx * 0.25, t.y - t.ry * 0.2, t.rx * 0.4, t.ry * 0.5, pale, 0.3);
+        });
+      });
+
+      footNails().forEach(function (n) { drawNaturalNail(ctx, n, P.shape, skin); });
+    },
+    front: function (ctx, L) {
+      var g = glossStrength('toes');
+      if (g > 0) footNails().forEach(function (n) { nailGloss(ctx, n, P.shape, g); });
+    }
+  };
+
+  var SUBJECTS = { face: FACE_SUBJECT, hand: HAND_SUBJECT, foot: FOOT_SUBJECT };
+
+  // A white stencil of "where paint may land", rebuilt whenever the subject changes.
+  var silCv = document.createElement('canvas');
+  silCv.width = SW; silCv.height = SH;
+  var silCtx = silCv.getContext('2d');
+  var scratchCv = document.createElement('canvas');
+  scratchCv.width = SW; scratchCv.height = SH;
+  var scratchCtx = scratchCv.getContext('2d');
+
+  function buildSilhouette(subject) {
+    silCtx.setTransform(1, 0, 0, 1, 0, 0);
+    silCtx.clearRect(0, 0, SW, SH);
+    silCtx.fillStyle = '#ffffff';
+    silCtx.strokeStyle = '#ffffff';
+    SUBJECTS[subject].paintParts(silCtx);
+  }
+
+  // Draw something and trim it to the subject in one pass.
+  function maskedPass(ctx, drawFn) {
+    scratchCtx.setTransform(1, 0, 0, 1, 0, 0);
+    scratchCtx.globalCompositeOperation = 'source-over';
+    scratchCtx.clearRect(0, 0, SW, SH);
+    drawFn(scratchCtx);
+    scratchCtx.globalCompositeOperation = 'destination-in';
+    scratchCtx.drawImage(silCv, 0, 0);
+    scratchCtx.globalCompositeOperation = 'source-over';
+    ctx.drawImage(scratchCv, 0, 0);
+  }
+
+  function trimToSubject(layer) {
+    layer.ctx.globalCompositeOperation = 'destination-in';
+    layer.ctx.drawImage(silCv, 0, 0);
+    layer.ctx.globalCompositeOperation = 'source-over';
+  }
+
+  function glossStrength(group) {
+    var t = findLayer(group, 'top'), p = findLayer(group, 'polish');
+    return Math.max(t ? t.cover : 0, p ? p.cover * 0.6 : 0);
+  }
+
+  /* ---------------- the salon backdrop ---------------- */
+  function drawBackdrop(ctx) {
+    var g = ctx.createLinearGradient(0, 0, 0, SH);
+    g.addColorStop(0, '#fbe6f2');
+    g.addColorStop(0.55, '#f3e3fb');
+    g.addColorStop(1, '#e9e0f7');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, SW, SH);
+
+    // vanity mirror behind the client
+    ctx.save();
+    ctx.fillStyle = 'rgba(255,255,255,.5)';
+    ctx.beginPath();
+    ctx.ellipse(SW / 2, 300, 250, 268, 0, 0, TAU);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(214,164,196,.55)';
+    ctx.lineWidth = 10;
+    ctx.beginPath();
+    ctx.ellipse(SW / 2, 300, 250, 268, 0, 0, TAU);
+    ctx.stroke();
+    ctx.restore();
+
+    // bulb strip
+    for (var i = 0; i < 9; i++) {
+      var bx = 46 + i * 80;
+      var bg = ctx.createRadialGradient(bx, 26, 2, bx, 26, 30);
+      bg.addColorStop(0, 'rgba(255,236,175,.95)');
+      bg.addColorStop(1, 'rgba(255,236,175,0)');
+      ctx.fillStyle = bg;
+      ctx.beginPath(); ctx.arc(bx, 26, 30, 0, TAU); ctx.fill();
+      ctx.fillStyle = '#fff6da';
+      ctx.beginPath(); ctx.arc(bx, 26, 9, 0, TAU); ctx.fill();
+    }
+
+    // counter
+    var cg = ctx.createLinearGradient(0, SH - 54, 0, SH);
+    cg.addColorStop(0, '#f6eef6');
+    cg.addColorStop(1, '#e3d4e8');
+    ctx.fillStyle = cg;
+    ctx.fillRect(0, SH - 54, SW, 54);
+    ctx.strokeStyle = 'rgba(255,255,255,.8)';
+    ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(0, SH - 53); ctx.lineTo(SW, SH - 53); ctx.stroke();
+    ctx.strokeStyle = 'rgba(180,150,180,.25)';
+    ctx.lineWidth = 1.4;
+    [[40, 520, 120, 546], [200, 512, 250, 552], [520, 516, 600, 548]].forEach(function (v) {
+      ctx.beginPath(); ctx.moveTo(v[0], v[1]); ctx.quadraticCurveTo((v[0] + v[2]) / 2, v[1] + 20, v[2], v[3]); ctx.stroke();
+    });
+
+    // vignette
+    var vg = ctx.createRadialGradient(SW / 2, SH / 2, 200, SW / 2, SH / 2, 470);
+    vg.addColorStop(0, 'rgba(90,50,90,0)');
+    vg.addColorStop(1, 'rgba(90,50,90,.16)');
+    ctx.fillStyle = vg;
+    ctx.fillRect(0, 0, SW, SH);
+  }
+
+  /* ================================================================
+     6. Painting — you move the brush, the game does not
+     ================================================================ */
+  var P = {
+    L: null, layers: [], shape: 'round',
+    selProduct: null, selColor: 0,
+    painting: false, last: null, strokes: 0,
+    hover: { x: -100, y: -100, on: false },
+    sparkles: [], started: 0, finished: false, confirmFinish: false,
+    showZone: 0
+  };
+
+  // How each product goes on: soft powder, creamy colour, fine liner, stamp, file.
+  var BRUSH = {
+    foundation: { r: 42, a: 0.10, soft: 1 },
+    blush:      { r: 34, a: 0.085, soft: 1 },
+    glow:       { r: 20, a: 0.11, soft: 1, shine: 1 },
+    shadow:     { r: 21, a: 0.13, soft: 1 },
+    liner:      { r: 4.5, a: 0.8, soft: 0.1 },
+    brow:       { r: 5, a: 0.3, soft: 0.4 },
+    mascara:    { r: 7.5, a: 0.5, soft: 0.2 },
+    lipstick:   { r: 11, a: 0.5, soft: 0.25 },
+    gloss:      { r: 11, a: 0.3, soft: 0.4, shine: 1 },
+    polish:     { r: 9, a: 0.55, soft: 0.15 },
+    base:       { r: 10, a: 0.2, soft: 0.3, shine: 1 },
+    top:        { r: 11, a: 0.2, soft: 0.3, shine: 1 },
+    cuticle:    { r: 7, a: 0.22, soft: 0.5, shine: 1 },
+    glitter:    { r: 11, a: 0.5, soft: 0, glitter: 1 },
+    lotion:     { r: 38, a: 0.09, soft: 1, shine: 1 },
+    scrub:      { r: 32, a: 0.08, soft: 1, shine: 1 },
+    massage:    { r: 36, a: 0.09, soft: 1, shine: 1 },
+    gems:       { r: 10, a: 1, stamp: 1 },
+    art:        { r: 10, a: 1, stamp: 1 },
+    file:       { r: 22, a: 1, file: 1 }
+  };
+
+  function resetPlay(L) {
+    P.L = L;
+    P.layers = [];
+    P.shape = 'round';
+    buildSilhouette(L.subject);
+    P.selProduct = null;
+    P.selColor = 0;
+    P.painting = false;
+    P.last = null;
+    P.strokes = 0;
+    P.sparkles = [];
+    P.started = performance.now();
+    P.finished = false;
+    P.confirmFinish = false;
+    P.showZone = 0;
+    L.tasks.forEach(function (t) { t.done = false; t.quality = 0; });
+  }
+
+  function findLayer(group, product) {
+    for (var i = 0; i < P.layers.length; i++) {
+      if (P.layers[i].group === group && P.layers[i].product === product) return P.layers[i];
+    }
+    return null;
+  }
+
+  function makeLayer(product, group, color) {
+    var cv = document.createElement('canvas');
+    cv.width = SW; cv.height = SH;
+    var ctx = cv.getContext('2d', { willReadFrequently: true });
+    var layer = {
+      product: product, group: group, color: color, cv: cv, ctx: ctx,
+      cover: 0, spill: 0, marks: [false, false, false, false, false], seq: P.layers.length
+    };
+    P.layers.push(layer);
+    P.layers.sort(function (a, b) { return PRODUCTS[a.product].layer - PRODUCTS[b.product].layer; });
+    return layer;
+  }
+
+  function currentColor() {
+    var p = PRODUCTS[P.selProduct];
+    if (!p || !p.colors) return { n: 'Clear', h: '#ffffff' };
+    var list = colorList(p.colors);
+    return list[P.selColor] || list[0] || { n: 'Clear', h: '#ffffff' };
+  }
+
+  /* ---------------- depositing paint ---------------- */
+  function dab(layer, x, y, spec, hex) {
+    var ctx = layer.ctx;
+    if (spec.glitter) {
+      for (var i = 0; i < 4; i++) {
+        var a = Math.random() * TAU, d = Math.random() * spec.r;
+        ctx.fillStyle = rgba(hex, 0.35 + Math.random() * 0.6);
+        ctx.beginPath();
+        ctx.arc(x + Math.cos(a) * d, y + Math.sin(a) * d, 0.9 + Math.random() * 1.5, 0, TAU);
+        ctx.fill();
+      }
+      ctx.fillStyle = rgba(hex, 0.1);
+      ctx.beginPath(); ctx.arc(x, y, spec.r * 0.8, 0, TAU); ctx.fill();
+      return;
+    }
+    var soft = spec.soft === undefined ? 0.6 : spec.soft;
+    var g = ctx.createRadialGradient(x, y, spec.r * (1 - soft) * 0.9, x, y, spec.r);
+    g.addColorStop(0, rgba(hex, spec.a));
+    g.addColorStop(0.7, rgba(hex, spec.a * (soft > 0.6 ? 0.45 : 0.9)));
+    g.addColorStop(1, rgba(hex, 0));
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(x, y, spec.r, 0, TAU);
+    ctx.fill();
+  }
+
+  function strokeTo(layer, x, y) {
+    var spec = BRUSH[layer.product] || { r: 12, a: 0.4, soft: 0.5 };
+    var hex = spec.shine ? '#ffffff' : (layer.color ? layer.color.h : '#ffffff');
+    var from = P.last || { x: x, y: y };
+    var d = Math.hypot(x - from.x, y - from.y);
+    var steps = Math.max(1, Math.ceil(d / (spec.r * 0.3)));
+    for (var i = 1; i <= steps; i++) {
+      var t = i / steps;
+      dab(layer, lerp(from.x, x, t), lerp(from.y, y, t), spec, hex);
+    }
+    P.last = { x: x, y: y };
+  }
+
+  // Gems and nail art are placed one nail at a time.
+  function stampAt(layer, x, y) {
+    var nails = P.L.subject === 'foot' ? footNails() : handNails();
+    var best = -1, bd = 1e9;
+    nails.forEach(function (n, i) {
+      var d = Math.hypot(n.x - x, n.y - y);
+      if (d < bd) { bd = d; best = i; }
+    });
+    if (best < 0 || bd > 46) return false;
+    var n = nails[best];
+    var ctx = layer.ctx;
+    nailAt(ctx, n, P.shape, function () {
+      if (layer.product === 'gems') {
+        var r = n.w * 0.19, gx = n.x, gy = n.y - n.h * 0.14;
+        ctx.beginPath();
+        for (var p = 0; p < 6; p++) {
+          var a = -Math.PI / 2 + p * TAU / 6;
+          ctx.lineTo(gx + Math.cos(a) * r, gy + Math.sin(a) * r);
+        }
+        ctx.closePath();
+        ctx.fillStyle = layer.color.h;
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(255,255,255,.9)';
+        ctx.lineWidth = 1.2;
+        ctx.stroke();
+        ctx.fillStyle = 'rgba(255,255,255,.95)';
+        ctx.beginPath(); ctx.arc(gx - r * 0.32, gy - r * 0.32, r * 0.26, 0, TAU); ctx.fill();
+      } else {
+        drawPattern(ctx, n.x, n.y, n.w, n.h, layer.color.pattern || 'dots', layer.color.h, P.shape);
+      }
+    });
+    layer.marks[best] = true;
+    return true;
   }
 
   function drawPattern(ctx, x, y, w, h, pat, hex, shape) {
@@ -1247,10 +2227,10 @@
       }
     } else if (pat === 'stripes') {
       ctx.lineWidth = w * 0.1;
-      for (var s2 = -1; s2 <= 1; s2++) {
+      for (var s = -1; s <= 1; s++) {
         ctx.beginPath();
-        ctx.moveTo(x + s2 * w * 0.3 - w * 0.3, y + h);
-        ctx.lineTo(x + s2 * w * 0.3 + w * 0.3, y - h);
+        ctx.moveTo(x + s * w * 0.3 - w * 0.3, y + h);
+        ctx.lineTo(x + s * w * 0.3 + w * 0.3, y - h);
         ctx.stroke();
       }
     } else if (pat === 'french') {
@@ -1268,8 +2248,8 @@
       for (var k = 0; k < 2; k++) {
         var sx = x + (k ? w * 0.22 : -w * 0.2), sy = y + (k ? h * 0.18 : -h * 0.18), r1 = w * 0.16, r2 = w * 0.07;
         ctx.beginPath();
-        for (var p = 0; p < 10; p++) {
-          var ang = -Math.PI / 2 + p * Math.PI / 5, rr = p % 2 ? r2 : r1;
+        for (var p2 = 0; p2 < 10; p2++) {
+          var ang = -Math.PI / 2 + p2 * Math.PI / 5, rr = p2 % 2 ? r2 : r1;
           ctx.lineTo(sx + Math.cos(ang) * rr, sy + Math.sin(ang) * rr);
         }
         ctx.closePath();
@@ -1285,692 +2265,200 @@
     ctx.restore();
   }
 
-  // Draw one nail with everything that has been applied to its group.
-  function drawOneNail(ctx, nail, layers, shape, idx, count, skinHex) {
-    var x = nail.x, y = nail.y, w = nail.w, h = nail.h;
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.rotate(nail.a || 0);
-    ctx.translate(-x, -y);
-
-    // How far along is a layer for THIS nail? Layers sweep nail by nail.
-    function prog(l) {
-      var p = l.prog * count - idx;
-      return clamp(p, 0, 1);
-    }
-    function nailClip(l, fn) {
-      var p = prog(l);
-      if (p <= 0) return;
-      ctx.save();
-      ctx.beginPath();
-      ctx.rect(x - w, y + h / 2 - h * p, w * 2, h * p + 1);
-      ctx.clip();
-      fn();
-      ctx.restore();
-    }
-
-    // natural nail bed
-    nailPath(ctx, x, y, w, h, shape);
-    ctx.fillStyle = mix(skinHex, '#ffffff', 0.35);
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(150,110,110,.4)';
-    ctx.lineWidth = 1.4;
-    ctx.stroke();
-    // free edge
-    ctx.save();
-    nailPath(ctx, x, y, w, h, shape);
-    ctx.clip();
-    ctx.fillStyle = 'rgba(255,255,255,.75)';
-    ctx.fillRect(x - w, y - h / 2, w * 2, h * 0.2);
-    ctx.restore();
-
-    layers.forEach(function (l) {
-      var q = l.q, wob = (1 - q) * 4;
-      if (l.product === 'cuticle') {
-        nailClip(l, function () {
-          ctx.strokeStyle = 'rgba(255,240,200,.85)';
-          ctx.lineWidth = 3;
-          nailPath(ctx, x, y + h * 0.5, w * 0.9, h * 0.2, 'round');
-          ctx.stroke();
-        });
-      } else if (l.product === 'base') {
-        nailClip(l, function () {
-          nailPath(ctx, x, y, w, h, shape);
-          ctx.fillStyle = 'rgba(255,250,252,.55)';
-          ctx.fill();
-        });
-      } else if (l.product === 'polish') {
-        nailClip(l, function () {
-          ctx.save();
-          if (wob > 0.4) {   // sloppy work spills past the nail
-            ctx.beginPath();
-            ctx.ellipse(x + wob * 0.6, y, w / 2 + wob, h / 2 + wob * 0.6, 0, 0, TAU);
-            ctx.fillStyle = rgba(l.color.h, 0.55);
-            ctx.fill();
-          }
-          nailPath(ctx, x - wob * 0.3, y, w, h, shape);
-          ctx.fillStyle = l.color.h;
-          ctx.fill();
-          // gloss curve
-          ctx.beginPath();
-          ctx.ellipse(x - w * 0.18, y - h * 0.12, w * 0.16, h * 0.3, -0.3, 0, TAU);
-          ctx.fillStyle = 'rgba(255,255,255,.35)';
-          ctx.fill();
-          ctx.restore();
-        });
-      } else if (l.product === 'glitter') {
-        nailClip(l, function () {
-          ctx.save();
-          nailPath(ctx, x, y, w, h, shape);
-          ctx.clip();
-          for (var i = 0; i < 16; i++) {
-            var gx = x - w / 2 + ((i * 37) % 100) / 100 * w;
-            var gy = y - h / 2 + ((i * 71) % 100) / 100 * h;
-            ctx.beginPath();
-            ctx.arc(gx, gy, 1.2 + (i % 3) * 0.5, 0, TAU);
-            ctx.fillStyle = rgba(l.color.h, 0.55 + (i % 4) * 0.12);
-            ctx.fill();
-          }
-          ctx.restore();
-        });
-      } else if (l.product === 'art') {
-        nailClip(l, function () { drawPattern(ctx, x, y, w, h, l.color.pattern || 'dots', l.color.h, shape); });
-      } else if (l.product === 'gems') {
-        nailClip(l, function () {
-          var gx2 = x, gy2 = y - h * 0.16, r = w * 0.17;
-          ctx.beginPath();
-          for (var p = 0; p < 6; p++) {
-            var a2 = -Math.PI / 2 + p * TAU / 6;
-            ctx.lineTo(gx2 + Math.cos(a2) * r, gy2 + Math.sin(a2) * r);
-          }
-          ctx.closePath();
-          ctx.fillStyle = l.color.h;
-          ctx.fill();
-          ctx.strokeStyle = 'rgba(255,255,255,.9)';
-          ctx.lineWidth = 1;
-          ctx.stroke();
-          ctx.beginPath();
-          ctx.arc(gx2 - r * 0.3, gy2 - r * 0.3, r * 0.24, 0, TAU);
-          ctx.fillStyle = 'rgba(255,255,255,.95)';
-          ctx.fill();
-        });
-      } else if (l.product === 'top') {
-        nailClip(l, function () {
-          ctx.save();
-          nailPath(ctx, x, y, w, h, shape);
-          ctx.clip();
-          var g = ctx.createLinearGradient(x - w / 2, y - h / 2, x + w / 2, y + h / 2);
-          g.addColorStop(0, 'rgba(255,255,255,.42)');
-          g.addColorStop(0.45, 'rgba(255,255,255,.05)');
-          g.addColorStop(1, 'rgba(255,255,255,.3)');
-          ctx.fillStyle = g;
-          ctx.fillRect(x - w, y - h, w * 2, h * 2);
-          ctx.restore();
-        });
+  // Filing: drag across the tips to reshape them.
+  function fileAt(layer, x, y) {
+    var nails = P.L.subject === 'foot' ? footNails() : handNails();
+    var hit = false;
+    nails.forEach(function (n, i) {
+      if (Math.hypot(n.x - x, n.y - y) < 34 && !layer.marks[i]) {
+        layer.marks[i] = true;
+        hit = true;
+        popSparkles(n.x, n.y, '#ffffff', 4);
       }
     });
-    ctx.restore();
+    return hit;
   }
 
-  // ---------- the hand ----------
-  function handNails(shapeScale) {
-    // index 0..4: thumb, index, middle, ring, pinky
-    return [
-      { x: 196, y: 268, w: 34, h: 40, a: -0.55 },
-      { x: 282, y: 150, w: 32, h: 40, a: -0.05 },
-      { x: 356, y: 128, w: 34, h: 43, a: 0 },
-      { x: 428, y: 148, w: 32, h: 40, a: 0.05 },
-      { x: 494, y: 196, w: 27, h: 34, a: 0.22 }
-    ];
-  }
+  /* ---------------- measuring the work ---------------- */
+  var maskCv = document.createElement('canvas');
+  maskCv.width = SW; maskCv.height = SH;
+  var maskCtx = maskCv.getContext('2d', { willReadFrequently: true });
 
-  function drawHandSubject(ctx, L, A, shape) {
-    var skin = SKIN_TONES[L.client.skin];
-    var deep = shade(skin, -0.1);
-
-    ctx.save();
-    // palm / back of hand
-    ctx.fillStyle = skin;
-    ctx.beginPath();
-    ctx.moveTo(246, 330);
-    ctx.quadraticCurveTo(232, 250, 268, 214);   // toward index base
-    ctx.quadraticCurveTo(300, 190, 320, 200);
-    ctx.quadraticCurveTo(360, 176, 400, 200);
-    ctx.quadraticCurveTo(440, 186, 466, 222);
-    ctx.quadraticCurveTo(504, 252, 486, 330);
-    ctx.quadraticCurveTo(498, 420, 452, 486);
-    ctx.quadraticCurveTo(400, 542, 330, 522);
-    ctx.quadraticCurveTo(268, 502, 250, 430);
-    ctx.closePath();
-    ctx.fill();
-
-    // fingers
-    var fingers = [
-      { x1: 214, y1: 330, x2: 196, y2: 286, w: 40, a: -0.55 },  // thumb
-      { x1: 286, y1: 244, x2: 282, y2: 168, w: 38 },
-      { x1: 356, y1: 232, x2: 356, y2: 146, w: 40 },
-      { x1: 424, y1: 240, x2: 428, y2: 166, w: 38 },
-      { x1: 476, y1: 268, x2: 494, y2: 212, w: 33 }
-    ];
-    fingers.forEach(function (f) {
-      ctx.fillStyle = skin;
-      ctx.beginPath();
-      ctx.lineWidth = f.w;
-      ctx.lineCap = 'round';
-      ctx.strokeStyle = skin;
-      ctx.moveTo(f.x1, f.y1);
-      ctx.lineTo(f.x2, f.y2);
-      ctx.stroke();
-      // knuckle shading
-      ctx.strokeStyle = 'rgba(0,0,0,.06)';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(f.x1 - f.w * 0.3, (f.y1 + f.y2) / 2);
-      ctx.lineTo(f.x1 + f.w * 0.3, (f.y1 + f.y2) / 2);
-      ctx.stroke();
-    });
-
-    // wrist
-    ctx.fillStyle = skin;
-    ctx.fillRect(300, 490, 130, 70);
-
-    // lotion / massage sheen
-    var lot = A.skin || [];
-    lot.forEach(function (l) {
-      ctx.save();
-      ctx.globalAlpha = 0.5 * l.prog;
-      if (l.product === 'lotion') {
-        var g = ctx.createRadialGradient(360, 380, 20, 360, 380, 190);
-        g.addColorStop(0, 'rgba(255,255,255,.55)');
-        g.addColorStop(1, 'rgba(255,255,255,0)');
-        ctx.fillStyle = g;
-        ctx.fillRect(180, 200, 380, 360);
-      } else if (l.product === 'massage') {
-        ctx.strokeStyle = 'rgba(255,220,240,.8)';
-        ctx.lineWidth = 5;
-        for (var i = 0; i < 3; i++) {
-          ctx.beginPath();
-          ctx.arc(360, 390, 40 + i * 30, 0.2, Math.PI * 1.1);
-          ctx.stroke();
-        }
-      }
-      ctx.restore();
-    });
-
-    // nails
-    var nails = handNails();
-    var layers = A.nails || [];
-    nails.forEach(function (nl, i) {
-      drawOneNail(ctx, nl, layers, shape, i, 5, skin);
-    });
-    ctx.restore();
-  }
-
-  // ---------- the foot ----------
-  function footNails() {
-    return [
-      { x: 268, y: 186, w: 40, h: 34, a: -0.12 },  // big toe
-      { x: 336, y: 150, w: 29, h: 26, a: -0.04 },
-      { x: 390, y: 146, w: 26, h: 24, a: 0.02 },
-      { x: 438, y: 154, w: 23, h: 21, a: 0.08 },
-      { x: 480, y: 172, w: 20, h: 18, a: 0.16 }
-    ];
-  }
-
-  function drawFootSubject(ctx, L, A, shape) {
-    var skin = SKIN_TONES[L.client.skin];
-    ctx.save();
-
-    // leg
-    ctx.fillStyle = shade(skin, -0.04);
-    ctx.beginPath();
-    ctx.moveTo(300, 560); ctx.lineTo(300, 470);
-    ctx.quadraticCurveTo(360, 440, 424, 470);
-    ctx.lineTo(424, 560);
-    ctx.closePath();
-    ctx.fill();
-
-    // foot body (top view, toes up)
-    ctx.fillStyle = skin;
-    ctx.beginPath();
-    ctx.moveTo(250, 240);
-    ctx.quadraticCurveTo(258, 196, 292, 196);   // big toe base
-    ctx.quadraticCurveTo(330, 168, 372, 172);
-    ctx.quadraticCurveTo(440, 168, 486, 200);
-    ctx.quadraticCurveTo(510, 236, 486, 300);
-    ctx.quadraticCurveTo(470, 380, 452, 452);
-    ctx.quadraticCurveTo(430, 512, 360, 512);
-    ctx.quadraticCurveTo(292, 512, 274, 448);
-    ctx.quadraticCurveTo(252, 350, 250, 240);
-    ctx.closePath();
-    ctx.fill();
-
-    // toes
-    var toes = [
-      { x: 268, y: 206, rx: 30, ry: 34, a: -0.12 },
-      { x: 336, y: 168, rx: 22, ry: 27, a: -0.04 },
-      { x: 390, y: 164, rx: 20, ry: 25, a: 0.02 },
-      { x: 438, y: 172, rx: 18, ry: 22, a: 0.08 },
-      { x: 480, y: 190, rx: 16, ry: 19, a: 0.16 }
-    ];
-    toes.forEach(function (t) {
-      ctx.fillStyle = skin;
-      ellipsePath(ctx, t.x, t.y, t.rx, t.ry, t.a);
-      ctx.fill();
-    });
-
-    // ankle bump + arch shading
-    ctx.fillStyle = 'rgba(0,0,0,.05)';
-    ellipsePath(ctx, 300, 400, 30, 60, 0.2);
-    ctx.fill();
-
-    // heel / scrub effects
-    var hl = A.heel || [];
-    hl.forEach(function (l) {
-      ctx.save();
-      ctx.globalAlpha = l.prog;
-      if (l.product === 'scrub') {
-        var g = ctx.createRadialGradient(360, 462, 10, 360, 462, 110);
-        g.addColorStop(0, 'rgba(255,255,255,.6)');
-        g.addColorStop(1, 'rgba(255,255,255,0)');
-        ctx.fillStyle = g;
-        ctx.beginPath(); ctx.ellipse(360, 462, 110, 60, 0, 0, TAU); ctx.fill();
-        ctx.fillStyle = 'rgba(190,240,225,.75)';
-        for (var i = 0; i < 14; i++) {
-          var a2 = (i / 14) * TAU;
-          ctx.beginPath();
-          ctx.arc(360 + Math.cos(a2) * (40 + (i % 4) * 16), 462 + Math.sin(a2) * (24 + (i % 3) * 10), 3 + (i % 3), 0, TAU);
-          ctx.fill();
-        }
-      } else if (l.product === 'massage') {
-        ctx.strokeStyle = 'rgba(255,220,240,.85)';
-        ctx.lineWidth = 5;
-        for (var j = 0; j < 3; j++) {
-          ctx.beginPath();
-          ctx.arc(360, 440, 34 + j * 26, 0.15, Math.PI * 1.15);
-          ctx.stroke();
-        }
-      }
-      ctx.restore();
-    });
-
-    var nails = footNails();
-    var layers = A.toes || [];
-    nails.forEach(function (nl, i) { drawOneNail(ctx, nl, layers, shape, i, 5, skin); });
-    ctx.restore();
-  }
-
-  // ---------- the face ----------
-  function drawFaceSubject(ctx, L, A) {
-    var skin = SKIN_TONES[L.client.skin];
-    var hair = HAIR_COLORS[L.client.hairColor];
-    var cx = 360, cy = 300, rx = 140, ry = 170;
-
-    // hair back
-    ctx.fillStyle = hair;
-    ellipsePath(ctx, cx, cy - 6, rx + 26, ry + 22);
-    ctx.fill();
-    if (L.client.hair === 0 || L.client.hair === 5) {
-      ctx.beginPath();
-      ctx.ellipse(cx - rx - 6, cy + 90, 34, 96, 0.12, 0, TAU); ctx.fill();
-      ctx.beginPath();
-      ctx.ellipse(cx + rx + 6, cy + 90, 34, 96, -0.12, 0, TAU); ctx.fill();
+  function measureLayer(layer) {
+    var spec = BRUSH[layer.product] || { r: 12 };
+    if (spec.stamp || spec.file) {
+      var done = layer.marks.filter(Boolean).length;
+      layer.cover = done / 5;
+      layer.spill = 0;
+      return;
     }
+    var subj = SUBJECTS[P.L.subject];
+    // Green = the region plus a blending tolerance band; red = the region itself.
+    // Feathering just past an edge is how makeup works, so only paint beyond the
+    // green band counts as going outside the lines.
+    var tol = clamp((spec.r || 12) * 0.95, 9, 30);
+    maskCtx.globalCompositeOperation = 'source-over';
+    maskCtx.clearRect(0, 0, SW, SH);
+    maskCtx.fillStyle = '#00ff00';
+    maskCtx.strokeStyle = '#00ff00';
+    maskCtx.lineWidth = tol * 2;
+    maskCtx.lineJoin = 'round';
+    subj.regions[layer.group](maskCtx);
+    maskCtx.fill();
+    maskCtx.stroke();
+    maskCtx.globalCompositeOperation = 'lighter';
+    maskCtx.fillStyle = '#ff0000';
+    subj.regions[layer.group](maskCtx);
+    maskCtx.fill();
+    maskCtx.globalCompositeOperation = 'source-over';
 
-    // neck + shoulders
-    ctx.fillStyle = shade(skin, -0.05);
-    ctx.beginPath();
-    ctx.moveTo(cx - 46, cy + 120);
-    ctx.lineTo(cx - 46, cy + 186);
-    ctx.quadraticCurveTo(cx, cy + 206, cx + 46, cy + 186);
-    ctx.lineTo(cx + 46, cy + 120);
-    ctx.closePath();
-    ctx.fill();
-    ctx.fillStyle = '#f0e6f5';
-    ctx.beginPath();
-    ctx.moveTo(cx - 190, SH);
-    ctx.quadraticCurveTo(cx - 150, cy + 190, cx - 46, cy + 196);
-    ctx.lineTo(cx + 46, cy + 196);
-    ctx.quadraticCurveTo(cx + 150, cy + 190, cx + 190, SH);
-    ctx.closePath();
-    ctx.fill();
+    var b = subj.bounds;
+    var m = maskCtx.getImageData(b[0], b[1], b[2], b[3]).data;
+    var p = layer.ctx.getImageData(b[0], b[1], b[2], b[3]).data;
+    var inTotal = 0, inPaint = 0, inWeight = 0, outWeight = 0;
+    for (var i = 0; i < m.length; i += 16) {           // every 4th pixel
+      var a = p[i + 3];
+      if (m[i] > 100) {                                // inside the region
+        inTotal++;
+        if (a > 22) inPaint++;
+        inWeight += a;
+      } else if (m[i + 1] > 100) {                     // tolerance band — free
+        continue;
+      } else {
+        outWeight += a;
+      }
+    }
+    layer.cover = inTotal ? inPaint / inTotal : 0;
+    layer.spill = (inWeight + outWeight) ? outWeight / (inWeight + outWeight) : 0;
+  }
 
-    // ears
-    ctx.fillStyle = skin;
-    ellipsePath(ctx, cx - rx + 4, cy + 14, 20, 32); ctx.fill();
-    ellipsePath(ctx, cx + rx - 4, cy + 14, 20, 32); ctx.fill();
+  function qualityOf(layer) {
+    var c = clamp(layer.cover * 1.15, 0, 1);
+    var neat = 1 - Math.min(0.65, layer.spill * 1.25);
+    return clamp(c * neat, 0, 1);
+  }
 
-    // face
-    ctx.fillStyle = skin;
-    ellipsePath(ctx, cx, cy, rx, ry);
-    ctx.fill();
-
-    // little imperfections that foundation covers up
-    ctx.fillStyle = rgba('#c9705f', 0.35);
-    [[300, 210, 5], [430, 340, 6], [392, 190, 4], [286, 372, 5]].forEach(function (b) {
-      ctx.beginPath(); ctx.arc(b[0], b[1], b[2], 0, TAU); ctx.fill();
+  function syncTasks() {
+    P.L.tasks.forEach(function (t) {
+      var layer = findLayer(t.group, t.product);
+      if (!layer) { t.done = false; t.quality = 0; return; }
+      var colorOk = !t.color || (layer.color && layer.color.n === t.color.n);
+      t.done = layer.cover >= 0.5;
+      t.quality = qualityOf(layer) * (colorOk ? 1 : 0.4);
+      t.cover = layer.cover;
+      t.spill = layer.spill;
+      t.colorOk = colorOk;
     });
+  }
 
-    var faceLayers = A.face || [];
-    faceLayers.forEach(function (l) {
-      if (l.product === 'foundation') {
-        withClip(ctx, [cx - rx, cy - ry, rx * 2, ry * 2], l.prog, function () {
-          ctx.save();
-          ellipsePath(ctx, cx, cy, rx, ry);
-          ctx.clip();
-          ctx.globalAlpha = 0.42 + l.q * 0.22;
-          ctx.fillStyle = l.color.h;
-          ctx.fillRect(cx - rx, cy - ry, rx * 2, ry * 2);
-          if (l.q < 0.55) {  // patchy blending shows as streaks
-            ctx.globalAlpha = 0.1;
-            ctx.fillStyle = shade(l.color.h, -0.18);
-            for (var i = 0; i < 4; i++) ctx.fillRect(cx - rx + i * 70, cy - ry, 18, ry * 2);
-          }
-          ctx.restore();
-        });
+  /* ---------------- pointer handling ---------------- */
+  function canvasPoint(ev) {
+    var r = stage.getBoundingClientRect();
+    return {
+      x: (ev.clientX - r.left) * SW / r.width,
+      y: (ev.clientY - r.top) * SH / r.height
+    };
+  }
+
+  stage.addEventListener('pointerdown', function (ev) {
+    if (!P.L || P.finished) return;
+    ev.preventDefault();
+    var pt = canvasPoint(ev);
+    P.hover = { x: pt.x, y: pt.y, on: true };
+    if (!P.selProduct) {
+      var g = groupAt(pt);
+      toast(g ? 'That is ' + GROUP_LABEL[g] + '. Pick a product first!' : 'Pick up a product from your kit 💄');
+      return;
+    }
+    var group = targetGroup(P.selProduct);
+    var layer = findLayer(group, P.selProduct);
+    var col = currentColor();
+    if (layer && layer.color && layer.color.n !== col.n && PRODUCTS[P.selProduct].colors) {
+      // switching shades starts that product over
+      P.layers.splice(P.layers.indexOf(layer), 1);
+      layer = null;
+    }
+    if (!layer) layer = makeLayer(P.selProduct, group, PRODUCTS[P.selProduct].colors ? col : null);
+    var spec = BRUSH[P.selProduct] || {};
+
+    if (spec.stamp) {
+      if (stampAt(layer, pt.x, pt.y)) {
+        popSparkles(pt.x, pt.y, layer.color.h, 6);
+        afterStroke(layer);
+      } else {
+        toast('Tap right on a nail to place that.');
+      }
+      return;
+    }
+    P.painting = true;
+    P.last = null;
+    if (spec.file) fileAt(layer, pt.x, pt.y);
+    else strokeTo(layer, pt.x, pt.y);
+    try { stage.setPointerCapture(ev.pointerId); } catch (e) {}
+  }, { passive: false });
+
+  stage.addEventListener('pointermove', function (ev) {
+    if (!P.L) return;
+    var pt = canvasPoint(ev);
+    P.hover = { x: pt.x, y: pt.y, on: true };
+    if (!P.painting || P.finished) return;
+    ev.preventDefault();
+    var group = targetGroup(P.selProduct);
+    var layer = findLayer(group, P.selProduct);
+    if (!layer) return;
+    if ((BRUSH[P.selProduct] || {}).file) fileAt(layer, pt.x, pt.y);
+    else { strokeTo(layer, pt.x, pt.y); trimToSubject(layer); }
+  }, { passive: false });
+
+  function endStroke() {
+    if (!P.painting) return;
+    P.painting = false;
+    P.last = null;
+    var group = targetGroup(P.selProduct);
+    var layer = findLayer(group, P.selProduct);
+    if (layer) afterStroke(layer);
+  }
+  stage.addEventListener('pointerup', endStroke);
+  stage.addEventListener('pointercancel', endStroke);
+  stage.addEventListener('pointerleave', function () { P.hover.on = false; endStroke(); });
+
+  function afterStroke(layer) {
+    P.strokes++;
+    trimToSubject(layer);       // paint can go outside the lines, but not off the person
+    measureLayer(layer);
+    if ((BRUSH[layer.product] || {}).file && layer.cover > 0) {
+      P.shape = layer.color && layer.color.shape ? layer.color.shape : P.shape;
+    }
+    var before = P.L.tasks.map(function (t) { return t.done; });
+    syncTasks();
+    P.L.tasks.forEach(function (t, i) {
+      if (t.done && !before[i]) {
+        var a = SUBJECTS[P.L.subject].anchors[t.group];
+        popSparkles(a.x, a.y, t.color ? t.color.h : '#ffd23f', 12);
+        toast(t.colorOk ? 'Nice — ' + PRODUCTS[t.product].label.toLowerCase() + ' done! ✨'
+                        : 'Done, but she asked for ' + t.color.n + '.');
       }
     });
-
-    // cheeks / blush
-    (A.cheeks || []).forEach(function (l) {
-      var spots = [[cx - 88, 352], [cx + 88, 352]];
-      spots.forEach(function (sp, i) {
-        var p = clamp(l.prog * 2 - i, 0, 1);
-        if (p <= 0) return;
-        var r = 54 * (0.7 + 0.3 * l.q);
-        var g = ctx.createRadialGradient(sp[0], sp[1], 3, sp[0], sp[1], r);
-        g.addColorStop(0, rgba(l.color.h, 0.6 * p));
-        g.addColorStop(1, rgba(l.color.h, 0));
-        ctx.fillStyle = g;
-        ctx.beginPath();
-        ctx.ellipse(sp[0], sp[1], r, r * 0.72, i ? -0.25 : 0.25, 0, TAU);
-        ctx.fill();
-      });
-    });
-
-    // highlighter
-    faceLayers.forEach(function (l) {
-      if (l.product !== 'glow') return;
-      ctx.save();
-      ctx.globalAlpha = 0.55 * l.prog;
-      ctx.fillStyle = l.color.h;
-      [[cx - 92, 322, 40, 12, 0.2], [cx + 92, 322, 40, 12, -0.2], [cx, 244, 46, 9, 0], [cx, 336, 10, 36, 0]].forEach(function (h) {
-        ctx.beginPath();
-        ctx.ellipse(h[0], h[1], h[2], h[3], h[4], 0, TAU);
-        ctx.fill();
-      });
-      ctx.restore();
-    });
-
-    // eyes
-    var eyes = [{ x: cx - 60, y: 278 }, { x: cx + 60, y: 278 }];
-    eyes.forEach(function (e, i) {
-      // eyeshadow on the lid
-      (A.lids || []).forEach(function (l) {
-        if (l.product !== 'shadow') return;
-        var p = clamp(l.prog * 2 - i, 0, 1);
-        if (p <= 0) return;
-        var wob = (1 - l.q) * 8;
-        ctx.save();
-        ctx.globalAlpha = p;
-        var g = ctx.createRadialGradient(e.x, e.y - 14, 4, e.x, e.y - 14, 48);
-        g.addColorStop(0, rgba(l.color.h, 0.98));
-        g.addColorStop(0.55, rgba(l.color.h, 0.72));
-        g.addColorStop(1, rgba(l.color.h, 0.06));
-        ctx.fillStyle = g;
-        ctx.beginPath();
-        ctx.ellipse(e.x + (i ? wob : -wob) * 0.4, e.y - 15 - wob * 0.2, 48 + wob, 29 + wob * 0.5, 0, 0, TAU);
-        ctx.fill();
-        ctx.restore();
-      });
-
-      // sclera
-      ctx.fillStyle = '#fffdf9';
-      ctx.beginPath();
-      ctx.ellipse(e.x, e.y, 36, 19, 0, 0, TAU);
-      ctx.fill();
-      // iris
-      ctx.fillStyle = ['#6b8e5a', '#4a6fa5', '#6b4b32', '#3f3a44'][L.client.hairColor % 4];
-      ctx.beginPath(); ctx.arc(e.x, e.y, 14, 0, TAU); ctx.fill();
-      ctx.fillStyle = '#221c26';
-      ctx.beginPath(); ctx.arc(e.x, e.y, 6.5, 0, TAU); ctx.fill();
-      ctx.fillStyle = 'rgba(255,255,255,.9)';
-      ctx.beginPath(); ctx.arc(e.x - 5, e.y - 5, 3.4, 0, TAU); ctx.fill();
-
-      // eyeliner
-      (A.lids || []).forEach(function (l) {
-        if (l.product !== 'liner') return;
-        var p = clamp(l.prog * 2 - i, 0, 1);
-        if (p <= 0) return;
-        var wob = (1 - l.q) * 3;
-        ctx.save();
-        ctx.globalAlpha = p;
-        ctx.strokeStyle = l.color.h;
-        ctx.lineWidth = 4 + wob;
-        ctx.lineCap = 'round';
-        ctx.beginPath();
-        ctx.moveTo(e.x - 34, e.y - 6);
-        ctx.quadraticCurveTo(e.x, e.y - 22 + wob, e.x + 34, e.y - 8);
-        ctx.lineTo(e.x + (i ? 50 : 46), e.y - 20 - wob);   // the wing
-        ctx.stroke();
-        ctx.restore();
-      });
-
-      // lashes
-      var lashLayer = (A.lashes || []).filter(function (l) { return l.product === 'mascara'; })[0];
-      var lashLen = lashLayer ? 8 + 12 * clamp(lashLayer.prog * 2 - i, 0, 1) * (0.6 + lashLayer.q * 0.4) : 7;
-      var lashCol = lashLayer ? lashLayer.color.h : '#3a2f28';
-      var lashW = lashLayer ? 2.2 + 2.2 * clamp(lashLayer.prog * 2 - i, 0, 1) : 1.8;
-      ctx.strokeStyle = lashCol;
-      ctx.lineWidth = lashW;
-      ctx.lineCap = 'round';
-      for (var k = -3; k <= 3; k++) {
-        var t2 = k / 3;
-        var lx = e.x + t2 * 32;
-        var ly = e.y - 17 + Math.abs(t2) * 6;
-        ctx.beginPath();
-        ctx.moveTo(lx, ly);
-        ctx.lineTo(lx + t2 * 6, ly - lashLen);
-        ctx.stroke();
-      }
-      // lower lid line
-      ctx.strokeStyle = 'rgba(80,60,60,.5)';
-      ctx.lineWidth = 1.6;
-      ctx.beginPath();
-      ctx.moveTo(e.x - 33, e.y + 12);
-      ctx.quadraticCurveTo(e.x, e.y + 21, e.x + 33, e.y + 12);
-      ctx.stroke();
-
-      // brows
-      var browLayer = (A.brows || []).filter(function (l) { return l.product === 'brow'; })[0];
-      var bp = browLayer ? clamp(browLayer.prog * 2 - i, 0, 1) : 0;
-      ctx.strokeStyle = browLayer && bp > 0 ? browLayer.color.h : mix(hair, '#231519', 0.45);
-      ctx.lineWidth = 7 + (browLayer ? bp * 4 : 0);
-      ctx.lineCap = 'round';
-      ctx.beginPath();
-      ctx.moveTo(e.x - 36, e.y - 44 + (browLayer ? (1 - browLayer.q) * 5 : 0));
-      ctx.quadraticCurveTo(e.x, e.y - 58, e.x + 34, e.y - 42);
-      ctx.stroke();
-    });
-
-    // nose
-    ctx.strokeStyle = 'rgba(0,0,0,.18)';
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(cx - 4, 322);
-    ctx.quadraticCurveTo(cx - 14, 352, cx + 2, 356);
-    ctx.stroke();
-
-    // lips
-    var lipBase = mix(skin, '#c0596a', 0.5);
-    var lipLayers = A.lips || [];
-    var lipCol = lipBase, lipQ = 1, lipProg = 1, painted = false;
-    lipLayers.forEach(function (l) {
-      if (l.product === 'lipstick') { lipCol = l.color.h; lipQ = l.q; lipProg = l.prog; painted = true; }
-    });
-    function lipPath() {
-      ctx.beginPath();
-      ctx.moveTo(cx - 48, 400);
-      ctx.quadraticCurveTo(cx - 26, 380, cx - 10, 392);
-      ctx.quadraticCurveTo(cx, 382, cx + 10, 392);
-      ctx.quadraticCurveTo(cx + 26, 380, cx + 48, 400);
-      ctx.quadraticCurveTo(cx + 22, 432, cx, 432);
-      ctx.quadraticCurveTo(cx - 22, 432, cx - 48, 400);
-      ctx.closePath();
-    }
-    ctx.fillStyle = lipBase;
-    lipPath();
-    ctx.fill();
-    if (painted) {
-      var wob2 = (1 - lipQ) * 7;
-      withClip(ctx, [cx - 60, 370, 120, 70], lipProg, function () {
-        if (wob2 > 1) {   // colour outside the lines
-          ctx.fillStyle = rgba(lipCol, 0.5);
-          ctx.beginPath();
-          ctx.ellipse(cx + wob2 * 0.5, 406, 52 + wob2, 26 + wob2 * 0.6, 0, 0, TAU);
-          ctx.fill();
-        }
-        ctx.save();
-        ctx.translate(-wob2 * 0.3, 0);
-        ctx.fillStyle = lipCol;
-        lipPath();
-        ctx.fill();
-        ctx.restore();
-      });
-    }
-    lipLayers.forEach(function (l) {
-      if (l.product !== 'gloss') return;
-      ctx.save();
-      ctx.globalAlpha = 0.75 * l.prog;
-      lipPath();
-      ctx.clip();
-      ctx.fillStyle = rgba(l.color.h, 0.6);
-      ctx.fillRect(cx - 60, 370, 120, 70);
-      ctx.fillStyle = 'rgba(255,255,255,.85)';
-      ctx.beginPath();
-      ctx.ellipse(cx - 6, 418, 16, 5, 0, 0, TAU);
-      ctx.fill();
-      ctx.beginPath();
-      ctx.ellipse(cx + 18, 396, 8, 3, -0.3, 0, TAU);
-      ctx.fill();
-      ctx.restore();
-    });
-
-    // hair front — a fringe that stops well above the brows.
-    // Clipped to the hair silhouette so the top stays round.
-    ctx.save();
-    ctx.beginPath();
-    ctx.ellipse(cx, cy - 6, rx + 26, ry + 22, 0, 0, TAU);
-    ctx.clip();
-    ctx.fillStyle = hair;
-    ctx.beginPath();
-    ctx.moveTo(cx - rx - 40, 198);
-    ctx.quadraticCurveTo(cx - 62, 164, cx - 4, 178);
-    ctx.quadraticCurveTo(cx + 58, 160, cx + rx + 40, 192);
-    ctx.lineTo(cx + rx + 40, 40);
-    ctx.lineTo(cx - rx - 40, 40);
-    ctx.closePath();
-    ctx.fill();
-    // a soft shine so the hair is not one flat blob
-    ctx.globalAlpha = 0.16;
-    ctx.fillStyle = '#ffffff';
-    ctx.beginPath();
-    ctx.ellipse(cx - 56, 150, 52, 17, -0.28, 0, TAU);
-    ctx.fill();
-    ctx.restore();
-  }
-
-  /* ================================================================
-     6. Playing a level
-     ================================================================ */
-  var P = {
-    L: null, applied: {}, order: [], shape: 'round',
-    selProduct: null, selColor: 0, busy: false, demo: false,
-    cursor: { x: 660, y: 530, a: 0 }, queue: [], meter: null,
-    started: 0, finished: false, sparkles: []
-  };
-
-  function resetPlay(L) {
-    P.L = L;
-    P.applied = {};
-    P.order = [];
-    P.shape = 'round';
-    P.selProduct = null;
-    P.selColor = 0;
-    P.busy = false;
-    P.demo = false;
-    P.queue = [];
-    P.meter = null;
-    P.cursor = { x: 660, y: 530, a: 0 };
-    P.started = performance.now();
-    P.finished = false;
-    P.confirmFinish = false;
-    P.sparkles = [];
-    L.tasks.forEach(function (t) { t.done = false; t.quality = 0; });
-  }
-
-  function layersOf(group) { return P.applied[group] || (P.applied[group] = []); }
-  function findLayer(group, product) {
-    return layersOf(group).filter(function (l) { return l.product === product; })[0] || null;
-  }
-
-  /* ---------------- tray ---------------- */
-  function renderTray() {
-    var host = $('prodGrid');
-    host.innerHTML = '';
-    var list = productsFor(P.L.subject);
-    var wanted = {};
-    P.L.tasks.forEach(function (t) { wanted[t.product] = true; });
-
-    list.forEach(function (id) {
-      var p = PRODUCTS[id];
-      var group = p.groups.filter(function (g) { return SUBJECT_GROUPS[P.L.subject].indexOf(g) >= 0; })[0];
-      var b = document.createElement('button');
-      b.className = 'prod' + (P.selProduct === id ? ' on' : '') + (wanted[id] ? ' want' : '') +
-        (findLayer(group, id) ? ' done' : '');
-      b.innerHTML = '<span class="ic">' + p.ic + '</span>' + p.label;
-      b.onclick = function () { selectProduct(id); };
-      host.appendChild(b);
-    });
-    renderSwatches();
-  }
-
-  function renderSwatches() {
-    var row = $('swatchRow'), lab = $('swatchLabel');
-    row.innerHTML = '';
-    if (!P.selProduct) { lab.textContent = 'Tap a product to pick it up.'; return; }
-    var p = PRODUCTS[P.selProduct];
-    if (!p.colors) { lab.textContent = p.label + ' — no colour needed. Tap the glowing spot.'; return; }
-    var list = colorList(p.colors);
-    lab.textContent = 'Shade: ' + (list[P.selColor] ? list[P.selColor].n : '—');
-    list.forEach(function (c, i) {
-      var b = document.createElement('button');
-      b.className = 'dot' + (P.selColor === i ? ' on' : '');
-      b.style.background = c.h;
-      b.title = c.n;
-      b.onclick = function () {
-        P.selColor = i;
-        renderSwatches();
-      };
-      row.appendChild(b);
-    });
-  }
-
-  function selectProduct(id) {
-    if (P.busy) return;
-    P.selProduct = id;
-    P.selColor = 0;
-    var p = PRODUCTS[id];
-    // Pre-select the colour the client asked for, if they asked for this product.
-    var task = P.L.tasks.filter(function (t) { return t.product === id; })[0];
-    if (task && task.color && p.colors) {
-      var list = colorList(p.colors);
-      for (var i = 0; i < list.length; i++) if (list[i].n === task.color.n) P.selColor = i;
-    }
-    var group = targetGroup(id);
-    $('playHint').innerHTML = 'You picked up <b>' + p.ic + ' ' + p.label + '</b>. Now tap <b>' +
-      (HOTSPOTS[P.L.subject][group] ? HOTSPOTS[P.L.subject][group].label : GROUP_LABEL[group]) + '</b>.';
+    renderTasks();
     renderTray();
+    updateCoverBar();
+  }
+
+  function groupAt(pt) {
+    var subj = SUBJECTS[P.L.subject];
+    var found = null;
+    for (var g in subj.regions) {
+      maskCtx.clearRect(0, 0, 4, 4);
+      subj.regions[g](maskCtx);
+      if (maskCtx.isPointInPath(pt.x, pt.y)) found = g;
+    }
+    if (!found) {
+      for (var g2 in subj.anchors) {
+        var a = subj.anchors[g2];
+        if (Math.hypot(a.x - pt.x, a.y - pt.y) < 56) found = g2;
+      }
+    }
+    return found;
   }
 
   function targetGroup(productId) {
@@ -1978,78 +2466,65 @@
     return p.groups.filter(function (g) { return SUBJECT_GROUPS[P.L.subject].indexOf(g) >= 0; })[0];
   }
 
-  function renderTasks() {
-    var host = $('taskList');
-    host.innerHTML = '';
-    P.L.tasks.forEach(function (t) {
-      var d = document.createElement('div');
-      d.className = 'task' + (t.done ? ' ok' : '');
-      var sw = t.color ? '<span class="sw" style="background:' + t.color.h + '"></span>' : '<span class="sw" style="background:#ddd"></span>';
-      d.innerHTML = '<span class="box">' + (t.done ? '✓' : '') + '</span>' + sw + '<span>' + taskText(t) + '</span>';
-      host.appendChild(d);
-    });
-    if (P.L.dream) {
-      var d2 = document.createElement('div');
-      d2.className = 'muted';
-      d2.style.fontSize = '.78rem';
-      d2.style.marginTop = '6px';
-      d2.innerHTML = G.owned[P.L.dream.item]
-        ? '💖 She spotted your <b>' + P.L.dream.name + '</b> — ' + money(P.L.dream.bonus) + ' bonus!'
-        : '💭 Wishes you had: ' + P.L.dream.name;
-      host.appendChild(d2);
-    }
-  }
+  /* ---------------- the brush that follows YOUR hand ---------------- */
+  function drawBrush(ctx) {
+    if (!P.hover.on || !P.selProduct) return;
+    var spec = BRUSH[P.selProduct] || { r: 12 };
+    var col = currentColor();
+    var x = P.hover.x, y = P.hover.y;
 
-  /* ---------------- the animated cursor ---------------- */
-  function drawCursor(ctx) {
-    var c = P.cursor;
-    var col = '#8b6f9c';
-    var prod = P.selProduct ? PRODUCTS[P.selProduct] : null;
-    var tipCol = '#d8b4e2';
-    if (prod && prod.colors) {
-      var list = colorList(prod.colors);
-      if (list[P.selColor]) tipCol = list[P.selColor].h;
-    }
+    // brush footprint
     ctx.save();
-    ctx.translate(c.x, c.y);
-    // soft shadow so the pointer reads on any background
-    ctx.shadowColor = 'rgba(0,0,0,.28)';
-    ctx.shadowBlur = 8;
-    ctx.shadowOffsetY = 3;
-
-    // classic arrow pointer
+    ctx.strokeStyle = 'rgba(60,43,69,.35)';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([4, 4]);
     ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.lineTo(0, 26);
-    ctx.lineTo(6.5, 20);
-    ctx.lineTo(11, 30);
-    ctx.lineTo(16, 27.5);
-    ctx.lineTo(11.5, 18);
-    ctx.lineTo(19, 17);
-    ctx.closePath();
-    ctx.fillStyle = '#fff';
-    ctx.fill();
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = '#3c2b45';
+    ctx.arc(x, y, spec.r, 0, TAU);
     ctx.stroke();
-    ctx.shadowColor = 'transparent';
+    ctx.setLineDash([]);
+    ctx.fillStyle = rgba(col.h, 0.3);
+    ctx.beginPath();
+    ctx.arc(x, y, Math.max(3, spec.r * 0.18), 0, TAU);
+    ctx.fill();
 
-    // the applicator the pointer is holding
-    if (P.busy || P.selProduct) {
-      ctx.save();
-      ctx.translate(20, 20);
-      ctx.rotate(-0.5 + Math.sin(c.a) * 0.08);
-      ctx.fillStyle = col;
-      ctx.fillRect(0, 0, 7, 34);            // handle
-      ctx.fillStyle = '#f2e7f6';
-      ctx.fillRect(0, -8, 7, 9);            // ferrule
-      ctx.beginPath();                       // tip, in the product colour
-      ctx.moveTo(-2, -8);
-      ctx.quadraticCurveTo(3.5, -24, 9, -8);
+    // the tool itself, held above and to the right
+    ctx.translate(x, y);
+    ctx.rotate(-0.62 + (P.painting ? Math.sin(performance.now() / 90) * 0.05 : 0));
+    ctx.shadowColor = 'rgba(0,0,0,.22)';
+    ctx.shadowBlur = 8;
+    ctx.shadowOffsetX = 3;
+    ctx.shadowOffsetY = 4;
+
+    var prod = PRODUCTS[P.selProduct];
+    if (prod.layer && (P.selProduct === 'lipstick')) {
+      ctx.fillStyle = '#4b3550';                       // bullet case
+      ctx.fillRect(4, 12, 15, 46);
+      ctx.fillStyle = col.h;
+      ctx.beginPath();
+      ctx.moveTo(4, 14); ctx.lineTo(19, 14); ctx.lineTo(19, -2);
+      ctx.quadraticCurveTo(11, -14, 4, -4);
       ctx.closePath();
-      ctx.fillStyle = tipCol;
       ctx.fill();
-      ctx.restore();
+    } else if (P.selProduct === 'polish' || P.selProduct === 'base' || P.selProduct === 'top' || P.selProduct === 'cuticle') {
+      ctx.fillStyle = '#4b3550';                       // polish brush
+      ctx.fillRect(3, 8, 9, 46);
+      ctx.fillStyle = col.h;
+      ctx.beginPath();
+      ctx.moveTo(2, 9);
+      ctx.quadraticCurveTo(7.5, -12, 13, 9);
+      ctx.closePath();
+      ctx.fill();
+    } else {
+      ctx.fillStyle = '#8b6f9c';                       // makeup brush
+      ctx.fillRect(3, 14, 8, 44);
+      ctx.fillStyle = '#efe4f4';
+      ctx.fillRect(2.5, 4, 9, 11);
+      ctx.fillStyle = rgba(col.h, 0.92);
+      ctx.beginPath();
+      ctx.moveTo(0, 5);
+      ctx.quadraticCurveTo(7, -16, 14, 5);
+      ctx.closePath();
+      ctx.fill();
     }
     ctx.restore();
   }
@@ -2076,262 +2551,91 @@
   function popSparkles(x, y, col, n) {
     for (var i = 0; i < n; i++) {
       P.sparkles.push({
-        x: x + (Math.random() - 0.5) * 70, y: y + (Math.random() - 0.5) * 50,
+        x: x + (Math.random() - 0.5) * 80, y: y + (Math.random() - 0.5) * 56,
         s: 4 + Math.random() * 7, r: Math.random() * TAU, c: col,
         life: 1, vy: -0.3 - Math.random() * 0.5
       });
     }
   }
 
-  /* ---------------- the whole scene ---------------- */
+  /* ---------------- composite the scene ---------------- */
+  // Shine products screen-blend; each has its own strength so a scrubbed heel
+  // does not end up looking bleached.
+  var SHINE = { glow: 0.85, gloss: 0.8, base: 0.7, top: 0.75, cuticle: 0.6, lotion: 0.45, scrub: 0.45, massage: 0.45 };
+  var LAYER_ALPHA = { foundation: 0.9, blush: 0.92, shadow: 0.95, brow: 0.9 };
+
   function drawScene() {
     var ctx = sctx;
-    ctx.clearRect(0, 0, SW, SH);
-
-    // salon backdrop
-    var g = ctx.createLinearGradient(0, 0, 0, SH);
-    g.addColorStop(0, '#fff2f9');
-    g.addColorStop(1, '#efe4ff');
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, SW, SH);
-    // mirror bulbs
-    ctx.fillStyle = 'rgba(255,236,180,.9)';
-    for (var i = 0; i < 9; i++) {
-      ctx.beginPath();
-      ctx.arc(50 + i * 80, 26, 9, 0, TAU);
-      ctx.fill();
-    }
-    ctx.fillStyle = 'rgba(255,255,255,.5)';
-    ctx.fillRect(0, 46, SW, 4);
-
+    drawBackdrop(ctx);
     if (!P.L) return;
-    var A = P.applied;
-    if (P.L.subject === 'face') drawFaceSubject(ctx, P.L, A);
-    else if (P.L.subject === 'hand') drawHandSubject(ctx, P.L, A, P.shape);
-    else drawFootSubject(ctx, P.L, A, P.shape);
+    var subj = SUBJECTS[P.L.subject];
 
-    // glowing target for whatever you are holding
-    if (P.selProduct && !P.busy) {
-      var grp = targetGroup(P.selProduct);
-      var hs = HOTSPOTS[P.L.subject][grp];
-      if (hs) {
-        ctx.save();
-        var pulse = 0.55 + 0.25 * Math.sin(performance.now() / 260);
-        ctx.strokeStyle = 'rgba(232,60,140,' + pulse + ')';
-        ctx.lineWidth = 3;
-        ctx.setLineDash([9, 7]);
-        ctx.beginPath();
-        ctx.ellipse(hs.x, hs.y, hs.rx, hs.ry, 0, 0, TAU);
-        ctx.stroke();
-        ctx.setLineDash([]);
-        ctx.font = 'bold 15px "Comic Sans MS", "Segoe UI", sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillStyle = 'rgba(224,81,142,.95)';
-        ctx.fillText(hs.label, hs.x, hs.y - hs.ry - 8);
-        ctx.restore();
+    subj.back(ctx, P.L);
+
+    P.layers.forEach(function (l) {
+      ctx.save();
+      ctx.globalAlpha = LAYER_ALPHA[l.product] || 1;
+      if (SHINE[l.product]) {
+        ctx.globalCompositeOperation = 'screen';
+        ctx.globalAlpha = SHINE[l.product];
       }
+      ctx.drawImage(l.cv, 0, 0);
+      ctx.restore();
+    });
+
+    subj.front(ctx, P.L);
+
+    // the zone you are working on
+    if (P.selProduct && (P.showZone > 0 || !P.painting)) {
+      var g = targetGroup(P.selProduct);
+      var a = subj.anchors[g];
+      ctx.save();
+      var pulse = P.showZone > 0 ? 0.9 : 0.42 + 0.18 * Math.sin(performance.now() / 320);
+      ctx.strokeStyle = 'rgba(226,58,138,' + pulse + ')';
+      ctx.lineWidth = P.showZone > 0 ? 4 : 2.5;
+      ctx.setLineDash([10, 8]);
+      ctx.lineDashOffset = -performance.now() / 45;
+      subj.regions[g](ctx);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      if (P.showZone > 0 && a) {
+        ctx.font = 'bold 17px "Comic Sans MS", "Segoe UI", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = 'rgba(255,255,255,.9)';
+        var tw = ctx.measureText(a.label).width;
+        ctx.beginPath();
+        ctx.roundRect(a.x - tw / 2 - 12, a.y - 34, tw + 24, 26, 13);
+        ctx.fill();
+        ctx.fillStyle = '#c9327c';
+        ctx.fillText(a.label, a.x, a.y - 16);
+      }
+      ctx.restore();
     }
 
     drawSparkles(ctx);
-    drawCursor(ctx);
+    drawBrush(ctx);
 
-    // client mood bubble
+    // client name plate
     ctx.save();
     ctx.font = 'bold 15px "Comic Sans MS", "Segoe UI", sans-serif';
     ctx.textAlign = 'left';
-    ctx.fillStyle = 'rgba(255,255,255,.85)';
-    var label = P.L.client.name + (P.L.vip ? '  (VIP)' : '') + '  ·  ' + P.L.client.mood.n;
-    var wdt = ctx.measureText(label).width + 24;
+    var label = P.L.client.name + (P.L.vip ? '  ★VIP' : '') + '  ·  ' + P.L.client.mood.n;
+    var wdt = ctx.measureText(label).width + 26;
+    ctx.fillStyle = 'rgba(255,255,255,.86)';
     ctx.beginPath();
-    ctx.roundRect ? ctx.roundRect(14, 60, wdt, 30, 15) : ctx.rect(14, 60, wdt, 30);
+    ctx.roundRect(14, 60, wdt, 30, 15);
     ctx.fill();
     ctx.fillStyle = '#7e47ad';
-    ctx.fillText(label, 26, 80);
+    ctx.fillText(label, 27, 80);
     ctx.restore();
   }
 
-  /* ---------------- animation queue ---------------- */
-  function easeInOut(t) { return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2; }
-
-  function queueStep(dur, update, done) {
-    P.queue.push({ dur: dur, t: 0, update: update, done: done });
-  }
-
-  function moveCursorTo(x, y, dur) {
-    var from = { x: P.cursor.x, y: P.cursor.y };
-    queueStep(dur || 520, function (t) {
-      P.cursor.x = lerp(from.x, x, t);
-      P.cursor.y = lerp(from.y, y, t) - Math.sin(t * Math.PI) * 26;  // a little arc
-      P.cursor.a += 0.3;
-    });
-  }
-
-  function pathFor(group) {
-    var subj = P.L.subject;
-    if (group === 'nails') return handNails().map(function (n) { return { x: n.x, y: n.y }; });
-    if (group === 'toes') return footNails().map(function (n) { return { x: n.x, y: n.y }; });
-    var hs = HOTSPOTS[subj][group];
-    return [
-      { x: hs.x - hs.rx * 0.85, y: hs.y },
-      { x: hs.x, y: hs.y - hs.ry * 0.5 },
-      { x: hs.x + hs.rx * 0.85, y: hs.y }
-    ];
-  }
-
-  function samplePath(pts, t) {
-    if (pts.length === 1) return pts[0];
-    var seg = (pts.length - 1) * clamp(t, 0, 1);
-    var i = Math.min(Math.floor(seg), pts.length - 2);
-    var f = seg - i;
-    return { x: lerp(pts[i].x, pts[i + 1].x, f), y: lerp(pts[i].y, pts[i + 1].y, f) };
-  }
-
-  /* ---------------- applying a product ---------------- */
-  function canvasPoint(ev) {
-    var r = stage.getBoundingClientRect();
-    var cx = (ev.touches ? ev.touches[0].clientX : ev.clientX) - r.left;
-    var cy = (ev.touches ? ev.touches[0].clientY : ev.clientY) - r.top;
-    return { x: cx * SW / r.width, y: cy * SH / r.height };
-  }
-
-  stage.addEventListener('pointerdown', function (ev) {
-    if (P.busy || P.finished || !P.L) return;
-    ev.preventDefault();
-    var pt = canvasPoint(ev);
-    if (!P.selProduct) {
-      // Tapping a spot with nothing in hand tells you what goes there.
-      var subjSpots = HOTSPOTS[P.L.subject];
-      for (var g in subjSpots) {
-        var h = subjSpots[g];
-        if (Math.pow((pt.x - h.x) / h.rx, 2) + Math.pow((pt.y - h.y) / h.ry, 2) <= 1.6) {
-          toast('That is ' + GROUP_LABEL[g] + '. Pick a product first!');
-          return;
-        }
-      }
-      toast('Pick up a product from your kit first 💄');
-      return;
-    }
-    var grp = targetGroup(P.selProduct);
-    var hs = HOTSPOTS[P.L.subject][grp];
-    var inside = Math.pow((pt.x - hs.x) / (hs.rx * 1.25), 2) + Math.pow((pt.y - hs.y) / (hs.ry * 1.35), 2) <= 1;
-    if (!inside) {
-      // Say what they actually tapped, then point them at the right place.
-      var named = null, spots = HOTSPOTS[P.L.subject];
-      for (var g2 in spots) {
-        var h2 = spots[g2];
-        if (Math.pow((pt.x - h2.x) / h2.rx, 2) + Math.pow((pt.y - h2.y) / h2.ry, 2) <= 1.2) named = g2;
-      }
-      toast(named ? 'That is ' + GROUP_LABEL[named] + ' — ' + PRODUCTS[P.selProduct].label + ' goes on ' + GROUP_LABEL[grp] + '.'
-                  : PRODUCTS[P.selProduct].label + ' goes on ' + GROUP_LABEL[grp] + '. Aim for the dashed circle!');
-      return;
-    }
-    beginApply(P.selProduct, grp, false);
-  }, { passive: false });
-
-  function beginApply(productId, group, auto) {
-    P.busy = true;
-    var hs = HOTSPOTS[P.L.subject][group];
-    moveCursorTo(hs.x - hs.rx * 0.85, hs.y, 480);
-    queueStep(10, function () {}, function () { startMeter(productId, group, auto); });
-  }
-
-  function startMeter(productId, group, auto) {
-    var lvl = P.L.n;
-    var speed = clamp(0.85 + lvl / 2200, 0.85, 2.3) * P.L.client.mood.fuss;
-    P.meter = { pos: 0, dir: 1, speed: speed, product: productId, group: group, auto: auto };
-    $('meterWrap').classList.add('on');
-    $('meterLabel').innerHTML = PRODUCTS[productId].verb.charAt(0).toUpperCase() + PRODUCTS[productId].verb.slice(1) +
-      '… tap <b>Steady!</b> in the green';
-  }
-
-  function stopMeter() {
-    if (!P.meter) return;
-    var m = P.meter;
-    P.meter = null;
-    $('meterWrap').classList.remove('on');
-
-    var dev = Math.abs(m.pos - 0.5) / 0.5;
-    var tol = 0.12 + skillPct() / 100 * 0.18;
-    var q = dev <= tol ? 1 : clamp(1 - (dev - tol) / (1 - tol), 0.2, 1);
-
-    var prod = PRODUCTS[m.product];
-    var color = null;
-    if (prod.colors) {
-      var list = colorList(prod.colors);
-      color = list[P.selColor] || list[0];
-    }
-    if (m.product === 'file' && color && color.shape) P.shape = color.shape;
-
-    // replace any earlier coat of the same product
-    var arr = layersOf(m.group);
-    for (var i = arr.length - 1; i >= 0; i--) if (arr[i].product === m.product) arr.splice(i, 1);
-    var layer = { product: m.product, color: color, q: q, prog: 0 };
-    arr.push(layer);
-    arr.sort(function (a, b) { return PRODUCTS[a.product].layer - PRODUCTS[b.product].layer; });
-    P.order.push(m.product);
-
-    // sweep the cursor along while the product appears
-    var pts = pathFor(m.group);
-    var dur = m.group === 'nails' || m.group === 'toes' ? 1500 : 950;
-    queueStep(dur, function (t) {
-      layer.prog = t;
-      var pos = samplePath(pts, t);
-      P.cursor.x = pos.x - 8;
-      P.cursor.y = pos.y - 6 + Math.sin(t * 14) * 3;
-      P.cursor.a += 0.4;
-    }, function () {
-      layer.prog = 1;
-      popSparkles(HOTSPOTS[P.L.subject][m.group].x, HOTSPOTS[P.L.subject][m.group].y,
-        color ? color.h : '#ffd23f', q > 0.85 ? 14 : 6);
-      finishApply(m.product, m.group, q, color);
-    });
-  }
-
-  function finishApply(productId, group, q, color) {
-    P.busy = false;
-    // did this tick off a request?
-    var msg = '';
-    P.L.tasks.forEach(function (t) {
-      if (t.product !== productId || t.group !== group) return;
-      var colorOk = !t.color || (color && color.n === t.color.n);
-      t.done = true;
-      t.quality = q * (colorOk ? 1 : 0.45);
-      msg = colorOk
-        ? (q > 0.9 ? 'Perfect ' + PRODUCTS[productId].label.toLowerCase() + '! ✨' : 'Nice — ' + PRODUCTS[productId].label.toLowerCase() + ' done.')
-        : 'Hmm, she asked for ' + t.color.n + '.';
-    });
-    if (!msg) msg = q > 0.9 ? 'Lovely extra touch! ✨' : 'Extra touch added.';
-    toast(msg);
-    renderTasks();
-    renderTray();
-    var left = P.L.tasks.filter(function (t) { return !t.done; }).length;
-    $('playHint').innerHTML = left ? left + ' request' + (left > 1 ? 's' : '') + ' to go.' :
-      'Everything she asked for is done — tap <b>✅ Finish</b>.';
-    if (P.demo) { P.demo = false; }
-  }
-
-  /* ---------------- main loop ---------------- */
+  /* ---------------- loop ---------------- */
   var lastT = performance.now();
   function tick(now) {
     var dt = Math.min(50, now - lastT);
     lastT = now;
-
-    if (P.queue.length) {
-      var st = P.queue[0];
-      st.t += dt;
-      var t = clamp(st.t / st.dur, 0, 1);
-      st.update(easeInOut(t));
-      if (t >= 1) { P.queue.shift(); if (st.done) st.done(); }
-    }
-
-    if (P.meter) {
-      P.meter.pos += P.meter.dir * P.meter.speed * dt / 1000;
-      if (P.meter.pos >= 1) { P.meter.pos = 1; P.meter.dir = -1; }
-      if (P.meter.pos <= 0) { P.meter.pos = 0; P.meter.dir = 1; }
-      $('needle').style.left = (P.meter.pos * 100) + '%';
-      if (P.meter.auto && Math.abs(P.meter.pos - 0.5) < 0.03) stopMeter();
-    }
-
+    if (P.showZone > 0) P.showZone -= dt;
     for (var i = P.sparkles.length - 1; i >= 0; i--) {
       var s = P.sparkles[i];
       s.life -= dt / 900;
@@ -2339,43 +2643,130 @@
       s.r += 0.04;
       if (s.life <= 0) P.sparkles.splice(i, 1);
     }
-
     if ($('playScreen').classList.contains('active')) drawScene();
     requestAnimationFrame(tick);
   }
   requestAnimationFrame(tick);
 
-  $('steadyBtn').onclick = function () { stopMeter(); };
-  document.addEventListener('keydown', function (e) {
-    if (e.code === 'Space' && P.meter) { e.preventDefault(); stopMeter(); }
-  });
+  /* ---------------- tray, tasks, coverage ---------------- */
+  function renderTray() {
+    var host = $('prodGrid');
+    host.innerHTML = '';
+    var list = productsFor(P.L.subject);
+    var wanted = {};
+    P.L.tasks.forEach(function (t) { wanted[t.product] = true; });
 
-  $('undoBtn').onclick = function () {
-    if (P.busy || !P.L) return;
-    var last = P.order.pop();
-    if (!last) { toast('Nothing to wipe off yet.'); return; }
-    for (var g in P.applied) {
-      var arr = P.applied[g];
-      for (var i = arr.length - 1; i >= 0; i--) {
-        if (arr[i].product === last) {
-          arr.splice(i, 1);
-          P.L.tasks.forEach(function (t) { if (t.product === last) { t.done = false; t.quality = 0; } });
-          toast('Wiped off the ' + PRODUCTS[last].label.toLowerCase() + '.');
-          renderTasks(); renderTray();
-          return;
-        }
-      }
+    list.forEach(function (id) {
+      var p = PRODUCTS[id];
+      var group = p.groups.filter(function (g) { return SUBJECT_GROUPS[P.L.subject].indexOf(g) >= 0; })[0];
+      var layer = findLayer(group, id);
+      var b = document.createElement('button');
+      b.className = 'prod' + (P.selProduct === id ? ' on' : '') + (wanted[id] ? ' want' : '') +
+        (layer && layer.cover > 0.5 ? ' done' : '');
+      b.innerHTML = '<span class="ic">' + p.ic + '</span>' + p.label;
+      b.onclick = function () { selectProduct(id); };
+      host.appendChild(b);
+    });
+    renderSwatches();
+  }
+
+  function renderSwatches() {
+    var row = $('swatchRow'), lab = $('swatchLabel');
+    row.innerHTML = '';
+    if (!P.selProduct) { lab.textContent = 'Tap a product to pick it up.'; return; }
+    var p = PRODUCTS[P.selProduct];
+    if (!p.colors) { lab.textContent = p.label + ' — no shade needed.'; return; }
+    var list = colorList(p.colors);
+    lab.textContent = 'Shade: ' + (list[P.selColor] ? list[P.selColor].n : '—');
+    list.forEach(function (c, i) {
+      var b = document.createElement('button');
+      b.className = 'dot' + (P.selColor === i ? ' on' : '');
+      b.style.background = c.h;
+      b.title = c.n;
+      b.onclick = function () { P.selColor = i; renderSwatches(); updateCoverBar(); };
+      row.appendChild(b);
+    });
+  }
+
+  function selectProduct(id) {
+    P.selProduct = id;
+    P.selColor = 0;
+    var p = PRODUCTS[id];
+    var task = P.L.tasks.filter(function (t) { return t.product === id; })[0];
+    if (task && task.color && p.colors) {
+      var list = colorList(p.colors);
+      for (var i = 0; i < list.length; i++) if (list[i].n === task.color.n) P.selColor = i;
     }
+    var group = targetGroup(id);
+    var spec = BRUSH[id] || {};
+    var how = spec.stamp ? 'Tap each nail to place it.'
+      : spec.file ? 'Drag across the nail tips to file them.'
+      : 'Press and drag to ' + p.verb + ' it on.';
+    $('playHint').innerHTML = '<b>' + p.ic + ' ' + p.label + '</b> in hand. ' + how;
+    P.showZone = 1600;
+    renderTray();
+    updateCoverBar();
+  }
+
+  function updateCoverBar() {
+    var wrap = $('coverWrap');
+    if (!P.selProduct || !P.L) { wrap.classList.remove('on'); return; }
+    wrap.classList.add('on');
+    var group = targetGroup(P.selProduct);
+    var layer = findLayer(group, P.selProduct);
+    var cover = layer ? layer.cover : 0;
+    var neat = layer ? 1 - Math.min(0.65, layer.spill * 1.25) : 1;
+    $('coverFill').style.width = Math.round(clamp(cover, 0, 1) * 100) + '%';
+    $('neatFill').style.width = Math.round(neat * 100) + '%';
+    $('coverLabel').innerHTML = PRODUCTS[P.selProduct].label + ' on ' + GROUP_LABEL[group] +
+      ' — <b>' + Math.round(cover * 100) + '%</b> covered, <b>' + Math.round(neat * 100) + '%</b> neat' +
+      (layer && layer.spill > 0.12 ? ' <span style="color:#e0518e">(watch the edges!)</span>' : '');
+  }
+
+  function renderTasks() {
+    var host = $('taskList');
+    host.innerHTML = '';
+    P.L.tasks.forEach(function (t) {
+      var layer = findLayer(t.group, t.product);
+      var cover = layer ? Math.round(layer.cover * 100) : 0;
+      var d = document.createElement('div');
+      d.className = 'task' + (t.done ? ' ok' : '');
+      var sw = '<span class="sw" style="background:' + (t.color ? t.color.h : '#ddd') + '"></span>';
+      d.innerHTML = '<span class="box">' + (t.done ? '✓' : '') + '</span>' + sw +
+        '<span>' + taskText(t) + '<i class="tbar"><b style="width:' + cover + '%"></b></i></span>';
+      host.appendChild(d);
+    });
+    if (P.L.dream) {
+      var d2 = document.createElement('div');
+      d2.className = 'muted';
+      d2.style.fontSize = '.78rem';
+      d2.style.marginTop = '6px';
+      d2.innerHTML = G.owned[P.L.dream.item]
+        ? '💖 She spotted your <b>' + P.L.dream.name + '</b> — ' + money(P.L.dream.bonus) + ' bonus!'
+        : '💭 Wishes you had: ' + P.L.dream.name;
+      host.appendChild(d2);
+    }
+  }
+
+  /* ---------------- buttons ---------------- */
+  $('undoBtn').onclick = function () {
+    if (!P.L) return;
+    if (!P.layers.length) { toast('Nothing to wipe off yet.'); return; }
+    var last = P.layers[0], bestSeq = -1;
+    P.layers.forEach(function (l) { if (l.seq > bestSeq) { bestSeq = l.seq; last = l; } });
+    P.layers.splice(P.layers.indexOf(last), 1);
+    toast('Wiped off the ' + PRODUCTS[last.product].label.toLowerCase() + '.');
+    syncTasks();
+    renderTasks(); renderTray(); updateCoverBar();
   };
 
   $('demoBtn').onclick = function () {
-    if (P.busy || !P.L) return;
+    if (!P.L) return;
     var next = P.L.tasks.filter(function (t) { return !t.done; })[0];
-    if (!next) { toast('Nothing left to demo — tap Finish!'); return; }
+    if (!next) { toast('Everything is done — tap Finish!'); return; }
     selectProduct(next.product);
-    P.demo = true;
-    toast('Watch: ' + taskText(next));
-    beginApply(next.product, next.group, true);
+    P.showZone = 3000;
+    toast('Here: ' + taskText(next));
   };
 
   function startLevel(n) {
@@ -2385,9 +2776,10 @@
     resetPlay(L);
     renderTray();
     renderTasks();
+    updateCoverBar();
     $('trayHint').textContent = L.subject === 'face' ? 'makeup' : (L.subject === 'hand' ? 'manicure' : 'pedicure');
-    $('playHint').innerHTML = 'Pick a product, then tap the glowing spot on ' +
-      (L.subject === 'face' ? 'her face' : (L.subject === 'hand' ? 'her hand' : 'her foot')) + '.';
+    $('playHint').innerHTML = 'Pick a product, then <b>press and drag</b> on ' +
+      (L.subject === 'face' ? 'her face' : (L.subject === 'hand' ? 'her hand' : 'her foot')) + ' to put it on.';
     show('playScreen');
     refreshHeader();
   }
@@ -2395,39 +2787,43 @@
   /* ---------------- scoring ---------------- */
   function scoreLevel() {
     var L = P.L;
-    var total = 0, n = 0, missing = 0, wrongColor = 0;
+    syncTasks();
+    var total = 0, n = 0, missing = 0, wrongColor = 0, messy = 0;
     L.tasks.forEach(function (t) {
       n++;
       total += t.quality;
       if (!t.done) missing++;
-      else if (t.color) {
-        var layer = findLayer(t.group, t.product);
-        if (layer && layer.color && layer.color.n !== t.color.n) wrongColor++;
-      }
+      else if (t.colorOk === false) wrongColor++;
+      if (t.spill > 0.18) messy++;
     });
     var sat = n ? total / n : 0;
 
-    // bonuses that reward doing things in the right order
     var bonuses = [];
-    var idx = function (p) { return P.order.lastIndexOf(p); };
-    if (idx('base') >= 0 && idx('polish') > idx('base')) { sat += 0.05; bonuses.push('Base coat first (+5%)'); }
-    if (idx('top') >= 0 && idx('top') === P.order.length - 1 && P.order.length > 1) { sat += 0.05; bonuses.push('Top coat last (+5%)'); }
-    if (idx('foundation') === 0 && P.order.length > 1) { sat += 0.05; bonuses.push('Foundation first (+5%)'); }
-    if (idx('cuticle') >= 0 && idx('polish') > idx('cuticle')) { sat += 0.03; bonuses.push('Cuticles prepped (+3%)'); }
+    var seqOf = function (p) {
+      var s = -1;
+      P.layers.forEach(function (l) { if (l.product === p) s = l.seq; });
+      return s;
+    };
+    var maxSeq = -1;
+    P.layers.forEach(function (l) { maxSeq = Math.max(maxSeq, l.seq); });
+    if (seqOf('base') >= 0 && seqOf('polish') > seqOf('base')) { sat += 0.05; bonuses.push('Base coat first (+5%)'); }
+    if (seqOf('top') >= 0 && seqOf('top') === maxSeq && P.layers.length > 1) { sat += 0.05; bonuses.push('Top coat last (+5%)'); }
+    if (seqOf('foundation') === 0 && P.layers.length > 1) { sat += 0.05; bonuses.push('Foundation first (+5%)'); }
+    if (seqOf('cuticle') >= 0 && seqOf('polish') > seqOf('cuticle')) { sat += 0.03; bonuses.push('Cuticles prepped (+3%)'); }
 
-    // extra products she did not ask for
     var asked = {};
     L.tasks.forEach(function (t) { asked[t.product] = true; });
     var extras = 0;
-    for (var g in P.applied) P.applied[g].forEach(function (l) { if (!asked[l.product]) extras++; });
+    P.layers.forEach(function (l) { if (!asked[l.product] && l.cover > 0.4) extras++; });
     if (extras) {
       var eb = Math.min(0.08, extras * 0.02);
       sat += eb;
       bonuses.push('Creative extras ×' + extras + ' (+' + Math.round(eb * 100) + '%)');
     }
+    if (!messy && n) { sat += 0.04; bonuses.push('Clean edges everywhere (+4%)'); }
 
     var secs = (performance.now() - P.started) / 1000;
-    var par = 25 + L.tasks.length * 18;
+    var par = 30 + L.tasks.length * 22;
     if (secs < par) { sat += 0.05; bonuses.push('Speedy service (+5%)'); }
 
     sat = clamp(sat, 0, 1.2);
@@ -2440,7 +2836,7 @@
 
     return {
       sat: sat, earn: earn, tip: tip, dream: dreamBonus, costs: L.costs,
-      profit: profit, passed: passed, missing: missing, wrongColor: wrongColor,
+      profit: profit, passed: passed, missing: missing, wrongColor: wrongColor, messy: messy,
       bonuses: bonuses, stars: sat >= 1.0 ? 3 : (sat >= 0.82 ? 2 : (passed ? 1 : 0))
     };
   }
@@ -2456,7 +2852,7 @@
   };
 
   function finishLevel() {
-    if (P.busy || P.finished) return;
+    if (!P.L || P.finished) return;
     var undone = P.L.tasks.filter(function (t) { return !t.done; });
     if (undone.length && !P.confirmFinish) {
       P.confirmFinish = true;
@@ -2471,12 +2867,8 @@
     G.cash = Math.max(0, G.cash + r.profit);
     if (r.sat >= 0.8) G.happyClients++;
     if (r.stars === 3) G.perfectRuns++;
-    if (r.passed) {
-      G.streak++;
-      G.bestStreak = Math.max(G.bestStreak, G.streak);
-    } else {
-      G.streak = 0;
-    }
+    if (r.passed) { G.streak++; G.bestStreak = Math.max(G.bestStreak, G.streak); }
+    else G.streak = 0;
 
     var bucket = r.sat >= 1.0 ? 'great' : (r.sat >= 0.8 ? 'good' : (r.sat >= 0.55 ? 'ok' : 'bad'));
     var quote = REVIEWS[bucket][Math.floor(Math.random() * REVIEWS[bucket].length)];
@@ -2488,12 +2880,11 @@
       '<div class="stars">' + '★★★'.slice(0, r.stars) + '<span style="opacity:.25">' + '★★★'.slice(0, 3 - r.stars) + '</span></div>' +
       '<div class="quote">“' + quote + '”</div>' +
       '<div class="muted">Satisfaction: <b>' + Math.round(r.sat * 100) + '%</b>' +
-      (r.missing ? ' · ' + r.missing + ' request(s) skipped' : '') +
-      (r.wrongColor ? ' · ' + r.wrongColor + ' wrong shade' : '') + '</div>';
+      (r.missing ? ' · ' + r.missing + ' skipped' : '') +
+      (r.wrongColor ? ' · ' + r.wrongColor + ' wrong shade' : '') +
+      (r.messy ? ' · ' + r.messy + ' outside the lines' : '') + '</div>';
 
-    if (r.bonuses.length) {
-      html += '<div class="muted" style="margin-top:6px">' + r.bonuses.join(' · ') + '</div>';
-    }
+    if (r.bonuses.length) html += '<div class="muted" style="margin-top:6px">' + r.bonuses.join(' · ') + '</div>';
 
     html += '<div class="ledger">' +
       '<div class="row"><span>Service fee</span><span class="pos">' + money(r.earn) + '</span></div>' +
@@ -2512,8 +2903,8 @@
         '<button class="btn ghost" id="shopBtn2">🛍️ Shop</button>' +
         '<button class="btn ghost" id="salonBtn2">🏠 Salon</button></div>';
     } else {
-      html += '<p class="muted">You needed <b>' + money(L.goal) + '</b> profit. Try again — check the shade names ' +
-        'and stop the meter in the green.</p>' +
+      html += '<p class="muted">You needed <b>' + money(L.goal) + '</b> profit. Cover the whole area, ' +
+        'keep inside the lines, and check the shade names.</p>' +
         '<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;justify-content:center">' +
         '<button class="btn big" id="retryBtn">↻ Try this client again</button>' +
         '<button class="btn ghost" id="guideBtn2">📖 Guide</button>' +
