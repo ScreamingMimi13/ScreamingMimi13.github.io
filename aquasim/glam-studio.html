@@ -817,57 +817,74 @@
     var skin = SKIN_TONES[av.skin % SKIN_TONES.length];
     var hair = HAIR_COLORS[av.hairColor % HAIR_COLORS.length];
     var fit = OUTFITS[av.outfit % OUTFITS.length];
-    var headY = 44 * s, headR = 21 * s;
+    var headY = 42 * s, headR = 20 * s;
+    var chinY = headY + headR * 1.13;            // 64.6s — nothing hairy goes below this
 
-    // shoulders / outfit
+    // Hair behind the head. It falls at the SIDES of the face and never crosses
+    // under the chin, otherwise long styles read as a beard.
+    ctx.fillStyle = hair;
+    function sideFall(dropY, lobeW, lobeH) {
+      ctx.beginPath(); ctx.ellipse(cx - 18 * s, dropY, lobeW, lobeH, 0.06, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(cx + 18 * s, dropY, lobeW, lobeH, -0.06, 0, TAU); ctx.fill();
+    }
+    function crown(rx, ry, dy) {
+      ctx.beginPath(); ctx.ellipse(cx, headY + (dy || 0), rx, ry, 0, 0, TAU); ctx.fill();
+    }
+    if (av.hair === 0) {          // long
+      crown(24 * s, 24 * s, -1 * s);
+      sideFall(headY + 18 * s, 9 * s, 25 * s);
+    } else if (av.hair === 2) {   // curly — a halo over the top and sides only
+      for (var i = 0; i <= 10; i++) {
+        var a = Math.PI * (1 + i / 10);
+        ctx.beginPath();
+        ctx.arc(cx + Math.cos(a) * 21 * s, headY + Math.sin(a) * 20 * s, 8.5 * s, 0, TAU);
+        ctx.fill();
+      }
+      ctx.beginPath(); ctx.arc(cx - 21 * s, headY + 9 * s, 8 * s, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.arc(cx + 21 * s, headY + 9 * s, 8 * s, 0, TAU); ctx.fill();
+    } else if (av.hair === 3) {   // ponytail
+      crown(23 * s, 23 * s, -1 * s);
+      ctx.beginPath();
+      ctx.ellipse(cx + 22 * s, headY + 14 * s, 8 * s, 18 * s, -0.25, 0, TAU);
+      ctx.fill();
+    } else if (av.hair === 4) {   // bob
+      crown(24 * s, 23 * s);
+      sideFall(headY + 9 * s, 9 * s, 15 * s);
+    } else if (av.hair === 5) {   // braids
+      crown(23 * s, 23 * s, -1 * s);
+      ctx.beginPath(); ctx.ellipse(cx - 21 * s, headY + 18 * s, 6 * s, 20 * s, 0, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(cx + 21 * s, headY + 18 * s, 6 * s, 20 * s, 0, 0, TAU); ctx.fill();
+    } else if (av.hair === 6) {   // space buns
+      ctx.beginPath(); ctx.arc(cx - 21 * s, headY - 16 * s, 9 * s, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.arc(cx + 21 * s, headY - 16 * s, 9 * s, 0, TAU); ctx.fill();
+    } else if (av.hair === 1) {   // bun
+      ctx.beginPath(); ctx.arc(cx, headY - 21 * s, 10 * s, 0, TAU); ctx.fill();
+    }
+
+    // neck — drawn over the hair so no strands cross the throat
+    ctx.fillStyle = shade(skin, -0.05);
+    ctx.beginPath();
+    ctx.moveTo(cx - 7 * s, chinY - 4 * s);
+    ctx.lineTo(cx - 7.5 * s, 80 * s);
+    ctx.lineTo(cx + 7.5 * s, 80 * s);
+    ctx.lineTo(cx + 7 * s, chinY - 4 * s);
+    ctx.closePath();
+    ctx.fill();
+
+    // shoulders / outfit, low enough to leave a visible neck
     ctx.fillStyle = fit;
     ctx.beginPath();
-    ctx.moveTo(cx - 34 * s, h);
-    ctx.quadraticCurveTo(cx - 32 * s, 68 * s, cx - 13 * s, 62 * s);
-    ctx.lineTo(cx + 13 * s, 62 * s);
-    ctx.quadraticCurveTo(cx + 32 * s, 68 * s, cx + 34 * s, h);
+    ctx.moveTo(cx - 36 * s, h);
+    ctx.quadraticCurveTo(cx - 33 * s, 80 * s, cx - 14 * s, 75 * s);
+    ctx.lineTo(cx + 14 * s, 75 * s);
+    ctx.quadraticCurveTo(cx + 33 * s, 80 * s, cx + 36 * s, h);
     ctx.closePath();
     ctx.fill();
     // collar shading
-    ctx.fillStyle = 'rgba(0,0,0,.09)';
+    ctx.fillStyle = 'rgba(0,0,0,.1)';
     ctx.beginPath();
-    ctx.ellipse(cx, 64 * s, 13 * s, 5 * s, 0, 0, Math.PI);
+    ctx.ellipse(cx, 77 * s, 14 * s, 5 * s, 0, 0, Math.PI);
     ctx.fill();
-
-    // neck
-    ctx.fillStyle = shade(skin, -0.06);
-    ctx.fillRect(cx - 6.5 * s, headY + 12 * s, 13 * s, 12 * s);
-
-    // hair back layer
-    ctx.fillStyle = hair;
-    if (av.hair === 0) { // long
-      ctx.beginPath();
-      ctx.ellipse(cx, headY + 12 * s, 27 * s, 30 * s, 0, 0, TAU);
-      ctx.fill();
-    } else if (av.hair === 2) { // curly
-      for (var i = 0; i < 12; i++) {
-        var a = (i / 12) * TAU;
-        ctx.beginPath();
-        ctx.arc(cx + Math.cos(a) * 22 * s, headY + Math.sin(a) * 21 * s, 9 * s, 0, TAU);
-        ctx.fill();
-      }
-    } else if (av.hair === 3) { // ponytail
-      ctx.beginPath();
-      ctx.ellipse(cx + 22 * s, headY + 16 * s, 8 * s, 18 * s, -0.25, 0, TAU);
-      ctx.fill();
-    } else if (av.hair === 4) { // bob
-      ctx.beginPath();
-      ctx.ellipse(cx, headY + 6 * s, 25 * s, 26 * s, 0, 0, TAU);
-      ctx.fill();
-    } else if (av.hair === 5) { // braids
-      ctx.beginPath(); ctx.ellipse(cx - 22 * s, headY + 20 * s, 6 * s, 20 * s, 0, 0, TAU); ctx.fill();
-      ctx.beginPath(); ctx.ellipse(cx + 22 * s, headY + 20 * s, 6 * s, 20 * s, 0, 0, TAU); ctx.fill();
-    } else if (av.hair === 6) { // space buns
-      ctx.beginPath(); ctx.arc(cx - 21 * s, headY - 16 * s, 9 * s, 0, TAU); ctx.fill();
-      ctx.beginPath(); ctx.arc(cx + 21 * s, headY - 16 * s, 9 * s, 0, TAU); ctx.fill();
-    } else if (av.hair === 1) { // bun
-      ctx.beginPath(); ctx.arc(cx, headY - 22 * s, 10 * s, 0, TAU); ctx.fill();
-    }
 
     // head
     ctx.fillStyle = skin;
