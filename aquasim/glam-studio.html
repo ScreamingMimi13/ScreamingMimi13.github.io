@@ -1,0 +1,2859 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Glam Studio — Makeup, Manicure &amp; Pedicure</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --pink: #ff7eb3;
+    --pink-dark: #e0518e;
+    --purple: #a86fd6;
+    --purple-dark: #7e47ad;
+    --gold: #ffc93c;
+    --mint: #6fd6c0;
+    --coral: #ff8a65;
+    --red: #ef5350;
+    --green: #66bb6a;
+    --card: #ffffff;
+    --soft: #fff3f9;
+    --line: #f2dcea;
+    --ink: #3c2b45;
+    --muted: #8c7a95;
+    --shadow: 0 8px 22px rgba(120, 60, 110, .16);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --card: #33253d;
+      --soft: #3d2c48;
+      --line: #4d3a5b;
+      --ink: #f7ecf6;
+      --muted: #bda8c8;
+      --shadow: 0 8px 22px rgba(0, 0, 0, .38);
+    }
+  }
+
+  html, body { height: 100%; }
+
+  body {
+    font-family: "Comic Sans MS", "Chalkboard SE", "Segoe UI", sans-serif;
+    color: var(--ink);
+    background: linear-gradient(170deg, #ffd6ea 0%, #e3d3ff 48%, #fff0d6 100%);
+    background-attachment: fixed;
+    min-height: 100vh;
+    -webkit-text-size-adjust: 100%;
+  }
+  @media (prefers-color-scheme: dark) {
+    body { background: linear-gradient(170deg, #2a1c33 0%, #241d3e 50%, #33203a 100%); }
+  }
+
+  button { font-family: inherit; cursor: pointer; }
+  input, select { font-family: inherit; }
+
+  /* ---------- Header ---------- */
+  header {
+    position: sticky; top: 0; z-index: 50;
+    display: flex; align-items: center; gap: 10px;
+    flex-wrap: wrap;
+    padding: 8px 12px;
+    background: rgba(255,255,255,.9);
+    box-shadow: 0 2px 10px rgba(120,60,110,.16);
+  }
+  @media (prefers-color-scheme: dark) { header { background: rgba(45,32,54,.94); } }
+
+  .brand { display: flex; align-items: center; gap: 8px; font-weight: bold; color: var(--purple-dark); font-size: 1.05rem; white-space: nowrap; }
+  @media (prefers-color-scheme: dark) { .brand { color: #e5c9ff; } }
+  .brand .logo { font-size: 1.4rem; }
+
+  #avatarChip {
+    display: flex; align-items: center; gap: 7px;
+    background: var(--soft); border: 2px solid var(--line);
+    border-radius: 999px; padding: 3px 12px 3px 3px; cursor: pointer;
+  }
+  #avatarChip canvas { width: 34px; height: 34px; border-radius: 50%; background: #ffe6f2; display: block; }
+  #avatarChip .who { font-size: .82rem; font-weight: bold; line-height: 1.15; }
+  #avatarChip .who small { display: block; font-weight: normal; color: var(--muted); font-size: .72rem; }
+
+  .stats { display: flex; gap: 7px; flex-wrap: wrap; margin-left: auto; align-items: center; }
+  .stat {
+    background: var(--soft); border: 2px solid var(--line);
+    border-radius: 999px; padding: 4px 12px; font-size: .84rem; font-weight: bold; white-space: nowrap;
+  }
+  .stat b { color: var(--purple-dark); }
+  @media (prefers-color-scheme: dark) { .stat b { color: #e5c9ff; } }
+  .stat.cash b { color: #2e9e5b; }
+
+  .navbtns { display: flex; gap: 6px; flex-wrap: wrap; }
+
+  .btn {
+    border: none; border-radius: 999px; padding: 8px 16px;
+    font-size: .88rem; font-weight: bold; color: #fff;
+    background: var(--purple); box-shadow: 0 3px 0 rgba(0,0,0,.12);
+    transition: transform .1s ease, filter .1s ease;
+  }
+  .btn:hover { filter: brightness(1.07); }
+  .btn:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0,0,0,.12); }
+  .btn.pink { background: var(--pink-dark); }
+  .btn.gold { background: #e8a800; }
+  .btn.mint { background: #34a894; }
+  .btn.ghost { background: var(--soft); color: var(--ink); border: 2px solid var(--line); box-shadow: none; }
+  .btn.small { padding: 5px 12px; font-size: .8rem; }
+  .btn.big { padding: 12px 26px; font-size: 1.05rem; }
+  .btn:disabled { opacity: .45; cursor: not-allowed; filter: none; }
+
+  /* ---------- Screens ---------- */
+  .screen { display: none; max-width: 1120px; margin: 0 auto; padding: 16px 14px 60px; }
+  .screen.active { display: block; }
+
+  .panel {
+    background: var(--card); border-radius: 20px; padding: 18px;
+    box-shadow: var(--shadow); border: 3px solid transparent;
+  }
+  .panel + .panel { margin-top: 14px; }
+
+  h1 { font-size: 2rem; color: var(--purple-dark); }
+  @media (prefers-color-scheme: dark) { h1 { color: #eccfff; } }
+  h2 { font-size: 1.3rem; color: var(--pink-dark); margin-bottom: 8px; }
+  @media (prefers-color-scheme: dark) { h2 { color: #ffb3d4; } }
+  h3 { font-size: 1.02rem; margin-bottom: 6px; }
+  p { line-height: 1.55; }
+  .muted { color: var(--muted); font-size: .9rem; line-height: 1.5; }
+  .center { text-align: center; }
+
+  /* ---------- Title screen ---------- */
+  #titleScreen .hero { text-align: center; padding: 26px 12px; }
+  #titleScreen .hero .big { font-size: 3.6rem; line-height: 1; }
+  #titleScreen h1 { font-size: 2.6rem; margin: 6px 0; }
+  .featgrid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); margin: 18px 0; }
+  .feat { background: var(--soft); border: 2px solid var(--line); border-radius: 16px; padding: 12px; }
+  .feat .ic { font-size: 1.7rem; }
+  .feat b { display: block; margin: 4px 0 2px; }
+  .feat span { font-size: .84rem; color: var(--muted); line-height: 1.45; }
+
+  /* ---------- Avatar creator ---------- */
+  .avatarWrap { display: grid; gap: 16px; grid-template-columns: 260px 1fr; align-items: start; }
+  @media (max-width: 720px) { .avatarWrap { grid-template-columns: 1fr; } }
+  #avatarBig { width: 100%; max-width: 260px; aspect-ratio: 1; background: linear-gradient(160deg,#ffe6f4,#efe0ff); border-radius: 20px; border: 3px solid var(--line); display: block; margin: 0 auto; }
+  .field { margin-bottom: 12px; }
+  .field label { display: block; font-weight: bold; font-size: .88rem; margin-bottom: 5px; }
+  .field input[type=text] {
+    width: 100%; padding: 10px 12px; border-radius: 12px;
+    border: 2px solid var(--line); background: var(--soft); color: var(--ink); font-size: 1rem;
+  }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip {
+    border: 2px solid var(--line); background: var(--soft); color: var(--ink);
+    border-radius: 999px; padding: 6px 13px; font-size: .84rem; font-weight: bold;
+  }
+  .chip.on { border-color: var(--purple); background: var(--purple); color: #fff; }
+  .dots { display: flex; flex-wrap: wrap; gap: 7px; }
+  .dot {
+    width: 32px; height: 32px; border-radius: 50%; border: 3px solid rgba(0,0,0,.12);
+    padding: 0; box-shadow: 0 2px 5px rgba(0,0,0,.15);
+  }
+  .dot.on { border-color: var(--purple-dark); transform: scale(1.12); }
+
+  /* ---------- Salon hub ---------- */
+  .hubgrid { display: grid; gap: 14px; grid-template-columns: 1.4fr 1fr; align-items: start; }
+  @media (max-width: 860px) { .hubgrid { grid-template-columns: 1fr; } }
+  .bookcard { background: var(--soft); border: 2px dashed var(--line); border-radius: 16px; padding: 14px; }
+  .bookcard .row { display: flex; justify-content: space-between; gap: 10px; padding: 5px 0; font-size: .92rem; border-bottom: 1px solid var(--line); }
+  .bookcard .row:last-child { border-bottom: none; }
+  .bookcard .row b { color: var(--purple-dark); }
+  @media (prefers-color-scheme: dark) { .bookcard .row b { color: #e5c9ff; } }
+  .req { display: flex; align-items: center; gap: 8px; padding: 6px 0; font-size: .92rem; }
+  .req .sw { width: 20px; height: 20px; border-radius: 50%; border: 2px solid rgba(0,0,0,.15); flex: none; }
+  .levelpick { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
+  .levelpick input { width: 110px; padding: 8px 10px; border-radius: 10px; border: 2px solid var(--line); background: var(--soft); color: var(--ink); font-size: .95rem; }
+
+  /* ---------- Play screen ---------- */
+  .playgrid { display: grid; gap: 14px; grid-template-columns: 1fr 330px; align-items: start; }
+  @media (max-width: 900px) { .playgrid { grid-template-columns: 1fr; } }
+
+  .stage { position: relative; }
+  #stageCanvas {
+    width: 100%; height: auto; display: block; border-radius: 18px;
+    background: linear-gradient(170deg, #fff0f7, #f3e7ff);
+    box-shadow: var(--shadow); touch-action: manipulation; cursor: pointer;
+  }
+  .stagebar {
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    margin-top: 10px;
+  }
+  .hint { font-size: .86rem; color: var(--muted); flex: 1; min-width: 140px; line-height: 1.4; }
+
+  .meterwrap { margin-top: 10px; display: none; }
+  .meterwrap.on { display: block; }
+  .meter {
+    position: relative; height: 30px; border-radius: 999px; overflow: hidden;
+    background: linear-gradient(90deg, #ffd0d0, #ffe6a8 26%, #b6f0c4 46%, #7be09a 50%, #b6f0c4 54%, #ffe6a8 74%, #ffd0d0);
+    border: 3px solid var(--line);
+  }
+  .meter .needle { position: absolute; top: -3px; bottom: -3px; width: 6px; background: #3c2b45; border-radius: 3px; transform: translateX(-3px); }
+  .meterlabel { font-size: .84rem; color: var(--muted); margin-top: 4px; text-align: center; }
+
+  .tray { background: var(--card); border-radius: 18px; padding: 12px; box-shadow: var(--shadow); }
+  .tray h3 { display: flex; justify-content: space-between; align-items: center; }
+  .prodgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(78px, 1fr)); gap: 6px; margin: 8px 0 10px; }
+  .prod {
+    border: 2px solid var(--line); background: var(--soft); color: var(--ink);
+    border-radius: 13px; padding: 7px 3px; text-align: center; font-size: .68rem; font-weight: bold; line-height: 1.2;
+  }
+  .prod .ic { display: block; font-size: 1.3rem; margin-bottom: 2px; }
+  .prod.on { border-color: var(--pink-dark); background: #ffe4f0; color: #8a2b58; }
+  .prod.done { opacity: .55; }
+  .prod.want::after { content: "★"; color: var(--gold); font-size: .8rem; }
+
+  .tasklist { margin-top: 4px; }
+  .task { display: flex; align-items: flex-start; gap: 7px; font-size: .85rem; padding: 5px 0; border-bottom: 1px dashed var(--line); line-height: 1.35; }
+  .task:last-child { border-bottom: none; }
+  .task .box { flex: none; width: 18px; height: 18px; border-radius: 6px; border: 2px solid var(--line); text-align: center; font-size: .7rem; line-height: 15px; }
+  .task.ok .box { background: var(--green); border-color: var(--green); color: #fff; }
+  .task.ok { opacity: .72; }
+  .task .sw { flex: none; width: 15px; height: 15px; border-radius: 50%; border: 2px solid rgba(0,0,0,.15); margin-top: 2px; }
+
+  /* ---------- Shop ---------- */
+  .shoptabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+  .shopgrid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(215px, 1fr)); }
+  .item {
+    background: var(--soft); border: 2px solid var(--line); border-radius: 16px; padding: 12px;
+    display: flex; flex-direction: column; gap: 5px;
+  }
+  .item.owned { border-color: var(--green); background: rgba(102,187,106,.12); }
+  .item .ic { font-size: 1.9rem; }
+  .item .nm { font-weight: bold; font-size: .95rem; }
+  .item .ds { font-size: .78rem; color: var(--muted); line-height: 1.4; flex: 1; }
+  .item .pr { font-weight: bold; color: #2e9e5b; font-size: 1rem; }
+  .item .swrow { display: flex; gap: 4px; flex-wrap: wrap; }
+  .item .swrow i { width: 15px; height: 15px; border-radius: 50%; display: block; border: 1px solid rgba(0,0,0,.18); }
+  .tag { display: inline-block; font-size: .68rem; font-weight: bold; padding: 2px 8px; border-radius: 999px; background: var(--purple); color: #fff; }
+  .tag.lux { background: linear-gradient(90deg,#f7b733,#fc4a1a); }
+
+  /* ---------- Guide ---------- */
+  .guidebar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; }
+  .guidebar input {
+    flex: 1; min-width: 150px; padding: 9px 12px; border-radius: 12px;
+    border: 2px solid var(--line); background: var(--soft); color: var(--ink); font-size: .92rem;
+  }
+  .progbar { height: 14px; border-radius: 999px; background: var(--line); overflow: hidden; margin: 8px 0 14px; }
+  .progbar i { display: block; height: 100%; background: linear-gradient(90deg, var(--pink), var(--purple)); }
+  .lesson { border: 2px solid var(--line); border-radius: 14px; margin-bottom: 8px; background: var(--soft); overflow: hidden; }
+  .lesson > .head { display: flex; align-items: center; gap: 9px; padding: 10px 12px; cursor: pointer; }
+  .lesson .num { flex: none; width: 30px; height: 30px; border-radius: 50%; background: var(--purple); color: #fff; font-size: .78rem; font-weight: bold; display: flex; align-items: center; justify-content: center; }
+  .lesson.done .num { background: var(--green); }
+  .lesson .ti { font-weight: bold; font-size: .93rem; flex: 1; line-height: 1.3; }
+  .lesson .area { font-size: .68rem; font-weight: bold; padding: 2px 8px; border-radius: 999px; background: var(--card); border: 1px solid var(--line); white-space: nowrap; }
+  .lesson .body { display: none; padding: 0 12px 12px 51px; font-size: .88rem; line-height: 1.55; }
+  .lesson.open .body { display: block; }
+  .lesson .body ol { margin: 6px 0 8px 18px; }
+  .lesson .body li { margin-bottom: 3px; }
+  .lesson .twist { background: var(--card); border-left: 4px solid var(--gold); border-radius: 8px; padding: 7px 10px; font-size: .84rem; margin-bottom: 8px; }
+
+  /* ---------- Results modal ---------- */
+  .overlay {
+    position: fixed; inset: 0; z-index: 100; display: none;
+    background: rgba(50,25,55,.55); backdrop-filter: blur(3px);
+    align-items: center; justify-content: center; padding: 16px;
+  }
+  .overlay.on { display: flex; }
+  .modal {
+    background: var(--card); border-radius: 22px; padding: 20px; max-width: 460px; width: 100%;
+    box-shadow: 0 20px 50px rgba(0,0,0,.35); max-height: 92vh; overflow-y: auto; text-align: center;
+  }
+  .modal .face { font-size: 3.2rem; line-height: 1; }
+  .modal .quote { background: var(--soft); border-radius: 14px; padding: 10px 12px; font-size: .9rem; font-style: italic; margin: 10px 0; line-height: 1.5; }
+  .ledger { text-align: left; margin: 10px 0; }
+  .ledger .row { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px dashed var(--line); font-size: .92rem; }
+  .ledger .row.total { border-bottom: none; border-top: 2px solid var(--line); margin-top: 4px; padding-top: 7px; font-weight: bold; font-size: 1.05rem; }
+  .ledger .neg { color: var(--red); }
+  .ledger .pos { color: #2e9e5b; }
+  .stars { font-size: 1.5rem; letter-spacing: 3px; color: var(--gold); }
+
+  .toast {
+    position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%);
+    background: rgba(60,43,69,.94); color: #fff; padding: 10px 18px; border-radius: 999px;
+    font-size: .9rem; z-index: 200; opacity: 0; pointer-events: none; transition: opacity .25s ease;
+    max-width: 90vw; text-align: center;
+  }
+  .toast.on { opacity: 1; }
+
+  .backlink { display: inline-block; margin-top: 18px; color: var(--purple-dark); font-weight: bold; text-decoration: none; font-size: .9rem; }
+  @media (prefers-color-scheme: dark) { .backlink { color: #e5c9ff; } }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand"><span class="logo">💅</span><span>Glam Studio</span></div>
+  <div id="avatarChip" title="Change your stylist">
+    <canvas id="avatarMini" width="80" height="80"></canvas>
+    <div class="who"><span id="chipName">Stylist</span><small id="chipTitle">Trainee</small></div>
+  </div>
+  <div class="stats">
+    <div class="stat cash">💰 <b id="statCash">$0</b></div>
+    <div class="stat">🎯 Level <b id="statLevel">1</b></div>
+    <div class="stat">✨ Skill <b id="statSkill">0%</b></div>
+  </div>
+  <div class="navbtns">
+    <button class="btn small ghost" id="navSalon">🏠 Salon</button>
+    <button class="btn small pink" id="navShop">🛍️ Shop</button>
+    <button class="btn small mint" id="navGuide">📖 Guide</button>
+  </div>
+</header>
+
+<!-- ===================== TITLE ===================== -->
+<section class="screen active" id="titleScreen">
+  <div class="panel hero">
+    <div class="big">💄💅🦶</div>
+    <h1>Glam Studio</h1>
+    <p class="muted">Run your own beauty salon. Makeup, manicures, pedicures — <b>10,000 levels</b> of clients
+      who pay real (pretend) money when they love your work.</p>
+    <div class="featgrid">
+      <div class="feat"><div class="ic">🖱️</div><b>Watch the hand work</b><span>Pick a product, tap a spot — your cursor glides over and applies it right in front of you.</span></div>
+      <div class="feat"><div class="ic">🛍️</div><b>Absurdly fancy shop</b><span>From a $12 lip balm to a $40,000,000 meteorite chrome powder.</span></div>
+      <div class="feat"><div class="ic">📖</div><b>100 lessons</b><span>Real makeup and nail-care exercises. Every one you finish makes your hands steadier.</span></div>
+      <div class="feat"><div class="ic">🧍‍♀️</div><b>Your own avatar</b><span>Design the stylist who runs the place, then climb from Trainee to Legend.</span></div>
+    </div>
+    <button class="btn big pink" id="startBtn">Start my salon ▶</button>
+    <div style="margin-top:10px"><a class="backlink" href="index.html">◀ Back to the Arcade</a></div>
+  </div>
+</section>
+
+<!-- ===================== AVATAR ===================== -->
+<section class="screen" id="avatarScreen">
+  <div class="panel">
+    <h2>Design your stylist</h2>
+    <p class="muted" style="margin-bottom:14px">This is you — the boss of Glam Studio. You can change it any time by tapping your picture up top.</p>
+    <div class="avatarWrap">
+      <canvas id="avatarBig" width="420" height="420"></canvas>
+      <div>
+        <div class="field">
+          <label for="nameInput">Your name</label>
+          <input type="text" id="nameInput" maxlength="14" placeholder="e.g. Mia" value="Mia">
+        </div>
+        <div class="field"><label>Skin</label><div class="dots" id="avSkin"></div></div>
+        <div class="field"><label>Hair style</label><div class="chips" id="avHairStyle"></div></div>
+        <div class="field"><label>Hair colour</label><div class="dots" id="avHairColor"></div></div>
+        <div class="field"><label>Outfit</label><div class="dots" id="avOutfit"></div></div>
+        <div class="field"><label>Accessory</label><div class="chips" id="avAccessory"></div></div>
+        <button class="btn big" id="avatarDone">That's me! ▶</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== SALON HUB ===================== -->
+<section class="screen" id="salonScreen">
+  <div class="panel">
+    <h2 id="chapterTitle">Chapter 1 — Corner Shop Beginnings</h2>
+    <div class="hubgrid">
+      <div>
+        <div class="bookcard">
+          <h3 id="clientHeading">Next appointment</h3>
+          <div id="clientBlurb" class="muted" style="margin-bottom:8px"></div>
+          <div id="clientReqs"></div>
+        </div>
+        <div class="levelpick">
+          <button class="btn big pink" id="startLevelBtn">Open the salon ▶</button>
+          <span class="muted">Jump to level:</span>
+          <input type="number" id="jumpInput" min="1" max="10000" value="1">
+          <button class="btn small ghost" id="jumpBtn">Go</button>
+        </div>
+      </div>
+      <div>
+        <div class="bookcard">
+          <h3>Today's numbers</h3>
+          <div class="row"><span>Level</span><b id="hubLevel">1 / 10,000</b></div>
+          <div class="row"><span>Profit needed</span><b id="hubGoal">$0</b></div>
+          <div class="row"><span>Rent &amp; supplies</span><b id="hubCosts">$0</b></div>
+          <div class="row"><span>In the till</span><b id="hubCash">$0</b></div>
+          <div class="row"><span>Happy clients</span><b id="hubHappy">0</b></div>
+          <div class="row"><span>Lessons done</span><b id="hubLessons">0 / 100</b></div>
+          <div class="row"><span>Steadiness</span><b id="hubSkill">0%</b></div>
+        </div>
+        <div class="bookcard" style="margin-top:12px">
+          <h3>Kit unlocked</h3>
+          <div id="hubKit" class="muted"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== PLAY ===================== -->
+<section class="screen" id="playScreen">
+  <div class="playgrid">
+    <div>
+      <div class="stage">
+        <canvas id="stageCanvas" width="720" height="560"></canvas>
+      </div>
+      <div class="meterwrap" id="meterWrap">
+        <div class="meter"><div class="needle" id="needle" style="left:0%"></div></div>
+        <div class="meterlabel" id="meterLabel">Tap <b>Steady!</b> when the line is in the green</div>
+        <button class="btn big pink" id="steadyBtn" style="width:100%;margin-top:8px">Steady!</button>
+      </div>
+      <div class="stagebar">
+        <span class="hint" id="playHint">Pick a product, then tap where it goes.</span>
+        <button class="btn small ghost" id="demoBtn">👀 Show me</button>
+        <button class="btn small ghost" id="undoBtn">↩ Wipe off</button>
+        <button class="btn small gold" id="finishBtn">✅ Finish</button>
+      </div>
+    </div>
+    <div>
+      <div class="tray">
+        <h3>Your kit <span class="muted" id="trayHint" style="font-size:.75rem;font-weight:normal"></span></h3>
+        <div class="prodgrid" id="prodGrid"></div>
+        <div id="swatchLabel" class="muted" style="font-size:.78rem;margin-bottom:4px"></div>
+        <div class="dots" id="swatchRow"></div>
+      </div>
+      <div class="tray" style="margin-top:12px">
+        <h3>What they asked for</h3>
+        <div class="tasklist" id="taskList"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== SHOP ===================== -->
+<section class="screen" id="shopScreen">
+  <div class="panel">
+    <h2>🛍️ The Shop</h2>
+    <p class="muted" style="margin-bottom:12px">Fancy products unlock new colours, new tools, bigger tips and steadier hands.
+      Some of them cost more than a house. That is the point.</p>
+    <div class="shoptabs" id="shopTabs"></div>
+    <div class="shopgrid" id="shopGrid"></div>
+  </div>
+</section>
+
+<!-- ===================== GUIDE ===================== -->
+<section class="screen" id="guideScreen">
+  <div class="panel">
+    <h2>📖 The Glam Guide — 100 exercises</h2>
+    <p class="muted">Real practice you can do with a mirror, a friend, or just your own hands.
+      Every exercise you tick off adds <b>+0.25%</b> steadiness in the game (up to +25%).</p>
+    <div class="progbar"><i id="guideProg" style="width:0%"></i></div>
+    <div class="guidebar">
+      <input type="text" id="guideSearch" placeholder="Search lessons… (e.g. blush, cuticle, hygiene)">
+      <div class="chips" id="guideFilters"></div>
+    </div>
+    <div id="guideList"></div>
+  </div>
+</section>
+
+<div class="overlay" id="resultOverlay">
+  <div class="modal" id="resultModal"></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ================================================================
+     1. Utilities & global state
+     ================================================================ */
+  var $ = function (id) { return document.getElementById(id); };
+  var clamp = function (v, a, b) { return v < a ? a : (v > b ? b : v); };
+  var lerp = function (a, b, t) { return a + (b - a) * t; };
+  var TAU = Math.PI * 2;
+
+  // Deterministic per-level randomness so level 4,271 is always the same client.
+  function seeded(seed) {
+    var s = (seed * 2654435761) % 4294967296;
+    return function () {
+      s = (s * 1664525 + 1013904223) % 4294967296;
+      return s / 4294967296;
+    };
+  }
+  function pick(rng, arr) { return arr[Math.floor(rng() * arr.length) % arr.length]; }
+  function ri(rng, a, b) { return a + Math.floor(rng() * (b - a + 1)); }
+
+  function money(n) {
+    n = Math.round(n);
+    var neg = n < 0;
+    var s = Math.abs(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return (neg ? '-$' : '$') + s;
+  }
+
+  function hexToRgb(h) {
+    h = h.replace('#', '');
+    if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+    return { r: parseInt(h.slice(0, 2), 16), g: parseInt(h.slice(2, 4), 16), b: parseInt(h.slice(4, 6), 16) };
+  }
+  function rgba(hex, a) {
+    var c = hexToRgb(hex);
+    return 'rgba(' + c.r + ',' + c.g + ',' + c.b + ',' + a + ')';
+  }
+  function shade(hex, amt) {
+    var c = hexToRgb(hex);
+    var f = function (v) { return clamp(Math.round(v + 255 * amt), 0, 255); };
+    return 'rgb(' + f(c.r) + ',' + f(c.g) + ',' + f(c.b) + ')';
+  }
+  function mix(h1, h2, t) {
+    var a = hexToRgb(h1), b = hexToRgb(h2);
+    return 'rgb(' + Math.round(lerp(a.r, b.r, t)) + ',' + Math.round(lerp(a.g, b.g, t)) + ',' + Math.round(lerp(a.b, b.b, t)) + ')';
+  }
+
+  var toastTimer = null;
+  function toast(msg) {
+    var el = $('toast');
+    el.textContent = msg;
+    el.classList.add('on');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { el.classList.remove('on'); }, 2200);
+  }
+
+  var TITLES = [
+    [1, 'Trainee'], [8, 'Junior Stylist'], [25, 'Stylist'], [60, 'Nail Artist'],
+    [120, 'Senior Artist'], [250, 'Salon Owner'], [500, 'Master Stylist'],
+    [1200, 'Celebrity Artist'], [3000, 'Beauty Director'], [6000, 'Glam Icon'], [9000, 'Living Legend']
+  ];
+  function titleFor(level) {
+    var t = TITLES[0][1];
+    for (var i = 0; i < TITLES.length; i++) if (level >= TITLES[i][0]) t = TITLES[i][1];
+    return t;
+  }
+
+  // ---- The whole save state (in memory only — no localStorage in the arcade) ----
+  var G = {
+    name: 'Mia',
+    avatar: { skin: 2, hair: 0, hairColor: 3, outfit: 0, accessory: 0 },
+    cash: 120,
+    level: 1,
+    happyClients: 0,
+    perfectRuns: 0,
+    owned: {},          // shop item id -> true
+    lessonsDone: {},    // lesson number -> true
+    bestStreak: 0,
+    streak: 0
+  };
+
+  function lessonCount() { return Object.keys(G.lessonsDone).length; }
+
+  // Steadiness: widens the green zone on the apply meter and lifts base quality.
+  function skillPct() {
+    var fromLessons = lessonCount() * 0.25;          // up to +25
+    var fromGear = 0;
+    for (var id in G.owned) {
+      var it = SHOP_BY_ID[id];
+      if (it && it.skill) fromGear += it.skill;
+    }
+    var fromLevels = Math.min(15, Math.floor(G.level / 200));
+    return Math.round(clamp(fromLessons + fromGear + fromLevels, 0, 60) * 10) / 10;
+  }
+  function tipMult() {
+    var m = 1;
+    for (var id in G.owned) {
+      var it = SHOP_BY_ID[id];
+      if (it && it.tip) m += it.tip;
+    }
+    return m;
+  }
+
+  /* ================================================================
+     2. Products, colours, shop catalogue, chapters
+     ================================================================ */
+
+  // Colour libraries. A colour with an `item` is locked until that shop item is bought.
+  var COLORS = {
+    skinTint: [
+      { n: 'Porcelain', h: '#f7dfd0' }, { n: 'Sand', h: '#eec9a8' }, { n: 'Honey', h: '#d9a778' },
+      { n: 'Amber', h: '#b97c4e' }, { n: 'Cocoa', h: '#8b5734' }, { n: 'Espresso', h: '#5f3720' }
+    ],
+    blush: [
+      { n: 'Peach Fizz', h: '#ff9f7a' }, { n: 'Rosy', h: '#f27a90' }, { n: 'Petal', h: '#ffb3c9' },
+      { n: 'Berry Kiss', h: '#c9527f', item: 'blushDeluxe' }, { n: 'Terracotta', h: '#c96f4a', item: 'blushDeluxe' },
+      { n: 'Gold Flush', h: '#e8b04b', item: 'goldLeaf' }
+    ],
+    shadow: [
+      { n: 'Vanilla', h: '#f3ddc4' }, { n: 'Cocoa Brown', h: '#8a5a3b' }, { n: 'Sky', h: '#7fc4f0' },
+      { n: 'Lavender', h: '#b48be0' }, { n: 'Emerald', h: '#3fae7f', item: 'shadow45' },
+      { n: 'Sunset Orange', h: '#f4863c', item: 'shadow45' }, { n: 'Midnight', h: '#2f3557', item: 'shadow45' },
+      { n: 'Rose Gold', h: '#e6a08c', item: 'shadow45' }, { n: 'Holo Silver', h: '#cfd8e8', item: 'meteor' },
+      { n: 'Molten Gold', h: '#f0c04a', item: 'goldLeaf' }
+    ],
+    liner: [
+      { n: 'Black', h: '#1d1a22' }, { n: 'Brown', h: '#4a3226' },
+      { n: 'Electric Blue', h: '#2f7ee6', item: 'linerPro' }, { n: 'Violet', h: '#7a44c9', item: 'linerPro' },
+      { n: 'White Pop', h: '#f6f4ef', item: 'linerPro' }
+    ],
+    lash: [
+      { n: 'Blackest Black', h: '#151318' }, { n: 'Soft Brown', h: '#4b352a' },
+      { n: 'Navy', h: '#26365e', item: 'mascaraLux' }, { n: 'Plum', h: '#5a2a55', item: 'mascaraLux' }
+    ],
+    brow: [
+      { n: 'Taupe', h: '#8a7360' }, { n: 'Warm Brown', h: '#6a4630' }, { n: 'Soft Black', h: '#302620' },
+      { n: 'Auburn', h: '#8c4a2a', item: 'browKit' }
+    ],
+    lip: [
+      { n: 'Bubblegum', h: '#ff8fb1' }, { n: 'Classic Red', h: '#d32b3f' }, { n: 'Coral', h: '#ff6f52' },
+      { n: 'Nude Rose', h: '#c98c85' }, { n: 'Plum Wine', h: '#8b2f55', item: 'lipVault' },
+      { n: 'Cherry Cola', h: '#a01f2e', item: 'lipVault' }, { n: 'Orchid', h: '#c05ec4', item: 'lipVault' },
+      { n: 'Sunset Peach', h: '#ff9c6b', item: 'lipVault' }, { n: 'Liquid Diamond', h: '#e8dff0', item: 'diamondGloss' },
+      { n: '24k Lip', h: '#e3b552', item: 'goldLeaf' }
+    ],
+    gloss: [
+      { n: 'Clear Shine', h: '#ffe9f2' }, { n: 'Pink Sheen', h: '#ffbcd4' },
+      { n: 'Diamond Dust', h: '#f2ecff', item: 'diamondGloss' }
+    ],
+    glow: [
+      { n: 'Moonbeam', h: '#fff3d8' }, { n: 'Champagne', h: '#ffe0b2', item: 'glowDrops' },
+      { n: 'Icy Pearl', h: '#e6f2ff', item: 'glowDrops' }, { n: 'Meteor Chrome', h: '#d6d9e6', item: 'meteor' }
+    ],
+    polish: [
+      { n: 'Cherry Red', h: '#d8324a' }, { n: 'Bubble Pink', h: '#ff86bb' }, { n: 'Sky Blue', h: '#5fb8ef' },
+      { n: 'Mint', h: '#6fd6b0' }, { n: 'Sunbeam', h: '#ffd23f' },
+      { n: 'Lilac Dream', h: '#b58ae8', item: 'polish60' }, { n: 'Jet Black', h: '#26232b', item: 'polish60' },
+      { n: 'Cloud White', h: '#f4f1ec', item: 'polish60' }, { n: 'Tangerine', h: '#ff8a3c', item: 'polish60' },
+      { n: 'Forest', h: '#2f8757', item: 'polish60' }, { n: 'Denim', h: '#3d5a9e', item: 'polish60' },
+      { n: 'Bubblegum Neon', h: '#ff4fa3', item: 'neonLab' }, { n: 'Slime Green', h: '#9ef01a', item: 'neonLab' },
+      { n: 'Electric Purple', h: '#a020f0', item: 'neonLab' },
+      { n: 'Chrome Mirror', h: '#c9d2dc', item: 'chromePowder' }, { n: 'Rose Chrome', h: '#e3a9b4', item: 'chromePowder' },
+      { n: 'Galaxy Shift', h: '#5b3d8f', item: 'meteor' }, { n: 'Solid Gold', h: '#e5b93c', item: 'goldLeaf' }
+    ],
+    glitter: [
+      { n: 'Silver Sparkle', h: '#dfe6ef' }, { n: 'Gold Flecks', h: '#f0c65a' },
+      { n: 'Pink Confetti', h: '#ff9ecb', item: 'glitterBar' }, { n: 'Ocean Shimmer', h: '#66d0e8', item: 'glitterBar' },
+      { n: 'Rainbow Holo', h: '#c7a6ff', item: 'holoDust' }
+    ],
+    gem: [
+      { n: 'Crystal', h: '#eaf4ff', item: 'gemTray' }, { n: 'Ruby', h: '#e0294a', item: 'gemTray' },
+      { n: 'Sapphire', h: '#2b5fd0', item: 'gemTray' }, { n: 'Emerald Stone', h: '#1f9c6b', item: 'gemTray' },
+      { n: 'Real Diamond', h: '#f4fbff', item: 'realDiamonds' }
+    ],
+    art: [
+      { n: 'Dots', h: '#ffffff', pattern: 'dots' }, { n: 'Stripes', h: '#ffffff', pattern: 'stripes' },
+      { n: 'French Tip', h: '#fdf6ee', pattern: 'french' },
+      { n: 'Hearts', h: '#ff5c8a', pattern: 'hearts', item: 'artPens' },
+      { n: 'Stars', h: '#ffd23f', pattern: 'stars', item: 'artPens' },
+      { n: 'Ombré Fade', h: '#ffc2e0', pattern: 'ombre', item: 'airbrush' }
+    ],
+    shape: [
+      { n: 'Round', h: '#f0d5e0', shape: 'round' }, { n: 'Square', h: '#e8d0dd', shape: 'square' },
+      { n: 'Almond', h: '#f4d9e6', shape: 'almond' },
+      { n: 'Coffin', h: '#ecd2e2', shape: 'coffin', item: 'shapeKit' },
+      { n: 'Stiletto', h: '#f6d0e2', shape: 'stiletto', item: 'shapeKit' }
+    ]
+  };
+
+  // Products. `groups` are the zones on the subject this product can go on.
+  var PRODUCTS = {
+    foundation: { label: 'Foundation', ic: '🧴', colors: 'skinTint', groups: ['face'], layer: 1, verb: 'blending' },
+    brow:       { label: 'Brow Pencil', ic: '✏️', colors: 'brow', groups: ['brows'], layer: 2, verb: 'drawing', item: 'browKit' },
+    shadow:     { label: 'Eyeshadow', ic: '🎨', colors: 'shadow', groups: ['lids'], layer: 3, verb: 'sweeping' },
+    liner:      { label: 'Eyeliner', ic: '🖊️', colors: 'liner', groups: ['lids'], layer: 4, verb: 'lining', item: 'linerPro' },
+    mascara:    { label: 'Mascara', ic: '🪄', colors: 'lash', groups: ['lashes'], layer: 5, verb: 'coating' },
+    blush:      { label: 'Blush', ic: '🌸', colors: 'blush', groups: ['cheeks'], layer: 6, verb: 'dusting' },
+    glow:       { label: 'Highlighter', ic: '✨', colors: 'glow', groups: ['face'], layer: 7, verb: 'glowing up', item: 'glowDrops' },
+    lipstick:   { label: 'Lipstick', ic: '💄', colors: 'lip', groups: ['lips'], layer: 8, verb: 'painting' },
+    gloss:      { label: 'Lip Gloss', ic: '💧', colors: 'gloss', groups: ['lips'], layer: 9, verb: 'glossing' },
+
+    file:       { label: 'Nail File', ic: '📏', colors: 'shape', groups: ['nails', 'toes'], layer: 1, verb: 'shaping' },
+    cuticle:    { label: 'Cuticle Oil', ic: '🫧', colors: null, groups: ['nails', 'toes'], layer: 2, verb: 'oiling', item: 'cuticleOil' },
+    base:       { label: 'Base Coat', ic: '🧪', colors: null, groups: ['nails', 'toes'], layer: 3, verb: 'basing' },
+    polish:     { label: 'Nail Polish', ic: '💅', colors: 'polish', groups: ['nails', 'toes'], layer: 4, verb: 'painting' },
+    glitter:    { label: 'Glitter', ic: '🌟', colors: 'glitter', groups: ['nails', 'toes'], layer: 5, verb: 'sprinkling', item: 'glitterBar' },
+    art:        { label: 'Nail Art', ic: '🖌️', colors: 'art', groups: ['nails', 'toes'], layer: 6, verb: 'drawing' },
+    gems:       { label: 'Gems', ic: '💎', colors: 'gem', groups: ['nails', 'toes'], layer: 7, verb: 'placing', item: 'gemTray' },
+    top:        { label: 'Top Coat', ic: '🛡️', colors: null, groups: ['nails', 'toes'], layer: 8, verb: 'sealing' },
+    lotion:     { label: 'Hand Lotion', ic: '🧴', colors: null, groups: ['skin'], layer: 1, verb: 'massaging' },
+    scrub:      { label: 'Foot Scrub', ic: '🧽', colors: null, groups: ['heel'], layer: 1, verb: 'scrubbing' },
+    massage:    { label: 'Spa Massage', ic: '🤲', colors: null, groups: ['skin', 'heel'], layer: 2, verb: 'massaging', item: 'spaTable' }
+  };
+
+  var GROUP_LABEL = {
+    face: 'the face', brows: 'the brows', lids: 'the eyelids', lashes: 'the lashes',
+    cheeks: 'the cheeks', lips: 'the lips', nails: 'every fingernail', toes: 'every toenail',
+    skin: 'the hand', heel: 'the heel'
+  };
+
+  var SUBJECT_GROUPS = {
+    face: ['face', 'brows', 'lids', 'lashes', 'cheeks', 'lips'],
+    hand: ['nails', 'skin'],
+    foot: ['toes', 'heel']
+  };
+
+  function productOwned(id) {
+    var p = PRODUCTS[id];
+    return !p.item || !!G.owned[p.item];
+  }
+  function colorList(setName) {
+    var list = COLORS[setName] || [];
+    return list.filter(function (c) { return !c.item || G.owned[c.item]; });
+  }
+  function productsFor(subject) {
+    var out = [];
+    for (var id in PRODUCTS) {
+      var p = PRODUCTS[id];
+      var hit = p.groups.some(function (g) { return SUBJECT_GROUPS[subject].indexOf(g) >= 0; });
+      if (hit && productOwned(id)) out.push(id);
+    }
+    out.sort(function (a, b) { return PRODUCTS[a].layer - PRODUCTS[b].layer; });
+    return out;
+  }
+
+  /* ---------------- Shop ---------------- */
+  var SHOP = [
+    // --- Everyday ---
+    { id: 'cuticleOil', name: 'Cuticle Oil Pen', ic: '🫧', cat: 'nails', price: 90, skill: 1,
+      desc: 'Unlocks the cuticle oil step. Clients notice tidy cuticles more than you think.' },
+    { id: 'browKit', name: 'Brow Pencil Kit', ic: '✏️', cat: 'eyes', price: 240,
+      desc: 'Unlocks brow work plus the Auburn shade.' },
+    { id: 'polish60', name: 'The 60-Bottle Wall', ic: '💅', cat: 'nails', price: 1400,
+      desc: 'Six more polish shades: Lilac Dream, Jet Black, Cloud White, Tangerine, Forest, Denim.' },
+    { id: 'blushDeluxe', name: 'Deluxe Blush Palette', ic: '🌸', cat: 'face', price: 1800,
+      desc: 'Adds Berry Kiss and Terracotta.' },
+    { id: 'glitterBar', name: 'Glitter Bar', ic: '🌟', cat: 'nails', price: 2600,
+      desc: 'Unlocks glitter, plus Pink Confetti and Ocean Shimmer.' },
+    { id: 'linerPro', name: 'Precision Liner Set', ic: '🖊️', cat: 'eyes', price: 3200, skill: 2,
+      desc: 'Unlocks eyeliner and three bold liner colours. Steadier hand: +2%.' },
+    { id: 'shapeKit', name: 'Pro Shaping Kit', ic: '📏', cat: 'tools', price: 4500,
+      desc: 'Adds Coffin and Stiletto nail shapes.' },
+    { id: 'artPens', name: 'Nail Art Pen Set', ic: '🖌️', cat: 'nails', price: 6800,
+      desc: 'Hearts and Stars patterns join your art tray.' },
+    { id: 'glowDrops', name: 'Liquid Glow Drops', ic: '✨', cat: 'face', price: 9500, tip: 0.05,
+      desc: 'Unlocks highlighter. Champagne and Icy Pearl included. Tips +5%.' },
+    { id: 'mascaraLux', name: 'Luxe Lash Tubing Mascara', ic: '🪄', cat: 'eyes', price: 14000, tip: 0.05,
+      desc: 'Navy and Plum lashes. Tips +5%.' },
+    { id: 'lipVault', name: 'The Lipstick Vault', ic: '💄', cat: 'lips', price: 22000, tip: 0.06,
+      desc: 'Four collector shades locked behind glass. Tips +6%.' },
+    { id: 'comfyChair', name: 'Heated Massage Chair', ic: '🪑', cat: 'salon', price: 38000, tip: 0.1,
+      desc: 'Clients relax, clients tip. Tips +10%.' },
+    { id: 'ringLight', name: 'Studio Ring Light', ic: '💡', cat: 'salon', price: 52000, skill: 3,
+      desc: 'You can finally see what you are doing. Steadiness +3%.' },
+    { id: 'shadow45', name: '45-Pan Shadow Palette', ic: '🎨', cat: 'eyes', price: 74000,
+      desc: 'Emerald, Sunset Orange, Midnight and Rose Gold.' },
+    { id: 'neonLab', name: 'Neon Pigment Lab', ic: '🧪', cat: 'nails', price: 120000, tip: 0.05,
+      desc: 'Three neons that glow under blacklight. Tips +5%.' },
+    { id: 'gemTray', name: 'Swarovski-ish Gem Tray', ic: '💎', cat: 'nails', price: 260000, tip: 0.08,
+      desc: 'Unlocks gems in four stones. Tips +8%.' },
+    { id: 'airbrush', name: 'Airbrush Station', ic: '🎯', cat: 'tools', price: 410000, skill: 4,
+      desc: 'Adds Ombré Fade. Steadiness +4%.' },
+    { id: 'espresso', name: 'Salon Espresso Bar', ic: '☕', cat: 'salon', price: 680000, tip: 0.12,
+      desc: 'Free lattes in the waiting area. Tips +12%.' },
+    { id: 'holoDust', name: 'Rainbow Holo Dust', ic: '🌈', cat: 'nails', price: 950000, tip: 0.07,
+      desc: 'Rainbow Holo glitter. Tips +7%.' },
+    { id: 'spaTable', name: 'Marble Spa Table', ic: '🛋️', cat: 'salon', price: 1500000, tip: 0.12,
+      desc: 'Unlocks the Spa Massage step for hands and feet. Tips +12%.' },
+    { id: 'chromePowder', name: 'Mirror Chrome Powder', ic: '🪞', cat: 'nails', price: 2400000, tip: 0.1,
+      desc: 'Chrome Mirror and Rose Chrome. Genuinely reflective. Tips +10%.' },
+    { id: 'diamondGloss', name: 'Diamond Dust Gloss', ic: '💠', cat: 'lips', price: 4800000, tip: 0.15,
+      desc: 'Real crushed diamond in a lip gloss tube. Tips +15%.' },
+    { id: 'goldLeaf', name: '24k Gold Leaf Collection', ic: '🥇', cat: 'luxury', price: 9900000, tip: 0.2, skill: 3,
+      desc: 'Gold in the lipstick, gold in the polish, gold in the blush. Tips +20%, steadiness +3%.' },
+    { id: 'realDiamonds', name: 'Certified Diamond Nail Set', ic: '💍', cat: 'luxury', price: 18000000, tip: 0.25,
+      desc: 'Each nail gets an actual diamond. Tips +25%.' },
+    { id: 'meteor', name: 'Meteorite Chrome Powder', ic: '☄️', cat: 'luxury', price: 40000000, tip: 0.35, skill: 5,
+      desc: 'Ground from a meteorite that landed in 1938. Galaxy Shift polish, Holo Silver shadow, Meteor Chrome glow. Tips +35%, steadiness +5%.' },
+    { id: 'penthouse', name: 'Penthouse Flagship Salon', ic: '🏙️', cat: 'luxury', price: 95000000, tip: 0.4, skill: 4,
+      desc: 'Top floor, glass walls, a doorman who knows your name. Tips +40%, steadiness +4%.' },
+    { id: 'jet', name: 'House-Call Private Jet', ic: '✈️', cat: 'luxury', price: 250000000, tip: 0.6,
+      desc: 'You fly to the client now. Tips +60%.' }
+  ];
+  var SHOP_BY_ID = {};
+  SHOP.forEach(function (it) { SHOP_BY_ID[it.id] = it; });
+
+  /* ---------------- Chapter flavour ---------------- */
+  var CH_PLACE = ['Corner Shop', 'Mall Kiosk', 'Main Street', 'Riverside', 'Uptown', 'Beach Boardwalk',
+    'Ski Lodge', 'Old Town', 'Airport', 'Rooftop', 'Harbour', 'University', 'Theatre District',
+    'Sunset Strip', 'Garden Quarter', 'Ice Rink', 'Festival Grounds', 'Bookstore Cafe', 'Train Station',
+    'Museum Wing', 'Observatory', 'Rainforest Resort', 'Desert Oasis', 'Moon Base', 'Undersea Dome'];
+  var CH_STYLE = ['Beginnings', 'Rush Hour', 'Grand Opening', 'Award Season'];
+  function chapterOf(level) { return Math.floor((level - 1) / 100) + 1; }
+  function chapterName(c) {
+    var i = (c - 1) % CH_PLACE.length;
+    var j = Math.floor((c - 1) / CH_PLACE.length) % CH_STYLE.length;
+    return CH_PLACE[i] + ' ' + CH_STYLE[j];
+  }
+
+  var CLIENT_NAMES = ['Ava', 'Zoe', 'Amara', 'Priya', 'Lena', 'Sofia', 'Nia', 'Ingrid', 'Yuki', 'Rosa',
+    'Fatima', 'Clara', 'Noor', 'Mei', 'Isabel', 'Hana', 'Talia', 'Bea', 'Sana', 'Elif',
+    'Marisol', 'Freya', 'Aisha', 'Camila', 'Anouk', 'Leila', 'Greta', 'Nadia', 'Thandi', 'Kira',
+    'Ada', 'Juno', 'Wren', 'Ines', 'Suki', 'Maren', 'Océane', 'Rani', 'Sable', 'Lark',
+    'Delphine', 'Zuri', 'Marta', 'Keiko', 'Odette', 'Pilar', 'Saoirse', 'Tamsin', 'Vera', 'Ximena'];
+
+  var OCCASIONS = ['a school photo', 'her sister\'s wedding', 'a birthday party', 'a dance recital',
+    'the first day of camp', 'a science fair', 'a family reunion', 'a beach trip', 'picture day',
+    'a talent show', 'a job interview', 'a graduation', 'a concert', 'a holiday dinner',
+    'a soccer banquet', 'her grandma\'s 80th', 'a museum gala', 'a movie premiere',
+    'a book launch', 'an awards night'];
+
+  var MOODS = [
+    { n: 'cheerful', ic: '😊', fuss: 0.9 },
+    { n: 'chatty', ic: '😄', fuss: 0.95 },
+    { n: 'shy', ic: '🙂', fuss: 1.0 },
+    { n: 'in a hurry', ic: '😬', fuss: 1.1 },
+    { n: 'very picky', ic: '🧐', fuss: 1.25 },
+    { n: 'nervous', ic: '😅', fuss: 1.05 }
+  ];
+
+  var HAIR_COLORS = ['#2c2119', '#5a3722', '#8a5a2b', '#c98a3c', '#e3c07a', '#a03a3a', '#6f4f8a', '#3a5f8a', '#d95fa0', '#7f8a92'];
+  var SKIN_TONES = ['#fbe0cd', '#f3cba9', '#e0aa7e', '#c68a5b', '#9c6440', '#6f452b'];
+
+  /* ================================================================
+     3. The stylist avatar
+     ================================================================ */
+  var HAIR_STYLES = ['Long', 'Bun', 'Curly', 'Ponytail', 'Bob', 'Braids', 'Space Buns', 'Short'];
+  var OUTFITS = ['#ff7eb3', '#a86fd6', '#5fb8ef', '#6fd6b0', '#ffc93c', '#ff8a65', '#3c2b45', '#f4f1ec'];
+  var ACCESSORIES = ['None', 'Glasses', 'Hoops', 'Headband', 'Flower', 'Beret'];
+
+  function drawStylist(ctx, w, h, av) {
+    ctx.clearRect(0, 0, w, h);
+    var cx = w / 2, s = w / 100;                 // s = 1 unit at 100-wide design scale
+    var skin = SKIN_TONES[av.skin % SKIN_TONES.length];
+    var hair = HAIR_COLORS[av.hairColor % HAIR_COLORS.length];
+    var fit = OUTFITS[av.outfit % OUTFITS.length];
+    var headY = 44 * s, headR = 21 * s;
+
+    // shoulders / outfit
+    ctx.fillStyle = fit;
+    ctx.beginPath();
+    ctx.moveTo(cx - 34 * s, h);
+    ctx.quadraticCurveTo(cx - 32 * s, 68 * s, cx - 13 * s, 62 * s);
+    ctx.lineTo(cx + 13 * s, 62 * s);
+    ctx.quadraticCurveTo(cx + 32 * s, 68 * s, cx + 34 * s, h);
+    ctx.closePath();
+    ctx.fill();
+    // collar shading
+    ctx.fillStyle = 'rgba(0,0,0,.09)';
+    ctx.beginPath();
+    ctx.ellipse(cx, 64 * s, 13 * s, 5 * s, 0, 0, Math.PI);
+    ctx.fill();
+
+    // neck
+    ctx.fillStyle = shade(skin, -0.06);
+    ctx.fillRect(cx - 6.5 * s, headY + 12 * s, 13 * s, 12 * s);
+
+    // hair back layer
+    ctx.fillStyle = hair;
+    if (av.hair === 0) { // long
+      ctx.beginPath();
+      ctx.ellipse(cx, headY + 12 * s, 27 * s, 30 * s, 0, 0, TAU);
+      ctx.fill();
+    } else if (av.hair === 2) { // curly
+      for (var i = 0; i < 12; i++) {
+        var a = (i / 12) * TAU;
+        ctx.beginPath();
+        ctx.arc(cx + Math.cos(a) * 22 * s, headY + Math.sin(a) * 21 * s, 9 * s, 0, TAU);
+        ctx.fill();
+      }
+    } else if (av.hair === 3) { // ponytail
+      ctx.beginPath();
+      ctx.ellipse(cx + 22 * s, headY + 16 * s, 8 * s, 18 * s, -0.25, 0, TAU);
+      ctx.fill();
+    } else if (av.hair === 4) { // bob
+      ctx.beginPath();
+      ctx.ellipse(cx, headY + 6 * s, 25 * s, 26 * s, 0, 0, TAU);
+      ctx.fill();
+    } else if (av.hair === 5) { // braids
+      ctx.beginPath(); ctx.ellipse(cx - 22 * s, headY + 20 * s, 6 * s, 20 * s, 0, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(cx + 22 * s, headY + 20 * s, 6 * s, 20 * s, 0, 0, TAU); ctx.fill();
+    } else if (av.hair === 6) { // space buns
+      ctx.beginPath(); ctx.arc(cx - 21 * s, headY - 16 * s, 9 * s, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.arc(cx + 21 * s, headY - 16 * s, 9 * s, 0, TAU); ctx.fill();
+    } else if (av.hair === 1) { // bun
+      ctx.beginPath(); ctx.arc(cx, headY - 22 * s, 10 * s, 0, TAU); ctx.fill();
+    }
+
+    // head
+    ctx.fillStyle = skin;
+    ctx.beginPath();
+    ctx.ellipse(cx, headY, headR, headR * 1.13, 0, 0, TAU);
+    ctx.fill();
+    // ears
+    ctx.beginPath(); ctx.ellipse(cx - headR, headY + 2 * s, 3.4 * s, 5 * s, 0, 0, TAU); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(cx + headR, headY + 2 * s, 3.4 * s, 5 * s, 0, 0, TAU); ctx.fill();
+
+    // hair front (fringe cap)
+    ctx.fillStyle = hair;
+    ctx.beginPath();
+    ctx.ellipse(cx, headY - 7 * s, headR + 1.5 * s, 15 * s, 0, Math.PI, TAU);
+    ctx.fill();
+    if (av.hair !== 7) {
+      ctx.beginPath();
+      ctx.moveTo(cx - headR - 1 * s, headY - 6 * s);
+      ctx.quadraticCurveTo(cx - 6 * s, headY + 3 * s, cx + 4 * s, headY - 5 * s);
+      ctx.quadraticCurveTo(cx + 14 * s, headY - 1 * s, cx + headR + 1 * s, headY - 7 * s);
+      ctx.lineTo(cx + headR + 1 * s, headY - 14 * s);
+      ctx.lineTo(cx - headR - 1 * s, headY - 14 * s);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    // eyes
+    var eyeY = headY + 2 * s;
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.ellipse(cx - 7.5 * s, eyeY, 4.2 * s, 3.4 * s, 0, 0, TAU); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(cx + 7.5 * s, eyeY, 4.2 * s, 3.4 * s, 0, 0, TAU); ctx.fill();
+    ctx.fillStyle = '#3a2b2b';
+    ctx.beginPath(); ctx.arc(cx - 7.5 * s, eyeY, 2.2 * s, 0, TAU); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx + 7.5 * s, eyeY, 2.2 * s, 0, TAU); ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(cx - 8.4 * s, eyeY - 1 * s, 0.8 * s, 0, TAU); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx + 6.6 * s, eyeY - 1 * s, 0.8 * s, 0, TAU); ctx.fill();
+    // brows + lashes
+    ctx.strokeStyle = shade(hair, -0.08);
+    ctx.lineWidth = 1.6 * s; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(cx - 11 * s, eyeY - 6.5 * s); ctx.quadraticCurveTo(cx - 7.5 * s, eyeY - 8.5 * s, cx - 4 * s, eyeY - 6.5 * s); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx + 4 * s, eyeY - 6.5 * s); ctx.quadraticCurveTo(cx + 7.5 * s, eyeY - 8.5 * s, cx + 11 * s, eyeY - 6.5 * s); ctx.stroke();
+
+    // blush + smile
+    ctx.fillStyle = 'rgba(255,120,150,.32)';
+    ctx.beginPath(); ctx.ellipse(cx - 13 * s, eyeY + 6 * s, 4.5 * s, 3 * s, 0, 0, TAU); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(cx + 13 * s, eyeY + 6 * s, 4.5 * s, 3 * s, 0, 0, TAU); ctx.fill();
+    ctx.strokeStyle = '#c2496b'; ctx.lineWidth = 1.7 * s;
+    ctx.beginPath(); ctx.arc(cx, eyeY + 6 * s, 5 * s, 0.25 * Math.PI, 0.75 * Math.PI); ctx.stroke();
+
+    // accessory
+    var acc = av.accessory;
+    if (acc === 1) { // glasses
+      ctx.strokeStyle = '#3c2b45'; ctx.lineWidth = 1.4 * s;
+      ctx.beginPath(); ctx.arc(cx - 7.5 * s, eyeY, 6 * s, 0, TAU); ctx.stroke();
+      ctx.beginPath(); ctx.arc(cx + 7.5 * s, eyeY, 6 * s, 0, TAU); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(cx - 1.5 * s, eyeY); ctx.lineTo(cx + 1.5 * s, eyeY); ctx.stroke();
+    } else if (acc === 2) { // hoops
+      ctx.strokeStyle = '#e8b83c'; ctx.lineWidth = 1.6 * s;
+      ctx.beginPath(); ctx.arc(cx - headR - 0.5 * s, headY + 9 * s, 3.6 * s, 0, TAU); ctx.stroke();
+      ctx.beginPath(); ctx.arc(cx + headR + 0.5 * s, headY + 9 * s, 3.6 * s, 0, TAU); ctx.stroke();
+    } else if (acc === 3) { // headband
+      ctx.strokeStyle = '#ff5c8a'; ctx.lineWidth = 3.4 * s;
+      ctx.beginPath(); ctx.ellipse(cx, headY - 4 * s, headR + 2 * s, 16 * s, 0, Math.PI * 1.08, Math.PI * 1.92); ctx.stroke();
+    } else if (acc === 4) { // flower
+      ctx.fillStyle = '#ff5c8a';
+      for (var p = 0; p < 5; p++) {
+        var pa = (p / 5) * TAU;
+        ctx.beginPath();
+        ctx.ellipse(cx + 16 * s + Math.cos(pa) * 3.4 * s, headY - 13 * s + Math.sin(pa) * 3.4 * s, 2.6 * s, 2.6 * s, 0, 0, TAU);
+        ctx.fill();
+      }
+      ctx.fillStyle = '#ffd23f';
+      ctx.beginPath(); ctx.arc(cx + 16 * s, headY - 13 * s, 2 * s, 0, TAU); ctx.fill();
+    } else if (acc === 5) { // beret
+      ctx.fillStyle = '#d0455f';
+      ctx.beginPath(); ctx.ellipse(cx + 2 * s, headY - 16 * s, 17 * s, 8 * s, -0.18, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.arc(cx + 14 * s, headY - 22 * s, 2.4 * s, 0, TAU); ctx.fill();
+    }
+  }
+
+  function refreshAvatarChip() {
+    var c = $('avatarMini');
+    drawStylist(c.getContext('2d'), c.width, c.height, G.avatar);
+    $('chipName').textContent = G.name || 'Stylist';
+    $('chipTitle').textContent = titleFor(G.level);
+  }
+
+  function buildAvatarUI() {
+    var big = $('avatarBig'), bctx = big.getContext('2d');
+    function redraw() {
+      drawStylist(bctx, big.width, big.height, G.avatar);
+      refreshAvatarChip();
+    }
+    function dots(host, colors, key) {
+      host.innerHTML = '';
+      colors.forEach(function (col, i) {
+        var b = document.createElement('button');
+        b.className = 'dot' + (G.avatar[key] === i ? ' on' : '');
+        b.style.background = col;
+        b.title = col;
+        b.onclick = function () {
+          G.avatar[key] = i;
+          Array.prototype.forEach.call(host.children, function (ch, j) { ch.classList.toggle('on', j === i); });
+          redraw();
+        };
+        host.appendChild(b);
+      });
+    }
+    function chips(host, labels, key) {
+      host.innerHTML = '';
+      labels.forEach(function (lb, i) {
+        var b = document.createElement('button');
+        b.className = 'chip' + (G.avatar[key] === i ? ' on' : '');
+        b.textContent = lb;
+        b.onclick = function () {
+          G.avatar[key] = i;
+          Array.prototype.forEach.call(host.children, function (ch, j) { ch.classList.toggle('on', j === i); });
+          redraw();
+        };
+        host.appendChild(b);
+      });
+    }
+    dots($('avSkin'), SKIN_TONES, 'skin');
+    chips($('avHairStyle'), HAIR_STYLES, 'hair');
+    dots($('avHairColor'), HAIR_COLORS, 'hairColor');
+    dots($('avOutfit'), OUTFITS, 'outfit');
+    chips($('avAccessory'), ACCESSORIES, 'accessory');
+    $('nameInput').value = G.name;
+    $('nameInput').oninput = function () {
+      G.name = this.value.trim().slice(0, 14) || 'Stylist';
+      refreshAvatarChip();
+    };
+    redraw();
+  }
+
+  /* ================================================================
+     4. Level generation — all 10,000 of them
+     ================================================================ */
+  var MAX_LEVEL = 10000;
+
+  var CANDIDATES = {
+    face: [
+      { p: 'foundation', g: 'face' }, { p: 'brow', g: 'brows' }, { p: 'shadow', g: 'lids' },
+      { p: 'liner', g: 'lids' }, { p: 'mascara', g: 'lashes' }, { p: 'blush', g: 'cheeks' },
+      { p: 'glow', g: 'face' }, { p: 'lipstick', g: 'lips' }, { p: 'gloss', g: 'lips' }
+    ],
+    hand: [
+      { p: 'file', g: 'nails' }, { p: 'cuticle', g: 'nails' }, { p: 'base', g: 'nails' },
+      { p: 'polish', g: 'nails' }, { p: 'glitter', g: 'nails' }, { p: 'art', g: 'nails' },
+      { p: 'gems', g: 'nails' }, { p: 'top', g: 'nails' }, { p: 'lotion', g: 'skin' },
+      { p: 'massage', g: 'skin' }
+    ],
+    foot: [
+      { p: 'file', g: 'toes' }, { p: 'cuticle', g: 'toes' }, { p: 'base', g: 'toes' },
+      { p: 'polish', g: 'toes' }, { p: 'glitter', g: 'toes' }, { p: 'art', g: 'toes' },
+      { p: 'gems', g: 'toes' }, { p: 'top', g: 'toes' }, { p: 'scrub', g: 'heel' },
+      { p: 'massage', g: 'heel' }
+    ]
+  };
+
+  function feeFor(level) {
+    return Math.round(35 + level * 12 + (level * level) / 30);
+  }
+
+  function makeLevel(n) {
+    n = clamp(Math.round(n), 1, MAX_LEVEL);
+    var rng = seeded(n * 7919 + 13);
+    var ch = chapterOf(n);
+    var subject = ['face', 'hand', 'foot'][(n - 1) % 3];
+    // After level 30 the order gets shuffled so it isn't always face-hand-foot.
+    if (n > 30) subject = pick(rng, ['face', 'face', 'hand', 'hand', 'foot']);
+
+    var vip = (n % 100 === 0);
+    var mood = vip ? MOODS[4] : pick(rng, MOODS);
+    var client = {
+      name: pick(rng, CLIENT_NAMES),
+      skin: ri(rng, 0, SKIN_TONES.length - 1),
+      hairColor: ri(rng, 0, HAIR_COLORS.length - 1),
+      hair: ri(rng, 0, HAIR_STYLES.length - 1),
+      occasion: pick(rng, OCCASIONS),
+      mood: mood,
+      vip: vip
+    };
+
+    // How many things they want.
+    var want = clamp(2 + Math.floor(n / 45), 2, 6) + (vip ? 1 : 0);
+
+    var pool = CANDIDATES[subject].filter(function (c) { return productOwned(c.p); });
+    // Essentials first (low layer), then a shuffled tail — keeps early levels teachable.
+    var essentials = pool.filter(function (c) { return PRODUCTS[c.p].layer <= 4; });
+    var extras = pool.filter(function (c) { return PRODUCTS[c.p].layer > 4; });
+    function shuffle(arr) {
+      var a = arr.slice();
+      for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(rng() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; }
+      return a;
+    }
+    var chosen = shuffle(essentials).slice(0, Math.min(essentials.length, Math.ceil(want * 0.6)));
+    chosen = chosen.concat(shuffle(extras).slice(0, want - chosen.length));
+    if (chosen.length < want) chosen = chosen.concat(shuffle(essentials).filter(function (c) { return chosen.indexOf(c) < 0; }).slice(0, want - chosen.length));
+    // Never ask for the same product twice.
+    var seen = {};
+    chosen = chosen.filter(function (c) { if (seen[c.p]) return false; seen[c.p] = 1; return true; });
+    chosen.sort(function (a, b) { return PRODUCTS[a.p].layer - PRODUCTS[b.p].layer; });
+
+    var tasks = chosen.map(function (c) {
+      var prod = PRODUCTS[c.p];
+      var col = null;
+      if (prod.colors) {
+        var avail = colorList(prod.colors);
+        col = avail.length ? avail[Math.floor(rng() * avail.length) % avail.length] : null;
+      }
+      // Foundation is never a free choice — it has to match her skin (see Guide #4).
+      if (c.p === 'foundation') col = COLORS.skinTint[client.skin];
+      return { product: c.p, group: c.g, color: col, done: false, quality: 0 };
+    });
+
+    // A "dream request": something they'd love that you cannot do yet.
+    var dream = null;
+    var locked = SHOP.filter(function (it) { return !G.owned[it.id]; });
+    if (locked.length && rng() < 0.55) {
+      var want2 = locked[Math.floor(rng() * Math.min(locked.length, 6))];
+      dream = { item: want2.id, name: want2.name, bonus: Math.round(feeFor(n) * 0.4) };
+    }
+
+    var fee = feeFor(n) * (vip ? 3 : 1);
+    var costs = Math.round(fee * 0.32);
+    var goal = Math.round(fee * 0.22);
+
+    return {
+      n: n, chapter: ch, chapterName: chapterName(ch), subject: subject, client: client,
+      tasks: tasks, dream: dream, fee: fee, costs: costs, goal: goal, vip: vip
+    };
+  }
+
+  function taskText(t) {
+    var p = PRODUCTS[t.product];
+    var where = GROUP_LABEL[t.group];
+    if (!t.color) return p.label + ' on ' + where;
+    if (t.product === 'foundation') return 'Foundation in ' + t.color.n + ' — her exact skin match';
+    return p.label + ' in ' + t.color.n + ' on ' + where;
+  }
+
+  /* ---------------- Salon hub ---------------- */
+  var currentLevel = null;   // the level object being previewed / played
+
+  function refreshHeader() {
+    $('statCash').textContent = money(G.cash);
+    $('statLevel').textContent = G.level.toLocaleString();
+    $('statSkill').textContent = skillPct() + '%';
+    refreshAvatarChip();
+  }
+
+  function showSalon() {
+    currentLevel = makeLevel(G.level);
+    var L = currentLevel;
+    $('chapterTitle').textContent = 'Chapter ' + L.chapter + ' — ' + L.chapterName;
+    var subjWord = L.subject === 'face' ? 'a full face of makeup' : (L.subject === 'hand' ? 'a manicure' : 'a pedicure');
+    $('clientHeading').textContent = (L.vip ? '⭐ VIP: ' : '') + L.client.name + ' — ' + subjWord;
+    $('clientBlurb').innerHTML = L.client.mood.ic + ' ' + L.client.name + ' is <b>' + L.client.mood.n +
+      '</b> today. She is getting ready for ' + L.client.occasion + '.' +
+      (L.vip ? ' <b>VIP appointment — triple pay.</b>' : '');
+    var host = $('clientReqs');
+    host.innerHTML = '<h3 style="margin-top:8px">She asked for:</h3>';
+    L.tasks.forEach(function (t) {
+      var row = document.createElement('div');
+      row.className = 'req';
+      var sw = '<span class="sw" style="background:' + (t.color ? t.color.h : '#ddd') + '"></span>';
+      row.innerHTML = sw + '<span>' + taskText(t) + '</span>';
+      host.appendChild(row);
+    });
+    if (L.dream) {
+      var d = document.createElement('div');
+      d.className = 'muted';
+      d.style.marginTop = '8px';
+      d.innerHTML = '💭 <i>"I saw the <b>' + L.dream.name + '</b> online… do you have that?"</i> — ' +
+        money(L.dream.bonus) + ' bonus if you own it.';
+      host.appendChild(d);
+    }
+
+    $('hubLevel').textContent = G.level.toLocaleString() + ' / 10,000';
+    $('hubGoal').textContent = money(L.goal) + ' profit';
+    $('hubCosts').textContent = money(L.costs);
+    $('hubCash').textContent = money(G.cash);
+    $('hubHappy').textContent = G.happyClients.toLocaleString();
+    $('hubLessons').textContent = lessonCount() + ' / 100';
+    $('hubSkill').textContent = skillPct() + '%';
+    $('jumpInput').value = G.level;
+
+    var kit = [];
+    for (var id in PRODUCTS) if (productOwned(id)) kit.push(PRODUCTS[id].ic + ' ' + PRODUCTS[id].label);
+    $('hubKit').innerHTML = kit.join(' · ') + '<br><br>' +
+      '<b>' + Object.keys(G.owned).length + '</b> of ' + SHOP.length + ' shop items owned.';
+    refreshHeader();
+  }
+
+  /* ================================================================
+     5. Drawing the subject: face, hand, foot
+     ================================================================ */
+  var stage = $('stageCanvas');
+  var sctx = stage.getContext('2d');
+  var SW = 720, SH = 560;
+
+  // Where each product group lives on screen (for tapping + the glowing outline).
+  var HOTSPOTS = {
+    face: {
+      face:   { x: 360, y: 205, rx: 100, ry: 26, label: 'Face' },
+      brows:  { x: 360, y: 240, rx: 105, ry: 20, label: 'Brows' },
+      lids:   { x: 360, y: 268, rx: 105, ry: 24, label: 'Eyelids' },
+      lashes: { x: 360, y: 296, rx: 105, ry: 18, label: 'Lashes' },
+      cheeks: { x: 360, y: 352, rx: 130, ry: 38, label: 'Cheeks' },
+      lips:   { x: 360, y: 402, rx: 62, ry: 30, label: 'Lips' }
+    },
+    hand: {
+      nails: { x: 358, y: 168, rx: 178, ry: 74, label: 'Nails' },
+      skin:  { x: 360, y: 402, rx: 138, ry: 96, label: 'Hand' }
+    },
+    foot: {
+      toes: { x: 352, y: 158, rx: 168, ry: 62, label: 'Toenails' },
+      heel: { x: 360, y: 452, rx: 118, ry: 60, label: 'Heel' }
+    }
+  };
+
+  function withClip(ctx, box, prog, fn) {
+    if (prog >= 1) { fn(); return; }
+    if (prog <= 0) return;
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(box[0], box[1], box[2] * prog, box[3]);
+    ctx.clip();
+    fn();
+    ctx.restore();
+  }
+
+  function ellipsePath(ctx, x, y, rx, ry, rot) {
+    ctx.beginPath();
+    ctx.ellipse(x, y, rx, ry, rot || 0, 0, TAU);
+  }
+
+  // ---------- nails ----------
+  function nailPath(ctx, x, y, w, h, shape) {
+    var hw = w / 2;
+    ctx.beginPath();
+    if (shape === 'square') {
+      var r = w * 0.18;
+      ctx.moveTo(x - hw, y + h / 2);
+      ctx.lineTo(x - hw, y - h / 2 + r);
+      ctx.quadraticCurveTo(x - hw, y - h / 2, x - hw + r, y - h / 2);
+      ctx.lineTo(x + hw - r, y - h / 2);
+      ctx.quadraticCurveTo(x + hw, y - h / 2, x + hw, y - h / 2 + r);
+      ctx.lineTo(x + hw, y + h / 2);
+      ctx.closePath();
+    } else if (shape === 'almond') {
+      ctx.moveTo(x - hw, y + h / 2);
+      ctx.quadraticCurveTo(x - hw, y - h * 0.2, x, y - h / 2);
+      ctx.quadraticCurveTo(x + hw, y - h * 0.2, x + hw, y + h / 2);
+      ctx.closePath();
+    } else if (shape === 'coffin') {
+      ctx.moveTo(x - hw, y + h / 2);
+      ctx.lineTo(x - hw * 0.62, y - h / 2);
+      ctx.lineTo(x + hw * 0.62, y - h / 2);
+      ctx.lineTo(x + hw, y + h / 2);
+      ctx.closePath();
+    } else if (shape === 'stiletto') {
+      ctx.moveTo(x - hw, y + h / 2);
+      ctx.quadraticCurveTo(x - hw * 0.5, y - h * 0.3, x, y - h * 0.72);
+      ctx.quadraticCurveTo(x + hw * 0.5, y - h * 0.3, x + hw, y + h / 2);
+      ctx.closePath();
+    } else { // round
+      ctx.moveTo(x - hw, y + h / 2);
+      ctx.quadraticCurveTo(x - hw, y - h / 2, x, y - h / 2);
+      ctx.quadraticCurveTo(x + hw, y - h / 2, x + hw, y + h / 2);
+      ctx.closePath();
+    }
+  }
+
+  function drawPattern(ctx, x, y, w, h, pat, hex, shape) {
+    ctx.save();
+    nailPath(ctx, x, y, w, h, shape);
+    ctx.clip();
+    ctx.fillStyle = hex;
+    ctx.strokeStyle = hex;
+    if (pat === 'dots') {
+      for (var i = 0; i < 3; i++) {
+        ctx.beginPath();
+        ctx.arc(x - w * 0.2 + i * w * 0.2, y - h * 0.1 + (i % 2) * h * 0.22, w * 0.09, 0, TAU);
+        ctx.fill();
+      }
+    } else if (pat === 'stripes') {
+      ctx.lineWidth = w * 0.1;
+      for (var s2 = -1; s2 <= 1; s2++) {
+        ctx.beginPath();
+        ctx.moveTo(x + s2 * w * 0.3 - w * 0.3, y + h);
+        ctx.lineTo(x + s2 * w * 0.3 + w * 0.3, y - h);
+        ctx.stroke();
+      }
+    } else if (pat === 'french') {
+      ctx.beginPath();
+      ctx.ellipse(x, y - h * 0.42, w * 0.62, h * 0.28, 0, 0, TAU);
+      ctx.fill();
+    } else if (pat === 'hearts') {
+      var hs = w * 0.17;
+      ctx.beginPath();
+      ctx.moveTo(x, y + hs * 0.9);
+      ctx.bezierCurveTo(x - hs * 1.6, y - hs * 0.2, x - hs * 0.5, y - hs * 1.4, x, y - hs * 0.35);
+      ctx.bezierCurveTo(x + hs * 0.5, y - hs * 1.4, x + hs * 1.6, y - hs * 0.2, x, y + hs * 0.9);
+      ctx.fill();
+    } else if (pat === 'stars') {
+      for (var k = 0; k < 2; k++) {
+        var sx = x + (k ? w * 0.22 : -w * 0.2), sy = y + (k ? h * 0.18 : -h * 0.18), r1 = w * 0.16, r2 = w * 0.07;
+        ctx.beginPath();
+        for (var p = 0; p < 10; p++) {
+          var ang = -Math.PI / 2 + p * Math.PI / 5, rr = p % 2 ? r2 : r1;
+          ctx.lineTo(sx + Math.cos(ang) * rr, sy + Math.sin(ang) * rr);
+        }
+        ctx.closePath();
+        ctx.fill();
+      }
+    } else if (pat === 'ombre') {
+      var g = ctx.createLinearGradient(0, y - h / 2, 0, y + h / 2);
+      g.addColorStop(0, rgba(hex, 0.95));
+      g.addColorStop(1, rgba(hex, 0));
+      ctx.fillStyle = g;
+      ctx.fillRect(x - w, y - h, w * 2, h * 2);
+    }
+    ctx.restore();
+  }
+
+  // Draw one nail with everything that has been applied to its group.
+  function drawOneNail(ctx, nail, layers, shape, idx, count, skinHex) {
+    var x = nail.x, y = nail.y, w = nail.w, h = nail.h;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(nail.a || 0);
+    ctx.translate(-x, -y);
+
+    // How far along is a layer for THIS nail? Layers sweep nail by nail.
+    function prog(l) {
+      var p = l.prog * count - idx;
+      return clamp(p, 0, 1);
+    }
+    function nailClip(l, fn) {
+      var p = prog(l);
+      if (p <= 0) return;
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(x - w, y + h / 2 - h * p, w * 2, h * p + 1);
+      ctx.clip();
+      fn();
+      ctx.restore();
+    }
+
+    // natural nail bed
+    nailPath(ctx, x, y, w, h, shape);
+    ctx.fillStyle = mix(skinHex, '#ffffff', 0.35);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(150,110,110,.4)';
+    ctx.lineWidth = 1.4;
+    ctx.stroke();
+    // free edge
+    ctx.save();
+    nailPath(ctx, x, y, w, h, shape);
+    ctx.clip();
+    ctx.fillStyle = 'rgba(255,255,255,.75)';
+    ctx.fillRect(x - w, y - h / 2, w * 2, h * 0.2);
+    ctx.restore();
+
+    layers.forEach(function (l) {
+      var q = l.q, wob = (1 - q) * 4;
+      if (l.product === 'cuticle') {
+        nailClip(l, function () {
+          ctx.strokeStyle = 'rgba(255,240,200,.85)';
+          ctx.lineWidth = 3;
+          nailPath(ctx, x, y + h * 0.5, w * 0.9, h * 0.2, 'round');
+          ctx.stroke();
+        });
+      } else if (l.product === 'base') {
+        nailClip(l, function () {
+          nailPath(ctx, x, y, w, h, shape);
+          ctx.fillStyle = 'rgba(255,250,252,.55)';
+          ctx.fill();
+        });
+      } else if (l.product === 'polish') {
+        nailClip(l, function () {
+          ctx.save();
+          if (wob > 0.4) {   // sloppy work spills past the nail
+            ctx.beginPath();
+            ctx.ellipse(x + wob * 0.6, y, w / 2 + wob, h / 2 + wob * 0.6, 0, 0, TAU);
+            ctx.fillStyle = rgba(l.color.h, 0.55);
+            ctx.fill();
+          }
+          nailPath(ctx, x - wob * 0.3, y, w, h, shape);
+          ctx.fillStyle = l.color.h;
+          ctx.fill();
+          // gloss curve
+          ctx.beginPath();
+          ctx.ellipse(x - w * 0.18, y - h * 0.12, w * 0.16, h * 0.3, -0.3, 0, TAU);
+          ctx.fillStyle = 'rgba(255,255,255,.35)';
+          ctx.fill();
+          ctx.restore();
+        });
+      } else if (l.product === 'glitter') {
+        nailClip(l, function () {
+          ctx.save();
+          nailPath(ctx, x, y, w, h, shape);
+          ctx.clip();
+          for (var i = 0; i < 16; i++) {
+            var gx = x - w / 2 + ((i * 37) % 100) / 100 * w;
+            var gy = y - h / 2 + ((i * 71) % 100) / 100 * h;
+            ctx.beginPath();
+            ctx.arc(gx, gy, 1.2 + (i % 3) * 0.5, 0, TAU);
+            ctx.fillStyle = rgba(l.color.h, 0.55 + (i % 4) * 0.12);
+            ctx.fill();
+          }
+          ctx.restore();
+        });
+      } else if (l.product === 'art') {
+        nailClip(l, function () { drawPattern(ctx, x, y, w, h, l.color.pattern || 'dots', l.color.h, shape); });
+      } else if (l.product === 'gems') {
+        nailClip(l, function () {
+          var gx2 = x, gy2 = y - h * 0.16, r = w * 0.17;
+          ctx.beginPath();
+          for (var p = 0; p < 6; p++) {
+            var a2 = -Math.PI / 2 + p * TAU / 6;
+            ctx.lineTo(gx2 + Math.cos(a2) * r, gy2 + Math.sin(a2) * r);
+          }
+          ctx.closePath();
+          ctx.fillStyle = l.color.h;
+          ctx.fill();
+          ctx.strokeStyle = 'rgba(255,255,255,.9)';
+          ctx.lineWidth = 1;
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.arc(gx2 - r * 0.3, gy2 - r * 0.3, r * 0.24, 0, TAU);
+          ctx.fillStyle = 'rgba(255,255,255,.95)';
+          ctx.fill();
+        });
+      } else if (l.product === 'top') {
+        nailClip(l, function () {
+          ctx.save();
+          nailPath(ctx, x, y, w, h, shape);
+          ctx.clip();
+          var g = ctx.createLinearGradient(x - w / 2, y - h / 2, x + w / 2, y + h / 2);
+          g.addColorStop(0, 'rgba(255,255,255,.42)');
+          g.addColorStop(0.45, 'rgba(255,255,255,.05)');
+          g.addColorStop(1, 'rgba(255,255,255,.3)');
+          ctx.fillStyle = g;
+          ctx.fillRect(x - w, y - h, w * 2, h * 2);
+          ctx.restore();
+        });
+      }
+    });
+    ctx.restore();
+  }
+
+  // ---------- the hand ----------
+  function handNails(shapeScale) {
+    // index 0..4: thumb, index, middle, ring, pinky
+    return [
+      { x: 196, y: 268, w: 34, h: 40, a: -0.55 },
+      { x: 282, y: 150, w: 32, h: 40, a: -0.05 },
+      { x: 356, y: 128, w: 34, h: 43, a: 0 },
+      { x: 428, y: 148, w: 32, h: 40, a: 0.05 },
+      { x: 494, y: 196, w: 27, h: 34, a: 0.22 }
+    ];
+  }
+
+  function drawHandSubject(ctx, L, A, shape) {
+    var skin = SKIN_TONES[L.client.skin];
+    var deep = shade(skin, -0.1);
+
+    ctx.save();
+    // palm / back of hand
+    ctx.fillStyle = skin;
+    ctx.beginPath();
+    ctx.moveTo(246, 330);
+    ctx.quadraticCurveTo(232, 250, 268, 214);   // toward index base
+    ctx.quadraticCurveTo(300, 190, 320, 200);
+    ctx.quadraticCurveTo(360, 176, 400, 200);
+    ctx.quadraticCurveTo(440, 186, 466, 222);
+    ctx.quadraticCurveTo(504, 252, 486, 330);
+    ctx.quadraticCurveTo(498, 420, 452, 486);
+    ctx.quadraticCurveTo(400, 542, 330, 522);
+    ctx.quadraticCurveTo(268, 502, 250, 430);
+    ctx.closePath();
+    ctx.fill();
+
+    // fingers
+    var fingers = [
+      { x1: 214, y1: 330, x2: 196, y2: 286, w: 40, a: -0.55 },  // thumb
+      { x1: 286, y1: 244, x2: 282, y2: 168, w: 38 },
+      { x1: 356, y1: 232, x2: 356, y2: 146, w: 40 },
+      { x1: 424, y1: 240, x2: 428, y2: 166, w: 38 },
+      { x1: 476, y1: 268, x2: 494, y2: 212, w: 33 }
+    ];
+    fingers.forEach(function (f) {
+      ctx.fillStyle = skin;
+      ctx.beginPath();
+      ctx.lineWidth = f.w;
+      ctx.lineCap = 'round';
+      ctx.strokeStyle = skin;
+      ctx.moveTo(f.x1, f.y1);
+      ctx.lineTo(f.x2, f.y2);
+      ctx.stroke();
+      // knuckle shading
+      ctx.strokeStyle = 'rgba(0,0,0,.06)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(f.x1 - f.w * 0.3, (f.y1 + f.y2) / 2);
+      ctx.lineTo(f.x1 + f.w * 0.3, (f.y1 + f.y2) / 2);
+      ctx.stroke();
+    });
+
+    // wrist
+    ctx.fillStyle = skin;
+    ctx.fillRect(300, 490, 130, 70);
+
+    // lotion / massage sheen
+    var lot = A.skin || [];
+    lot.forEach(function (l) {
+      ctx.save();
+      ctx.globalAlpha = 0.5 * l.prog;
+      if (l.product === 'lotion') {
+        var g = ctx.createRadialGradient(360, 380, 20, 360, 380, 190);
+        g.addColorStop(0, 'rgba(255,255,255,.55)');
+        g.addColorStop(1, 'rgba(255,255,255,0)');
+        ctx.fillStyle = g;
+        ctx.fillRect(180, 200, 380, 360);
+      } else if (l.product === 'massage') {
+        ctx.strokeStyle = 'rgba(255,220,240,.8)';
+        ctx.lineWidth = 5;
+        for (var i = 0; i < 3; i++) {
+          ctx.beginPath();
+          ctx.arc(360, 390, 40 + i * 30, 0.2, Math.PI * 1.1);
+          ctx.stroke();
+        }
+      }
+      ctx.restore();
+    });
+
+    // nails
+    var nails = handNails();
+    var layers = A.nails || [];
+    nails.forEach(function (nl, i) {
+      drawOneNail(ctx, nl, layers, shape, i, 5, skin);
+    });
+    ctx.restore();
+  }
+
+  // ---------- the foot ----------
+  function footNails() {
+    return [
+      { x: 268, y: 186, w: 40, h: 34, a: -0.12 },  // big toe
+      { x: 336, y: 150, w: 29, h: 26, a: -0.04 },
+      { x: 390, y: 146, w: 26, h: 24, a: 0.02 },
+      { x: 438, y: 154, w: 23, h: 21, a: 0.08 },
+      { x: 480, y: 172, w: 20, h: 18, a: 0.16 }
+    ];
+  }
+
+  function drawFootSubject(ctx, L, A, shape) {
+    var skin = SKIN_TONES[L.client.skin];
+    ctx.save();
+
+    // leg
+    ctx.fillStyle = shade(skin, -0.04);
+    ctx.beginPath();
+    ctx.moveTo(300, 560); ctx.lineTo(300, 470);
+    ctx.quadraticCurveTo(360, 440, 424, 470);
+    ctx.lineTo(424, 560);
+    ctx.closePath();
+    ctx.fill();
+
+    // foot body (top view, toes up)
+    ctx.fillStyle = skin;
+    ctx.beginPath();
+    ctx.moveTo(250, 240);
+    ctx.quadraticCurveTo(258, 196, 292, 196);   // big toe base
+    ctx.quadraticCurveTo(330, 168, 372, 172);
+    ctx.quadraticCurveTo(440, 168, 486, 200);
+    ctx.quadraticCurveTo(510, 236, 486, 300);
+    ctx.quadraticCurveTo(470, 380, 452, 452);
+    ctx.quadraticCurveTo(430, 512, 360, 512);
+    ctx.quadraticCurveTo(292, 512, 274, 448);
+    ctx.quadraticCurveTo(252, 350, 250, 240);
+    ctx.closePath();
+    ctx.fill();
+
+    // toes
+    var toes = [
+      { x: 268, y: 206, rx: 30, ry: 34, a: -0.12 },
+      { x: 336, y: 168, rx: 22, ry: 27, a: -0.04 },
+      { x: 390, y: 164, rx: 20, ry: 25, a: 0.02 },
+      { x: 438, y: 172, rx: 18, ry: 22, a: 0.08 },
+      { x: 480, y: 190, rx: 16, ry: 19, a: 0.16 }
+    ];
+    toes.forEach(function (t) {
+      ctx.fillStyle = skin;
+      ellipsePath(ctx, t.x, t.y, t.rx, t.ry, t.a);
+      ctx.fill();
+    });
+
+    // ankle bump + arch shading
+    ctx.fillStyle = 'rgba(0,0,0,.05)';
+    ellipsePath(ctx, 300, 400, 30, 60, 0.2);
+    ctx.fill();
+
+    // heel / scrub effects
+    var hl = A.heel || [];
+    hl.forEach(function (l) {
+      ctx.save();
+      ctx.globalAlpha = l.prog;
+      if (l.product === 'scrub') {
+        var g = ctx.createRadialGradient(360, 462, 10, 360, 462, 110);
+        g.addColorStop(0, 'rgba(255,255,255,.6)');
+        g.addColorStop(1, 'rgba(255,255,255,0)');
+        ctx.fillStyle = g;
+        ctx.beginPath(); ctx.ellipse(360, 462, 110, 60, 0, 0, TAU); ctx.fill();
+        ctx.fillStyle = 'rgba(190,240,225,.75)';
+        for (var i = 0; i < 14; i++) {
+          var a2 = (i / 14) * TAU;
+          ctx.beginPath();
+          ctx.arc(360 + Math.cos(a2) * (40 + (i % 4) * 16), 462 + Math.sin(a2) * (24 + (i % 3) * 10), 3 + (i % 3), 0, TAU);
+          ctx.fill();
+        }
+      } else if (l.product === 'massage') {
+        ctx.strokeStyle = 'rgba(255,220,240,.85)';
+        ctx.lineWidth = 5;
+        for (var j = 0; j < 3; j++) {
+          ctx.beginPath();
+          ctx.arc(360, 440, 34 + j * 26, 0.15, Math.PI * 1.15);
+          ctx.stroke();
+        }
+      }
+      ctx.restore();
+    });
+
+    var nails = footNails();
+    var layers = A.toes || [];
+    nails.forEach(function (nl, i) { drawOneNail(ctx, nl, layers, shape, i, 5, skin); });
+    ctx.restore();
+  }
+
+  // ---------- the face ----------
+  function drawFaceSubject(ctx, L, A) {
+    var skin = SKIN_TONES[L.client.skin];
+    var hair = HAIR_COLORS[L.client.hairColor];
+    var cx = 360, cy = 300, rx = 140, ry = 170;
+
+    // hair back
+    ctx.fillStyle = hair;
+    ellipsePath(ctx, cx, cy - 6, rx + 26, ry + 22);
+    ctx.fill();
+    if (L.client.hair === 0 || L.client.hair === 5) {
+      ctx.beginPath();
+      ctx.ellipse(cx - rx - 6, cy + 90, 34, 96, 0.12, 0, TAU); ctx.fill();
+      ctx.beginPath();
+      ctx.ellipse(cx + rx + 6, cy + 90, 34, 96, -0.12, 0, TAU); ctx.fill();
+    }
+
+    // neck + shoulders
+    ctx.fillStyle = shade(skin, -0.05);
+    ctx.beginPath();
+    ctx.moveTo(cx - 46, cy + 120);
+    ctx.lineTo(cx - 46, cy + 186);
+    ctx.quadraticCurveTo(cx, cy + 206, cx + 46, cy + 186);
+    ctx.lineTo(cx + 46, cy + 120);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#f0e6f5';
+    ctx.beginPath();
+    ctx.moveTo(cx - 190, SH);
+    ctx.quadraticCurveTo(cx - 150, cy + 190, cx - 46, cy + 196);
+    ctx.lineTo(cx + 46, cy + 196);
+    ctx.quadraticCurveTo(cx + 150, cy + 190, cx + 190, SH);
+    ctx.closePath();
+    ctx.fill();
+
+    // ears
+    ctx.fillStyle = skin;
+    ellipsePath(ctx, cx - rx + 4, cy + 14, 20, 32); ctx.fill();
+    ellipsePath(ctx, cx + rx - 4, cy + 14, 20, 32); ctx.fill();
+
+    // face
+    ctx.fillStyle = skin;
+    ellipsePath(ctx, cx, cy, rx, ry);
+    ctx.fill();
+
+    // little imperfections that foundation covers up
+    ctx.fillStyle = rgba('#c9705f', 0.35);
+    [[300, 210, 5], [430, 340, 6], [392, 190, 4], [286, 372, 5]].forEach(function (b) {
+      ctx.beginPath(); ctx.arc(b[0], b[1], b[2], 0, TAU); ctx.fill();
+    });
+
+    var faceLayers = A.face || [];
+    faceLayers.forEach(function (l) {
+      if (l.product === 'foundation') {
+        withClip(ctx, [cx - rx, cy - ry, rx * 2, ry * 2], l.prog, function () {
+          ctx.save();
+          ellipsePath(ctx, cx, cy, rx, ry);
+          ctx.clip();
+          ctx.globalAlpha = 0.42 + l.q * 0.22;
+          ctx.fillStyle = l.color.h;
+          ctx.fillRect(cx - rx, cy - ry, rx * 2, ry * 2);
+          if (l.q < 0.55) {  // patchy blending shows as streaks
+            ctx.globalAlpha = 0.1;
+            ctx.fillStyle = shade(l.color.h, -0.18);
+            for (var i = 0; i < 4; i++) ctx.fillRect(cx - rx + i * 70, cy - ry, 18, ry * 2);
+          }
+          ctx.restore();
+        });
+      }
+    });
+
+    // cheeks / blush
+    (A.cheeks || []).forEach(function (l) {
+      var spots = [[cx - 88, 352], [cx + 88, 352]];
+      spots.forEach(function (sp, i) {
+        var p = clamp(l.prog * 2 - i, 0, 1);
+        if (p <= 0) return;
+        var r = 54 * (0.7 + 0.3 * l.q);
+        var g = ctx.createRadialGradient(sp[0], sp[1], 3, sp[0], sp[1], r);
+        g.addColorStop(0, rgba(l.color.h, 0.6 * p));
+        g.addColorStop(1, rgba(l.color.h, 0));
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.ellipse(sp[0], sp[1], r, r * 0.72, i ? -0.25 : 0.25, 0, TAU);
+        ctx.fill();
+      });
+    });
+
+    // highlighter
+    faceLayers.forEach(function (l) {
+      if (l.product !== 'glow') return;
+      ctx.save();
+      ctx.globalAlpha = 0.55 * l.prog;
+      ctx.fillStyle = l.color.h;
+      [[cx - 92, 322, 40, 12, 0.2], [cx + 92, 322, 40, 12, -0.2], [cx, 244, 46, 9, 0], [cx, 336, 10, 36, 0]].forEach(function (h) {
+        ctx.beginPath();
+        ctx.ellipse(h[0], h[1], h[2], h[3], h[4], 0, TAU);
+        ctx.fill();
+      });
+      ctx.restore();
+    });
+
+    // eyes
+    var eyes = [{ x: cx - 60, y: 278 }, { x: cx + 60, y: 278 }];
+    eyes.forEach(function (e, i) {
+      // eyeshadow on the lid
+      (A.lids || []).forEach(function (l) {
+        if (l.product !== 'shadow') return;
+        var p = clamp(l.prog * 2 - i, 0, 1);
+        if (p <= 0) return;
+        var wob = (1 - l.q) * 8;
+        ctx.save();
+        ctx.globalAlpha = p;
+        var g = ctx.createRadialGradient(e.x, e.y - 14, 4, e.x, e.y - 14, 48);
+        g.addColorStop(0, rgba(l.color.h, 0.98));
+        g.addColorStop(0.55, rgba(l.color.h, 0.72));
+        g.addColorStop(1, rgba(l.color.h, 0.06));
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.ellipse(e.x + (i ? wob : -wob) * 0.4, e.y - 15 - wob * 0.2, 48 + wob, 29 + wob * 0.5, 0, 0, TAU);
+        ctx.fill();
+        ctx.restore();
+      });
+
+      // sclera
+      ctx.fillStyle = '#fffdf9';
+      ctx.beginPath();
+      ctx.ellipse(e.x, e.y, 36, 19, 0, 0, TAU);
+      ctx.fill();
+      // iris
+      ctx.fillStyle = ['#6b8e5a', '#4a6fa5', '#6b4b32', '#3f3a44'][L.client.hairColor % 4];
+      ctx.beginPath(); ctx.arc(e.x, e.y, 14, 0, TAU); ctx.fill();
+      ctx.fillStyle = '#221c26';
+      ctx.beginPath(); ctx.arc(e.x, e.y, 6.5, 0, TAU); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,.9)';
+      ctx.beginPath(); ctx.arc(e.x - 5, e.y - 5, 3.4, 0, TAU); ctx.fill();
+
+      // eyeliner
+      (A.lids || []).forEach(function (l) {
+        if (l.product !== 'liner') return;
+        var p = clamp(l.prog * 2 - i, 0, 1);
+        if (p <= 0) return;
+        var wob = (1 - l.q) * 3;
+        ctx.save();
+        ctx.globalAlpha = p;
+        ctx.strokeStyle = l.color.h;
+        ctx.lineWidth = 4 + wob;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(e.x - 34, e.y - 6);
+        ctx.quadraticCurveTo(e.x, e.y - 22 + wob, e.x + 34, e.y - 8);
+        ctx.lineTo(e.x + (i ? 50 : 46), e.y - 20 - wob);   // the wing
+        ctx.stroke();
+        ctx.restore();
+      });
+
+      // lashes
+      var lashLayer = (A.lashes || []).filter(function (l) { return l.product === 'mascara'; })[0];
+      var lashLen = lashLayer ? 8 + 12 * clamp(lashLayer.prog * 2 - i, 0, 1) * (0.6 + lashLayer.q * 0.4) : 7;
+      var lashCol = lashLayer ? lashLayer.color.h : '#3a2f28';
+      var lashW = lashLayer ? 2.2 + 2.2 * clamp(lashLayer.prog * 2 - i, 0, 1) : 1.8;
+      ctx.strokeStyle = lashCol;
+      ctx.lineWidth = lashW;
+      ctx.lineCap = 'round';
+      for (var k = -3; k <= 3; k++) {
+        var t2 = k / 3;
+        var lx = e.x + t2 * 32;
+        var ly = e.y - 17 + Math.abs(t2) * 6;
+        ctx.beginPath();
+        ctx.moveTo(lx, ly);
+        ctx.lineTo(lx + t2 * 6, ly - lashLen);
+        ctx.stroke();
+      }
+      // lower lid line
+      ctx.strokeStyle = 'rgba(80,60,60,.5)';
+      ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      ctx.moveTo(e.x - 33, e.y + 12);
+      ctx.quadraticCurveTo(e.x, e.y + 21, e.x + 33, e.y + 12);
+      ctx.stroke();
+
+      // brows
+      var browLayer = (A.brows || []).filter(function (l) { return l.product === 'brow'; })[0];
+      var bp = browLayer ? clamp(browLayer.prog * 2 - i, 0, 1) : 0;
+      ctx.strokeStyle = browLayer && bp > 0 ? browLayer.color.h : mix(hair, '#231519', 0.45);
+      ctx.lineWidth = 7 + (browLayer ? bp * 4 : 0);
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(e.x - 36, e.y - 44 + (browLayer ? (1 - browLayer.q) * 5 : 0));
+      ctx.quadraticCurveTo(e.x, e.y - 58, e.x + 34, e.y - 42);
+      ctx.stroke();
+    });
+
+    // nose
+    ctx.strokeStyle = 'rgba(0,0,0,.18)';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(cx - 4, 322);
+    ctx.quadraticCurveTo(cx - 14, 352, cx + 2, 356);
+    ctx.stroke();
+
+    // lips
+    var lipBase = mix(skin, '#c0596a', 0.5);
+    var lipLayers = A.lips || [];
+    var lipCol = lipBase, lipQ = 1, lipProg = 1, painted = false;
+    lipLayers.forEach(function (l) {
+      if (l.product === 'lipstick') { lipCol = l.color.h; lipQ = l.q; lipProg = l.prog; painted = true; }
+    });
+    function lipPath() {
+      ctx.beginPath();
+      ctx.moveTo(cx - 48, 400);
+      ctx.quadraticCurveTo(cx - 26, 380, cx - 10, 392);
+      ctx.quadraticCurveTo(cx, 382, cx + 10, 392);
+      ctx.quadraticCurveTo(cx + 26, 380, cx + 48, 400);
+      ctx.quadraticCurveTo(cx + 22, 432, cx, 432);
+      ctx.quadraticCurveTo(cx - 22, 432, cx - 48, 400);
+      ctx.closePath();
+    }
+    ctx.fillStyle = lipBase;
+    lipPath();
+    ctx.fill();
+    if (painted) {
+      var wob2 = (1 - lipQ) * 7;
+      withClip(ctx, [cx - 60, 370, 120, 70], lipProg, function () {
+        if (wob2 > 1) {   // colour outside the lines
+          ctx.fillStyle = rgba(lipCol, 0.5);
+          ctx.beginPath();
+          ctx.ellipse(cx + wob2 * 0.5, 406, 52 + wob2, 26 + wob2 * 0.6, 0, 0, TAU);
+          ctx.fill();
+        }
+        ctx.save();
+        ctx.translate(-wob2 * 0.3, 0);
+        ctx.fillStyle = lipCol;
+        lipPath();
+        ctx.fill();
+        ctx.restore();
+      });
+    }
+    lipLayers.forEach(function (l) {
+      if (l.product !== 'gloss') return;
+      ctx.save();
+      ctx.globalAlpha = 0.75 * l.prog;
+      lipPath();
+      ctx.clip();
+      ctx.fillStyle = rgba(l.color.h, 0.6);
+      ctx.fillRect(cx - 60, 370, 120, 70);
+      ctx.fillStyle = 'rgba(255,255,255,.85)';
+      ctx.beginPath();
+      ctx.ellipse(cx - 6, 418, 16, 5, 0, 0, TAU);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.ellipse(cx + 18, 396, 8, 3, -0.3, 0, TAU);
+      ctx.fill();
+      ctx.restore();
+    });
+
+    // hair front — a fringe that stops well above the brows.
+    // Clipped to the hair silhouette so the top stays round.
+    ctx.save();
+    ctx.beginPath();
+    ctx.ellipse(cx, cy - 6, rx + 26, ry + 22, 0, 0, TAU);
+    ctx.clip();
+    ctx.fillStyle = hair;
+    ctx.beginPath();
+    ctx.moveTo(cx - rx - 40, 198);
+    ctx.quadraticCurveTo(cx - 62, 164, cx - 4, 178);
+    ctx.quadraticCurveTo(cx + 58, 160, cx + rx + 40, 192);
+    ctx.lineTo(cx + rx + 40, 40);
+    ctx.lineTo(cx - rx - 40, 40);
+    ctx.closePath();
+    ctx.fill();
+    // a soft shine so the hair is not one flat blob
+    ctx.globalAlpha = 0.16;
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.ellipse(cx - 56, 150, 52, 17, -0.28, 0, TAU);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  /* ================================================================
+     6. Playing a level
+     ================================================================ */
+  var P = {
+    L: null, applied: {}, order: [], shape: 'round',
+    selProduct: null, selColor: 0, busy: false, demo: false,
+    cursor: { x: 660, y: 530, a: 0 }, queue: [], meter: null,
+    started: 0, finished: false, sparkles: []
+  };
+
+  function resetPlay(L) {
+    P.L = L;
+    P.applied = {};
+    P.order = [];
+    P.shape = 'round';
+    P.selProduct = null;
+    P.selColor = 0;
+    P.busy = false;
+    P.demo = false;
+    P.queue = [];
+    P.meter = null;
+    P.cursor = { x: 660, y: 530, a: 0 };
+    P.started = performance.now();
+    P.finished = false;
+    P.confirmFinish = false;
+    P.sparkles = [];
+    L.tasks.forEach(function (t) { t.done = false; t.quality = 0; });
+  }
+
+  function layersOf(group) { return P.applied[group] || (P.applied[group] = []); }
+  function findLayer(group, product) {
+    return layersOf(group).filter(function (l) { return l.product === product; })[0] || null;
+  }
+
+  /* ---------------- tray ---------------- */
+  function renderTray() {
+    var host = $('prodGrid');
+    host.innerHTML = '';
+    var list = productsFor(P.L.subject);
+    var wanted = {};
+    P.L.tasks.forEach(function (t) { wanted[t.product] = true; });
+
+    list.forEach(function (id) {
+      var p = PRODUCTS[id];
+      var group = p.groups.filter(function (g) { return SUBJECT_GROUPS[P.L.subject].indexOf(g) >= 0; })[0];
+      var b = document.createElement('button');
+      b.className = 'prod' + (P.selProduct === id ? ' on' : '') + (wanted[id] ? ' want' : '') +
+        (findLayer(group, id) ? ' done' : '');
+      b.innerHTML = '<span class="ic">' + p.ic + '</span>' + p.label;
+      b.onclick = function () { selectProduct(id); };
+      host.appendChild(b);
+    });
+    renderSwatches();
+  }
+
+  function renderSwatches() {
+    var row = $('swatchRow'), lab = $('swatchLabel');
+    row.innerHTML = '';
+    if (!P.selProduct) { lab.textContent = 'Tap a product to pick it up.'; return; }
+    var p = PRODUCTS[P.selProduct];
+    if (!p.colors) { lab.textContent = p.label + ' — no colour needed. Tap the glowing spot.'; return; }
+    var list = colorList(p.colors);
+    lab.textContent = 'Shade: ' + (list[P.selColor] ? list[P.selColor].n : '—');
+    list.forEach(function (c, i) {
+      var b = document.createElement('button');
+      b.className = 'dot' + (P.selColor === i ? ' on' : '');
+      b.style.background = c.h;
+      b.title = c.n;
+      b.onclick = function () {
+        P.selColor = i;
+        renderSwatches();
+      };
+      row.appendChild(b);
+    });
+  }
+
+  function selectProduct(id) {
+    if (P.busy) return;
+    P.selProduct = id;
+    P.selColor = 0;
+    var p = PRODUCTS[id];
+    // Pre-select the colour the client asked for, if they asked for this product.
+    var task = P.L.tasks.filter(function (t) { return t.product === id; })[0];
+    if (task && task.color && p.colors) {
+      var list = colorList(p.colors);
+      for (var i = 0; i < list.length; i++) if (list[i].n === task.color.n) P.selColor = i;
+    }
+    var group = targetGroup(id);
+    $('playHint').innerHTML = 'You picked up <b>' + p.ic + ' ' + p.label + '</b>. Now tap <b>' +
+      (HOTSPOTS[P.L.subject][group] ? HOTSPOTS[P.L.subject][group].label : GROUP_LABEL[group]) + '</b>.';
+    renderTray();
+  }
+
+  function targetGroup(productId) {
+    var p = PRODUCTS[productId];
+    return p.groups.filter(function (g) { return SUBJECT_GROUPS[P.L.subject].indexOf(g) >= 0; })[0];
+  }
+
+  function renderTasks() {
+    var host = $('taskList');
+    host.innerHTML = '';
+    P.L.tasks.forEach(function (t) {
+      var d = document.createElement('div');
+      d.className = 'task' + (t.done ? ' ok' : '');
+      var sw = t.color ? '<span class="sw" style="background:' + t.color.h + '"></span>' : '<span class="sw" style="background:#ddd"></span>';
+      d.innerHTML = '<span class="box">' + (t.done ? '✓' : '') + '</span>' + sw + '<span>' + taskText(t) + '</span>';
+      host.appendChild(d);
+    });
+    if (P.L.dream) {
+      var d2 = document.createElement('div');
+      d2.className = 'muted';
+      d2.style.fontSize = '.78rem';
+      d2.style.marginTop = '6px';
+      d2.innerHTML = G.owned[P.L.dream.item]
+        ? '💖 She spotted your <b>' + P.L.dream.name + '</b> — ' + money(P.L.dream.bonus) + ' bonus!'
+        : '💭 Wishes you had: ' + P.L.dream.name;
+      host.appendChild(d2);
+    }
+  }
+
+  /* ---------------- the animated cursor ---------------- */
+  function drawCursor(ctx) {
+    var c = P.cursor;
+    var col = '#8b6f9c';
+    var prod = P.selProduct ? PRODUCTS[P.selProduct] : null;
+    var tipCol = '#d8b4e2';
+    if (prod && prod.colors) {
+      var list = colorList(prod.colors);
+      if (list[P.selColor]) tipCol = list[P.selColor].h;
+    }
+    ctx.save();
+    ctx.translate(c.x, c.y);
+    // soft shadow so the pointer reads on any background
+    ctx.shadowColor = 'rgba(0,0,0,.28)';
+    ctx.shadowBlur = 8;
+    ctx.shadowOffsetY = 3;
+
+    // classic arrow pointer
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(0, 26);
+    ctx.lineTo(6.5, 20);
+    ctx.lineTo(11, 30);
+    ctx.lineTo(16, 27.5);
+    ctx.lineTo(11.5, 18);
+    ctx.lineTo(19, 17);
+    ctx.closePath();
+    ctx.fillStyle = '#fff';
+    ctx.fill();
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = '#3c2b45';
+    ctx.stroke();
+    ctx.shadowColor = 'transparent';
+
+    // the applicator the pointer is holding
+    if (P.busy || P.selProduct) {
+      ctx.save();
+      ctx.translate(20, 20);
+      ctx.rotate(-0.5 + Math.sin(c.a) * 0.08);
+      ctx.fillStyle = col;
+      ctx.fillRect(0, 0, 7, 34);            // handle
+      ctx.fillStyle = '#f2e7f6';
+      ctx.fillRect(0, -8, 7, 9);            // ferrule
+      ctx.beginPath();                       // tip, in the product colour
+      ctx.moveTo(-2, -8);
+      ctx.quadraticCurveTo(3.5, -24, 9, -8);
+      ctx.closePath();
+      ctx.fillStyle = tipCol;
+      ctx.fill();
+      ctx.restore();
+    }
+    ctx.restore();
+  }
+
+  function drawSparkles(ctx) {
+    P.sparkles.forEach(function (s) {
+      ctx.save();
+      ctx.globalAlpha = clamp(s.life, 0, 1);
+      ctx.translate(s.x, s.y);
+      ctx.rotate(s.r);
+      ctx.fillStyle = s.c;
+      ctx.beginPath();
+      for (var i = 0; i < 8; i++) {
+        var a = i * Math.PI / 4;
+        var rr = i % 2 ? s.s * 0.35 : s.s;
+        ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr);
+      }
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    });
+  }
+
+  function popSparkles(x, y, col, n) {
+    for (var i = 0; i < n; i++) {
+      P.sparkles.push({
+        x: x + (Math.random() - 0.5) * 70, y: y + (Math.random() - 0.5) * 50,
+        s: 4 + Math.random() * 7, r: Math.random() * TAU, c: col,
+        life: 1, vy: -0.3 - Math.random() * 0.5
+      });
+    }
+  }
+
+  /* ---------------- the whole scene ---------------- */
+  function drawScene() {
+    var ctx = sctx;
+    ctx.clearRect(0, 0, SW, SH);
+
+    // salon backdrop
+    var g = ctx.createLinearGradient(0, 0, 0, SH);
+    g.addColorStop(0, '#fff2f9');
+    g.addColorStop(1, '#efe4ff');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, SW, SH);
+    // mirror bulbs
+    ctx.fillStyle = 'rgba(255,236,180,.9)';
+    for (var i = 0; i < 9; i++) {
+      ctx.beginPath();
+      ctx.arc(50 + i * 80, 26, 9, 0, TAU);
+      ctx.fill();
+    }
+    ctx.fillStyle = 'rgba(255,255,255,.5)';
+    ctx.fillRect(0, 46, SW, 4);
+
+    if (!P.L) return;
+    var A = P.applied;
+    if (P.L.subject === 'face') drawFaceSubject(ctx, P.L, A);
+    else if (P.L.subject === 'hand') drawHandSubject(ctx, P.L, A, P.shape);
+    else drawFootSubject(ctx, P.L, A, P.shape);
+
+    // glowing target for whatever you are holding
+    if (P.selProduct && !P.busy) {
+      var grp = targetGroup(P.selProduct);
+      var hs = HOTSPOTS[P.L.subject][grp];
+      if (hs) {
+        ctx.save();
+        var pulse = 0.55 + 0.25 * Math.sin(performance.now() / 260);
+        ctx.strokeStyle = 'rgba(232,60,140,' + pulse + ')';
+        ctx.lineWidth = 3;
+        ctx.setLineDash([9, 7]);
+        ctx.beginPath();
+        ctx.ellipse(hs.x, hs.y, hs.rx, hs.ry, 0, 0, TAU);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.font = 'bold 15px "Comic Sans MS", "Segoe UI", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = 'rgba(224,81,142,.95)';
+        ctx.fillText(hs.label, hs.x, hs.y - hs.ry - 8);
+        ctx.restore();
+      }
+    }
+
+    drawSparkles(ctx);
+    drawCursor(ctx);
+
+    // client mood bubble
+    ctx.save();
+    ctx.font = 'bold 15px "Comic Sans MS", "Segoe UI", sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillStyle = 'rgba(255,255,255,.85)';
+    var label = P.L.client.name + (P.L.vip ? '  (VIP)' : '') + '  ·  ' + P.L.client.mood.n;
+    var wdt = ctx.measureText(label).width + 24;
+    ctx.beginPath();
+    ctx.roundRect ? ctx.roundRect(14, 60, wdt, 30, 15) : ctx.rect(14, 60, wdt, 30);
+    ctx.fill();
+    ctx.fillStyle = '#7e47ad';
+    ctx.fillText(label, 26, 80);
+    ctx.restore();
+  }
+
+  /* ---------------- animation queue ---------------- */
+  function easeInOut(t) { return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2; }
+
+  function queueStep(dur, update, done) {
+    P.queue.push({ dur: dur, t: 0, update: update, done: done });
+  }
+
+  function moveCursorTo(x, y, dur) {
+    var from = { x: P.cursor.x, y: P.cursor.y };
+    queueStep(dur || 520, function (t) {
+      P.cursor.x = lerp(from.x, x, t);
+      P.cursor.y = lerp(from.y, y, t) - Math.sin(t * Math.PI) * 26;  // a little arc
+      P.cursor.a += 0.3;
+    });
+  }
+
+  function pathFor(group) {
+    var subj = P.L.subject;
+    if (group === 'nails') return handNails().map(function (n) { return { x: n.x, y: n.y }; });
+    if (group === 'toes') return footNails().map(function (n) { return { x: n.x, y: n.y }; });
+    var hs = HOTSPOTS[subj][group];
+    return [
+      { x: hs.x - hs.rx * 0.85, y: hs.y },
+      { x: hs.x, y: hs.y - hs.ry * 0.5 },
+      { x: hs.x + hs.rx * 0.85, y: hs.y }
+    ];
+  }
+
+  function samplePath(pts, t) {
+    if (pts.length === 1) return pts[0];
+    var seg = (pts.length - 1) * clamp(t, 0, 1);
+    var i = Math.min(Math.floor(seg), pts.length - 2);
+    var f = seg - i;
+    return { x: lerp(pts[i].x, pts[i + 1].x, f), y: lerp(pts[i].y, pts[i + 1].y, f) };
+  }
+
+  /* ---------------- applying a product ---------------- */
+  function canvasPoint(ev) {
+    var r = stage.getBoundingClientRect();
+    var cx = (ev.touches ? ev.touches[0].clientX : ev.clientX) - r.left;
+    var cy = (ev.touches ? ev.touches[0].clientY : ev.clientY) - r.top;
+    return { x: cx * SW / r.width, y: cy * SH / r.height };
+  }
+
+  stage.addEventListener('pointerdown', function (ev) {
+    if (P.busy || P.finished || !P.L) return;
+    ev.preventDefault();
+    var pt = canvasPoint(ev);
+    if (!P.selProduct) {
+      // Tapping a spot with nothing in hand tells you what goes there.
+      var subjSpots = HOTSPOTS[P.L.subject];
+      for (var g in subjSpots) {
+        var h = subjSpots[g];
+        if (Math.pow((pt.x - h.x) / h.rx, 2) + Math.pow((pt.y - h.y) / h.ry, 2) <= 1.6) {
+          toast('That is ' + GROUP_LABEL[g] + '. Pick a product first!');
+          return;
+        }
+      }
+      toast('Pick up a product from your kit first 💄');
+      return;
+    }
+    var grp = targetGroup(P.selProduct);
+    var hs = HOTSPOTS[P.L.subject][grp];
+    var inside = Math.pow((pt.x - hs.x) / (hs.rx * 1.25), 2) + Math.pow((pt.y - hs.y) / (hs.ry * 1.35), 2) <= 1;
+    if (!inside) {
+      // Say what they actually tapped, then point them at the right place.
+      var named = null, spots = HOTSPOTS[P.L.subject];
+      for (var g2 in spots) {
+        var h2 = spots[g2];
+        if (Math.pow((pt.x - h2.x) / h2.rx, 2) + Math.pow((pt.y - h2.y) / h2.ry, 2) <= 1.2) named = g2;
+      }
+      toast(named ? 'That is ' + GROUP_LABEL[named] + ' — ' + PRODUCTS[P.selProduct].label + ' goes on ' + GROUP_LABEL[grp] + '.'
+                  : PRODUCTS[P.selProduct].label + ' goes on ' + GROUP_LABEL[grp] + '. Aim for the dashed circle!');
+      return;
+    }
+    beginApply(P.selProduct, grp, false);
+  }, { passive: false });
+
+  function beginApply(productId, group, auto) {
+    P.busy = true;
+    var hs = HOTSPOTS[P.L.subject][group];
+    moveCursorTo(hs.x - hs.rx * 0.85, hs.y, 480);
+    queueStep(10, function () {}, function () { startMeter(productId, group, auto); });
+  }
+
+  function startMeter(productId, group, auto) {
+    var lvl = P.L.n;
+    var speed = clamp(0.85 + lvl / 2200, 0.85, 2.3) * P.L.client.mood.fuss;
+    P.meter = { pos: 0, dir: 1, speed: speed, product: productId, group: group, auto: auto };
+    $('meterWrap').classList.add('on');
+    $('meterLabel').innerHTML = PRODUCTS[productId].verb.charAt(0).toUpperCase() + PRODUCTS[productId].verb.slice(1) +
+      '… tap <b>Steady!</b> in the green';
+  }
+
+  function stopMeter() {
+    if (!P.meter) return;
+    var m = P.meter;
+    P.meter = null;
+    $('meterWrap').classList.remove('on');
+
+    var dev = Math.abs(m.pos - 0.5) / 0.5;
+    var tol = 0.12 + skillPct() / 100 * 0.18;
+    var q = dev <= tol ? 1 : clamp(1 - (dev - tol) / (1 - tol), 0.2, 1);
+
+    var prod = PRODUCTS[m.product];
+    var color = null;
+    if (prod.colors) {
+      var list = colorList(prod.colors);
+      color = list[P.selColor] || list[0];
+    }
+    if (m.product === 'file' && color && color.shape) P.shape = color.shape;
+
+    // replace any earlier coat of the same product
+    var arr = layersOf(m.group);
+    for (var i = arr.length - 1; i >= 0; i--) if (arr[i].product === m.product) arr.splice(i, 1);
+    var layer = { product: m.product, color: color, q: q, prog: 0 };
+    arr.push(layer);
+    arr.sort(function (a, b) { return PRODUCTS[a.product].layer - PRODUCTS[b.product].layer; });
+    P.order.push(m.product);
+
+    // sweep the cursor along while the product appears
+    var pts = pathFor(m.group);
+    var dur = m.group === 'nails' || m.group === 'toes' ? 1500 : 950;
+    queueStep(dur, function (t) {
+      layer.prog = t;
+      var pos = samplePath(pts, t);
+      P.cursor.x = pos.x - 8;
+      P.cursor.y = pos.y - 6 + Math.sin(t * 14) * 3;
+      P.cursor.a += 0.4;
+    }, function () {
+      layer.prog = 1;
+      popSparkles(HOTSPOTS[P.L.subject][m.group].x, HOTSPOTS[P.L.subject][m.group].y,
+        color ? color.h : '#ffd23f', q > 0.85 ? 14 : 6);
+      finishApply(m.product, m.group, q, color);
+    });
+  }
+
+  function finishApply(productId, group, q, color) {
+    P.busy = false;
+    // did this tick off a request?
+    var msg = '';
+    P.L.tasks.forEach(function (t) {
+      if (t.product !== productId || t.group !== group) return;
+      var colorOk = !t.color || (color && color.n === t.color.n);
+      t.done = true;
+      t.quality = q * (colorOk ? 1 : 0.45);
+      msg = colorOk
+        ? (q > 0.9 ? 'Perfect ' + PRODUCTS[productId].label.toLowerCase() + '! ✨' : 'Nice — ' + PRODUCTS[productId].label.toLowerCase() + ' done.')
+        : 'Hmm, she asked for ' + t.color.n + '.';
+    });
+    if (!msg) msg = q > 0.9 ? 'Lovely extra touch! ✨' : 'Extra touch added.';
+    toast(msg);
+    renderTasks();
+    renderTray();
+    var left = P.L.tasks.filter(function (t) { return !t.done; }).length;
+    $('playHint').innerHTML = left ? left + ' request' + (left > 1 ? 's' : '') + ' to go.' :
+      'Everything she asked for is done — tap <b>✅ Finish</b>.';
+    if (P.demo) { P.demo = false; }
+  }
+
+  /* ---------------- main loop ---------------- */
+  var lastT = performance.now();
+  function tick(now) {
+    var dt = Math.min(50, now - lastT);
+    lastT = now;
+
+    if (P.queue.length) {
+      var st = P.queue[0];
+      st.t += dt;
+      var t = clamp(st.t / st.dur, 0, 1);
+      st.update(easeInOut(t));
+      if (t >= 1) { P.queue.shift(); if (st.done) st.done(); }
+    }
+
+    if (P.meter) {
+      P.meter.pos += P.meter.dir * P.meter.speed * dt / 1000;
+      if (P.meter.pos >= 1) { P.meter.pos = 1; P.meter.dir = -1; }
+      if (P.meter.pos <= 0) { P.meter.pos = 0; P.meter.dir = 1; }
+      $('needle').style.left = (P.meter.pos * 100) + '%';
+      if (P.meter.auto && Math.abs(P.meter.pos - 0.5) < 0.03) stopMeter();
+    }
+
+    for (var i = P.sparkles.length - 1; i >= 0; i--) {
+      var s = P.sparkles[i];
+      s.life -= dt / 900;
+      s.y += s.vy * dt / 16;
+      s.r += 0.04;
+      if (s.life <= 0) P.sparkles.splice(i, 1);
+    }
+
+    if ($('playScreen').classList.contains('active')) drawScene();
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+
+  $('steadyBtn').onclick = function () { stopMeter(); };
+  document.addEventListener('keydown', function (e) {
+    if (e.code === 'Space' && P.meter) { e.preventDefault(); stopMeter(); }
+  });
+
+  $('undoBtn').onclick = function () {
+    if (P.busy || !P.L) return;
+    var last = P.order.pop();
+    if (!last) { toast('Nothing to wipe off yet.'); return; }
+    for (var g in P.applied) {
+      var arr = P.applied[g];
+      for (var i = arr.length - 1; i >= 0; i--) {
+        if (arr[i].product === last) {
+          arr.splice(i, 1);
+          P.L.tasks.forEach(function (t) { if (t.product === last) { t.done = false; t.quality = 0; } });
+          toast('Wiped off the ' + PRODUCTS[last].label.toLowerCase() + '.');
+          renderTasks(); renderTray();
+          return;
+        }
+      }
+    }
+  };
+
+  $('demoBtn').onclick = function () {
+    if (P.busy || !P.L) return;
+    var next = P.L.tasks.filter(function (t) { return !t.done; })[0];
+    if (!next) { toast('Nothing left to demo — tap Finish!'); return; }
+    selectProduct(next.product);
+    P.demo = true;
+    toast('Watch: ' + taskText(next));
+    beginApply(next.product, next.group, true);
+  };
+
+  function startLevel(n) {
+    G.level = clamp(n, 1, MAX_LEVEL);
+    var L = makeLevel(G.level);
+    currentLevel = L;
+    resetPlay(L);
+    renderTray();
+    renderTasks();
+    $('trayHint').textContent = L.subject === 'face' ? 'makeup' : (L.subject === 'hand' ? 'manicure' : 'pedicure');
+    $('playHint').innerHTML = 'Pick a product, then tap the glowing spot on ' +
+      (L.subject === 'face' ? 'her face' : (L.subject === 'hand' ? 'her hand' : 'her foot')) + '.';
+    show('playScreen');
+    refreshHeader();
+  }
+
+  /* ---------------- scoring ---------------- */
+  function scoreLevel() {
+    var L = P.L;
+    var total = 0, n = 0, missing = 0, wrongColor = 0;
+    L.tasks.forEach(function (t) {
+      n++;
+      total += t.quality;
+      if (!t.done) missing++;
+      else if (t.color) {
+        var layer = findLayer(t.group, t.product);
+        if (layer && layer.color && layer.color.n !== t.color.n) wrongColor++;
+      }
+    });
+    var sat = n ? total / n : 0;
+
+    // bonuses that reward doing things in the right order
+    var bonuses = [];
+    var idx = function (p) { return P.order.lastIndexOf(p); };
+    if (idx('base') >= 0 && idx('polish') > idx('base')) { sat += 0.05; bonuses.push('Base coat first (+5%)'); }
+    if (idx('top') >= 0 && idx('top') === P.order.length - 1 && P.order.length > 1) { sat += 0.05; bonuses.push('Top coat last (+5%)'); }
+    if (idx('foundation') === 0 && P.order.length > 1) { sat += 0.05; bonuses.push('Foundation first (+5%)'); }
+    if (idx('cuticle') >= 0 && idx('polish') > idx('cuticle')) { sat += 0.03; bonuses.push('Cuticles prepped (+3%)'); }
+
+    // extra products she did not ask for
+    var asked = {};
+    L.tasks.forEach(function (t) { asked[t.product] = true; });
+    var extras = 0;
+    for (var g in P.applied) P.applied[g].forEach(function (l) { if (!asked[l.product]) extras++; });
+    if (extras) {
+      var eb = Math.min(0.08, extras * 0.02);
+      sat += eb;
+      bonuses.push('Creative extras ×' + extras + ' (+' + Math.round(eb * 100) + '%)');
+    }
+
+    var secs = (performance.now() - P.started) / 1000;
+    var par = 25 + L.tasks.length * 18;
+    if (secs < par) { sat += 0.05; bonuses.push('Speedy service (+5%)'); }
+
+    sat = clamp(sat, 0, 1.2);
+
+    var earn = Math.round(L.fee * sat * tipMult());
+    var tip = sat >= 0.9 ? Math.round(L.fee * 0.25 * (sat - 0.6) * tipMult()) : 0;
+    var dreamBonus = (L.dream && G.owned[L.dream.item]) ? L.dream.bonus : 0;
+    var profit = earn + tip + dreamBonus - L.costs;
+    var passed = profit >= L.goal;
+
+    return {
+      sat: sat, earn: earn, tip: tip, dream: dreamBonus, costs: L.costs,
+      profit: profit, passed: passed, missing: missing, wrongColor: wrongColor,
+      bonuses: bonuses, stars: sat >= 1.0 ? 3 : (sat >= 0.82 ? 2 : (passed ? 1 : 0))
+    };
+  }
+
+  var REVIEWS = {
+    great: ['I am never going anywhere else. Look at this!', 'My friends are going to lose it.',
+      'You made me feel like a movie star.', 'Ten out of ten. Actually eleven.'],
+    good: ['Really pretty, thank you!', 'That is exactly what I wanted.', 'So nice — see you next month.'],
+    ok: ['It is okay… not quite what I pictured.', 'Thanks. I might fix a bit at home.',
+      'Hmm. Close enough, I guess.'],
+    bad: ['I asked for something else entirely.', 'Can I get a discount? Please?',
+      'I am going to wash this off in the car.']
+  };
+
+  function finishLevel() {
+    if (P.busy || P.finished) return;
+    var undone = P.L.tasks.filter(function (t) { return !t.done; });
+    if (undone.length && !P.confirmFinish) {
+      P.confirmFinish = true;
+      toast(undone.length + ' request(s) still undone — tap Finish again to hand her the mirror anyway.');
+      setTimeout(function () { P.confirmFinish = false; }, 4000);
+      return;
+    }
+    P.finished = true;
+    var r = scoreLevel();
+    var L = P.L;
+
+    G.cash = Math.max(0, G.cash + r.profit);
+    if (r.sat >= 0.8) G.happyClients++;
+    if (r.stars === 3) G.perfectRuns++;
+    if (r.passed) {
+      G.streak++;
+      G.bestStreak = Math.max(G.bestStreak, G.streak);
+    } else {
+      G.streak = 0;
+    }
+
+    var bucket = r.sat >= 1.0 ? 'great' : (r.sat >= 0.8 ? 'good' : (r.sat >= 0.55 ? 'ok' : 'bad'));
+    var quote = REVIEWS[bucket][Math.floor(Math.random() * REVIEWS[bucket].length)];
+    var faceIc = r.sat >= 1.0 ? '🤩' : (r.sat >= 0.8 ? '😊' : (r.sat >= 0.55 ? '🙂' : '😕'));
+
+    var html = '<div class="face">' + faceIc + '</div>' +
+      '<h2>' + L.client.name + (r.sat >= 1.0 ? ' loves it!' : (r.sat >= 0.8 ? ' is really happy!' :
+        (r.passed ? ' is happy enough.' : ' is not sure…'))) + '</h2>' +
+      '<div class="stars">' + '★★★'.slice(0, r.stars) + '<span style="opacity:.25">' + '★★★'.slice(0, 3 - r.stars) + '</span></div>' +
+      '<div class="quote">“' + quote + '”</div>' +
+      '<div class="muted">Satisfaction: <b>' + Math.round(r.sat * 100) + '%</b>' +
+      (r.missing ? ' · ' + r.missing + ' request(s) skipped' : '') +
+      (r.wrongColor ? ' · ' + r.wrongColor + ' wrong shade' : '') + '</div>';
+
+    if (r.bonuses.length) {
+      html += '<div class="muted" style="margin-top:6px">' + r.bonuses.join(' · ') + '</div>';
+    }
+
+    html += '<div class="ledger">' +
+      '<div class="row"><span>Service fee</span><span class="pos">' + money(r.earn) + '</span></div>' +
+      (r.tip ? '<div class="row"><span>Tip</span><span class="pos">' + money(r.tip) + '</span></div>' : '') +
+      (r.dream ? '<div class="row"><span>' + L.dream.name + ' bonus</span><span class="pos">' + money(r.dream) + '</span></div>' : '') +
+      '<div class="row"><span>Rent &amp; supplies</span><span class="neg">-' + money(r.costs) + '</span></div>' +
+      '<div class="row total"><span>Profit</span><span class="' + (r.profit >= 0 ? 'pos' : 'neg') + '">' + money(r.profit) + '</span></div>' +
+      '<div class="row"><span>Needed to pass</span><span>' + money(L.goal) + '</span></div>' +
+      '</div>';
+
+    if (r.passed) {
+      html += '<p class="muted">In the till: <b>' + money(G.cash) + '</b>' +
+        (G.streak > 1 ? ' · 🔥 ' + G.streak + ' happy clients in a row' : '') + '</p>' +
+        '<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;justify-content:center">' +
+        '<button class="btn big pink" id="nextBtn">Next client ▶</button>' +
+        '<button class="btn ghost" id="shopBtn2">🛍️ Shop</button>' +
+        '<button class="btn ghost" id="salonBtn2">🏠 Salon</button></div>';
+    } else {
+      html += '<p class="muted">You needed <b>' + money(L.goal) + '</b> profit. Try again — check the shade names ' +
+        'and stop the meter in the green.</p>' +
+        '<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;justify-content:center">' +
+        '<button class="btn big" id="retryBtn">↻ Try this client again</button>' +
+        '<button class="btn ghost" id="guideBtn2">📖 Guide</button>' +
+        '<button class="btn ghost" id="salonBtn2">🏠 Salon</button></div>';
+    }
+
+    $('resultModal').innerHTML = html;
+    $('resultOverlay').classList.add('on');
+
+    if (r.passed) {
+      $('nextBtn').onclick = function () {
+        closeModal();
+        if (G.level >= MAX_LEVEL) { toast('All 10,000 levels complete. You are a legend! 👑'); showSalon(); show('salonScreen'); return; }
+        startLevel(G.level + 1);
+      };
+      $('shopBtn2').onclick = function () { closeModal(); G.level = Math.min(MAX_LEVEL, G.level + 1); openShop(); };
+    } else {
+      $('retryBtn').onclick = function () { closeModal(); startLevel(G.level); };
+      $('guideBtn2').onclick = function () { closeModal(); openGuide(); };
+    }
+    $('salonBtn2').onclick = function () { closeModal(); if (r.passed) G.level = Math.min(MAX_LEVEL, G.level + 1); showSalon(); show('salonScreen'); };
+    refreshHeader();
+  }
+
+  function closeModal() { $('resultOverlay').classList.remove('on'); }
+  $('finishBtn').onclick = finishLevel;
+
+  /* ================================================================
+     7. The shop
+     ================================================================ */
+  var SHOP_CATS = [
+    { id: 'all', label: 'Everything' },
+    { id: 'face', label: '🌸 Face' },
+    { id: 'eyes', label: '👁️ Eyes' },
+    { id: 'lips', label: '💄 Lips' },
+    { id: 'nails', label: '💅 Nails' },
+    { id: 'tools', label: '🧰 Tools' },
+    { id: 'salon', label: '🏠 Salon' },
+    { id: 'luxury', label: '👑 Absurd' }
+  ];
+  var shopCat = 'all';
+
+  function colorsFromItem(itemId) {
+    var out = [];
+    for (var set in COLORS) {
+      COLORS[set].forEach(function (c) { if (c.item === itemId) out.push(c.h); });
+    }
+    return out;
+  }
+  function productsFromItem(itemId) {
+    var out = [];
+    for (var id in PRODUCTS) if (PRODUCTS[id].item === itemId) out.push(PRODUCTS[id].label);
+    return out;
+  }
+
+  function openShop() {
+    renderShop();
+    show('shopScreen');
+  }
+
+  function renderShop() {
+    var tabs = $('shopTabs');
+    tabs.innerHTML = '';
+    SHOP_CATS.forEach(function (c) {
+      var b = document.createElement('button');
+      b.className = 'chip' + (shopCat === c.id ? ' on' : '');
+      b.textContent = c.label;
+      b.onclick = function () { shopCat = c.id; renderShop(); };
+      tabs.appendChild(b);
+    });
+
+    var grid = $('shopGrid');
+    grid.innerHTML = '';
+    var list = SHOP.filter(function (it) { return shopCat === 'all' || it.cat === shopCat; });
+    list.sort(function (a, b) { return a.price - b.price; });
+    list.forEach(function (it) {
+      var owned = !!G.owned[it.id];
+      var card = document.createElement('div');
+      card.className = 'item' + (owned ? ' owned' : '');
+      var unlocks = productsFromItem(it.id);
+      var swatches = colorsFromItem(it.id).map(function (h) { return '<i style="background:' + h + '"></i>'; }).join('');
+      card.innerHTML =
+        '<div class="ic">' + it.ic + '</div>' +
+        '<div class="nm">' + it.name + (it.cat === 'luxury' ? ' <span class="tag lux">absurd</span>' : '') + '</div>' +
+        '<div class="ds">' + it.desc + (unlocks.length ? '<br><b>Unlocks:</b> ' + unlocks.join(', ') : '') + '</div>' +
+        (swatches ? '<div class="swrow">' + swatches + '</div>' : '') +
+        '<div class="pr">' + money(it.price) + '</div>';
+      var b = document.createElement('button');
+      if (owned) {
+        b.className = 'btn small mint';
+        b.textContent = '✓ Owned';
+        b.disabled = true;
+      } else {
+        b.className = 'btn small' + (G.cash >= it.price ? ' pink' : ' ghost');
+        b.textContent = G.cash >= it.price ? 'Buy' : 'Too expensive';
+        b.disabled = G.cash < it.price;
+        b.onclick = function () { buyItem(it); };
+      }
+      card.appendChild(b);
+      grid.appendChild(card);
+    });
+  }
+
+  function buyItem(it) {
+    if (G.cash < it.price) { toast('Not enough money yet.'); return; }
+    G.cash -= it.price;
+    G.owned[it.id] = true;
+    toast('Bought ' + it.name + '! ' + it.ic);
+    refreshHeader();
+    renderShop();
+  }
+
+  /* ================================================================
+     8. The Glam Guide — 100 exercises
+     format: [area, title, [steps], fun twist]
+     ================================================================ */
+  var LESSONS = [
+    ['Face', 'Wash, Then Wait', ['Wash your face with a gentle cleanser and pat (do not rub) it dry.', 'Wait a full 60 seconds before anything else — count it out.', 'Notice how much smoother product goes on afterwards.'], 'Race a friend: who can do the calmest, slowest wash?'],
+    ['Face', 'The Moisturiser Minute', ['Warm a pea-sized blob between your fingertips.', 'Press it on in upward circles for 60 seconds.', 'Wait one more minute before makeup so it sinks in.'], 'Dry skin? Add one extra drop. Oily skin? Use a gel one.'],
+    ['Face', 'Sunscreen First, Always', ['Put SPF on after moisturiser, before any makeup.', 'Use two finger-lengths for the face and neck.', 'Set a phone reminder to reapply in 2 hours outdoors.'], 'Sunscreen is the number one anti-wrinkle product on earth. It is also the cheapest.'],
+    ['Face', 'Find Your Shade on the Jaw', ['Swipe three foundation stripes along your jawline.', 'Check them in daylight, not bathroom light.', 'The one that disappears is your match.'], 'Take a photo with flash — the wrong shade glows grey.'],
+    ['Face', 'Three Dots and Blend', ['Dot foundation on forehead, each cheek, chin and nose.', 'Blend outward from the centre of your face.', 'Stop at the jaw and blend down, never across.'], 'Time yourself. Can you get an even face in 90 seconds?'],
+    ['Face', 'The Damp Sponge Bounce', ['Wet a makeup sponge, then squeeze it almost dry.', 'Bounce — do not drag — over foundation.', 'Roll the pointy end under your eyes.'], 'A dry sponge drinks your foundation. A damp one gives it back.'],
+    ['Face', 'Concealer Triangle', ['Draw a small upside-down triangle under each eye.', 'Tap it in with your ring finger (the weakest one).', 'Add one dot on any spot, then tap only that dot.'], 'Ring finger = gentle finger. Try it and feel the difference.'],
+    ['Face', 'Set Only Where You Shine', ['Find your shiny zones in a mirror: usually nose, forehead, chin.', 'Press translucent powder onto just those spots.', 'Leave the rest of your face dewy.'], 'Powdering everything is why makeup can look flat in photos.'],
+    ['Face', 'The Apple Test', ['Smile big in the mirror and find the round apples of your cheeks.', 'Put blush on the apple and blend up toward your ear.', 'Relax your face and check that it still looks natural.'], 'Blush that stops mid-cheek looks like a stripe. Always blend up.'],
+    ['Face', 'The Two-Finger Blush Rule', ['Hold two fingers beside your nose.', 'Start blush outside those fingers, never inside.', 'Compare with a photo of blush placed too close to the nose.'], 'This one rule fixes 90% of clown-cheek accidents.'],
+    ['Face', 'Cream vs Powder Race', ['Do one cheek with cream blush, one with powder.', 'Check both after two hours.', 'Write down which lasted better on your skin.'], 'Cream on dry skin, powder on oily skin — usually.'],
+    ['Face', 'Bronzer Number 3', ['Trace a soft number 3 from temple to cheek to jaw.', 'Do it on both sides with a fluffy brush.', 'Blend until you cannot see where it starts.'], 'Backwards 3 on the other side. Try it with your finger in the air first.'],
+    ['Face', 'Highlighter Map', ['Find the high points: top of cheekbones, brow bone, nose bridge, cupid\'s bow.', 'Tap the tiniest amount on each.', 'Turn your head side to side in the light to check.'], 'Highlighter on a bumpy area shows the bump. Skip those spots.'],
+    ['Face', 'The Neck Check', ['Finish your face makeup, then look in a mirror from the side.', 'If there is a line at your jaw, blend it down with a clean sponge.', 'Match your neck, not just your face.'], 'Photograph yourself from the side. The line always shows in photos.'],
+    ['Face', 'Colour Correcting Wheel', ['Draw a colour wheel on paper.', 'Note that green cancels red, peach cancels blue-grey, lavender cancels yellow.', 'Try one tiny dab of peach under the eyes.'], 'Colour theory is not just for art class.'],
+    ['Face', 'Patch Test Before the Party', ['Dab any new product inside your elbow.', 'Wait 24 hours. Look for itching or redness.', 'Only then put it on your face.'], 'Do this the week before a big event, not the morning of.'],
+    ['Face', 'Cool Spoon Trick', ['Chill two metal spoons in the fridge for 10 minutes.', 'Press the backs gently under your eyes for 30 seconds.', 'Then do concealer and see the difference.'], 'Free, works instantly, and feels amazing on a hot day.'],
+    ['Face', 'Lighting Test', ['Do your makeup by a window.', 'Then look at it under a lamp, then a phone flashlight.', 'Note which lighting made you over-apply.'], 'Bathroom light lies. Daylight tells the truth.'],
+    ['Face', 'Blot, Do Not Add', ['When your face gets shiny, press a tissue on it.', 'Do not add more powder yet.', 'Only powder if it is still shiny after blotting.'], 'Layers of powder are how makeup gets cakey.'],
+    ['Face', 'The Two-Minute Face', ['Pick only three products.', 'Set a two-minute timer and do a full look.', 'Repeat daily for a week and watch your speed climb.'], 'This is the exact skill a real stylist gets paid for.'],
+
+    ['Eyes', 'Brush Vocabulary', ['Lay out your brushes and name each one out loud.', 'Sort into face, eye, and lip piles.', 'Learn six real names: fluffy blending, flat shader, pencil, angled liner, dense buffing, fan.'], 'Knowing the names makes tutorials ten times easier to follow.'],
+    ['Eyes', 'Brow Map: Three Points', ['Hold a pencil straight up beside your nose — that is where the brow starts.', 'Angle it to the outer corner of your eye — that is where it ends.', 'Angle through the centre of your pupil — that is your arch.'], 'Do it on a friend and on yourself. Faces are not symmetrical, and that is fine.'],
+    ['Eyes', 'Brow Hair Strokes', ['Use tiny upward flicks, not one solid line.', 'Follow the direction the hairs already grow.', 'Brush through with a spoolie to soften.'], 'Draw ten strokes on the back of your hand first to warm up.'],
+    ['Eyes', 'Windshield Wiper Blend', ['Load a fluffy brush with a mid-tone shade.', 'Sweep back and forth in your crease like a wiper.', 'Keep the brush moving — never press and stop.'], 'Count 20 wipes. Harsh lines cannot survive 20 wipes.'],
+    ['Eyes', 'Three-Zone Eyeshadow', ['Divide the eye into lid, crease, and brow bone.', 'Light on the lid, medium in the crease, lightest under the brow.', 'Blend where the zones meet.'], 'Any three shades in the same family will work. Try it with brown.'],
+    ['Eyes', 'Transition Shade First', ['Start with a shade close to your skin tone in the crease.', 'Build darker colours on top of it.', 'Notice how much easier they blend.'], 'This is the single biggest eyeshadow shortcut there is.'],
+    ['Eyes', 'Sharp Edge Without Tape', ['Do your eyeshadow first.', 'Take a small flat brush with concealer and carve a clean line under the outer corner.', 'Tap the edge to soften it slightly.'], 'Tape can pull delicate eye skin. Concealer never does.'],
+    ['Eyes', 'Colour for Your Eye Colour', ['Find your eye colour on a colour wheel.', 'Look at the shade directly opposite it.', 'Try that shade as a liner and see your eyes pop.'], 'Purple for green eyes, copper for blue, blue for brown.'],
+    ['Eyes', 'Dot and Connect Liner', ['Make three small dots along your upper lash line.', 'Connect the dots in short strokes.', 'Thicken from the outer corner inward.'], 'Nobody draws a perfect line in one go. Nobody.'],
+    ['Eyes', 'The Wing Angle', ['Imagine a line from your lower lash line to the tail of your brow.', 'Draw the wing along that invisible line.', 'Make a tiny triangle and fill it in.'], 'Use the edge of a business card as a guide until your hand learns it.'],
+    ['Eyes', 'Tightlining Basics', ['Look down into a mirror.', 'Press a pencil liner gently into the base of the upper lashes only.', 'Never line inside the lower waterline for a big-eye look.'], 'Tightlining makes lashes look thicker with no visible liner at all.'],
+    ['Eyes', 'Smudge It Soft', ['Draw a liner line, then count to five.', 'Smudge it with a cotton bud before it sets.', 'Compare to a line you smudged 60 seconds later.'], 'Liner has a smudge window. Learn yours.'],
+    ['Eyes', 'Wiggle, Root to Tip', ['Put the mascara wand at the base of the lashes.', 'Wiggle side to side, then pull up.', 'Do the outer lashes first while the wand is wettest.'], 'The wiggle is what deposits mascara at the root, where thickness lives.'],
+    ['Eyes', 'Curl Before, Never After', ['Curl clean lashes before mascara.', 'Squeeze three times: base, middle, tip.', 'Never curl after mascara — lashes snap.'], 'Warm the curler in your hand for five seconds first.'],
+    ['Eyes', 'One Coat vs Three', ['Do one eye with a single coat, the other with three.', 'Photograph both.', 'Decide which one you actually prefer.'], 'Most people are shocked that two coats wins.'],
+    ['Eyes', 'Lower Lash Restraint', ['Do a full eye look with no lower lash mascara.', 'Look at it in the mirror.', 'Add the tiniest amount only if you truly miss it.'], 'Skipping the lower lash line is a classic trick for bright, awake eyes.'],
+    ['Eyes', 'Inner Corner Shimmer', ['Dab a light shimmer in the inner corner of each eye.', 'Blend it in a small V shape.', 'Take a photo with flash to see the effect.'], 'This is the fastest "I slept 10 hours" illusion in makeup.'],
+    ['Eyes', 'Smoky Eye in Five Steps', ['Liner first, all around, then smudge it.', 'Dark shade over the liner.', 'Mid shade in the crease. Light on the brow bone. Blend everything.'], 'A smoky eye is just a blurry liner. That is the whole secret.'],
+    ['Eyes', 'Eye Shape Study', ['Look closely: is your crease visible, hooded, or hidden?', 'Look up "makeup for [your shape]" and try one tip.', 'Repeat for a friend with a different eye shape.'], 'The same tutorial can look completely different on two people. That is normal.'],
+    ['Eyes', 'The Blink Test', ['Finish your eye makeup and blink hard ten times.', 'Check for transfer on the lid or under the eye.', 'If it transfers, set with a light powder next time.'], 'Do this before leaving the house, not after.'],
+    ['Eyes', 'Remove Mascara Kindly', ['Press a cotton pad soaked in remover on closed eyes for 20 seconds.', 'Let it dissolve, then wipe downward once.', 'Never scrub back and forth.'], 'Rubbing eyes to remove mascara costs you lashes. Patience is free.'],
+    ['Eyes', 'Lash Hygiene Rules', ['Write down the date you opened your mascara.', 'Replace it after three months.', 'Never, ever share mascara with anyone.'], 'Eye infections are real and extremely un-glamorous.'],
+
+    ['Lips', 'Lip Scrub Sunday', ['Mix a pinch of sugar with a little honey or balm.', 'Rub gently in circles for 20 seconds.', 'Wipe off and apply balm.'], 'Once a week is plenty. Every day makes lips sore.'],
+    ['Lips', 'Balm Then Blot', ['Put balm on and wait two minutes.', 'Blot the extra off with a tissue.', 'Then apply lipstick.'], 'Skipping the blot is why lipstick slides off.'],
+    ['Lips', 'Overline Honestly', ['Line just barely outside your natural lip line — one millimetre.', 'Blend the liner inward.', 'Check in the mirror from arm\'s length.'], 'Overline too far and it reads as a costume. One millimetre is the magic number.'],
+    ['Lips', 'Cupid\'s Bow X', ['Draw a small X on the two peaks of your upper lip.', 'Connect the X out to each corner.', 'Fill in the rest.'], 'The X keeps both sides of your bow the same height.'],
+    ['Lips', 'Blot and Repeat', ['Apply lipstick, blot with tissue, apply a second layer.', 'Blot again.', 'Compare its staying power to a single thick coat.'], 'Two thin layers beat one thick layer at everything.'],
+    ['Lips', 'Lipstick Brush Precision', ['Load a small brush from the bullet, not your lips.', 'Paint the outline first, then fill.', 'Wipe the brush clean when you finish.'], 'A brush makes a five-dollar lipstick look like a fifty-dollar one.'],
+    ['Lips', 'Gradient Lip', ['Dab colour only in the centre of your lips.', 'Blend outward with a fingertip.', 'Add balm to the edges.'], 'Soft, quick, and very hard to mess up.'],
+    ['Lips', 'Match Lip to Occasion', ['Pick three lipsticks: school, party, photo day.', 'Justify each choice out loud.', 'Ask someone if they agree.'], 'Reading the room is a real stylist skill.'],
+    ['Lips', 'Gloss Without the Goo', ['Apply gloss only to the centre of the lower lip.', 'Press your lips together once.', 'Stop there.'], 'Less gloss, more shine. Hair sticking to your mouth is nobody\'s goal.'],
+    ['Lips', 'Fix a Smudge', ['Wrap a cotton bud in a tiny bit of concealer.', 'Trace just outside the smudge.', 'Blend the concealer outward, not inward.'], 'This is the professional eraser. It works on liner too.'],
+    ['Lips', 'Red Lip Undertone Test', ['Try a blue-red and an orange-red on each hand.', 'Look in daylight.', 'The one that makes your skin look brighter is yours.'], 'There is a red for everyone. Truly.'],
+    ['Lips', 'The Cup Test', ['Apply lipstick, then drink from a glass of water.', 'Check the rim.', 'Try again after blotting and see the improvement.'], 'Long-wear formulas exist, but blotting is free.'],
+    ['Lips', 'Liner Blend Out', ['Line your lips, then blend the inner edge with a brush.', 'Fill with lipstick.', 'No visible ring should remain.'], 'A hard liner ring is the most-spotted beginner tell.'],
+
+    ['Nails', 'Nail Anatomy Quiz', ['Learn five parts: nail plate, free edge, cuticle, lunula, nail bed.', 'Point to each one on your own hand.', 'Quiz a friend.'], 'The lunula is the little white half-moon. Not everyone has visible ones.'],
+    ['Nails', 'File in One Direction', ['File from the outer edge toward the centre.', 'Never saw back and forth.', 'Do all ten and feel the smoother edge.'], 'Sawing causes the peeling and splitting people blame on polish.'],
+    ['Nails', 'Five Shapes Practice', ['Draw round, square, squoval, almond and coffin on paper.', 'File one nail into each shape.', 'Decide which suits your fingers.'], 'Short fingers? Almond lengthens. Wide nail beds? Square balances.'],
+    ['Nails', 'Soak, Do Not Cut', ['Soak fingertips in warm water for three minutes.', 'Push cuticles back gently with a wooden stick.', 'Never cut living cuticle.'], 'The cuticle is a seal against infection. Respect it.'],
+    ['Nails', 'Gentle Push-Back', ['Add a drop of cuticle oil first.', 'Push at a low angle, tiny movements.', 'Stop the moment it feels sore.'], 'Pain always means stop. Always.'],
+    ['Nails', 'The Three-Stripe Rule', ['One stroke down the middle of the nail.', 'One stroke each side.', 'Three strokes total, then stop.'], 'Going back over a drying stroke is what makes streaks.'],
+    ['Nails', 'Thin Coats Win', ['Do one nail with a thick coat, one with two thin coats.', 'Time how long each takes to dry.', 'Poke both after five minutes.'], 'Thin coats dry faster AND last longer. There is no trade-off.'],
+    ['Nails', 'Cap the Free Edge', ['After each coat, swipe the brush along the very tip of the nail.', 'Do this for base, colour and top coat.', 'Compare chipping after three days.'], 'Capping the edge can double how long a manicure lasts.'],
+    ['Nails', 'Base Coat Is Not Optional', ['Paint one hand with base coat, one without.', 'Use a dark colour.', 'Remove after three days and check for staining.'], 'Yellow-stained nails are entirely preventable.'],
+    ['Nails', 'Clean-Up Brush Trick', ['Dip a small flat brush in remover.', 'Trace around the cuticle line to erase mistakes.', 'Wipe the brush between nails.'], 'Nobody paints inside the lines. Professionals just clean up better.'],
+    ['Nails', 'Dry Time Truth', ['Wait two minutes, then dip fingers in ice-cold water for one minute.', 'Compare to a hand you left in air.', 'Note which set faster.'], 'Polish sets, it does not evaporate dry. Cold speeds up setting.'],
+    ['Nails', 'Dotting Tool Practice', ['Use a bobby pin head or pen tip as a dotting tool.', 'Fill a paper sheet with even rows of dots.', 'Then try it on a nail.'], 'Twenty dots on paper first saves twenty smudged nails.'],
+    ['Nails', 'French Tip Guides', ['Cut thin strips of tape or use hole-reinforcement stickers.', 'Place the guide, paint the tip, remove while wet.', 'Practise on one hand first.'], 'The smile line should follow the curve of your own free edge.'],
+    ['Nails', 'Glitter Fade', ['Paint glitter heavily at the tip.', 'Tap it lighter as you move toward the cuticle.', 'Seal with two top coats.'], 'Glitter needs two top coats. That is not optional.'],
+    ['Nails', 'Stripes with Tape', ['Let the base colour dry completely — really completely.', 'Lay thin tape, paint over it, peel while wet.', 'Top coat when dry.'], 'Peel the tape at a low angle, away from the nail.'],
+    ['Nails', 'Ombré with a Sponge', ['Paint two colours side by side on a makeup sponge.', 'Dab the sponge onto the nail.', 'Repeat three times, then top coat.'], 'Messy edges are expected. That is what the clean-up brush is for.'],
+    ['Nails', 'Gem Placement', ['Apply a dot of top coat where the gem goes.', 'Pick up the gem with a damp orange stick.', 'Press it down for five seconds.'], 'Then seal AROUND the gem, not over it — over it makes it cloudy.'],
+    ['Nails', 'Top Coat Every Third Day', ['Add a fresh top coat every three days.', 'Cap the edge each time.', 'Count how many days your manicure lasts.'], 'This is the cheapest way to double manicure life.'],
+    ['Nails', 'Foil Wrap Removal', ['Soak a small cotton pad in remover, place on the nail.', 'Wrap in foil for five minutes.', 'Slide off — the glitter comes with it.'], 'Never scrape glitter off. You are scraping off nail, too.'],
+    ['Nails', 'Nail Health Check', ['Look for ridges, white spots, or peeling.', 'Note anything that changed recently.', 'Persistent changes are a doctor question, not a polish question.'], 'Nails tell you about health. Learning to read them is a superpower.'],
+    ['Nails', 'Hand Massage Sequence', ['Thumb circles on the palm, 30 seconds.', 'Gently pull and rotate each finger.', 'Finish with long strokes up the wrist.'], 'The massage is what clients remember most. Practise it.'],
+    ['Nails', 'Speed Manicure Drill', ['Set a 10-minute timer: file, cuticles, base, colour, top.', 'Do one hand only.', 'Repeat weekly and log your time.'], 'Speed comes from order, not from rushing.'],
+    ['Nails', 'Swatch Wheel', ['Paint every polish you own on a paper swatch wheel.', 'Label each one.', 'Group them by colour family.'], 'You will find two nearly identical bottles. Everyone does.'],
+
+    ['Pedi', 'Foot Soak Setup', ['Warm water, a spoon of salt, ten minutes.', 'Add a drop of gentle soap.', 'Dry completely, especially between the toes.'], 'Between the toes matters more than anywhere else. Damp = fungus.'],
+    ['Pedi', 'Exfoliate the Heel', ['Use a scrub or a foot file on damp — not soaking — skin.', 'Work in small circles, 30 seconds per heel.', 'Rinse and moisturise.'], 'Never use a blade on your own feet. Ever.'],
+    ['Pedi', 'Toenails Straight Across', ['Cut toenails straight across, not curved.', 'Leave a little white edge.', 'Smooth the corners with a file only.'], 'Curved corners are how ingrown toenails start.'],
+    ['Pedi', 'DIY Toe Separators', ['Weave a folded paper towel between the toes.', 'Check that no toe is squashed.', 'Paint with the toes held apart.'], 'Works exactly as well as the foam ones.'],
+    ['Pedi', 'Order of Operations', ['Soak, trim, file, cuticles, scrub, dry, base, colour, top, moisturise (not the nails).', 'Write the list down.', 'Follow it exactly once without skipping.'], 'Lotion before polish is the classic mistake. Polish will not stick.'],
+    ['Pedi', 'Callus Care', ['File calluses when the skin is dry, not soaked soft.', 'A few strokes only, then stop.', 'Moisturise and wear socks overnight.'], 'Calluses protect your feet. Smooth them, do not remove them.'],
+    ['Pedi', 'Moisturise and Sock', ['Thick cream on heels before bed.', 'Cotton socks on top.', 'Check the difference after three nights.'], 'This beats every expensive heel treatment sold.'],
+    ['Pedi', 'The Tiny Toe Challenge', ['Paint the pinky toenail neatly three times in a row.', 'Use a small brush or a dotting tool.', 'Clean up with a remover-dipped brush.'], 'If you can paint a pinky toe, you can paint anything.'],
+    ['Pedi', 'Sandal-Season Speed Pedi', ['Fifteen-minute timer: trim, file, quick scrub, one colour coat, top coat.', 'No soak.', 'Log what you had to skip.'], 'A fast, clean pedicure beats a slow, smudged one.'],
+    ['Pedi', 'Know When to Stop', ['Learn the signs: thick yellow nails, itching, cracked skin, redness.', 'Do not polish over a problem nail.', 'Say kindly: "a doctor should look at that first."'], 'Real professionals refuse services. That is what makes them professional.'],
+
+    ['Business', 'Wash Your Hands, Then Theirs', ['Wash your own hands for 20 seconds before every client.', 'Offer your client a hand wash or sanitiser.', 'Do it in front of them so they see it.'], 'Visible hygiene is free marketing.'],
+    ['Business', 'Sanitise Every Tool', ['Wash metal tools with soap, then disinfect.', 'Throw away single-use files and buffers.', 'Store clean tools separately from dirty ones.'], 'One clean container, one dirty container. Never a shared pile.'],
+    ['Business', 'Ask Three Questions', ['"What is the occasion?" "How much time do we have?" "Anything you dislike?"', 'Write the answers down.', 'Repeat them back before you start.'], 'Repeating it back prevents almost every complaint.'],
+    ['Business', 'The Mood Board', ['Collect six looks you love in one folder.', 'Write one sentence about why each works.', 'Show it to a client to help them choose.'], 'Pictures beat words. Every client describes "natural" differently.'],
+    ['Business', 'Patch Test Policy', ['Ask about allergies before touching anyone.', 'Patch test new products 24 hours ahead.', 'Keep a note of who reacted to what.'], 'Write it down. You will not remember in six weeks.'],
+    ['Business', 'Price Your Time', ['Time a full manicure honestly.', 'Decide what an hour of your work is worth.', 'Price = time × rate + products.'], 'Most beginners forget to charge for their time at all.'],
+    ['Business', 'Cost of a Service', ['Add up polish, remover, cotton, file, and top coat per client.', 'Divide bottle prices by how many uses you get.', 'Compare to your price.'], 'A bottle that does 20 manicures costs pennies per client. Now you know your margin.'],
+    ['Business', 'Before and After Photos', ['Always ask permission first.', 'Same angle, same lighting, both photos.', 'Never post a face without asking.'], 'Consent first, camera second. No exceptions.'],
+    ['Business', 'The Polite No', ['Practise saying: "I would love to, but that nail needs to heal first."', 'Offer an alternative service.', 'Never argue about it.'], 'A kind no protects the client and your reputation.'],
+    ['Business', 'Tidy Station, Fast Hands', ['Lay out everything you need before the client sits down.', 'Put each item back in the same place.', 'Time yourself with and without the setup.'], 'Setup takes two minutes and saves ten.'],
+    ['Business', 'Handle a Complaint', ['Listen fully without interrupting.', 'Say "let me fix that" and mean it.', 'Fix it, then ask if it is right now.'], 'An unhappy client you fixed tells more people than a happy one.'],
+    ['Business', 'Your Signature Look', ['Pick one thing you do better than anything else.', 'Do it fifty times.', 'Name it and put it in your portfolio.'], 'Every famous artist is known for one thing first.']
+  ];
+
+  var guideFilter = 'All';
+  var guideQuery = '';
+  var GUIDE_AREAS = ['All', 'Face', 'Eyes', 'Lips', 'Nails', 'Pedi', 'Business'];
+
+  function openGuide() { renderGuide(); show('guideScreen'); }
+
+  function renderGuide() {
+    var fh = $('guideFilters');
+    fh.innerHTML = '';
+    GUIDE_AREAS.forEach(function (a) {
+      var b = document.createElement('button');
+      b.className = 'chip' + (guideFilter === a ? ' on' : '');
+      b.textContent = a;
+      b.onclick = function () { guideFilter = a; renderGuide(); };
+      fh.appendChild(b);
+    });
+
+    var done = lessonCount();
+    $('guideProg').style.width = done + '%';
+
+    var host = $('guideList');
+    host.innerHTML = '';
+    var shown = 0;
+    LESSONS.forEach(function (L, i) {
+      var num = i + 1;
+      if (guideFilter !== 'All' && L[0] !== guideFilter) return;
+      var hay = (L[1] + ' ' + L[0] + ' ' + L[2].join(' ') + ' ' + L[3]).toLowerCase();
+      if (guideQuery && hay.indexOf(guideQuery) < 0) return;
+      shown++;
+      var el = document.createElement('div');
+      el.className = 'lesson' + (G.lessonsDone[num] ? ' done' : '');
+      el.innerHTML =
+        '<div class="head"><div class="num">' + num + '</div>' +
+        '<div class="ti">' + L[1] + '</div>' +
+        '<div class="area">' + L[0] + '</div></div>' +
+        '<div class="body"><ol>' + L[2].map(function (s) { return '<li>' + s + '</li>'; }).join('') + '</ol>' +
+        '<div class="twist">✨ ' + L[3] + '</div></div>';
+      el.querySelector('.head').onclick = function () { el.classList.toggle('open'); };
+      var b = document.createElement('button');
+      b.className = 'btn small ' + (G.lessonsDone[num] ? 'mint' : 'ghost');
+      b.textContent = G.lessonsDone[num] ? '✓ Done — +0.25% steadiness' : 'I did this one';
+      b.onclick = function (e) {
+        e.stopPropagation();
+        if (G.lessonsDone[num]) delete G.lessonsDone[num];
+        else { G.lessonsDone[num] = true; toast('Exercise ' + num + ' logged. Steadiness ' + skillPct() + '%'); }
+        renderGuide();
+        refreshHeader();
+      };
+      el.querySelector('.body').appendChild(b);
+      host.appendChild(el);
+    });
+    if (!shown) host.innerHTML = '<p class="muted">No lessons match that search.</p>';
+  }
+
+  $('guideSearch').oninput = function () {
+    guideQuery = this.value.trim().toLowerCase();
+    renderGuide();
+  };
+
+  /* ================================================================
+     9. Screens & boot
+     ================================================================ */
+  function show(id) {
+    ['titleScreen', 'avatarScreen', 'salonScreen', 'playScreen', 'shopScreen', 'guideScreen'].forEach(function (s) {
+      $(s).classList.toggle('active', s === id);
+    });
+    window.scrollTo(0, 0);
+  }
+
+  $('startBtn').onclick = function () { buildAvatarUI(); show('avatarScreen'); };
+  $('avatarDone').onclick = function () {
+    G.name = ($('nameInput').value || '').trim().slice(0, 14) || 'Stylist';
+    refreshAvatarChip();
+    showSalon();
+    show('salonScreen');
+    toast('Welcome to Glam Studio, ' + G.name + '! 💅');
+  };
+  $('avatarChip').onclick = function () { buildAvatarUI(); show('avatarScreen'); };
+
+  $('navSalon').onclick = function () {
+    if ($('playScreen').classList.contains('active') && !P.finished && P.L) {
+      toast('Finish or leave this client first — tap ✅ Finish.');
+    }
+    showSalon();
+    show('salonScreen');
+  };
+  $('navShop').onclick = openShop;
+  $('navGuide').onclick = openGuide;
+
+  $('startLevelBtn').onclick = function () { startLevel(G.level); };
+  $('jumpBtn').onclick = function () {
+    var v = parseInt($('jumpInput').value, 10);
+    if (isNaN(v)) { toast('Type a level number from 1 to 10,000.'); return; }
+    G.level = clamp(v, 1, MAX_LEVEL);
+    showSalon();
+    toast('Jumped to level ' + G.level.toLocaleString() + '.');
+  };
+  $('resultOverlay').onclick = function (e) { if (e.target === this) closeModal(); };
+
+  // Round-rect fallback for older browsers (used by the name bubble).
+  if (!CanvasRenderingContext2D.prototype.roundRect) {
+    CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h, r) {
+      this.moveTo(x + r, y);
+      this.arcTo(x + w, y, x + w, y + h, r);
+      this.arcTo(x + w, y + h, x, y + h, r);
+      this.arcTo(x, y + h, x, y, r);
+      this.arcTo(x, y, x + w, y, r);
+      this.closePath();
+      return this;
+    };
+  }
+
+  refreshHeader();
+  drawScene();
+
+})();
+</script>
+</body>
+</html>
