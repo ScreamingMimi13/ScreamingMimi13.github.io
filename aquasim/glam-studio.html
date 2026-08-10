@@ -275,6 +275,14 @@
   .ledger .pos { color: #2e9e5b; }
   .stars { font-size: 1.5rem; letter-spacing: 3px; color: var(--gold); }
 
+  .chatlog { text-align: left; display: flex; flex-direction: column; gap: 7px; margin: 12px 0; }
+  .bubble { padding: 8px 12px; border-radius: 16px; font-size: .87rem; line-height: 1.45; max-width: 88%; }
+  .bubble .who { display: block; font-size: .66rem; opacity: .65; font-weight: bold; margin-bottom: 2px; }
+  .bubble.her { background: var(--soft); border: 2px solid var(--line); align-self: flex-start; border-bottom-left-radius: 5px; }
+  .bubble.you { background: var(--purple); color: #fff; align-self: flex-end; border-bottom-right-radius: 5px; }
+  .chatopts { display: flex; flex-direction: column; gap: 7px; }
+  .chatopts .btn { text-align: left; font-size: .86rem; padding: 9px 14px; line-height: 1.35; }
+
   .toast {
     position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%);
     background: rgba(60,43,69,.94); color: #fff; padding: 10px 18px; border-radius: 999px;
@@ -2304,9 +2312,12 @@
     P.showZone = 0;
     P.filed = [false, false, false, false, false];
     P.stripped = [false, false, false, false, false];
-    P.chatsLeft = 3;
+    P.chatsLeft = 2;          // each one is a three-exchange thread now
     P.rapport = 0;
     P.chatSeen = {};
+    P.chatLog = [];
+    P.thread = null;
+    P.beat = 0;
     L.tasks.forEach(function (t) { t.done = false; t.quality = 0; });
   }
 
@@ -2323,7 +2334,8 @@
     var ctx = cv.getContext('2d', { willReadFrequently: true });
     var layer = {
       product: product, group: group, color: color, cv: cv, ctx: ctx,
-      cover: 0, spill: 0, marks: [false, false, false, false, false], seq: P.layers.length
+      cover: 0, spill: 0, dIn: 0, dOut: 0,
+      marks: [false, false, false, false, false], seq: P.layers.length
     };
     P.layers.push(layer);
     P.layers.sort(function (a, b) { return PRODUCTS[a.product].layer - PRODUCTS[b.product].layer; });
@@ -2363,6 +2375,21 @@
     ctx.fill();
   }
 
+  // Where did that dab land? red = on target, green = close enough to blend,
+  // neither = outside the lines. Judged as the brush moves, because the paint
+  // itself gets tidied away before anyone could measure it.
+  function aimAt(layer, x, y) {
+    var spec = BRUSH[layer.product] || { r: 12 };
+    var tol = clamp((spec.r || 12) * 0.95, 9, 30);
+    var mk = measureMask(layer.group, tol);
+    var lx = Math.round(x) - mk.box[0], ly = Math.round(y) - mk.box[1];
+    if (lx < 0 || ly < 0 || lx >= mk.box[2] || ly >= mk.box[3]) { layer.dOut++; return; }
+    var i = (ly * mk.box[2] + lx) * 4;
+    if (mk.data[i] > 100) layer.dIn++;
+    else if (mk.data[i + 1] > 100) return;      // tolerance band is free
+    else layer.dOut++;
+  }
+
   function strokeTo(layer, x, y) {
     var spec = BRUSH[layer.product] || { r: 12, a: 0.4, soft: 0.5 };
     var hex = spec.shine ? '#ffffff' : (layer.color ? layer.color.h : '#ffffff');
@@ -2371,7 +2398,9 @@
     var steps = Math.max(1, Math.ceil(d / (spec.r * 0.3)));
     for (var i = 1; i <= steps; i++) {
       var t = i / steps;
-      dab(layer, lerp(from.x, x, t), lerp(from.y, y, t), spec, hex);
+      var px = lerp(from.x, x, t), py = lerp(from.y, y, t);
+      dab(layer, px, py, spec, hex);
+      aimAt(layer, px, py);
     }
     P.last = { x: x, y: y };
   }
@@ -2552,34 +2581,31 @@
     var mk = measureMask(layer.group, tol);
     var b = mk.box, m = mk.data;
     var p = layer.ctx.getImageData(b[0], b[1], b[2], b[3]).data;
-    var inPaint = 0, inWeight = 0, outWeight = 0;
+    var inPaint = 0;
     for (var i = 0; i < m.length; i += 16) {           // every 4th pixel
-      var a = p[i + 3];
-      if (m[i] > 100) {                                // inside the region
-        if (a > 22) inPaint++;
-        inWeight += a;
-      } else if (m[i + 1] > 100) {                     // tolerance band — free
-        continue;
-      } else {
-        outWeight += a;
-      }
+      if (m[i] > 100 && p[i + 3] > 22) inPaint++;
     }
     layer.cover = mk.inTotal ? inPaint / mk.inTotal : 0;
-    // Only this stroke's mess — earlier strokes were already tidied away.
-    layer.lastSpill = (inWeight + outWeight) ? outWeight / (inWeight + outWeight) : 0;
+    // Tidiness comes from where you aimed this stroke, not from what survived it.
+    var shots = layer.dIn + layer.dOut;
+    layer.lastSpill = shots ? layer.dOut / shots : 0;
   }
 
   // Wipe everything that ended up past the product's clean line, with a feathered
   // edge so powders still fade out instead of looking stencilled.
-  function cleanMask(group, clean) {
-    var key = group + '|c' + clean;
+  // `hard` builds an unblurred, slightly wider stencil. It is used while the brush
+  // is still down: a feathered mask re-applied every frame would multiply its own
+  // soft edge away and leave a cut-out look.
+  function cleanMask(group, clean, hard) {
+    var key = group + '|c' + clean + (hard ? '|h' : '');
     if (cleanCache[key]) return cleanCache[key];
     var subj = SUBJECTS[P.L.subject];
     var cv = document.createElement('canvas');
     cv.width = SW; cv.height = SH;
     var c = cv.getContext('2d');
+    if (hard) clean += 4;
     var blur = Math.max(1, clean * 0.42);
-    if ('filter' in c) c.filter = 'blur(' + blur.toFixed(1) + 'px)';
+    if ('filter' in c && !hard) c.filter = 'blur(' + blur.toFixed(1) + 'px)';
     c.fillStyle = '#ffffff';
     c.strokeStyle = '#ffffff';
     c.lineWidth = clean * 2;
@@ -2597,6 +2623,16 @@
     if ('filter' in c) c.filter = 'none';
     cleanCache[key] = cv;
     return cv;
+  }
+
+  // Run every frame while the brush is down, so paint never even appears
+  // outside the lines — you watch it stay inside as you work.
+  function applyLiveClean(layer) {
+    var spec = BRUSH[layer.product] || {};
+    if (spec.stamp || spec.file || spec.clean === undefined) return;
+    layer.ctx.globalCompositeOperation = 'destination-in';
+    layer.ctx.drawImage(cleanMask(layer.group, spec.clean, true), 0, 0);
+    layer.ctx.globalCompositeOperation = 'source-over';
   }
 
   function cleanEdges(layer) {
@@ -2631,18 +2667,23 @@
   }
 
   /* ---------------- pointer handling ---------------- */
+  // Returns null if the canvas has no layout size yet — dividing by a zero-width
+  // rect gives NaN coordinates, which blow up the brush gradients.
   function canvasPoint(ev) {
     var r = stage.getBoundingClientRect();
-    return {
+    if (!r.width || !r.height) return null;
+    var pt = {
       x: (ev.clientX - r.left) * SW / r.width,
       y: (ev.clientY - r.top) * SH / r.height
     };
+    return (isFinite(pt.x) && isFinite(pt.y)) ? pt : null;
   }
 
   stage.addEventListener('pointerdown', function (ev) {
     if (!P.L || P.finished) return;
     ev.preventDefault();
     var pt = canvasPoint(ev);
+    if (!pt) return;
     P.hover = { x: pt.x, y: pt.y, on: true };
     if (!P.selProduct) {
       var g = groupAt(pt);
@@ -2671,6 +2712,8 @@
     }
     P.painting = true;
     P.last = null;
+    layer.dIn = 0;
+    layer.dOut = 0;
     if (spec.file) fileAt(layer, pt.x, pt.y);
     else strokeTo(layer, pt.x, pt.y);
     try { stage.setPointerCapture(ev.pointerId); } catch (e) {}
@@ -2679,6 +2722,7 @@
   stage.addEventListener('pointermove', function (ev) {
     if (!P.L) return;
     var pt = canvasPoint(ev);
+    if (!pt) return;
     P.hover = { x: pt.x, y: pt.y, on: true };
     if (!P.painting || P.finished) return;
     ev.preventDefault();
@@ -2933,7 +2977,7 @@
     // rather than once per pointer event.
     if (P.painting && P.selProduct) {
       var wet = findLayer(targetGroup(P.selProduct), P.selProduct);
-      if (wet) trimToSubject(wet);
+      if (wet) { trimToSubject(wet); applyLiveClean(wet); }
     }
     for (var i = P.sparkles.length - 1; i >= 0; i--) {
       var s = P.sparkles[i];
@@ -3071,79 +3115,128 @@
   /* ---------------- small talk ----------------
      Chatting is a real salon skill: a client who feels listened to tips more.
      The good answers are the ones that ask, listen, or are kindly honest. */
+  // Each conversation is a thread of three exchanges that follow on from each
+  // other, so it reads like an actual chat rather than a quiz question.
   var CHATS = [
-    { q: 'So… do you think this colour is too much for a school photo?',
-      o: [
-        { t: '"Let\'s try one nail and you can decide."', r: 2, a: 'Oh, that is a good idea! Yes, let\'s do that.' },
-        { t: '"It is fine, honestly."', r: 0, a: 'Okay… I guess.' },
-        { t: '"Everyone wears it. Do not worry about it."', r: -1, a: 'Right. It is just… it is my photo.' }
-      ] },
-    { q: 'I have never had this done before. Is it going to hurt?',
-      o: [
-        { t: '"Nothing here hurts. Tell me if anything feels sharp and I stop."', r: 2, a: 'Okay. That actually makes me feel better.' },
-        { t: '"Nope!"', r: 1, a: 'Okay, good.' },
-        { t: '"Only a little bit."', r: -1, a: 'A little bit?! Wait—' }
-      ] },
-    { q: 'My sister said this shape would look silly on my hands.',
-      o: [
-        { t: '"What do YOU want? It is your hand."', r: 2, a: 'Nobody has asked me that. I want the round ones.' },
-        { t: '"Your sister might be right."', r: -2, a: 'Oh. Okay then.' },
-        { t: '"Shapes suit different fingers — want to see two?"', r: 2, a: 'Yes! Show me both.' }
-      ] },
-    { q: 'How long have you been doing this?',
-      o: [
-        { t: '"Long enough to fix anything that goes wrong."', r: 2, a: 'Ha! That is exactly what I wanted to hear.' },
-        { t: '"A while."', r: 0, a: 'Cool.' },
-        { t: '"This is basically my first week."', r: -1, a: 'Oh. Okay. No pressure then.' }
-      ] },
-    { q: 'I keep biting my nails. It is so embarrassing.',
-      o: [
-        { t: '"Loads of people do. Let\'s make these ones feel too nice to bite."', r: 2, a: 'Okay. Deal.' },
-        { t: '"You should really stop doing that."', r: -2, a: 'I know. Thanks.' },
-        { t: '"Honestly? I have seen much worse today."', r: 1, a: 'That is weirdly comforting.' }
-      ] },
-    { q: 'What is your favourite thing about this job?',
-      o: [
-        { t: '"When someone looks in the mirror and sits up straighter."', r: 2, a: 'That is such a nice answer.' },
-        { t: '"The money."', r: 0, a: 'Fair enough!' },
-        { t: '"Getting to meet people like you."', r: 1, a: 'Aw, stop it.' }
-      ] },
-    { q: 'Do you think I should go shorter next time?',
-      o: [
-        { t: '"What do you do with your hands all day?"', r: 2, a: 'Netball, mostly. …Oh. Shorter. Definitely shorter.' },
-        { t: '"Sure, go shorter."', r: 0, a: 'Okay.' },
-        { t: '"Long is more grown up."', r: -1, a: 'Hmm. I do keep catching them on things.' }
-      ] },
-    { q: 'Sorry, I am talking too much, aren\'t I?',
-      o: [
-        { t: '"Not even slightly. Keep going."', r: 2, a: 'Okay good, because I have SO much to tell you.' },
-        { t: '"A bit, but it is fine."', r: -1, a: 'Oh. Sorry.' },
-        { t: '"I like the quiet ones and the chatty ones."', r: 1, a: 'Good, because I am definitely the second one.' }
-      ] },
-    { q: 'My friend got hers done and one nail came off the next day.',
-      o: [
-        { t: '"That is usually no base coat. I always use one."', r: 2, a: 'Ohhh. That makes sense.' },
-        { t: '"That happens sometimes."', r: 0, a: 'Great. Very reassuring.' },
-        { t: '"Her salon sounds terrible."', r: -1, a: 'I mean… it was fine otherwise.' }
-      ] },
-    { q: 'Is it weird that I am nervous? It is just nails.',
-      o: [
-        { t: '"Not weird at all. Big day tomorrow?"', r: 2, a: 'Yeah. Kind of a big one.' },
-        { t: '"Yes, a bit."', r: -2, a: 'Cool. Thanks.' },
-        { t: '"Everyone is on their first visit. Breathe."', r: 1, a: 'Okay. Breathing.' }
-      ] },
-    { q: 'Can you make it look exactly like the photo I saw online?',
-      o: [
-        { t: '"Show me — then I will tell you what I can really do."', r: 2, a: 'Here! And… okay, I trust you.' },
-        { t: '"Absolutely, exactly like it."', r: -1, a: 'Promise? Because it looked really complicated.' },
-        { t: '"Close to it, and it will suit you better."', r: 2, a: 'That sounds even better actually.' }
-      ] },
-    { q: 'Do you ever mess one up?',
-      o: [
-        { t: '"All the time. That is what the clean-up brush is for."', r: 2, a: 'Ha! Honest. I like that.' },
-        { t: '"Never."', r: -1, a: 'Sure you don\'t.' },
-        { t: '"Yes, and then I fix it before you notice."', r: 1, a: 'Sneaky. Respect.' }
-      ] }
+    { beats: [
+      { q: 'So… do you think this colour is too much for a school photo?', o: [
+        { t: 'Let\'s paint one nail and you can decide.', r: 2, a: 'Oh, that is a good idea. Yes, let\'s do that.' },
+        { t: 'It\'s fine, honestly.', r: 0, a: 'Okay… I guess.' },
+        { t: 'Everyone wears it. Don\'t worry about it.', r: -1, a: 'Right. It\'s just, it\'s my photo.' } ] },
+      { q: 'Mum said something subtle. But I like the bright one.', o: [
+        { t: 'Subtle on the hands, bright on the toes?', r: 2, a: 'Wait, that is actually perfect.' },
+        { t: 'Your mum is paying, so…', r: -1, a: '…yeah. Okay.' },
+        { t: 'It\'s your photo. Bright it is.', r: 1, a: 'Okay! Bright.' } ] },
+      { q: 'Will it still look okay on Friday? That\'s photo day.', o: [
+        { t: 'With a top coat, yes. And come back if one chips.', r: 2, a: 'You\'d fix it? Thank you!' },
+        { t: 'Probably.', r: 0, a: 'Probably…' },
+        { t: 'Definitely. Nothing will chip.', r: -1, a: 'Hmm. That sounds a bit too good.' } ] }
+    ], end: 'Okay. I feel much better about Friday now.' },
+
+    { beats: [
+      { q: 'I\'ve never had this done before. Is it going to hurt?', o: [
+        { t: 'Nothing here hurts. Say stop and I stop.', r: 2, a: 'Okay. That actually helps.' },
+        { t: 'Nope!', r: 1, a: 'Okay, good.' },
+        { t: 'Only a little bit.', r: -1, a: 'A little bit?!' } ] },
+      { q: 'What are you doing right now? With the little stick?', o: [
+        { t: 'Pushing the cuticle back. No cutting — it\'s a seal against germs.', r: 2, a: 'Huh. I genuinely did not know that.' },
+        { t: 'Cuticle stuff.', r: 0, a: 'Okay then.' },
+        { t: 'You don\'t need to worry about it.', r: -1, a: 'I kind of do. It\'s my hand.' } ] },
+      { q: 'How do I stop them chipping so fast?', o: [
+        { t: 'Swipe the top coat along the tip, and add a fresh one every third day.', r: 2, a: 'I am writing that down.' },
+        { t: 'Just don\'t use your hands much.', r: -1, a: 'I have… school.' },
+        { t: 'Base coat first. Always.', r: 2, a: 'Okay. Base coat. Got it.' } ] }
+    ], end: 'I am definitely coming back here.' },
+
+    { beats: [
+      { q: 'My sister said this shape would look silly on my hands.', o: [
+        { t: 'What do YOU want? It\'s your hand.', r: 2, a: 'Nobody has asked me that. I want the round ones.' },
+        { t: 'She might be right.', r: -2, a: 'Oh. Okay then.' },
+        { t: 'Shapes suit different fingers. Want to see two?', r: 2, a: 'Yes! Show me both.' } ] },
+      { q: 'Which one actually suits me, though?', o: [
+        { t: 'Almond makes short fingers look longer. Round is the toughest.', r: 2, a: 'Round, then. I play netball.' },
+        { t: 'They both look fine.', r: 0, a: 'That is not really an answer.' },
+        { t: 'Whichever one you\'ll be happiest with.', r: 1, a: 'Fair enough.' } ] },
+      { q: 'Do you ever tell people no?', o: [
+        { t: 'If a nail is damaged, yes. It has to heal first.', r: 2, a: 'That is weirdly reassuring.' },
+        { t: 'Never. The customer is always right.', r: -1, a: 'Even when they\'re wrong?' },
+        { t: 'Kindly. And I offer something else instead.', r: 2, a: 'That is a good way to do it.' } ] }
+    ], end: 'You are quite good at this, you know.' },
+
+    { beats: [
+      { q: 'I keep biting my nails. It\'s so embarrassing.', o: [
+        { t: 'Loads of people do. Let\'s make these too nice to bite.', r: 2, a: 'Okay. Deal.' },
+        { t: 'You should really stop doing that.', r: -2, a: 'I know. Thanks.' },
+        { t: 'Honestly? I have seen much worse today.', r: 1, a: 'That is weirdly comforting.' } ] },
+      { q: 'Do they even grow back properly?', o: [
+        { t: 'They do. Keeping them oiled helps a lot.', r: 2, a: 'I am buying oil on the way home.' },
+        { t: 'Eventually.', r: 0, a: 'Great.' },
+        { t: 'Not if you keep going like that.', r: -2, a: '…okay.' } ] },
+      { q: 'What do I do when I really want to bite them?', o: [
+        { t: 'Look at them. That is genuinely the whole trick.', r: 2, a: 'Ha. That might actually work.' },
+        { t: 'Sit on your hands.', r: 1, a: 'I will try it.' },
+        { t: 'Just stop.', r: -2, a: 'Wow. Thanks.' } ] }
+    ], end: 'I am going to try really hard this time.' },
+
+    { beats: [
+      { q: 'What\'s your favourite thing about this job?', o: [
+        { t: 'When someone looks up and sits a bit straighter.', r: 2, a: 'That is such a nice answer.' },
+        { t: 'The money.', r: 0, a: 'Fair enough!' },
+        { t: 'Meeting people like you.', r: 1, a: 'Aw. Stop it.' } ] },
+      { q: 'Was it hard to learn?', o: [
+        { t: 'The first fifty were awful. Then it clicks.', r: 2, a: 'Fifty! Okay. That is oddly motivating.' },
+        { t: 'Not really.', r: 0, a: 'Oh.' },
+        { t: 'I\'m still learning, honestly.', r: 2, a: 'I like that you said that.' } ] },
+      { q: 'Could I ever do this?', o: [
+        { t: 'Start on your own hands. Once a week, every week.', r: 2, a: 'I am starting tonight.' },
+        { t: 'It\'s harder than it looks.', r: -1, a: 'Right.' },
+        { t: 'Anyone can, with practice.', r: 1, a: 'Okay!' } ] }
+    ], end: 'Right. I am going to go and practise.' },
+
+    { beats: [
+      { q: 'My friend got hers done and one came off the next day.', o: [
+        { t: 'That\'s usually no base coat. I always use one.', r: 2, a: 'Ohhh. That makes sense.' },
+        { t: 'That happens sometimes.', r: 0, a: 'Very reassuring.' },
+        { t: 'Her salon sounds terrible.', r: -1, a: 'It was fine otherwise…' } ] },
+      { q: 'How long should these actually last?', o: [
+        { t: 'About a week. Longer if you re-do the top coat.', r: 2, a: 'Okay, that\'s fair.' },
+        { t: 'Ages.', r: 0, a: 'Ages?' },
+        { t: 'A month, easily.', r: -2, a: 'Really? That does not sound right.' } ] },
+      { q: 'What if I get home and hate it?', o: [
+        { t: 'Come back and I\'ll change it. No charge.', r: 2, a: 'Really? Okay, now I am relaxed.' },
+        { t: 'You won\'t.', r: -1, a: 'But if I do?' },
+        { t: 'Tell me now and we\'ll change it now.', r: 2, a: 'No, I love it. I was just checking.' } ] }
+    ], end: 'I am booking my next one already.' },
+
+    { beats: [
+      { q: 'Sorry, I\'m talking too much, aren\'t I?', o: [
+        { t: 'Not even slightly. Keep going.', r: 2, a: 'Good, because I have SO much to tell you.' },
+        { t: 'A bit, but it\'s fine.', r: -1, a: 'Oh. Sorry.' },
+        { t: 'I like the chatty ones.', r: 1, a: 'Good. That is definitely me.' } ] },
+      { q: 'Okay so — my dog ate an entire birthday cake yesterday.', o: [
+        { t: 'A WHOLE cake? Is he alright?', r: 2, a: 'He is completely fine. And very pleased with himself.' },
+        { t: 'Mm.', r: -1, a: '…anyway.' },
+        { t: 'Candles and all?', r: 2, a: 'Candles and all!' } ] },
+      { q: 'Do you have pets?', o: [
+        { t: 'Tell me his name first.', r: 2, a: 'Biscuit. He is enormous.' },
+        { t: 'No.', r: 0, a: 'Oh. Okay.' },
+        { t: 'One extremely judgemental cat.', r: 2, a: 'Ha! Cats are like that.' } ] }
+    ], end: 'This was the nicest appointment I have ever had.' },
+
+    { beats: [
+      { q: 'Can you make it look exactly like the photo I found online?', o: [
+        { t: 'Show me, and I\'ll tell you what I can really do.', r: 2, a: 'Here! …Okay. I trust you.' },
+        { t: 'Absolutely. Exactly like it.', r: -1, a: 'Promise? It looked really complicated.' },
+        { t: 'Close to it — and it\'ll suit you better.', r: 2, a: 'That sounds even better, actually.' } ] },
+      { q: 'The photo has tiny flowers. Is that too much?', o: [
+        { t: 'Two nails with flowers, the rest plain. It reads better.', r: 2, a: 'Ooh. Accent nails. Yes.' },
+        { t: 'Way too much.', r: -1, a: 'Oh.' },
+        { t: 'We can do every nail if you want.', r: 1, a: 'Maybe just a couple.' } ] },
+      { q: 'How do people even draw that small?', o: [
+        { t: 'Dots on paper first. Twenty of them, every single time.', r: 2, a: 'That is such a good tip.' },
+        { t: 'Steady hands.', r: 0, a: 'Right.' },
+        { t: 'Magic.', r: 0, a: 'Okay, keep your secrets.' } ] }
+    ], end: 'I love it. This is exactly what I wanted.' }
   ];
 
   function openChat() {
@@ -3156,39 +3249,59 @@
     var idx = Math.floor(rng() * CHATS.length);
     for (var guard = 0; guard < CHATS.length && P.chatSeen[idx]; guard++) idx = (idx + 1) % CHATS.length;
     P.chatSeen[idx] = true;
-    var chat = CHATS[idx];
-
-    var html = '<div class="face">' + P.L.client.mood.ic + '</div>' +
-      '<h2 style="font-size:1.05rem">' + P.L.client.name + ' says…</h2>' +
-      '<div class="quote">“' + chat.q + '”</div>' +
-      '<div id="chatOpts" style="display:flex;flex-direction:column;gap:8px;margin-top:12px"></div>';
-    $('resultModal').innerHTML = html;
+    P.thread = CHATS[idx];
+    P.beat = 0;
+    P.chatLog = [{ who: 'her', text: P.thread.beats[0].q }];
+    renderChat();
     $('resultOverlay').classList.add('on');
+  }
 
-    chat.o.forEach(function (opt) {
+  function chatHead() {
+    return '<h2 style="font-size:1.05rem">' + P.L.client.mood.ic + ' Chatting with ' + P.L.client.name + '</h2>';
+  }
+  function chatTranscript() {
+    return '<div class="chatlog">' + P.chatLog.map(function (m) {
+      return '<div class="bubble ' + m.who + '"><span class="who">' +
+        (m.who === 'her' ? P.L.client.name : G.name || 'You') + '</span>' + m.text + '</div>';
+    }).join('') + '</div>';
+  }
+
+  function renderChat() {
+    $('resultModal').innerHTML = chatHead() + chatTranscript() + '<div class="chatopts" id="chatOpts"></div>';
+    var beat = P.thread.beats[P.beat];
+    beat.o.forEach(function (opt) {
       var b = document.createElement('button');
       b.className = 'btn ghost';
-      b.style.textAlign = 'left';
       b.textContent = opt.t;
       b.onclick = function () { answerChat(opt); };
       $('chatOpts').appendChild(b);
     });
+    $('resultModal').scrollTop = $('resultModal').scrollHeight;
   }
 
   function answerChat(opt) {
+    P.rapport = clamp(P.rapport + opt.r, -4, 12);
+    P.chatLog.push({ who: 'you', text: opt.t });
+    P.chatLog.push({ who: 'her', text: opt.a });
+    P.beat++;
+    if (P.beat < P.thread.beats.length) {
+      P.chatLog.push({ who: 'her', text: P.thread.beats[P.beat].q });
+      renderChat();
+      return;
+    }
+    // thread over
     P.chatsLeft--;
-    P.rapport = clamp(P.rapport + opt.r, -3, 8);
-    var good = opt.r > 0;
-    var face = opt.r >= 2 ? '😄' : (opt.r > 0 ? '🙂' : (opt.r === 0 ? '😐' : '😟'));
-    $('resultModal').innerHTML = '<div class="face">' + face + '</div>' +
-      '<div class="quote">“' + opt.a + '”</div>' +
-      '<p class="muted">' + (good ? 'She relaxes a bit. ' : (opt.r === 0 ? 'She nods politely. ' : 'That landed badly. ')) +
-      'Rapport: <b>' + P.rapport + '</b>' + (P.chatsLeft ? ' · ' + P.chatsLeft + ' more chat' + (P.chatsLeft > 1 ? 's' : '') + ' left' : '') + '</p>' +
+    P.chatLog.push({ who: 'her', text: P.thread.end });
+    var mood = P.rapport >= 5 ? '😄' : (P.rapport >= 2 ? '🙂' : (P.rapport >= 0 ? '😐' : '😟'));
+    $('resultModal').innerHTML = chatHead() + chatTranscript() +
+      '<p class="muted">' + mood + ' Rapport with ' + P.L.client.name + ': <b>' + P.rapport + '</b>' +
+      (P.chatsLeft ? ' · you could still chat ' + P.chatsLeft + ' more time' + (P.chatsLeft > 1 ? 's' : '') : '') + '</p>' +
       '<div style="margin-top:12px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap">' +
       '<button class="btn pink" id="chatBack">Back to work ▶</button>' +
-      (P.chatsLeft ? '<button class="btn ghost" id="chatMore">💬 Keep chatting</button>' : '') + '</div>';
+      (P.chatsLeft ? '<button class="btn ghost" id="chatMore">💬 Talk about something else</button>' : '') + '</div>';
     $('chatBack').onclick = closeModal;
     if (P.chatsLeft) $('chatMore').onclick = openChat;
+    $('resultModal').scrollTop = $('resultModal').scrollHeight;
   }
 
   $('chatBtn').onclick = openChat;
@@ -3264,7 +3377,7 @@
     var earn = Math.round(L.fee * sat * tipMult());
     var tip = sat >= 0.9 ? Math.round(L.fee * 0.25 * (sat - 0.6) * tipMult()) : 0;
     // A client who enjoyed talking to you tips better — and one you annoyed does not.
-    var chatTip = Math.round(L.fee * 0.06 * (P.rapport || 0) * tipMult());
+    var chatTip = Math.round(L.fee * 0.04 * (P.rapport || 0) * tipMult());
     var dreamBonus = (L.dream && G.owned[L.dream.item]) ? L.dream.bonus : 0;
     var profit = earn + tip + chatTip + dreamBonus - L.costs;
     var passed = profit >= L.goal;
