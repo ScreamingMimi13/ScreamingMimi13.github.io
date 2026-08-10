@@ -402,6 +402,7 @@
       </div>
       <div class="stagebar">
         <span class="hint" id="playHint">Pick a product, then press and drag to put it on.</span>
+        <button class="btn small mint" id="chatBtn">💬 Start a conversation</button>
         <button class="btn small ghost" id="demoBtn">👀 Where does it go?</button>
         <button class="btn small ghost" id="undoBtn">↩ Wipe off</button>
         <button class="btn small gold" id="finishBtn">✅ Finish</button>
@@ -662,6 +663,7 @@
     lipstick:   { label: 'Lipstick', ic: '💄', colors: 'lip', groups: ['lips'], layer: 8, verb: 'painting' },
     gloss:      { label: 'Lip Gloss', ic: '💧', colors: 'gloss', groups: ['lips'], layer: 9, verb: 'glossing' },
 
+    remover:    { label: 'Polish Remover', ic: '🧼', colors: null, groups: ['nails', 'toes'], layer: 0, verb: 'wiping' },
     file:       { label: 'Nail File', ic: '📏', colors: 'shape', groups: ['nails', 'toes'], layer: 1, verb: 'shaping' },
     cuticle:    { label: 'Cuticle Oil', ic: '🫧', colors: null, groups: ['nails', 'toes'], layer: 2, verb: 'oiling', item: 'cuticleOil' },
     base:       { label: 'Base Coat', ic: '🧪', colors: null, groups: ['nails', 'toes'], layer: 3, verb: 'basing' },
@@ -800,6 +802,9 @@
     { n: 'very picky', ic: '🧐', fuss: 1.25 },
     { n: 'nervous', ic: '😅', fuss: 1.05 }
   ];
+
+  // Two-week-old polish nobody got round to taking off.
+  var OLD_POLISH = ['#8d2f45', '#2f4b7a', '#6b4a7d', '#a8452f', '#3f6b4a', '#7a2f5e', '#5c5c66', '#94662a'];
 
   var HAIR_COLORS = ['#2c2119', '#5a3722', '#8a5a2b', '#c98a3c', '#e3c07a', '#a03a3a', '#6f4f8a', '#3a5f8a', '#d95fa0', '#7f8a92'];
   var SKIN_TONES = ['#fbe0cd', '#f3cba9', '#e0aa7e', '#c68a5b', '#9c6440', '#6f452b'];
@@ -1033,13 +1038,13 @@
       { p: 'glow', g: 'face' }, { p: 'lipstick', g: 'lips' }, { p: 'gloss', g: 'lips' }
     ],
     hand: [
-      { p: 'file', g: 'nails' }, { p: 'cuticle', g: 'nails' }, { p: 'base', g: 'nails' },
+      { p: 'remover', g: 'nails' }, { p: 'file', g: 'nails' }, { p: 'cuticle', g: 'nails' }, { p: 'base', g: 'nails' },
       { p: 'polish', g: 'nails' }, { p: 'glitter', g: 'nails' }, { p: 'art', g: 'nails' },
       { p: 'gems', g: 'nails' }, { p: 'top', g: 'nails' }, { p: 'lotion', g: 'skin' },
       { p: 'massage', g: 'skin' }
     ],
     foot: [
-      { p: 'file', g: 'toes' }, { p: 'cuticle', g: 'toes' }, { p: 'base', g: 'toes' },
+      { p: 'remover', g: 'toes' }, { p: 'file', g: 'toes' }, { p: 'cuticle', g: 'toes' }, { p: 'base', g: 'toes' },
       { p: 'polish', g: 'toes' }, { p: 'glitter', g: 'toes' }, { p: 'art', g: 'toes' },
       { p: 'gems', g: 'toes' }, { p: 'top', g: 'toes' }, { p: 'scrub', g: 'heel' },
       { p: 'massage', g: 'heel' }
@@ -1070,21 +1075,57 @@
       vip: vip
     };
 
+    // Nobody turns up with perfect nails. What state are they in?
+    var cond = null;
+    if (subject === 'hand' || subject === 'foot') {
+      var hasOld = rng() < 0.72;
+      cond = {
+        oldPolish: hasOld ? pick(rng, OLD_POLISH) : null,
+        chips: [rng() < 0.85, rng() < 0.95, rng() < 0.9, rng() < 0.95, rng() < 0.8],
+        jagged: rng() < 0.85,
+        cuticles: rng() < 0.78,
+        stained: rng() < 0.45,
+        dryHeel: subject === 'foot' && rng() < 0.8,
+        seed: n
+      };
+    }
+
     // How many things they want.
     var want = clamp(2 + Math.floor(n / 45), 2, 6) + (vip ? 1 : 0);
 
     var pool = CANDIDATES[subject].filter(function (c) { return productOwned(c.p); });
     // Essentials first (low layer), then a shuffled tail — keeps early levels teachable.
-    var essentials = pool.filter(function (c) { return PRODUCTS[c.p].layer <= 4; });
+    var essentials = pool.filter(function (c) { return PRODUCTS[c.p].layer <= 4 && PRODUCTS[c.p].layer > 0; });
     var extras = pool.filter(function (c) { return PRODUCTS[c.p].layer > 4; });
     function shuffle(arr) {
       var a = arr.slice();
       for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(rng() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; }
       return a;
     }
-    var chosen = shuffle(essentials).slice(0, Math.min(essentials.length, Math.ceil(want * 0.6)));
-    chosen = chosen.concat(shuffle(extras).slice(0, want - chosen.length));
-    if (chosen.length < want) chosen = chosen.concat(shuffle(essentials).filter(function (c) { return chosen.indexOf(c) < 0; }).slice(0, want - chosen.length));
+    // The state of her nails dictates the prep work — she is always going to ask
+    // for the old polish to come off before anything else goes on.
+    var forced = [];
+    if (cond) {
+      var grp = subject === 'foot' ? 'toes' : 'nails';
+      if (cond.oldPolish) forced.push({ p: 'remover', g: grp });
+      if (cond.jagged) forced.push({ p: 'file', g: grp });
+      if (cond.cuticles && productOwned('cuticle')) forced.push({ p: 'cuticle', g: grp });
+      forced = forced.filter(function (f) {
+        return pool.some(function (c) { return c.p === f.p; });
+      });
+    }
+    var taken = {};
+    forced.forEach(function (f) { taken[f.p] = true; });
+    essentials = essentials.filter(function (c) { return !taken[c.p]; });
+    extras = extras.filter(function (c) { return !taken[c.p]; });
+
+    var room = Math.max(want, forced.length + 1) - forced.length;
+    var chosen = forced.concat(shuffle(essentials).slice(0, Math.max(0, Math.ceil(room * 0.6))));
+    chosen = chosen.concat(shuffle(extras).slice(0, Math.max(0, forced.length + room - chosen.length)));
+    if (chosen.length < forced.length + room) {
+      chosen = chosen.concat(shuffle(essentials).filter(function (c) { return chosen.indexOf(c) < 0; })
+        .slice(0, forced.length + room - chosen.length));
+    }
     // Never ask for the same product twice.
     var seen = {};
     chosen = chosen.filter(function (c) { if (seen[c.p]) return false; seen[c.p] = 1; return true; });
@@ -1116,7 +1157,7 @@
 
     return {
       n: n, chapter: ch, chapterName: chapterName(ch), subject: subject, client: client,
-      tasks: tasks, dream: dream, fee: fee, costs: costs, goal: goal, vip: vip
+      tasks: tasks, dream: dream, fee: fee, costs: costs, goal: goal, vip: vip, cond: cond
     };
   }
 
@@ -1735,7 +1776,22 @@
     ctx.restore();
   }
 
-  function drawNaturalNail(ctx, n, shape, skin) {
+  // Deterministic wobble so a client's ragged edges look the same every visit.
+  function grime(seed) {
+    var x = Math.sin(seed * 12.9898) * 43758.5453;
+    return x - Math.floor(x);
+  }
+
+  function drawNaturalNail(ctx, n, shape, skin, idx) {
+    var cond = P.L && P.L.cond;
+    var stripped = P.stripped && P.stripped[idx];
+    var filed = P.filed && P.filed[idx];
+    var cuticleFix = 0;
+    if (cond && cond.cuticles) {
+      var cl = findLayer(P.L.subject === 'foot' ? 'toes' : 'nails', 'cuticle');
+      cuticleFix = cl ? clamp(cl.cover * 1.4, 0, 1) : 0;
+    }
+
     nailAt(ctx, n, shape, function () {
       // nail bed
       var g = ctx.createLinearGradient(n.x - n.w / 2, n.y - n.h / 2, n.x + n.w / 2, n.y + n.h / 2);
@@ -1759,12 +1815,88 @@
       // side shading
       ctx.fillStyle = 'rgba(160,110,105,.16)';
       ctx.fillRect(n.x + n.w * 0.28, n.y - n.h, n.w * 0.22, n.h * 2);
+
+      // ---- the state she walked in with ----
+      if (cond) {
+        var sd = cond.seed * 31 + idx * 7;
+        // yellow staining from wearing dark polish with no base coat
+        if (cond.stained) {
+          ctx.fillStyle = 'rgba(206,178,74,.34)';
+          ctx.fillRect(n.x - n.w, n.y - n.h / 2, n.w * 2, n.h * 0.8);
+          ctx.fillStyle = 'rgba(180,150,60,.2)';
+          ctx.beginPath();
+          ctx.ellipse(n.x + n.w * 0.1, n.y - n.h * 0.1, n.w * 0.3, n.h * 0.25, 0.4, 0, TAU);
+          ctx.fill();
+        }
+        // grown-out, chipped old polish
+        if (cond.oldPolish && cond.chips[idx] && !stripped) {
+          ctx.fillStyle = cond.oldPolish;
+          ctx.beginPath();
+          var topY = n.y - n.h * (0.1 + grime(sd) * 0.2);
+          ctx.moveTo(n.x - n.w, n.y + n.h);
+          ctx.lineTo(n.x - n.w, topY);
+          for (var s = 0; s <= 5; s++) {
+            var gx = n.x - n.w * 0.5 + (s / 5) * n.w;
+            var gy = topY + (grime(sd + s * 3) - 0.5) * n.h * 0.42;
+            ctx.lineTo(gx, gy);
+          }
+          ctx.lineTo(n.x + n.w, topY);
+          ctx.lineTo(n.x + n.w, n.y + n.h);
+          ctx.closePath();
+          ctx.fill();
+          // worn patches rubbed off the middle
+          ctx.fillStyle = rgba(mix(skin, '#ffffff', 0.5), 0.75);
+          for (var c2 = 0; c2 < 2; c2++) {
+            ctx.beginPath();
+            ctx.ellipse(n.x + (grime(sd + c2 * 11) - 0.5) * n.w * 0.7,
+              n.y + n.h * (0.18 + grime(sd + c2 * 5) * 0.28),
+              n.w * (0.1 + grime(sd + c2) * 0.12), n.h * 0.1, grime(sd + c2 * 2) * 2, 0, TAU);
+            ctx.fill();
+          }
+        }
+      }
       ctx.restore();
+
+      // torn, uneven free edge until it gets filed
+      if (cond && cond.jagged && !filed) {
+        ctx.fillStyle = skin;
+        var sd2 = cond.seed * 17 + idx * 13;
+        for (var k = 0; k < 4; k++) {
+          var nx = n.x - n.w * 0.42 + (k / 3) * n.w * 0.84;
+          var depth = n.h * (0.08 + grime(sd2 + k * 9) * 0.22);
+          ctx.beginPath();
+          ctx.moveTo(nx - n.w * 0.11, n.y - n.h / 2 - 1);
+          ctx.lineTo(nx, n.y - n.h / 2 + depth);
+          ctx.lineTo(nx + n.w * 0.11, n.y - n.h / 2 - 1);
+          ctx.closePath();
+          ctx.fill();
+        }
+      }
+
       // cuticle arc + rim
       ctx.strokeStyle = 'rgba(150,105,100,.42)';
       ctx.lineWidth = 1.4;
       nailPath(ctx, n.x, n.y, n.w, n.h, shape);
       ctx.stroke();
+      // overgrown, ragged cuticle that oil and a pusher sort out
+      if (cond && cond.cuticles && cuticleFix < 1) {
+        ctx.save();
+        ctx.globalAlpha = 1 - cuticleFix;
+        ctx.fillStyle = mix(skin, '#c9a08c', 0.5);
+        ctx.beginPath();
+        ctx.ellipse(n.x, n.y + n.h * 0.5, n.w * 0.5, n.h * 0.16, 0, Math.PI, TAU);
+        ctx.fill();
+        ctx.strokeStyle = rgba(mix(skin, '#7a4a38', 0.55), 0.55);
+        ctx.lineWidth = 1.2;
+        for (var f = 0; f < 3; f++) {
+          var fx = n.x - n.w * 0.3 + f * n.w * 0.3;
+          ctx.beginPath();
+          ctx.moveTo(fx, n.y + n.h * 0.5);
+          ctx.lineTo(fx + (grime(cond.seed + idx + f) - 0.5) * 5, n.y + n.h * 0.34);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
       ctx.strokeStyle = rgba(mix(skin, '#8a5040', 0.4), 0.5);
       ctx.lineWidth = 2.6;
       ctx.beginPath();
@@ -1882,7 +2014,7 @@
         });
       });
 
-      handNails().forEach(function (n) { drawNaturalNail(ctx, n, P.shape, skin); });
+      handNails().forEach(function (n, i) { drawNaturalNail(ctx, n, P.shape, skin, i); });
     },
     front: function (ctx, L) {
       var g = glossStrength('nails');
@@ -1981,7 +2113,32 @@
         });
       });
 
-      footNails().forEach(function (n) { drawNaturalNail(ctx, n, P.shape, skin); });
+      // dry, cracked heel until it is scrubbed
+      if (L.cond && L.cond.dryHeel) {
+        var sc = findLayer('heel', 'scrub');
+        var fix = clamp((sc ? sc.cover : 0) * 1.3, 0, 1);
+        if (fix < 1) {
+          ctx.save();
+          ctx.globalAlpha = 1 - fix;
+          ctx.beginPath();
+          ctx.ellipse(378, 452, 82, 56, 0, 0, TAU);
+          ctx.clip();
+          ctx.fillStyle = 'rgba(226,214,198,.55)';
+          ctx.fillRect(290, 390, 180, 130);
+          ctx.strokeStyle = 'rgba(150,116,96,.55)';
+          ctx.lineWidth = 1.6;
+          for (var q = 0; q < 7; q++) {
+            var bx = 310 + grime(L.cond.seed + q) * 140;
+            var by = 410 + grime(L.cond.seed + q * 3) * 90;
+            ctx.beginPath();
+            ctx.moveTo(bx, by);
+            ctx.lineTo(bx + (grime(L.cond.seed + q * 5) - 0.5) * 34, by + 14 + grime(L.cond.seed + q * 7) * 20);
+            ctx.stroke();
+          }
+          ctx.restore();
+        }
+      }
+      footNails().forEach(function (n, i) { drawNaturalNail(ctx, n, P.shape, skin, i); });
     },
     front: function (ctx, L) {
       var g = glossStrength('toes');
@@ -2125,7 +2282,8 @@
     massage:    { r: 36, a: 0.09, soft: 1, shine: 1, clean: 26 },
     gems:       { r: 10, a: 1, stamp: 1 },
     art:        { r: 10, a: 1, stamp: 1 },
-    file:       { r: 22, a: 1, file: 1 }
+    file:       { r: 22, a: 1, file: 1 },
+    remover:    { r: 26, a: 1, file: 1, strip: 1 }
   };
 
   function resetPlay(L) {
@@ -2144,6 +2302,11 @@
     P.finished = false;
     P.confirmFinish = false;
     P.showZone = 0;
+    P.filed = [false, false, false, false, false];
+    P.stripped = [false, false, false, false, false];
+    P.chatsLeft = 3;
+    P.rapport = 0;
+    P.chatSeen = {};
     L.tasks.forEach(function (t) { t.done = false; t.quality = 0; });
   }
 
@@ -2303,12 +2466,15 @@
   // Filing: drag across the tips to reshape them.
   function fileAt(layer, x, y) {
     var nails = P.L.subject === 'foot' ? footNails() : handNails();
+    var strip = (BRUSH[layer.product] || {}).strip;
     var hit = false;
     nails.forEach(function (n, i) {
       if (Math.hypot(n.x - x, n.y - y) < 34 && !layer.marks[i]) {
         layer.marks[i] = true;
         hit = true;
-        popSparkles(n.x, n.y, '#ffffff', 4);
+        // Filing smooths the torn edge; remover takes the old colour off.
+        if (strip) P.stripped[i] = true; else P.filed[i] = true;
+        popSparkles(n.x, n.y, strip ? '#e8d8f0' : '#ffffff', 5);
       }
     });
     return hit;
@@ -2833,7 +2999,8 @@
     var group = targetGroup(id);
     var spec = BRUSH[id] || {};
     var how = spec.stamp ? 'Tap each nail to place it.'
-      : spec.file ? 'Drag across the nail tips to file them.'
+      : spec.strip ? 'Drag across the nails to wipe the old polish off.'
+      : spec.file ? 'Drag across the nail tips to file them smooth.'
       : 'Press and drag to ' + p.verb + ' it on.';
     $('playHint').innerHTML = '<b>' + p.ic + ' ' + p.label + '</b> in hand. ' + how;
     P.showZone = 1600;
@@ -2888,10 +3055,143 @@
     var last = P.layers[0], bestSeq = -1;
     P.layers.forEach(function (l) { if (l.seq > bestSeq) { bestSeq = l.seq; last = l; } });
     P.layers.splice(P.layers.indexOf(last), 1);
+    var lspec = BRUSH[last.product] || {};
+    if (lspec.file) {
+      // put the torn edges / old polish back
+      last.marks.forEach(function (m, i) {
+        if (!m) return;
+        if (lspec.strip) P.stripped[i] = false; else P.filed[i] = false;
+      });
+    }
     toast('Wiped off the ' + PRODUCTS[last.product].label.toLowerCase() + '.');
     syncTasks();
     renderTasks(); renderTray(); updateCoverBar();
   };
+
+  /* ---------------- small talk ----------------
+     Chatting is a real salon skill: a client who feels listened to tips more.
+     The good answers are the ones that ask, listen, or are kindly honest. */
+  var CHATS = [
+    { q: 'So… do you think this colour is too much for a school photo?',
+      o: [
+        { t: '"Let\'s try one nail and you can decide."', r: 2, a: 'Oh, that is a good idea! Yes, let\'s do that.' },
+        { t: '"It is fine, honestly."', r: 0, a: 'Okay… I guess.' },
+        { t: '"Everyone wears it. Do not worry about it."', r: -1, a: 'Right. It is just… it is my photo.' }
+      ] },
+    { q: 'I have never had this done before. Is it going to hurt?',
+      o: [
+        { t: '"Nothing here hurts. Tell me if anything feels sharp and I stop."', r: 2, a: 'Okay. That actually makes me feel better.' },
+        { t: '"Nope!"', r: 1, a: 'Okay, good.' },
+        { t: '"Only a little bit."', r: -1, a: 'A little bit?! Wait—' }
+      ] },
+    { q: 'My sister said this shape would look silly on my hands.',
+      o: [
+        { t: '"What do YOU want? It is your hand."', r: 2, a: 'Nobody has asked me that. I want the round ones.' },
+        { t: '"Your sister might be right."', r: -2, a: 'Oh. Okay then.' },
+        { t: '"Shapes suit different fingers — want to see two?"', r: 2, a: 'Yes! Show me both.' }
+      ] },
+    { q: 'How long have you been doing this?',
+      o: [
+        { t: '"Long enough to fix anything that goes wrong."', r: 2, a: 'Ha! That is exactly what I wanted to hear.' },
+        { t: '"A while."', r: 0, a: 'Cool.' },
+        { t: '"This is basically my first week."', r: -1, a: 'Oh. Okay. No pressure then.' }
+      ] },
+    { q: 'I keep biting my nails. It is so embarrassing.',
+      o: [
+        { t: '"Loads of people do. Let\'s make these ones feel too nice to bite."', r: 2, a: 'Okay. Deal.' },
+        { t: '"You should really stop doing that."', r: -2, a: 'I know. Thanks.' },
+        { t: '"Honestly? I have seen much worse today."', r: 1, a: 'That is weirdly comforting.' }
+      ] },
+    { q: 'What is your favourite thing about this job?',
+      o: [
+        { t: '"When someone looks in the mirror and sits up straighter."', r: 2, a: 'That is such a nice answer.' },
+        { t: '"The money."', r: 0, a: 'Fair enough!' },
+        { t: '"Getting to meet people like you."', r: 1, a: 'Aw, stop it.' }
+      ] },
+    { q: 'Do you think I should go shorter next time?',
+      o: [
+        { t: '"What do you do with your hands all day?"', r: 2, a: 'Netball, mostly. …Oh. Shorter. Definitely shorter.' },
+        { t: '"Sure, go shorter."', r: 0, a: 'Okay.' },
+        { t: '"Long is more grown up."', r: -1, a: 'Hmm. I do keep catching them on things.' }
+      ] },
+    { q: 'Sorry, I am talking too much, aren\'t I?',
+      o: [
+        { t: '"Not even slightly. Keep going."', r: 2, a: 'Okay good, because I have SO much to tell you.' },
+        { t: '"A bit, but it is fine."', r: -1, a: 'Oh. Sorry.' },
+        { t: '"I like the quiet ones and the chatty ones."', r: 1, a: 'Good, because I am definitely the second one.' }
+      ] },
+    { q: 'My friend got hers done and one nail came off the next day.',
+      o: [
+        { t: '"That is usually no base coat. I always use one."', r: 2, a: 'Ohhh. That makes sense.' },
+        { t: '"That happens sometimes."', r: 0, a: 'Great. Very reassuring.' },
+        { t: '"Her salon sounds terrible."', r: -1, a: 'I mean… it was fine otherwise.' }
+      ] },
+    { q: 'Is it weird that I am nervous? It is just nails.',
+      o: [
+        { t: '"Not weird at all. Big day tomorrow?"', r: 2, a: 'Yeah. Kind of a big one.' },
+        { t: '"Yes, a bit."', r: -2, a: 'Cool. Thanks.' },
+        { t: '"Everyone is on their first visit. Breathe."', r: 1, a: 'Okay. Breathing.' }
+      ] },
+    { q: 'Can you make it look exactly like the photo I saw online?',
+      o: [
+        { t: '"Show me — then I will tell you what I can really do."', r: 2, a: 'Here! And… okay, I trust you.' },
+        { t: '"Absolutely, exactly like it."', r: -1, a: 'Promise? Because it looked really complicated.' },
+        { t: '"Close to it, and it will suit you better."', r: 2, a: 'That sounds even better actually.' }
+      ] },
+    { q: 'Do you ever mess one up?',
+      o: [
+        { t: '"All the time. That is what the clean-up brush is for."', r: 2, a: 'Ha! Honest. I like that.' },
+        { t: '"Never."', r: -1, a: 'Sure you don\'t.' },
+        { t: '"Yes, and then I fix it before you notice."', r: 1, a: 'Sneaky. Respect.' }
+      ] }
+  ];
+
+  function openChat() {
+    if (!P.L || P.finished) return;
+    if (P.chatsLeft <= 0) {
+      toast('You have chatted plenty — she wants to see her nails now!');
+      return;
+    }
+    var rng = seeded(P.L.n * 131 + P.chatsLeft * 17);
+    var idx = Math.floor(rng() * CHATS.length);
+    for (var guard = 0; guard < CHATS.length && P.chatSeen[idx]; guard++) idx = (idx + 1) % CHATS.length;
+    P.chatSeen[idx] = true;
+    var chat = CHATS[idx];
+
+    var html = '<div class="face">' + P.L.client.mood.ic + '</div>' +
+      '<h2 style="font-size:1.05rem">' + P.L.client.name + ' says…</h2>' +
+      '<div class="quote">“' + chat.q + '”</div>' +
+      '<div id="chatOpts" style="display:flex;flex-direction:column;gap:8px;margin-top:12px"></div>';
+    $('resultModal').innerHTML = html;
+    $('resultOverlay').classList.add('on');
+
+    chat.o.forEach(function (opt) {
+      var b = document.createElement('button');
+      b.className = 'btn ghost';
+      b.style.textAlign = 'left';
+      b.textContent = opt.t;
+      b.onclick = function () { answerChat(opt); };
+      $('chatOpts').appendChild(b);
+    });
+  }
+
+  function answerChat(opt) {
+    P.chatsLeft--;
+    P.rapport = clamp(P.rapport + opt.r, -3, 8);
+    var good = opt.r > 0;
+    var face = opt.r >= 2 ? '😄' : (opt.r > 0 ? '🙂' : (opt.r === 0 ? '😐' : '😟'));
+    $('resultModal').innerHTML = '<div class="face">' + face + '</div>' +
+      '<div class="quote">“' + opt.a + '”</div>' +
+      '<p class="muted">' + (good ? 'She relaxes a bit. ' : (opt.r === 0 ? 'She nods politely. ' : 'That landed badly. ')) +
+      'Rapport: <b>' + P.rapport + '</b>' + (P.chatsLeft ? ' · ' + P.chatsLeft + ' more chat' + (P.chatsLeft > 1 ? 's' : '') + ' left' : '') + '</p>' +
+      '<div style="margin-top:12px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap">' +
+      '<button class="btn pink" id="chatBack">Back to work ▶</button>' +
+      (P.chatsLeft ? '<button class="btn ghost" id="chatMore">💬 Keep chatting</button>' : '') + '</div>';
+    $('chatBack').onclick = closeModal;
+    if (P.chatsLeft) $('chatMore').onclick = openChat;
+  }
+
+  $('chatBtn').onclick = openChat;
 
   $('demoBtn').onclick = function () {
     if (!P.L) return;
@@ -2963,12 +3263,15 @@
 
     var earn = Math.round(L.fee * sat * tipMult());
     var tip = sat >= 0.9 ? Math.round(L.fee * 0.25 * (sat - 0.6) * tipMult()) : 0;
+    // A client who enjoyed talking to you tips better — and one you annoyed does not.
+    var chatTip = Math.round(L.fee * 0.06 * (P.rapport || 0) * tipMult());
     var dreamBonus = (L.dream && G.owned[L.dream.item]) ? L.dream.bonus : 0;
-    var profit = earn + tip + dreamBonus - L.costs;
+    var profit = earn + tip + chatTip + dreamBonus - L.costs;
     var passed = profit >= L.goal;
 
     return {
-      sat: sat, earn: earn, tip: tip, dream: dreamBonus, costs: L.costs,
+      sat: sat, earn: earn, tip: tip, chatTip: chatTip, rapport: P.rapport || 0,
+      dream: dreamBonus, costs: L.costs,
       profit: profit, passed: passed, missing: missing, wrongColor: wrongColor, messy: messy,
       bonuses: bonuses, stars: sat >= 1.0 ? 3 : (sat >= 0.82 ? 2 : (passed ? 1 : 0))
     };
@@ -3023,6 +3326,8 @@
     html += '<div class="ledger">' +
       '<div class="row"><span>Service fee</span><span class="pos">' + money(r.earn) + '</span></div>' +
       (r.tip ? '<div class="row"><span>Tip</span><span class="pos">' + money(r.tip) + '</span></div>' : '') +
+      (r.chatTip ? '<div class="row"><span>Good conversation (rapport ' + r.rapport + ')</span><span class="' +
+        (r.chatTip >= 0 ? 'pos' : 'neg') + '">' + money(r.chatTip) + '</span></div>' : '') +
       (r.dream ? '<div class="row"><span>' + L.dream.name + ' bonus</span><span class="pos">' + money(r.dream) + '</span></div>' : '') +
       '<div class="row"><span>Rent &amp; supplies</span><span class="neg">-' + money(r.costs) + '</span></div>' +
       '<div class="row total"><span>Profit</span><span class="' + (r.profit >= 0 ? 'pos' : 'neg') + '">' + money(r.profit) + '</span></div>' +
