@@ -289,6 +289,20 @@
   }
   .chatsay input:focus { outline: none; border-color: var(--purple); }
   .orsay { font-size: .74rem; color: var(--muted); margin-top: 10px; text-align: center; }
+  .phonehead {
+    font-weight: bold; color: var(--purple-dark); font-size: 1.05rem;
+    border-bottom: 2px solid var(--line); padding-bottom: 8px; margin-bottom: 4px;
+  }
+  @media (prefers-color-scheme: dark) { .phonehead { color: #e5c9ff; } }
+  .phonehead small { display: block; font-weight: normal; color: var(--muted); font-size: .74rem; margin-top: 2px; }
+  .bubble.typing { display: flex; gap: 4px; align-items: center; padding: 12px 14px; }
+  .bubble.typing span {
+    width: 7px; height: 7px; border-radius: 50%; background: var(--muted);
+    animation: blip 1s infinite;
+  }
+  .bubble.typing span:nth-child(2) { animation-delay: .15s; }
+  .bubble.typing span:nth-child(3) { animation-delay: .3s; }
+  @keyframes blip { 0%, 60%, 100% { opacity: .3; } 30% { opacity: 1; } }
 
   .toast {
     position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%);
@@ -375,6 +389,7 @@
           <div id="clientReqs"></div>
         </div>
         <div class="levelpick">
+          <button class="btn big mint" id="textBtn">📱 Text her</button>
           <button class="btn big pink" id="startLevelBtn">Open the salon ▶</button>
           <span class="muted">Jump to level:</span>
           <input type="number" id="jumpInput" min="1" max="10000" value="1">
@@ -417,7 +432,6 @@
       </div>
       <div class="stagebar">
         <span class="hint" id="playHint">Pick a product, then press and drag to put it on.</span>
-        <button class="btn small mint" id="chatBtn">💬 Start a conversation</button>
         <button class="btn small ghost" id="demoBtn">👀 Where does it go?</button>
         <button class="btn small ghost" id="undoBtn">↩ Wipe off</button>
         <button class="btn small gold" id="finishBtn">✅ Finish</button>
@@ -2326,13 +2340,12 @@
     P.showZone = 0;
     P.filed = [false, false, false, false, false];
     P.stripped = [false, false, false, false, false];
-    P.chatsLeft = 2;          // each one is a three-exchange thread now
-    P.rapport = 0;
-    P.chatSeen = {};
-    P.chatLog = [];
-    P.thread = null;
-    P.beat = 0;
-    P.kindWords = 0;
+    // Whatever you sorted out by text carries into the appointment.
+    var texted = (TX.level === L.n);
+    P.rapport = texted ? TX.rapport : 0;
+    P.kindWords = texted ? TX.kind : 0;
+    P.briefed = texted && TX.asked.want && TX.asked.occasion;
+    P.checkedAllergies = texted && !!TX.asked.allergy;
     L.tasks.forEach(function (t) { t.done = false; t.quality = 0; });
   }
 
@@ -3127,151 +3140,12 @@
     renderTasks(); renderTray(); updateCoverBar();
   };
 
-  /* ---------------- small talk ----------------
-     Chatting is a real salon skill: a client who feels listened to tips more.
-     The good answers are the ones that ask, listen, or are kindly honest. */
-  // Each conversation is a thread of three exchanges that follow on from each
-  // other, so it reads like an actual chat rather than a quiz question.
-  var CHATS = [
-    { beats: [
-      { q: 'So… do you think this colour is too much for a school photo?', o: [
-        { t: 'Let\'s paint one nail and you can decide.', r: 2, a: 'Oh, that is a good idea. Yes, let\'s do that.' },
-        { t: 'It\'s fine, honestly.', r: 0, a: 'Okay… I guess.' },
-        { t: 'Everyone wears it. Don\'t worry about it.', r: -1, a: 'Right. It\'s just, it\'s my photo.' } ] },
-      { q: 'Mum said something subtle. But I like the bright one.', o: [
-        { t: 'Subtle on the hands, bright on the toes?', r: 2, a: 'Wait, that is actually perfect.' },
-        { t: 'Your mum is paying, so…', r: -1, a: '…yeah. Okay.' },
-        { t: 'It\'s your photo. Bright it is.', r: 1, a: 'Okay! Bright.' } ] },
-      { q: 'Will it still look okay on Friday? That\'s photo day.', o: [
-        { t: 'With a top coat, yes. And come back if one chips.', r: 2, a: 'You\'d fix it? Thank you!' },
-        { t: 'Probably.', r: 0, a: 'Probably…' },
-        { t: 'Definitely. Nothing will chip.', r: -1, a: 'Hmm. That sounds a bit too good.' } ] }
-    ], end: 'Okay. I feel much better about Friday now.' },
-
-    { beats: [
-      { q: 'I\'ve never had this done before. Is it going to hurt?', o: [
-        { t: 'Nothing here hurts. Say stop and I stop.', r: 2, a: 'Okay. That actually helps.' },
-        { t: 'Nope!', r: 1, a: 'Okay, good.' },
-        { t: 'Only a little bit.', r: -1, a: 'A little bit?!' } ] },
-      { q: 'What are you doing right now? With the little stick?', o: [
-        { t: 'Pushing the cuticle back. No cutting — it\'s a seal against germs.', r: 2, a: 'Huh. I genuinely did not know that.' },
-        { t: 'Cuticle stuff.', r: 0, a: 'Okay then.' },
-        { t: 'You don\'t need to worry about it.', r: -1, a: 'I kind of do. It\'s my hand.' } ] },
-      { q: 'How do I stop them chipping so fast?', o: [
-        { t: 'Swipe the top coat along the tip, and add a fresh one every third day.', r: 2, a: 'I am writing that down.' },
-        { t: 'Just don\'t use your hands much.', r: -1, a: 'I have… school.' },
-        { t: 'Base coat first. Always.', r: 2, a: 'Okay. Base coat. Got it.' } ] }
-    ], end: 'I am definitely coming back here.' },
-
-    { beats: [
-      { q: 'My sister said this shape would look silly on my hands.', o: [
-        { t: 'What do YOU want? It\'s your hand.', r: 2, a: 'Nobody has asked me that. I want the round ones.' },
-        { t: 'She might be right.', r: -2, a: 'Oh. Okay then.' },
-        { t: 'Shapes suit different fingers. Want to see two?', r: 2, a: 'Yes! Show me both.' } ] },
-      { q: 'Which one actually suits me, though?', o: [
-        { t: 'Almond makes short fingers look longer. Round is the toughest.', r: 2, a: 'Round, then. I play netball.' },
-        { t: 'They both look fine.', r: 0, a: 'That is not really an answer.' },
-        { t: 'Whichever one you\'ll be happiest with.', r: 1, a: 'Fair enough.' } ] },
-      { q: 'Do you ever tell people no?', o: [
-        { t: 'If a nail is damaged, yes. It has to heal first.', r: 2, a: 'That is weirdly reassuring.' },
-        { t: 'Never. The customer is always right.', r: -1, a: 'Even when they\'re wrong?' },
-        { t: 'Kindly. And I offer something else instead.', r: 2, a: 'That is a good way to do it.' } ] }
-    ], end: 'You are quite good at this, you know.' },
-
-    { beats: [
-      { q: 'I keep biting my nails. It\'s so embarrassing.', o: [
-        { t: 'Loads of people do. Let\'s make these too nice to bite.', r: 2, a: 'Okay. Deal.' },
-        { t: 'You should really stop doing that.', r: -2, a: 'I know. Thanks.' },
-        { t: 'Honestly? I have seen much worse today.', r: 1, a: 'That is weirdly comforting.' } ] },
-      { q: 'Do they even grow back properly?', o: [
-        { t: 'They do. Keeping them oiled helps a lot.', r: 2, a: 'I am buying oil on the way home.' },
-        { t: 'Eventually.', r: 0, a: 'Great.' },
-        { t: 'Not if you keep going like that.', r: -2, a: '…okay.' } ] },
-      { q: 'What do I do when I really want to bite them?', o: [
-        { t: 'Look at them. That is genuinely the whole trick.', r: 2, a: 'Ha. That might actually work.' },
-        { t: 'Sit on your hands.', r: 1, a: 'I will try it.' },
-        { t: 'Just stop.', r: -2, a: 'Wow. Thanks.' } ] }
-    ], end: 'I am going to try really hard this time.' },
-
-    { beats: [
-      { q: 'What\'s your favourite thing about this job?', o: [
-        { t: 'When someone looks up and sits a bit straighter.', r: 2, a: 'That is such a nice answer.' },
-        { t: 'The money.', r: 0, a: 'Fair enough!' },
-        { t: 'Meeting people like you.', r: 1, a: 'Aw. Stop it.' } ] },
-      { q: 'Was it hard to learn?', o: [
-        { t: 'The first fifty were awful. Then it clicks.', r: 2, a: 'Fifty! Okay. That is oddly motivating.' },
-        { t: 'Not really.', r: 0, a: 'Oh.' },
-        { t: 'I\'m still learning, honestly.', r: 2, a: 'I like that you said that.' } ] },
-      { q: 'Could I ever do this?', o: [
-        { t: 'Start on your own hands. Once a week, every week.', r: 2, a: 'I am starting tonight.' },
-        { t: 'It\'s harder than it looks.', r: -1, a: 'Right.' },
-        { t: 'Anyone can, with practice.', r: 1, a: 'Okay!' } ] }
-    ], end: 'Right. I am going to go and practise.' },
-
-    { beats: [
-      { q: 'My friend got hers done and one came off the next day.', o: [
-        { t: 'That\'s usually no base coat. I always use one.', r: 2, a: 'Ohhh. That makes sense.' },
-        { t: 'That happens sometimes.', r: 0, a: 'Very reassuring.' },
-        { t: 'Her salon sounds terrible.', r: -1, a: 'It was fine otherwise…' } ] },
-      { q: 'How long should these actually last?', o: [
-        { t: 'About a week. Longer if you re-do the top coat.', r: 2, a: 'Okay, that\'s fair.' },
-        { t: 'Ages.', r: 0, a: 'Ages?' },
-        { t: 'A month, easily.', r: -2, a: 'Really? That does not sound right.' } ] },
-      { q: 'What if I get home and hate it?', o: [
-        { t: 'Come back and I\'ll change it. No charge.', r: 2, a: 'Really? Okay, now I am relaxed.' },
-        { t: 'You won\'t.', r: -1, a: 'But if I do?' },
-        { t: 'Tell me now and we\'ll change it now.', r: 2, a: 'No, I love it. I was just checking.' } ] }
-    ], end: 'I am booking my next one already.' },
-
-    { beats: [
-      { q: 'Sorry, I\'m talking too much, aren\'t I?', o: [
-        { t: 'Not even slightly. Keep going.', r: 2, a: 'Good, because I have SO much to tell you.' },
-        { t: 'A bit, but it\'s fine.', r: -1, a: 'Oh. Sorry.' },
-        { t: 'I like the chatty ones.', r: 1, a: 'Good. That is definitely me.' } ] },
-      { q: 'Okay so — my dog ate an entire birthday cake yesterday.', o: [
-        { t: 'A WHOLE cake? Is he alright?', r: 2, a: 'He is completely fine. And very pleased with himself.' },
-        { t: 'Mm.', r: -1, a: '…anyway.' },
-        { t: 'Candles and all?', r: 2, a: 'Candles and all!' } ] },
-      { q: 'Do you have pets?', o: [
-        { t: 'Tell me his name first.', r: 2, a: 'Biscuit. He is enormous.' },
-        { t: 'No.', r: 0, a: 'Oh. Okay.' },
-        { t: 'One extremely judgemental cat.', r: 2, a: 'Ha! Cats are like that.' } ] }
-    ], end: 'This was the nicest appointment I have ever had.' },
-
-    { beats: [
-      { q: 'Can you make it look exactly like the photo I found online?', o: [
-        { t: 'Show me, and I\'ll tell you what I can really do.', r: 2, a: 'Here! …Okay. I trust you.' },
-        { t: 'Absolutely. Exactly like it.', r: -1, a: 'Promise? It looked really complicated.' },
-        { t: 'Close to it — and it\'ll suit you better.', r: 2, a: 'That sounds even better, actually.' } ] },
-      { q: 'The photo has tiny flowers. Is that too much?', o: [
-        { t: 'Two nails with flowers, the rest plain. It reads better.', r: 2, a: 'Ooh. Accent nails. Yes.' },
-        { t: 'Way too much.', r: -1, a: 'Oh.' },
-        { t: 'We can do every nail if you want.', r: 1, a: 'Maybe just a couple.' } ] },
-      { q: 'How do people even draw that small?', o: [
-        { t: 'Dots on paper first. Twenty of them, every single time.', r: 2, a: 'That is such a good tip.' },
-        { t: 'Steady hands.', r: 0, a: 'Right.' },
-        { t: 'Magic.', r: 0, a: 'Okay, keep your secrets.' } ] }
-    ], end: 'I love it. This is exactly what I wanted.' }
-  ];
-
-  function openChat() {
-    if (!P.L || P.finished) return;
-    if (P.chatsLeft <= 0) {
-      toast('You have chatted plenty — she wants to see her nails now!');
-      return;
-    }
-    var rng = seeded(P.L.n * 131 + P.chatsLeft * 17);
-    var idx = Math.floor(rng() * CHATS.length);
-    for (var guard = 0; guard < CHATS.length && P.chatSeen[idx]; guard++) idx = (idx + 1) % CHATS.length;
-    P.chatSeen[idx] = true;
-    P.thread = CHATS[idx];
-    P.beat = 0;
-    P.chatLog = [{ who: 'her', text: P.thread.beats[0].q }];
-    renderChat();
-    $('resultOverlay').classList.add('on');
-  }
-
-  /* ---- saying it in your own words ---- */
+  /* ================================================================
+     Texting the client before she comes in.
+     Nothing here happens during the appointment — this is the phone
+     conversation you have beforehand, and it is how a real stylist
+     finds out what she actually wants.
+     ================================================================ */
   var KIND_WORDS = ['thank', 'thanks', 'please', 'love', 'lovely', 'beautiful', 'pretty', 'gorgeous',
     'great', 'amazing', 'perfect', 'wonderful', 'brilliant', 'awesome', 'nice', 'kind', 'happy',
     'glad', 'sure', 'course', 'absolutely', 'definitely', 'promise', 'help', 'proud', 'suits',
@@ -3280,105 +3154,241 @@
   var RUDE_WORDS = ['shut up', 'shut it', 'stupid', 'ugly', 'dumb', 'idiot', 'loser', 'hate you',
     'don\'t care', 'dont care', 'whatever', 'boring', 'annoying', 'gross', 'go away'];
 
-  function scoreTyped(text) {
+  function scoreTyped(text, name) {
     var t = ' ' + text.toLowerCase().replace(/[^a-z0-9'\s?!]/g, ' ') + ' ';
     var kind = 0, rude = 0, i;
     for (i = 0; i < KIND_WORDS.length; i++) if (t.indexOf(' ' + KIND_WORDS[i]) >= 0) kind++;
     for (i = 0; i < RUDE_WORDS.length; i++) if (t.indexOf(RUDE_WORDS[i]) >= 0) rude++;
     var words = text.trim().split(/\s+/).filter(Boolean).length;
-    var asked = text.indexOf('?') >= 0 && /\b(you|your|yours)\b/i.test(text);
-    var named = new RegExp('\\b' + P.L.client.name.toLowerCase() + '\\b').test(text.toLowerCase());
+    var asked = text.indexOf('?') >= 0;
+    var named = name ? new RegExp('\\b' + name.toLowerCase() + '\\b').test(text.toLowerCase()) : false;
 
     var r = Math.min(2, kind);
-    if (asked) r += 1;                 // asking about her is the real skill
+    if (asked) r += 1;
     if (named) r += 1;
     if (words >= 4) r += 1;
     if (words <= 1) r -= 1;
     r -= rude * 3;
-    return {
-      r: clamp(r, -3, 3), kind: kind > 0 && !rude, asked: asked, named: named, rude: rude > 0
+    return { r: clamp(r, -3, 3), kind: kind > 0 && !rude, asked: asked, named: named, rude: rude > 0 };
+  }
+
+  // Everything the texting screen remembers, per level.
+  var TX = { level: 0, rapport: 0, kind: 0, asked: {}, log: [], used: {}, open: false };
+
+  function txReset(n) {
+    TX = { level: n, rapport: 0, kind: 0, asked: {}, log: [], used: {}, open: false };
+  }
+
+  // Never hand back the same line twice until the pool runs dry.
+  function pickFresh(key, pool) {
+    if (!TX.used[key]) TX.used[key] = [];
+    if (TX.used[key].length >= pool.length) TX.used[key] = [];
+    var choices = [];
+    for (var i = 0; i < pool.length; i++) if (TX.used[key].indexOf(i) < 0) choices.push(i);
+    var idx = choices[Math.floor(Math.random() * choices.length)];
+    TX.used[key].push(idx);
+    return pool[idx];
+  }
+
+  function txWantList(L) {
+    var items = L.tasks.map(function (t) {
+      var lbl = PRODUCTS[t.product].label.toLowerCase();
+      return t.color ? lbl + ' in ' + t.color.n : lbl;
+    });
+    if (items.length <= 2) return items.join(' and ');
+    return items.slice(0, 2).join(', ') + ' and ' + (items.length - 2) + ' other bit' + (items.length - 2 > 1 ? 's' : '');
+  }
+
+  function txNailState(L) {
+    var c = L.cond;
+    if (!c) return 'It is my face this time, so nothing to warn you about!';
+    var bits = [];
+    if (c.oldPolish) bits.push('I still have old polish on from ages ago');
+    if (c.jagged) bits.push('a couple of them are snapped');
+    if (c.cuticles) bits.push('my cuticles are a state');
+    if (c.stained) bits.push('they have gone a bit yellow');
+    if (c.dryHeel) bits.push('and my heels are SO dry');
+    if (!bits.length) return 'Honestly they are not too bad this time!';
+    return 'Fair warning: ' + bits.join(', ') + '. Sorry!';
+  }
+
+  // What did that text actually say? Keyword intents, checked most specific first.
+  function txIntent(text) {
+    var t = ' ' + text.toLowerCase() + ' ';
+    var has = function (list) {
+      for (var i = 0; i < list.length; i++) if (t.indexOf(list[i]) >= 0) return true;
+      return false;
     };
+    if (has(['allerg', 'sensitive', 'patch test', 'react', 'itchy'])) return 'allergy';
+    if (has(['what do you want', 'what are you after', 'what would you like', 'what colour',
+      'what color', 'what shade', 'what style', 'what are you having', 'what do you fancy',
+      'any ideas', 'what should', 'in mind'])) return 'want';
+    if (has(['occasion', 'what is it for', 'whats it for', 'what\'s it for', 'why are you',
+      'special', 'going out', 'event', 'party for'])) return 'occasion';
+    if (has(['nails like', 'state of', 'how are your nails', 'condition', 'old polish',
+      'chipped', 'anything i should know', 'bring anything'])) return 'nails';
+    if (has(['how much', 'price', 'cost', 'pay', 'expensive', 'afford'])) return 'price';
+    if (has(['when', 'what time', 'see you', 'be there', 'running late', 'o\'clock', 'oclock'])) return 'time';
+    if (has(['hi ', 'hii', 'hello', 'hey', 'morning', 'afternoon'])) return 'greet';
+    if (has(['how are you', 'you ok', 'you okay', 'how have you been', 'how was'])) return 'howareyou';
+    return 'other';
   }
 
-  var TYPED_REPLY = {
-    rude: ['…oh.', 'That was a bit harsh.', 'Right. Okay then.'],
-    warm: ['That is such a nice thing to say.', 'Aw! Thank you.', 'You are so lovely, honestly.'],
-    good: ['Thanks. That helps.', 'That is good to hear.', 'Okay! I like that.'],
-    flat: ['Mm. Okay.', 'Right.', 'Sure.'],
-    asked: ['Nobody usually asks me that!', 'Ooh, good question.', 'I like that you asked.']
-  };
+  function txReply(text, s, L) {
+    var name = L.client.name;
+    if (s.rude) {
+      return pickFresh('rude', [
+        'Oh… okay. I might just leave it then.',
+        'That was a bit mean.',
+        'Right. I will find somewhere else.'
+      ]);
+    }
+    var intent = txIntent(text);
+    TX.asked[intent] = true;
 
-  function chatHead() {
-    return '<h2 style="font-size:1.05rem">' + P.L.client.mood.ic + ' Chatting with ' + P.L.client.name + '</h2>';
-  }
-  function chatTranscript() {
-    return '<div class="chatlog">' + P.chatLog.map(function (m) {
-      return '<div class="bubble ' + m.who + '"><span class="who">' +
-        esc(m.who === 'her' ? P.L.client.name : (G.name || 'You')) + '</span>' + esc(m.text) + '</div>';
-    }).join('') + '</div>';
+    switch (intent) {
+      case 'allergy':
+        return pickFresh('allergy', [
+          'Good question! Nothing serious, but cheap glitter makes my skin itch a bit.',
+          'No allergies. Thanks for checking though, nobody ever does!',
+          'My cousin reacts to some removers so I always appreciate being asked.'
+        ]);
+      case 'want':
+        return pickFresh('want', [
+          'Okay so — ' + txWantList(L) + '. Is that alright?',
+          'I was thinking ' + txWantList(L) + '!',
+          'Ideally ' + txWantList(L) + ' 🤞'
+        ]);
+      case 'occasion':
+        return pickFresh('occasion', [
+          'It is for ' + L.client.occasion + '!',
+          'I have got ' + L.client.occasion + ' coming up, that is why.',
+          'Just ' + L.client.occasion + '. I want to look nice for it.'
+        ]);
+      case 'nails':
+        return txNailState(L);
+      case 'price':
+        return pickFresh('price', [
+          'Whatever the usual is! I have saved up for this.',
+          'Is it a lot? I have got some birthday money.',
+          'That is fine. Worth it.'
+        ]);
+      case 'time':
+        return pickFresh('time', [
+          'I can be there in about twenty minutes!',
+          'On my way now 🚌',
+          'Yes! See you shortly.'
+        ]);
+      case 'greet':
+        return pickFresh('greet', [
+          'Hii! Thanks for texting back 💕',
+          'Hey! I was literally just about to message you.',
+          'Hello! Are you free today?'
+        ]);
+      case 'howareyou':
+        return pickFresh('howareyou', [
+          'I am good thank you! Bit nervous about ' + L.client.occasion + ' though.',
+          'Fine! Tired. Excited about this though.',
+          'Good! Better now that I have got an appointment 😄'
+        ]);
+      default:
+        // Vary the filler AND nudge the conversation somewhere useful.
+        var fill = pickFresh('other', [
+          'Ha! Okay.',
+          'Mmm, fair enough.',
+          'Wait really?',
+          'Okay okay 😄',
+          'You are funny.',
+          'Oh I know right.'
+        ]);
+        if (!TX.asked.want) return fill + ' Anyway — do you want to know what I am after?';
+        if (!TX.asked.occasion) return fill + ' Did I say what it is for?';
+        if (!TX.asked.nails) return fill + ' Should I warn you what state they are in?';
+        return fill;
+    }
   }
 
-  function renderChat() {
-    $('resultModal').innerHTML = chatHead() + chatTranscript() +
-      '<div class="chatopts" id="chatOpts"></div>' +
-      '<div class="orsay">…or say it in your own words</div>' +
+  var TX_CHIPS = [
+    { label: 'What are you after?', text: 'Hi! What are you after this time?', need: 'want' },
+    { label: 'What is it for?', text: 'What is the occasion?', need: 'occasion' },
+    { label: 'Any allergies?', text: 'Any allergies or sensitive skin I should know about?', need: 'allergy' },
+    { label: 'What state are they in?', text: 'What condition are your nails in right now?', need: 'nails' },
+    { label: 'See you soon!', text: 'Lovely, see you soon!', need: 'time' }
+  ];
+
+  function openTexts() {
+    var L = currentLevel;
+    if (!L) return;
+    if (TX.level !== L.n) txReset(L.n);
+    if (!TX.log.length) {
+      TX.log.push({
+        who: 'her',
+        text: pickFresh('open', [
+          'Hi! Is it okay if I come in today? 😊',
+          'Hey! Do you have space for me later?',
+          'Hii! I booked in for today — is that still alright?'
+        ])
+      });
+    }
+    TX.open = true;
+    renderTexts();
+    $('resultOverlay').classList.add('on');
+  }
+
+  function renderTexts(typing) {
+    var L = currentLevel;
+    var html = '<div class="phonehead">📱 ' + esc(L.client.name) +
+      '<small>' + esc(L.client.mood.n) + ' · texting before her appointment</small></div>' +
+      '<div class="chatlog">' + TX.log.map(function (m) {
+        return '<div class="bubble ' + m.who + '"><span class="who">' +
+          esc(m.who === 'her' ? L.client.name : (G.name || 'You')) + '</span>' + esc(m.text) + '</div>';
+      }).join('') +
+      (typing ? '<div class="bubble her typing"><span></span><span></span><span></span></div>' : '') +
+      '</div>';
+
+    html += '<div class="chatopts" id="txChips"></div>' +
       '<div class="chatsay">' +
-      '<input type="text" id="chatSay" maxlength="120" placeholder="Type what you would say…">' +
-      '<button class="btn pink" id="chatSend">Say it</button></div>';
-    var beat = P.thread.beats[P.beat];
-    beat.o.forEach(function (opt) {
+      '<input type="text" id="txSay" maxlength="140" placeholder="Type a message…">' +
+      '<button class="btn pink" id="txSend">Send</button></div>' +
+      '<div class="orsay">Rapport <b>' + TX.rapport + '</b>' +
+      (TX.kind ? ' · kind messages <b>' + TX.kind + '</b>' : '') + '</div>' +
+      '<div style="margin-top:10px"><button class="btn ghost" id="txDone">Put the phone down ▶</button></div>';
+
+    $('resultModal').innerHTML = html;
+
+    var chips = TX_CHIPS.filter(function (c) { return !TX.asked[c.need]; }).slice(0, 3);
+    chips.forEach(function (c) {
       var b = document.createElement('button');
       b.className = 'btn ghost';
-      b.textContent = opt.t;
-      b.onclick = function () { answerChat(opt); };
-      $('chatOpts').appendChild(b);
+      b.textContent = c.label;
+      b.onclick = function () { txSend(c.text); };
+      $('txChips').appendChild(b);
     });
-    $('chatSend').onclick = sendTyped;
-    $('chatSay').onkeydown = function (e) { if (e.key === 'Enter') { e.preventDefault(); sendTyped(); } };
+    $('txSend').onclick = function () { txSend($('txSay').value); };
+    $('txSay').onkeydown = function (e) { if (e.key === 'Enter') { e.preventDefault(); txSend($('txSay').value); } };
+    $('txDone').onclick = function () { TX.open = false; closeModal(); showSalon(); };
     $('resultModal').scrollTop = $('resultModal').scrollHeight;
   }
 
-  function sendTyped() {
-    var el = $('chatSay');
-    if (!el) return;
-    var text = (el.value || '').trim();
-    if (!text) { el.focus(); return; }
-    var s = scoreTyped(text);
-    if (s.kind) P.kindWords++;
-    var pool = s.rude ? TYPED_REPLY.rude
-      : (s.asked ? TYPED_REPLY.asked
-        : (s.r >= 3 ? TYPED_REPLY.warm : (s.r >= 1 ? TYPED_REPLY.good : TYPED_REPLY.flat)));
-    var reply = pool[Math.floor(Math.random() * pool.length)];
-    if (s.named && !s.rude) reply += ' And you remembered my name!';
-    answerChat({ t: text, r: s.r, a: reply });
+  function txSend(text) {
+    text = (text || '').trim();
+    if (!text || !currentLevel) return;
+    var L = currentLevel;
+    var s = scoreTyped(text, L.client.name);
+    TX.rapport = clamp(TX.rapport + s.r, -4, 12);
+    if (s.kind) TX.kind++;
+    TX.log.push({ who: 'you', text: text });
+    renderTexts(true);                       // show her typing
+    var reply = txReply(text, s, L);
+    if (s.named && !s.rude) reply += ' 💕';
+    setTimeout(function () {
+      if (!TX.open) return;
+      TX.log.push({ who: 'her', text: reply });
+      renderTexts(false);
+      var el = $('txSay');
+      if (el) el.focus();
+    }, 500 + Math.random() * 450);
   }
-
-  function answerChat(opt) {
-    P.rapport = clamp(P.rapport + opt.r, -4, 12);
-    P.chatLog.push({ who: 'you', text: opt.t });
-    P.chatLog.push({ who: 'her', text: opt.a });
-    P.beat++;
-    if (P.beat < P.thread.beats.length) {
-      P.chatLog.push({ who: 'her', text: P.thread.beats[P.beat].q });
-      renderChat();
-      return;
-    }
-    // thread over
-    P.chatsLeft--;
-    P.chatLog.push({ who: 'her', text: P.thread.end });
-    var mood = P.rapport >= 5 ? '😄' : (P.rapport >= 2 ? '🙂' : (P.rapport >= 0 ? '😐' : '😟'));
-    $('resultModal').innerHTML = chatHead() + chatTranscript() +
-      '<p class="muted">' + mood + ' Rapport with ' + P.L.client.name + ': <b>' + P.rapport + '</b>' +
-      (P.chatsLeft ? ' · you could still chat ' + P.chatsLeft + ' more time' + (P.chatsLeft > 1 ? 's' : '') : '') + '</p>' +
-      '<div style="margin-top:12px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap">' +
-      '<button class="btn pink" id="chatBack">Back to work ▶</button>' +
-      (P.chatsLeft ? '<button class="btn ghost" id="chatMore">💬 Talk about something else</button>' : '') + '</div>';
-    $('chatBack').onclick = closeModal;
-    if (P.chatsLeft) $('chatMore').onclick = openChat;
-    $('resultModal').scrollTop = $('resultModal').scrollHeight;
-  }
-
-  $('chatBtn').onclick = openChat;
 
   $('demoBtn').onclick = function () {
     if (!P.L) return;
@@ -3441,6 +3451,10 @@
       bonuses.push('Creative extras ×' + extras + ' (+' + Math.round(eb * 100) + '%)');
     }
     if (!messy && n) { sat += 0.04; bonuses.push('Clean edges everywhere (+4%)'); }
+
+    // Consultation done by text before she arrived (Guide #91 and #93).
+    if (P.briefed) { sat += 0.05; bonuses.push('Confirmed the brief by text (+5%)'); }
+    if (P.checkedAllergies) { sat += 0.03; bonuses.push('Asked about allergies (+3%)'); }
 
     var secs = (performance.now() - P.started) / 1000;
     var par = 30 + L.tasks.length * 22;
@@ -3516,7 +3530,7 @@
     html += '<div class="ledger">' +
       '<div class="row"><span>Service fee</span><span class="pos">' + money(r.earn) + '</span></div>' +
       (r.tip ? '<div class="row"><span>Tip</span><span class="pos">' + money(r.tip) + '</span></div>' : '') +
-      (r.chatTip ? '<div class="row"><span>Good conversation (rapport ' + r.rapport + ')</span><span class="' +
+      (r.chatTip ? '<div class="row"><span>📱 Texted ahead (rapport ' + r.rapport + ')</span><span class="' +
         (r.chatTip >= 0 ? 'pos' : 'neg') + '">' + money(r.chatTip) + '</span></div>' : '') +
       (r.kindTip ? '<div class="row"><span>💗 For being kind ×' + r.kindWords + '</span><span class="pos">' +
         money(r.kindTip) + '</span></div>' : '') +
@@ -3849,6 +3863,7 @@
   $('navShop').onclick = openShop;
   $('navGuide').onclick = openGuide;
 
+  $('textBtn').onclick = openTexts;
   $('startLevelBtn').onclick = function () { startLevel(G.level); };
   $('jumpBtn').onclick = function () {
     var v = parseInt($('jumpInput').value, 10);
