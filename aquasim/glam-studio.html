@@ -282,6 +282,13 @@
   .bubble.you { background: var(--purple); color: #fff; align-self: flex-end; border-bottom-right-radius: 5px; }
   .chatopts { display: flex; flex-direction: column; gap: 7px; }
   .chatopts .btn { text-align: left; font-size: .86rem; padding: 9px 14px; line-height: 1.35; }
+  .chatsay { display: flex; gap: 6px; margin-top: 10px; }
+  .chatsay input {
+    flex: 1; min-width: 0; padding: 10px 13px; border-radius: 999px; font-size: .88rem;
+    border: 2px solid var(--line); background: var(--soft); color: var(--ink);
+  }
+  .chatsay input:focus { outline: none; border-color: var(--purple); }
+  .orsay { font-size: .74rem; color: var(--muted); margin-top: 10px; text-align: center; }
 
   .toast {
     position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%);
@@ -324,7 +331,7 @@
       who pay real (pretend) money when they love your work.</p>
     <div class="featgrid">
       <div class="feat"><div class="ic">🖌️</div><b>You paint it yourself</b><span>Press and drag. The brush follows your hand, and going outside the lines really shows.</span></div>
-      <div class="feat"><div class="ic">🛍️</div><b>Absurdly fancy shop</b><span>From a $12 lip balm to a $40,000,000 meteorite chrome powder.</span></div>
+      <div class="feat"><div class="ic">🛍️</div><b>Absurdly fancy shop</b><span>You start with $500,000 to spend. The meteorite chrome powder is $40,000,000.</span></div>
       <div class="feat"><div class="ic">📖</div><b>100 lessons</b><span>Real makeup and nail-care exercises. Every one you finish makes your hands steadier.</span></div>
       <div class="feat"><div class="ic">🧍‍♀️</div><b>Your own avatar</b><span>Design the stylist who runs the place, then climb from Trainee to Legend.</span></div>
     </div>
@@ -517,6 +524,13 @@
     return toHex(lerp(a.r, b.r, t), lerp(a.g, b.g, t), lerp(a.b, b.b, t));
   }
 
+  // Anything the player types goes into innerHTML, so it gets escaped first.
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
   var toastTimer = null;
   function toast(msg) {
     var el = $('toast');
@@ -541,7 +555,7 @@
   var G = {
     name: 'Mia',
     avatar: { skin: 2, hair: 0, hairColor: 3, outfit: 0, accessory: 0 },
-    cash: 120,
+    cash: 500000,        // a serious starting float — go and buy the good stuff
     level: 1,
     happyClients: 0,
     perfectRuns: 0,
@@ -2318,6 +2332,7 @@
     P.chatLog = [];
     P.thread = null;
     P.beat = 0;
+    P.kindWords = 0;
     L.tasks.forEach(function (t) { t.done = false; t.quality = 0; });
   }
 
@@ -3256,18 +3271,60 @@
     $('resultOverlay').classList.add('on');
   }
 
+  /* ---- saying it in your own words ---- */
+  var KIND_WORDS = ['thank', 'thanks', 'please', 'love', 'lovely', 'beautiful', 'pretty', 'gorgeous',
+    'great', 'amazing', 'perfect', 'wonderful', 'brilliant', 'awesome', 'nice', 'kind', 'happy',
+    'glad', 'sure', 'course', 'absolutely', 'definitely', 'promise', 'help', 'proud', 'suits',
+    'safe', 'gentle', 'relax', 'welcome', 'pleasure', 'cute', 'sweet', 'excited', 'favourite',
+    'favorite', 'trust', 'listen', 'understand', 'sorry', 'good', 'better', 'best', 'fun'];
+  var RUDE_WORDS = ['shut up', 'shut it', 'stupid', 'ugly', 'dumb', 'idiot', 'loser', 'hate you',
+    'don\'t care', 'dont care', 'whatever', 'boring', 'annoying', 'gross', 'go away'];
+
+  function scoreTyped(text) {
+    var t = ' ' + text.toLowerCase().replace(/[^a-z0-9'\s?!]/g, ' ') + ' ';
+    var kind = 0, rude = 0, i;
+    for (i = 0; i < KIND_WORDS.length; i++) if (t.indexOf(' ' + KIND_WORDS[i]) >= 0) kind++;
+    for (i = 0; i < RUDE_WORDS.length; i++) if (t.indexOf(RUDE_WORDS[i]) >= 0) rude++;
+    var words = text.trim().split(/\s+/).filter(Boolean).length;
+    var asked = text.indexOf('?') >= 0 && /\b(you|your|yours)\b/i.test(text);
+    var named = new RegExp('\\b' + P.L.client.name.toLowerCase() + '\\b').test(text.toLowerCase());
+
+    var r = Math.min(2, kind);
+    if (asked) r += 1;                 // asking about her is the real skill
+    if (named) r += 1;
+    if (words >= 4) r += 1;
+    if (words <= 1) r -= 1;
+    r -= rude * 3;
+    return {
+      r: clamp(r, -3, 3), kind: kind > 0 && !rude, asked: asked, named: named, rude: rude > 0
+    };
+  }
+
+  var TYPED_REPLY = {
+    rude: ['…oh.', 'That was a bit harsh.', 'Right. Okay then.'],
+    warm: ['That is such a nice thing to say.', 'Aw! Thank you.', 'You are so lovely, honestly.'],
+    good: ['Thanks. That helps.', 'That is good to hear.', 'Okay! I like that.'],
+    flat: ['Mm. Okay.', 'Right.', 'Sure.'],
+    asked: ['Nobody usually asks me that!', 'Ooh, good question.', 'I like that you asked.']
+  };
+
   function chatHead() {
     return '<h2 style="font-size:1.05rem">' + P.L.client.mood.ic + ' Chatting with ' + P.L.client.name + '</h2>';
   }
   function chatTranscript() {
     return '<div class="chatlog">' + P.chatLog.map(function (m) {
       return '<div class="bubble ' + m.who + '"><span class="who">' +
-        (m.who === 'her' ? P.L.client.name : G.name || 'You') + '</span>' + m.text + '</div>';
+        esc(m.who === 'her' ? P.L.client.name : (G.name || 'You')) + '</span>' + esc(m.text) + '</div>';
     }).join('') + '</div>';
   }
 
   function renderChat() {
-    $('resultModal').innerHTML = chatHead() + chatTranscript() + '<div class="chatopts" id="chatOpts"></div>';
+    $('resultModal').innerHTML = chatHead() + chatTranscript() +
+      '<div class="chatopts" id="chatOpts"></div>' +
+      '<div class="orsay">…or say it in your own words</div>' +
+      '<div class="chatsay">' +
+      '<input type="text" id="chatSay" maxlength="120" placeholder="Type what you would say…">' +
+      '<button class="btn pink" id="chatSend">Say it</button></div>';
     var beat = P.thread.beats[P.beat];
     beat.o.forEach(function (opt) {
       var b = document.createElement('button');
@@ -3276,7 +3333,24 @@
       b.onclick = function () { answerChat(opt); };
       $('chatOpts').appendChild(b);
     });
+    $('chatSend').onclick = sendTyped;
+    $('chatSay').onkeydown = function (e) { if (e.key === 'Enter') { e.preventDefault(); sendTyped(); } };
     $('resultModal').scrollTop = $('resultModal').scrollHeight;
+  }
+
+  function sendTyped() {
+    var el = $('chatSay');
+    if (!el) return;
+    var text = (el.value || '').trim();
+    if (!text) { el.focus(); return; }
+    var s = scoreTyped(text);
+    if (s.kind) P.kindWords++;
+    var pool = s.rude ? TYPED_REPLY.rude
+      : (s.asked ? TYPED_REPLY.asked
+        : (s.r >= 3 ? TYPED_REPLY.warm : (s.r >= 1 ? TYPED_REPLY.good : TYPED_REPLY.flat)));
+    var reply = pool[Math.floor(Math.random() * pool.length)];
+    if (s.named && !s.rude) reply += ' And you remembered my name!';
+    answerChat({ t: text, r: s.r, a: reply });
   }
 
   function answerChat(opt) {
@@ -3378,12 +3452,15 @@
     var tip = sat >= 0.9 ? Math.round(L.fee * 0.25 * (sat - 0.6) * tipMult()) : 0;
     // A client who enjoyed talking to you tips better — and one you annoyed does not.
     var chatTip = Math.round(L.fee * 0.04 * (P.rapport || 0) * tipMult());
+    // Saying something genuinely kind in your own words is worth its own tip.
+    var kindTip = Math.round(L.fee * 0.08 * (P.kindWords || 0) * tipMult());
     var dreamBonus = (L.dream && G.owned[L.dream.item]) ? L.dream.bonus : 0;
-    var profit = earn + tip + chatTip + dreamBonus - L.costs;
+    var profit = earn + tip + chatTip + kindTip + dreamBonus - L.costs;
     var passed = profit >= L.goal;
 
     return {
       sat: sat, earn: earn, tip: tip, chatTip: chatTip, rapport: P.rapport || 0,
+      kindTip: kindTip, kindWords: P.kindWords || 0,
       dream: dreamBonus, costs: L.costs,
       profit: profit, passed: passed, missing: missing, wrongColor: wrongColor, messy: messy,
       bonuses: bonuses, stars: sat >= 1.0 ? 3 : (sat >= 0.82 ? 2 : (passed ? 1 : 0))
@@ -3441,6 +3518,8 @@
       (r.tip ? '<div class="row"><span>Tip</span><span class="pos">' + money(r.tip) + '</span></div>' : '') +
       (r.chatTip ? '<div class="row"><span>Good conversation (rapport ' + r.rapport + ')</span><span class="' +
         (r.chatTip >= 0 ? 'pos' : 'neg') + '">' + money(r.chatTip) + '</span></div>' : '') +
+      (r.kindTip ? '<div class="row"><span>💗 For being kind ×' + r.kindWords + '</span><span class="pos">' +
+        money(r.kindTip) + '</span></div>' : '') +
       (r.dream ? '<div class="row"><span>' + L.dream.name + ' bonus</span><span class="pos">' + money(r.dream) + '</span></div>' : '') +
       '<div class="row"><span>Rent &amp; supplies</span><span class="neg">-' + money(r.costs) + '</span></div>' +
       '<div class="row total"><span>Profit</span><span class="' + (r.profit >= 0 ? 'pos' : 'neg') + '">' + money(r.profit) + '</span></div>' +
