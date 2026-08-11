@@ -496,11 +496,17 @@
   var TAU = Math.PI * 2;
 
   // Deterministic per-level randomness so level 4,271 is always the same client.
+  // Uses Math.imul so the arithmetic stays exact in 32 bits — a plain
+  // `s * 1664525` overflows 2^53, loses its low bits, and degenerates into a
+  // fixed arithmetic cycle that can only ever reach a fraction of the choices.
   function seeded(seed) {
-    var s = (seed * 2654435761) % 4294967296;
+    var s = (seed >>> 0) || 1;
     return function () {
-      s = (s * 1664525 + 1013904223) % 4294967296;
-      return s / 4294967296;
+      s = (s + 0x6D2B79F5) >>> 0;
+      var t = s;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
     };
   }
   function pick(rng, arr) { return arr[Math.floor(rng() * arr.length) % arr.length]; }
@@ -3142,9 +3148,12 @@
 
   /* ================================================================
      Texting the client before she comes in.
-     Nothing here happens during the appointment — this is the phone
-     conversation you have beforehand, and it is how a real stylist
-     finds out what she actually wants.
+
+     She is meant to feel like an actual person on the other end of a
+     phone: her own way of typing, things she cares about, a memory of
+     what you already said, and questions she asks you back. Every line
+     is written the way someone actually texts — contractions, lower
+     case, emoji — not like a form letter.
      ================================================================ */
   var KIND_WORDS = ['thank', 'thanks', 'please', 'love', 'lovely', 'beautiful', 'pretty', 'gorgeous',
     'great', 'amazing', 'perfect', 'wonderful', 'brilliant', 'awesome', 'nice', 'kind', 'happy',
@@ -3172,14 +3181,43 @@
     return { r: clamp(r, -3, 3), kind: kind > 0 && !rude, asked: asked, named: named, rude: rude > 0 };
   }
 
-  // Everything the texting screen remembers, per level.
-  var TX = { level: 0, rapport: 0, kind: 0, asked: {}, log: [], used: {}, open: false };
+  /* ---- who is she, as a texter? ---- */
+  var TX_EMOJI = ['💕', '😄', '🙈', '✨', '😅', '🥰', '😂', '🤞', '💅', '🌸'];
+  var TX_DETAILS = [
+    { key: 'pets', line: 'my dog just put his head on my phone, hang on' , about: 'i\'ve got a dog called Biscuit, he\'s enormous' },
+    { key: 'pets', line: 'my cat is sat on my homework again', about: 'i\'ve got a cat, she\'s so judgemental' },
+    { key: 'family', line: 'my little brother keeps reading over my shoulder', about: 'i\'ve got a little brother, he\'s SO annoying' },
+    { key: 'sport', line: 'just got back from netball, i\'m dead', about: 'i play netball twice a week' },
+    { key: 'music', line: 'sorry i\'ve got my music on so loud', about: 'i\'m obsessed with one song right now, it\'s embarrassing' },
+    { key: 'school', line: 'i should be doing homework right now tbh', about: 'i\'ve got a maths test friday and i\'m ignoring it' }
+  ];
 
-  function txReset(n) {
-    TX = { level: n, rapport: 0, kind: 0, asked: {}, log: [], used: {}, open: false };
+  function txPersona(L) {
+    var rng = seeded(L.n * 977 + 41);
+    return {
+      style: pick(rng, ['lower', 'emoji', 'excite', 'calm', 'lower', 'emoji']),
+      emoji: pick(rng, TX_EMOJI),
+      detail: TX_DETAILS[Math.floor(rng() * TX_DETAILS.length) % TX_DETAILS.length]
+    };
   }
 
-  // Never hand back the same line twice until the pool runs dry.
+  // Her typing voice. Two clients can say the same thing and sound different.
+  function voice(s, p) {
+    if (!p) return s;
+    if (p.style === 'lower') s = s.toLowerCase().replace(/\s*\.\s*$/, '');
+    else if (p.style === 'excite') s = /[!?]$/.test(s) ? s : s.replace(/\.$/, '') + '!!';
+    if (p.style === 'emoji' && Math.random() < 0.5) s += ' ' + p.emoji;
+    return s;
+  }
+
+  var TX = { level: 0, rapport: 0, kind: 0, asked: {}, log: [], used: {}, open: false,
+    persona: null, pending: null, lastMove: '', turns: 0 };
+
+  function txReset(n) {
+    TX = { level: n, rapport: 0, kind: 0, asked: {}, log: [], used: {}, open: false,
+      persona: null, pending: null, lastMove: '', turns: 0 };
+  }
+
   function pickFresh(key, pool) {
     if (!TX.used[key]) TX.used[key] = [];
     if (TX.used[key].length >= pool.length) TX.used[key] = [];
@@ -3201,18 +3239,65 @@
 
   function txNailState(L) {
     var c = L.cond;
-    if (!c) return 'It is my face this time, so nothing to warn you about!';
+    if (!c) return 'it\'s my face this time so nothing to warn you about';
     var bits = [];
-    if (c.oldPolish) bits.push('I still have old polish on from ages ago');
-    if (c.jagged) bits.push('a couple of them are snapped');
-    if (c.cuticles) bits.push('my cuticles are a state');
-    if (c.stained) bits.push('they have gone a bit yellow');
+    if (c.oldPolish) bits.push('i\'ve still got old polish on from ages ago');
+    if (c.jagged) bits.push('two of them are snapped');
+    if (c.cuticles) bits.push('my cuticles are a mess');
+    if (c.stained) bits.push('they\'ve gone a bit yellow');
     if (c.dryHeel) bits.push('and my heels are SO dry');
-    if (!bits.length) return 'Honestly they are not too bad this time!';
-    return 'Fair warning: ' + bits.join(', ') + '. Sorry!';
+    if (!bits.length) return 'honestly not bad this time!';
+    return pickFresh('nailopen', ['ok don\'t judge me but ', 'right, fair warning — ', 'ugh ok so ']) +
+      bits.join(', ');
   }
 
-  // What did that text actually say? Keyword intents, checked most specific first.
+  /* ---- things she'll happily talk about ---- */
+  var TX_TOPICS = {
+    pets: { words: ['dog', 'cat', 'puppy', 'kitten', 'pet', 'hamster', 'rabbit'], lines: [
+      'omg yes, mine is asleep on my feet right now',
+      'i love him so much it\'s a problem honestly',
+      'wait do you have one?? send a picture',
+      'he\'s so badly behaved but i don\'t even care' ] },
+    school: { words: ['school', 'homework', 'exam', 'test', 'teacher', 'class', 'maths', 'science'], lines: [
+      'don\'t remind me, i\'ve got so much to do',
+      'my teacher would say i should be revising instead of this',
+      'i finish at half three, that\'s why i booked late',
+      'ugh. anyway. nails are more important' ] },
+    family: { words: ['sister', 'brother', 'mum', 'mom', 'dad', 'cousin', 'gran', 'family'], lines: [
+      'my sister is coming too, she\'ll want hers done next',
+      'my mum is the one who told me about you actually',
+      'my brother said nails are pointless so i\'m getting the brightest ones',
+      'they\'re all going, that\'s why i want to look nice' ] },
+    sport: { words: ['netball', 'football', 'soccer', 'dance', 'gym', 'swim', 'running', 'match'], lines: [
+      'that\'s the problem, i keep catching them on the ball',
+      'i\'ve got a match saturday so nothing too long please',
+      'i dance on thursdays, does that wreck them?',
+      'yeah i\'m always doing something, they never last' ] },
+    music: { words: ['music', 'song', 'concert', 'band', 'singer', 'playlist', 'sing'], lines: [
+      'i\'ve had the same song on repeat for four days',
+      'i\'m going to a concert next month, that\'s the dream',
+      'what do you play in the salon? asking for research',
+      'ok now i\'m going to be humming it all afternoon' ] },
+    food: { words: ['food', 'pizza', 'cake', 'chocolate', 'lunch', 'hungry', 'dinner', 'snack'], lines: [
+      'i\'m eating right now, sorry, one hand typing',
+      'don\'t, i\'m starving',
+      'i\'ll bring snacks. is that allowed?',
+      'birthday cake is the correct answer btw' ] },
+    weather: { words: ['rain', 'sunny', 'cold', 'hot', 'snow', 'weather', 'freezing'], lines: [
+      'it\'s freezing out, my hands are like ice',
+      'if it rains on my hair before this i\'ll cry',
+      'i\'m not walking in that, i\'ll get the bus' ] }
+  };
+
+  function txTopicHit(text) {
+    var t = ' ' + text.toLowerCase() + ' ';
+    for (var k in TX_TOPICS) {
+      var w = TX_TOPICS[k].words;
+      for (var i = 0; i < w.length; i++) if (t.indexOf(w[i]) >= 0) return k;
+    }
+    return null;
+  }
+
   function txIntent(text) {
     var t = ' ' + text.toLowerCase() + ' ';
     var has = function (list) {
@@ -3222,117 +3307,159 @@
     if (has(['allerg', 'sensitive', 'patch test', 'react', 'itchy'])) return 'allergy';
     if (has(['what do you want', 'what are you after', 'what would you like', 'what colour',
       'what color', 'what shade', 'what style', 'what are you having', 'what do you fancy',
-      'any ideas', 'what should', 'in mind'])) return 'want';
+      'any ideas', 'what should', 'in mind', 'booked in for', 'what are we doing'])) return 'want';
     if (has(['occasion', 'what is it for', 'whats it for', 'what\'s it for', 'why are you',
-      'special', 'going out', 'event', 'party for'])) return 'occasion';
-    if (has(['nails like', 'state of', 'how are your nails', 'condition', 'old polish',
-      'chipped', 'anything i should know', 'bring anything'])) return 'nails';
+      'special', 'going out', 'event', 'what for'])) return 'occasion';
+    if (has(['nails like', 'state', 'how are your nails', 'condition', 'old polish', 'your nails',
+      'your toes', 'chipped', 'damaged', 'should i know', 'warn me', 'how bad'])) return 'nails';
     if (has(['how much', 'price', 'cost', 'pay', 'expensive', 'afford'])) return 'price';
     if (has(['when', 'what time', 'see you', 'be there', 'running late', 'o\'clock', 'oclock'])) return 'time';
-    if (has(['hi ', 'hii', 'hello', 'hey', 'morning', 'afternoon'])) return 'greet';
-    if (has(['how are you', 'you ok', 'you okay', 'how have you been', 'how was'])) return 'howareyou';
+    if (has(['how are you', 'you ok', 'you okay', 'how have you been', 'how was your'])) return 'howareyou';
+    if (has([' hi', 'hii', 'hello', 'hey', 'morning!', 'afternoon'])) return 'greet';
     return 'other';
   }
 
-  function txReply(text, s, L) {
-    var name = L.client.name;
+  /* ---- building what she says back ---- */
+  function txAnswer(text, s, L) {
+    var p = TX.persona;
     if (s.rude) {
+      TX.pending = null;
       return pickFresh('rude', [
-        'Oh… okay. I might just leave it then.',
-        'That was a bit mean.',
-        'Right. I will find somewhere else.'
-      ]);
+        'oh. ok then',
+        'that\'s a bit mean',
+        'wow. i might just leave it',
+        'right. i\'ll find somewhere else' ]);
     }
+
     var intent = txIntent(text);
+    var repeatAsk = TX.asked[intent] && intent !== 'other';
     TX.asked[intent] = true;
+
+    // If she asked you something and you didn't change the subject, that's an answer.
+    if (intent === 'other' && TX.pending) {
+      var pend = TX.pending;
+      TX.pending = null;
+      var topic = txTopicHit(text);
+      if (topic && TX_TOPICS[topic]) return pickFresh('t_' + topic, TX_TOPICS[topic].lines);
+      return pickFresh('answered_' + pend, [
+        'aw see i knew you\'d say that',
+        'haha that\'s such a good answer',
+        'ok i like you already',
+        'see this is why i booked with you' ]);
+    }
+
+    var topicHit = txTopicHit(text);
+    if (intent === 'other' && topicHit) return pickFresh('t_' + topicHit, TX_TOPICS[topicHit].lines);
+
+    var pre = repeatAsk ? pickFresh('again', ['haha i told you already — ', 'again?? ok — ', 'you forgot 😄 ']) : '';
 
     switch (intent) {
       case 'allergy':
-        return pickFresh('allergy', [
-          'Good question! Nothing serious, but cheap glitter makes my skin itch a bit.',
-          'No allergies. Thanks for checking though, nobody ever does!',
-          'My cousin reacts to some removers so I always appreciate being asked.'
-        ]);
+        return pre + pickFresh('allergy', [
+          'ooh good question. nothing serious but cheap glitter makes me itch',
+          'nope, none! nobody ever asks me that though',
+          'my cousin reacts to some removers so thanks for checking',
+          'not that i know of. is that a bad sign' ]);
       case 'want':
-        return pickFresh('want', [
-          'Okay so — ' + txWantList(L) + '. Is that alright?',
-          'I was thinking ' + txWantList(L) + '!',
-          'Ideally ' + txWantList(L) + ' 🤞'
-        ]);
+        return pre + pickFresh('want', [
+          'ok so — ' + txWantList(L) + '. is that ok?',
+          'i was thinking ' + txWantList(L),
+          'ideally ' + txWantList(L) + ' 🤞',
+          'don\'t laugh — ' + txWantList(L) ]);
       case 'occasion':
-        return pickFresh('occasion', [
-          'It is for ' + L.client.occasion + '!',
-          'I have got ' + L.client.occasion + ' coming up, that is why.',
-          'Just ' + L.client.occasion + '. I want to look nice for it.'
-        ]);
+        return pre + pickFresh('occasion', [
+          'it\'s for ' + L.client.occasion,
+          'i\'ve got ' + L.client.occasion + ' coming up, that\'s the whole reason',
+          'just ' + L.client.occasion + '. i want to look nice for once',
+          L.client.occasion + '! i\'m actually really excited' ]);
       case 'nails':
         return txNailState(L);
       case 'price':
-        return pickFresh('price', [
-          'Whatever the usual is! I have saved up for this.',
-          'Is it a lot? I have got some birthday money.',
-          'That is fine. Worth it.'
-        ]);
+        return pre + pickFresh('price', [
+          'whatever the normal price is, i\'ve saved up',
+          'is it a lot? i\'ve got birthday money',
+          'that\'s fine honestly, it\'s worth it',
+          'my mum said she\'d cover it if i tidy my room. so. i tidied my room' ]);
       case 'time':
-        return pickFresh('time', [
-          'I can be there in about twenty minutes!',
-          'On my way now 🚌',
-          'Yes! See you shortly.'
-        ]);
+        return pre + pickFresh('time', [
+          'i can be there in like twenty minutes',
+          'on my way now 🚌',
+          'yes!! see you in a bit',
+          'is half four ok? i finish school at half three' ]);
       case 'greet':
         return pickFresh('greet', [
-          'Hii! Thanks for texting back 💕',
-          'Hey! I was literally just about to message you.',
-          'Hello! Are you free today?'
-        ]);
+          'hii! thanks for texting back',
+          'hey!! i was literally about to message you',
+          'hello! are you free today?',
+          'hi hi hi. ok so i need your help' ]);
       case 'howareyou':
         return pickFresh('howareyou', [
-          'I am good thank you! Bit nervous about ' + L.client.occasion + ' though.',
-          'Fine! Tired. Excited about this though.',
-          'Good! Better now that I have got an appointment 😄'
-        ]);
-      default:
-        // Vary the filler AND nudge the conversation somewhere useful.
-        var fill = pickFresh('other', [
-          'Ha! Okay.',
-          'Mmm, fair enough.',
-          'Wait really?',
-          'Okay okay 😄',
-          'You are funny.',
-          'Oh I know right.'
-        ]);
-        if (!TX.asked.want) return fill + ' Anyway — do you want to know what I am after?';
-        if (!TX.asked.occasion) return fill + ' Did I say what it is for?';
-        if (!TX.asked.nails) return fill + ' Should I warn you what state they are in?';
-        return fill;
+          'i\'m good thanks! bit nervous about ' + L.client.occasion + ' though',
+          'tired. but excited about this',
+          'better now i\'ve got an appointment 😄',
+          'i\'m ok! busy week. you?' ]);
     }
-  }
 
-  var TX_CHIPS = [
-    { label: 'What are you after?', text: 'Hi! What are you after this time?', need: 'want' },
-    { label: 'What is it for?', text: 'What is the occasion?', need: 'occasion' },
-    { label: 'Any allergies?', text: 'Any allergies or sensitive skin I should know about?', need: 'allergy' },
-    { label: 'What state are they in?', text: 'What condition are your nails in right now?', need: 'nails' },
-    { label: 'See you soon!', text: 'Lovely, see you soon!', need: 'time' }
-  ];
+    // Nothing matched — so do something a person would do, and never the same
+    // move twice running.
+    var moves = ['react', 'detail', 'askback', 'nudge'];
+    moves = moves.filter(function (m) { return m !== TX.lastMove; });
+    var move = moves[Math.floor(Math.random() * moves.length)];
+    TX.lastMove = move;
+
+    if (move === 'react') {
+      return pickFresh('react', [
+        'haha ok', 'omg really?', 'wait what', 'yeah exactly', 'that\'s so true',
+        'stop it 😂', 'ok fair', 'i mean. yes' ]);
+    }
+    if (move === 'detail') {
+      return pickFresh('detail', [p.detail.line, p.detail.about,
+        'sorry i\'m typing one handed, i\'m doing three things at once',
+        'my phone keeps autocorrecting everything, ignore me' ]);
+    }
+    if (move === 'askback') {
+      TX.pending = 'q';
+      return pickFresh('askback', [
+        'anyway what\'s your favourite colour to do on people?',
+        'do you get bored doing the same ones over and over?',
+        'have you been busy today?',
+        'what\'s the maddest set you\'ve ever done?',
+        'do you do your own nails or is that weird' ]);
+    }
+    TX.pending = 'q';                 // she just asked you something too
+    if (!TX.asked.want) return pickFresh('nudge1', [
+      'anyway. do you want to know what i\'m after?',
+      'should i tell you what i want doing?' ]);
+    if (!TX.asked.occasion) return pickFresh('nudge2', [
+      'did i say what it\'s for?',
+      'do you want to know why i\'m getting them done?' ]);
+    if (!TX.asked.nails) return pickFresh('nudge3', [
+      'should i warn you what state they\'re in',
+      'you might want to ask about my nails first tbh' ]);
+    TX.pending = null;
+    return pickFresh('nudge4', [
+      'ok i\'ll stop texting and let you work',
+      'right. see you soon!',
+      'i\'m so excited for this' ]);
+  }
 
   function openTexts() {
     var L = currentLevel;
     if (!L) return;
     if (TX.level !== L.n) txReset(L.n);
+    if (!TX.persona) TX.persona = txPersona(L);
     if (!TX.log.length) {
-      TX.log.push({
-        who: 'her',
-        text: pickFresh('open', [
-          'Hi! Is it okay if I come in today? 😊',
-          'Hey! Do you have space for me later?',
-          'Hii! I booked in for today — is that still alright?'
-        ])
-      });
+      TX.log.push({ who: 'her', text: voice(pickFresh('open', [
+        'hi! is it ok if i come in today?',
+        'hey! have you got space for me later?',
+        'hii! i booked for today, is that still alright?',
+        'hello! sorry to text, are you working today?'
+      ]), TX.persona) });
     }
     TX.open = true;
     renderTexts();
     $('resultOverlay').classList.add('on');
+    setTimeout(function () { var el = $('txSay'); if (el) el.focus(); }, 60);
   }
 
   function renderTexts(typing) {
@@ -3346,24 +3473,15 @@
       (typing ? '<div class="bubble her typing"><span></span><span></span><span></span></div>' : '') +
       '</div>';
 
-    html += '<div class="chatopts" id="txChips"></div>' +
-      '<div class="chatsay">' +
-      '<input type="text" id="txSay" maxlength="140" placeholder="Type a message…">' +
+    html += '<div class="chatsay">' +
+      '<input type="text" id="txSay" maxlength="140" placeholder="Type a message…" autocomplete="off">' +
       '<button class="btn pink" id="txSend">Send</button></div>' +
-      '<div class="orsay">Rapport <b>' + TX.rapport + '</b>' +
+      '<div class="orsay">Ask her anything — what she wants doing, what it\'s for, ' +
+      'whether she\'s allergic to anything. Rapport <b>' + TX.rapport + '</b>' +
       (TX.kind ? ' · kind messages <b>' + TX.kind + '</b>' : '') + '</div>' +
       '<div style="margin-top:10px"><button class="btn ghost" id="txDone">Put the phone down ▶</button></div>';
 
     $('resultModal').innerHTML = html;
-
-    var chips = TX_CHIPS.filter(function (c) { return !TX.asked[c.need]; }).slice(0, 3);
-    chips.forEach(function (c) {
-      var b = document.createElement('button');
-      b.className = 'btn ghost';
-      b.textContent = c.label;
-      b.onclick = function () { txSend(c.text); };
-      $('txChips').appendChild(b);
-    });
     $('txSend').onclick = function () { txSend($('txSay').value); };
     $('txSay').onkeydown = function (e) { if (e.key === 'Enter') { e.preventDefault(); txSend($('txSay').value); } };
     $('txDone').onclick = function () { TX.open = false; closeModal(); showSalon(); };
@@ -3377,19 +3495,29 @@
     var s = scoreTyped(text, L.client.name);
     TX.rapport = clamp(TX.rapport + s.r, -4, 12);
     if (s.kind) TX.kind++;
+    TX.turns++;
     TX.log.push({ who: 'you', text: text });
-    renderTexts(true);                       // show her typing
-    var reply = txReply(text, s, L);
-    if (s.named && !s.rude) reply += ' 💕';
+    renderTexts(true);
+
+    var reply = txAnswer(text, s, L);
+    if (s.named && !s.rude && Math.random() < 0.6) reply += ' 💕';
+    // Once she likes you, she warms up. If you were horrible, she goes cold.
+    if (!s.rude && TX.rapport >= 6 && Math.random() < 0.35) {
+      reply += pickFresh('warm', ['. you\'re so nice', '. honestly you\'re the best',
+        '. i\'m so glad i found you', '. ok i\'m definitely coming back']);
+    }
+    reply = voice(reply, TX.persona);
+    if (TX.rapport <= -2) reply = reply.split(/[.!]/)[0];   // curt when she's upset
+
+    var delay = 420 + Math.min(900, reply.length * 12) + Math.random() * 300;
     setTimeout(function () {
       if (!TX.open) return;
       TX.log.push({ who: 'her', text: reply });
       renderTexts(false);
       var el = $('txSay');
       if (el) el.focus();
-    }, 500 + Math.random() * 450);
+    }, delay);
   }
-
   $('demoBtn').onclick = function () {
     if (!P.L) return;
     var next = P.L.tasks.filter(function (t) { return !t.done; })[0];
