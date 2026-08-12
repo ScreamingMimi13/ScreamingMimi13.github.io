@@ -103,6 +103,7 @@
   .btn.small { padding: 5px 12px; font-size: .8rem; }
   .btn.big { padding: 12px 26px; font-size: 1.05rem; }
   .btn:disabled { opacity: .45; cursor: not-allowed; filter: none; }
+  .btn.on { background: var(--pink-dark); color: #fff; border-color: var(--pink-dark); box-shadow: 0 0 0 3px rgba(224,81,142,.28); }
 
   /* ---------- Screens ---------- */
   .screen { display: none; max-width: 1120px; margin: 0 auto; padding: 16px 14px 60px; }
@@ -433,7 +434,7 @@
       <div class="stagebar">
         <span class="hint" id="playHint">Pick a product, then press and drag to put it on.</span>
         <button class="btn small ghost" id="demoBtn">👀 Where does it go?</button>
-        <button class="btn small ghost" id="undoBtn">↩ Wipe off</button>
+        <button class="btn small ghost" id="wipeBtn">🧽 Wipe</button>
         <button class="btn small gold" id="finishBtn">✅ Finish</button>
       </div>
     </div>
@@ -2346,6 +2347,8 @@
     P.showZone = 0;
     P.filed = [false, false, false, false, false];
     P.stripped = [false, false, false, false, false];
+    P.wiping = false;
+    if ($('wipeBtn')) $('wipeBtn').classList.remove('on');
     // Whatever you sorted out by text carries into the appointment.
     var texted = (TX.level === L.n);
     P.rapport = texted ? TX.rapport : 0;
@@ -2719,6 +2722,13 @@
     var pt = canvasPoint(ev);
     if (!pt) return;
     P.hover = { x: pt.x, y: pt.y, on: true };
+    if (P.wiping) {
+      P.painting = true;
+      P.last = { x: pt.x, y: pt.y };
+      if (!wipeAt(pt.x, pt.y)) toast('Nothing there to wipe off.');
+      try { stage.setPointerCapture(ev.pointerId); } catch (e) {}
+      return;
+    }
     if (!P.selProduct) {
       var g = groupAt(pt);
       toast(g ? 'That is ' + GROUP_LABEL[g] + '. Pick a product first!' : 'Pick up a product from your kit 💄');
@@ -2760,6 +2770,18 @@
     P.hover = { x: pt.x, y: pt.y, on: true };
     if (!P.painting || P.finished) return;
     ev.preventDefault();
+    if (P.wiping) {
+      // Rub along the whole path, not just where the pointer events landed.
+      var from = P.last || pt;
+      var d = Math.hypot(pt.x - from.x, pt.y - from.y);
+      var steps = Math.max(1, Math.ceil(d / (WIPE_R * 0.4)));
+      for (var w = 1; w <= steps; w++) {
+        var t = w / steps;
+        wipeAt(lerp(from.x, pt.x, t), lerp(from.y, pt.y, t));
+      }
+      P.last = { x: pt.x, y: pt.y };
+      return;
+    }
     var group = targetGroup(P.selProduct);
     var layer = findLayer(group, P.selProduct);
     if (!layer) return;
@@ -2771,6 +2793,7 @@
     if (!P.painting) return;
     P.painting = false;
     P.last = null;
+    if (P.wiping) { endWipe(); return; }
     var group = targetGroup(P.selProduct);
     var layer = findLayer(group, P.selProduct);
     if (layer) afterStroke(layer);
@@ -2836,6 +2859,35 @@
 
   /* ---------------- the brush that follows YOUR hand ---------------- */
   function drawBrush(ctx) {
+    if (P.hover.on && P.wiping) {
+      var wx = P.hover.x, wy = P.hover.y;
+      ctx.save();
+      ctx.strokeStyle = 'rgba(60,43,69,.5)';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([5, 4]);
+      ctx.beginPath();
+      ctx.arc(wx, wy, WIPE_R, 0, TAU);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = 'rgba(255,255,255,.5)';
+      ctx.beginPath();
+      ctx.arc(wx, wy, WIPE_R * 0.8, 0, TAU);
+      ctx.fill();
+      // a little cotton bud held above it
+      ctx.translate(wx, wy);
+      ctx.rotate(-0.6);
+      ctx.shadowColor = 'rgba(0,0,0,.22)';
+      ctx.shadowBlur = 7;
+      ctx.shadowOffsetY = 3;
+      ctx.fillStyle = '#e8dff0';
+      ctx.fillRect(2, 6, 5, 34);
+      ctx.fillStyle = '#fffdfa';
+      ctx.beginPath();
+      ctx.ellipse(4.5, 6, 7, 8, 0, 0, TAU);
+      ctx.fill();
+      ctx.restore();
+      return;
+    }
     if (!P.hover.on || !P.selProduct) return;
     var spec = BRUSH[P.selProduct] || { r: 12 };
     var col = currentColor();
@@ -3009,7 +3061,7 @@
     if (P.showZone > 0) P.showZone -= dt;
     // Keep wet paint on the person while the brush is down — once per frame
     // rather than once per pointer event.
-    if (P.painting && P.selProduct) {
+    if (P.painting && P.selProduct && !P.wiping) {
       var wet = findLayer(targetGroup(P.selProduct), P.selProduct);
       if (wet) { trimToSubject(wet); applyLiveClean(wet); }
     }
@@ -3066,6 +3118,7 @@
   }
 
   function selectProduct(id) {
+    if (P.wiping) { P.wiping = false; $('wipeBtn').classList.remove('on'); }
     P.selProduct = id;
     P.selColor = 0;
     var p = PRODUCTS[id];
@@ -3088,6 +3141,13 @@
 
   function updateCoverBar() {
     var wrap = $('coverWrap');
+    if (P.wiping) {
+      wrap.classList.add('on');
+      $('coverFill').style.width = '0%';
+      $('neatFill').style.width = '100%';
+      $('coverLabel').innerHTML = '🧽 Rubbing off — drag over just the bit you want gone.';
+      return;
+    }
     if (!P.selProduct || !P.L) { wrap.classList.remove('on'); return; }
     wrap.classList.add('on');
     var group = targetGroup(P.selProduct);
@@ -3127,23 +3187,70 @@
   }
 
   /* ---------------- buttons ---------------- */
-  $('undoBtn').onclick = function () {
-    if (!P.L) return;
-    if (!P.layers.length) { toast('Nothing to wipe off yet.'); return; }
-    var last = P.layers[0], bestSeq = -1;
-    P.layers.forEach(function (l) { if (l.seq > bestSeq) { bestSeq = l.seq; last = l; } });
-    P.layers.splice(P.layers.indexOf(last), 1);
-    var lspec = BRUSH[last.product] || {};
-    if (lspec.file) {
-      // put the torn edges / old polish back
-      last.marks.forEach(function (m, i) {
-        if (!m) return;
-        if (lspec.strip) P.stripped[i] = false; else P.filed[i] = false;
-      });
+  /* ---------------- the wipe ----------------
+     A little cotton bud. It takes off only what you rub over, out of every
+     layer under it — so you can fix one smudged nail without losing the set. */
+  var WIPE_R = 17;
+
+  function wipeAt(x, y) {
+    var hit = false;
+    P.layers.forEach(function (l) {
+      // Nothing of this layer here? Then there is nothing to rub off.
+      var probe = l.ctx.getImageData(Math.round(clamp(x, 0, SW - 1)), Math.round(clamp(y, 0, SH - 1)), 1, 1).data[3];
+      if (!probe) return;
+      hit = true;
+      l.dirty = true;
+      var g = l.ctx.createRadialGradient(x, y, WIPE_R * 0.35, x, y, WIPE_R);
+      g.addColorStop(0, 'rgba(0,0,0,1)');
+      g.addColorStop(1, 'rgba(0,0,0,0)');
+      l.ctx.save();
+      l.ctx.globalCompositeOperation = 'destination-out';
+      l.ctx.fillStyle = g;
+      l.ctx.beginPath();
+      l.ctx.arc(x, y, WIPE_R, 0, TAU);
+      l.ctx.fill();
+      l.ctx.restore();
+
+      // Gems and nail art sit on one nail, so rubbing one off unticks that nail.
+      var spec = BRUSH[l.product] || {};
+      if (spec.stamp) {
+        var nails = P.L.subject === 'foot' ? footNails() : handNails();
+        nails.forEach(function (n, i) {
+          if (Math.hypot(n.x - x, n.y - y) < 26) l.marks[i] = false;
+        });
+      }
+    });
+    return hit;
+  }
+
+  function endWipe() {
+    var changed = false;
+    for (var i = P.layers.length - 1; i >= 0; i--) {
+      var l = P.layers[i];
+      if (!l.dirty) continue;
+      l.dirty = false;
+      changed = true;
+      measureLayer(l);
+      if (l.cover <= 0.02) P.layers.splice(i, 1);   // rubbed away completely
     }
-    toast('Wiped off the ' + PRODUCTS[last.product].label.toLowerCase() + '.');
-    syncTasks();
-    renderTasks(); renderTray(); updateCoverBar();
+    if (changed) { syncTasks(); renderTasks(); renderTray(); updateCoverBar(); }
+  }
+
+  function setWiping(on) {
+    P.wiping = on;
+    $('wipeBtn').classList.toggle('on', on);
+    if (on) {
+      P.selProduct = null;
+      $('playHint').innerHTML = '<b>🧽 Wipe</b> in hand. Rub over anything you want to take back off.';
+      renderTray();
+      updateCoverBar();
+    }
+  }
+
+  $('wipeBtn').onclick = function () {
+    if (!P.L) return;
+    setWiping(!P.wiping);
+    if (!P.wiping) $('playHint').textContent = 'Pick a product, then press and drag to put it on.';
   };
 
   /* ================================================================
