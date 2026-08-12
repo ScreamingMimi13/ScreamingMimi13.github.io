@@ -1719,9 +1719,25 @@ const camLook = new THREE.Vector3();
 function updateCamera(dt) {
   const gy = clamp(body.y, 0.8, 12.5);   // follow even huge trampoline arcs
   camFollow.lerp(new THREE.Vector3(body.x, gy, 0), 1 - Math.pow(0.0009, dt));
-  // close chase: behind (-x) and to the side (+z), low to the ground
-  camera.position.set(camFollow.x - 5, camFollow.y + 2.4, 8.2);
-  camLook.set(camFollow.x + 6.5, camFollow.y + 0.1, -0.5);
+  // Wide chase view: behind (-x) and to the side (+z), pulled back far enough
+  // to see the obstacles coming. Narrow/portrait screens show less of the lane
+  // at a given distance, so they pull back further to keep the view just as wide.
+  // A tall phone screen can't be fixed by distance alone — a steep downward
+  // angle squeezes the lane off the bottom — so portrait also flattens the
+  // tilt, widens the lens and swings in behind the runner.
+  const aspect = camera.aspect || 1.6;
+  const t = clamp((1.35 - aspect) / 0.9, 0, 1);      // 0 = wide screen, 1 = tall phone
+  const fov = lerp(56, 74, t);
+  if (Math.abs(camera.fov - fov) > 0.05) { camera.fov = fov; camera.updateProjectionMatrix(); }
+  // On a tall screen the HORIZONTAL fov is tiny, so a big sideways offset
+  // throws the runner clean out of frame — portrait swings in almost directly
+  // behind and looks straight down the lane.
+  const sideZ = lerp(9.5, 2.2, t);
+  camera.position.set(
+    camFollow.x - lerp(10, 10.5, t),
+    camFollow.y + lerp(5.6, 3.6, t),
+    sideZ);
+  camLook.set(camFollow.x + lerp(8, 12, t), camFollow.y + lerp(-0.6, 1.2, t), lerp(-0.4, 0, t));
   camera.lookAt(camLook);
 }
 
@@ -2125,6 +2141,27 @@ window.__fs = { body, game, segCount: () => segments.length, setFlip: v => { fli
   powerups: () => powerups.map(p => ({ x: p.x, z: p.z, y: p.y, type: p.type, taken: p.taken })),
   tramps: () => tramps.map(t => ({ x: t.x, z: t.z })),
   surf: () => __surf, resetSurf: () => { __surf = {}; },
+  visibleAhead: () => {                // how much of the course is on screen?
+    const fr = new THREE.Frustum().setFromProjectionMatrix(
+      new THREE.Matrix4().multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse));
+    let n = 0, far = 0;
+    for (const h of hurdles) {
+      if (h.x < body.x) continue;
+      if (fr.containsPoint(new THREE.Vector3(h.x, h.h / 2, h.z))) { n++; far = Math.max(far, h.x - body.x); }
+    }
+    let tn = 0;
+    for (const t of tramps) if (t.x >= body.x && fr.containsPoint(new THREE.Vector3(t.x, 0.2, t.z))) tn++;
+    return { obstaclesVisible: n, trampsVisible: tn, seesAhead: +far.toFixed(1) };
+  },
+  camInfo: () => {                     // where does the runner land on screen?
+    const p = new THREE.Vector3(body.x, body.y, body.z).project(camera);
+    const gp = new THREE.Vector3(body.x, 0, body.z).project(camera);
+    return { fov: +camera.fov.toFixed(1), aspect: +camera.aspect.toFixed(2),
+             cam: [ +camera.position.x.toFixed(1), +camera.position.y.toFixed(1), +camera.position.z.toFixed(1) ],
+             bodyNDC: [ +p.x.toFixed(2), +p.y.toFixed(2) ],
+             groundNDC: [ +gp.x.toFixed(2), +gp.y.toFixed(2) ],
+             onScreen: Math.abs(p.x) < 1 && Math.abs(p.y) < 1 };
+  },
   applyPower: t => applyPower(t), crashTest: () => { const hd = hurdles.find(h => !h.crashed); if (hd) crashHurdle(hd); },
   segInfo: () => segments[0] || null,
   strokeColors: () => strokes.flatMap(s => s.meshes.map(m => '#' + m.material.color.getHexString())),
