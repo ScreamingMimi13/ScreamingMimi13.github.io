@@ -3255,9 +3255,9 @@
   var TX_TOPICS = {
     pets: { words: ['dog', 'cat', 'puppy', 'kitten', 'pet', 'hamster', 'rabbit'], lines: [
       'omg yes, mine is asleep on my feet right now',
-      'i love him so much it\'s a problem honestly',
+      'i love mine so much it\'s a problem honestly',
       'wait do you have one?? send a picture',
-      'he\'s so badly behaved but i don\'t even care' ] },
+      'mine is so badly behaved and i don\'t even care' ] },
     school: { words: ['school', 'homework', 'exam', 'test', 'teacher', 'class', 'maths', 'science'], lines: [
       'don\'t remind me, i\'ve got so much to do',
       'my teacher would say i should be revising instead of this',
@@ -3298,13 +3298,33 @@
     return null;
   }
 
+  // People text in shorthand. Expand it before trying to work out what they meant,
+  // so "r u coming" reads the same as "are you coming".
+  var TX_SHORTHAND = {
+    r: 'are', u: 'you', ur: 'your', yr: 'your', k: 'ok', kk: 'ok', yh: 'yeah', yeh: 'yeah',
+    ye: 'yeah', ya: 'you', nah: 'no', nope: 'no', yep: 'yes', yup: 'yes', thx: 'thanks',
+    ty: 'thanks', tysm: 'thanks', pls: 'please', plz: 'please', idk: 'i dont know',
+    omw: 'on my way', brb: 'be right back', gtg: 'got to go', g2g: 'got to go',
+    ttyl: 'talk to you later', cya: 'see you', cu: 'see you', tmr: 'tomorrow',
+    tmrw: 'tomorrow', b4: 'before', w8: 'wait', gr8: 'great', np: 'no problem',
+    lmk: 'let me know', rn: 'right now', tho: 'though', bc: 'because', cos: 'because',
+    wat: 'what', wot: 'what', wanna: 'want to', gonna: 'going to', dunno: 'dont know'
+  };
+  function txNormalize(text) {
+    return (' ' + text.toLowerCase() + ' ')
+      .replace(/[.,!]+/g, ' ')
+      .replace(/[a-z0-9']+/g, function (w) {
+        return Object.prototype.hasOwnProperty.call(TX_SHORTHAND, w) ? TX_SHORTHAND[w] : w;
+      });
+  }
+
   function txIntent(text) {
-    var t = ' ' + text.toLowerCase() + ' ';
+    var t = txNormalize(text);
     var has = function (list) {
       for (var i = 0; i < list.length; i++) if (t.indexOf(list[i]) >= 0) return true;
       return false;
     };
-    if (has(['allerg', 'sensitive', 'patch test', 'react', 'itchy'])) return 'allergy';
+    if (has(['allerg', 'sensitive', 'patch test', 'react to', 'itchy'])) return 'allergy';
     if (has(['what do you want', 'what are you after', 'what would you like', 'what colour',
       'what color', 'what shade', 'what style', 'what are you having', 'what do you fancy',
       'any ideas', 'what should', 'in mind', 'booked in for', 'what are we doing'])) return 'want';
@@ -3312,10 +3332,37 @@
       'special', 'going out', 'event', 'what for'])) return 'occasion';
     if (has(['nails like', 'state', 'how are your nails', 'condition', 'old polish', 'your nails',
       'your toes', 'chipped', 'damaged', 'should i know', 'warn me', 'how bad'])) return 'nails';
-    if (has(['how much', 'price', 'cost', 'pay', 'expensive', 'afford'])) return 'price';
-    if (has(['when', 'what time', 'see you', 'be there', 'running late', 'o\'clock', 'oclock'])) return 'time';
-    if (has(['how are you', 'you ok', 'you okay', 'how have you been', 'how was your'])) return 'howareyou';
-    if (has([' hi', 'hii', 'hello', 'hey', 'morning!', 'afternoon'])) return 'greet';
+    if (has(['how much', 'price', 'cost', 'how do i pay', 'expensive', 'afford'])) return 'price';
+    if (has(['how long', 'take long', 'be quick', 'in a rush', 'how many minutes'])) return 'howlong';
+    if (has(['where are you', 'where is', 'address', 'directions', 'how do i get', 'which shop'])) return 'where';
+    if (has(['bring', 'do i need to', 'should i wash', 'take my polish off'])) return 'bring';
+    // Goodbyes go before the yes/no check so "ok bye" is a goodbye, not an "ok".
+    if (has(['bye', 'see you', 'later', 'good night', 'goodnight', 'night',
+      'got to go', 'talk to you later', 'im off', 'i am off', 'going now'])) return 'bye';
+    if (has(['on my way', 'be right back', 'leaving now', 'nearly there', 'almost there',
+      'walking over', 'just parked', 'outside'])) return 'onway';
+    if (has(['dont know', 'don\'t know', 'not sure', 'up to you', 'you choose', 'you decide',
+      'whatever you think', 'your call', 'surprise me'])) return 'dontknow';
+    if (has(['are you coming', 'you coming', 'still coming', 'still on', 'are you free',
+      'can i come', 'is it ok if i come', 'have you got space', 'are you open',
+      'are you there', 'you around', 'you working'])) return 'coming';
+    if (has(['when', 'what time', 'be there', 'running late', 'o\'clock', 'oclock',
+      'this afternoon', 'today', 'tomorrow'])) return 'time';
+    if (has(['thanks', 'thank you', 'cheers', 'appreciate'])) return 'thanks';
+    if (has(['sorry', 'my bad', 'apolog'])) return 'sorry';
+    if (has(['your name', 'who is this', 'who are you'])) return 'name';
+    if (has(['cant wait', 'can\'t wait', 'so excited', 'excited'])) return 'excited';
+    if (has(['the best', 'love your', 'so good at', 'you are so good', 'youre so good',
+      'talented', 'amazing at', 'so talented', 'legend'])) return 'compliment';
+    if (has(['lol', 'haha', 'hehe', 'lmao', '😂', '🤣'])) return 'laugh';
+    if (has(['how are you', 'you ok', 'you okay', 'how have you been', 'how was your',
+      'hows your', 'how is your'])) return 'howareyou';
+    if (has([' hi ', 'hii', 'hello', ' hey', 'good morning', 'good afternoon'])) return 'greet';
+    if (has([' no ', ' not really', ' nothing'])) return 'no';
+    if (has([' yes ', ' yeah ', ' ok ', ' okay ', ' sure ', ' alright ', ' cool ',
+      ' fine ', ' great ', ' perfect '])) return 'yes';
+    if (/^\s*[\s?!.]*\?+[\s?!.]*$/.test(text) || has(['huh', 'what?', 'confused'])) return 'confused';
+    if (/^[\s\p{Emoji_Presentation}\p{Extended_Pictographic}]+$/u.test(text.trim())) return 'emojionly';
     return 'other';
   }
 
@@ -3332,11 +3379,25 @@
     }
 
     var intent = txIntent(text);
+    // She already said goodbye, so she notices you are still texting.
+    var backAgain = '';
+    if (TX.saidBye && intent !== 'bye') {
+      TX.saidBye = false;
+      backAgain = pickFresh('backagain', [
+        'haha i thought we said bye — ', 'oh you\'re still there! ok — ', 'back again 😄 ' ]);
+    }
     var repeatAsk = TX.asked[intent] && intent !== 'other';
     TX.asked[intent] = true;
+    if (backAgain) return backAgain + txAnswerBody(text, s, L, intent, false);
+    return txAnswerBody(text, s, L, intent, repeatAsk);
+  }
 
-    // If she asked you something and you didn't change the subject, that's an answer.
-    if (intent === 'other' && TX.pending) {
+  function txAnswerBody(text, s, L, intent, repeatAsk) {
+    var p = TX.persona;
+
+    // If she asked you something and you replied without asking one back, that's
+    // an answer to her. A question from you is a new question, not an answer.
+    if (intent === 'other' && TX.pending && !s.asked) {
       var pend = TX.pending;
       TX.pending = null;
       var topic = txTopicHit(text);
@@ -3398,6 +3459,114 @@
           'tired. but excited about this',
           'better now i\'ve got an appointment 😄',
           'i\'m ok! busy week. you?' ]);
+      case 'bye':
+        TX.saidBye = true;
+        TX.pending = null;
+        return pickFresh('bye', [
+          'byee! see you in a bit 👋',
+          'ok see you soon!! don\'t start without me',
+          'bye! thank you for sorting me out',
+          'see you later! i\'m leaving now anyway',
+          'ok byee. i\'ll be the one with the terrible nails' ]);
+      case 'onway':
+        return pickFresh('onway', [
+          'perfect, see you in a minute!',
+          'ok!! i\'ll put the kettle on. wait no, that\'s your job',
+          'yay ok. i\'m ready when you are',
+          'no rush honestly, take your time' ]);
+      case 'dontknow':
+        return pickFresh('dontknow', [
+          'noo you have to help me choose! you\'re the expert',
+          'ok well then i\'m trusting you completely. do what you think',
+          'haha ok, surprise me then. but nothing green',
+          'that\'s exactly what i said to my mum and she said the same thing' ]);
+      case 'coming':
+        return pickFresh('coming', [
+          'yes!! i\'m coming, i\'m literally putting my shoes on',
+          'yeah still coming! is that still ok?',
+          'i am! give me ten minutes',
+          'yes sorry! bus was late but i\'m on my way' ]);
+      case 'howlong':
+        return pickFresh('howlong', [
+          'however long it takes honestly, i\'m not in a rush',
+          'i\'ve got about an hour? is that enough',
+          'as long as i\'m home for tea i don\'t mind',
+          'ooh i don\'t know, how long does it usually take?' ]);
+      case 'where':
+        return pickFresh('where', [
+          'i know where you are! i walk past it every day',
+          'is it the one next to the shop? i\'ll find it',
+          'send me the postcode and i\'ll put it in maps' ]);
+      case 'bring':
+        return pickFresh('bring', [
+          'oh do i need to bring anything? i\'ve got nothing',
+          'i can bring the colour i had last time if that helps',
+          'i\'ll bring my own snacks obviously 😄',
+          'should i take the old polish off first or do you do that?' ]);
+      case 'thanks':
+        return pickFresh('thanks', [
+          'no it\'s me who should be thanking you!',
+          'you\'re so welcome 💕',
+          'ah stop it, thank YOU',
+          'honestly it\'s no bother' ]);
+      case 'sorry':
+        return pickFresh('sorry', [
+          'don\'t apologise! it\'s fine honestly',
+          'you\'re alright! i\'m not in a rush',
+          'no no it\'s me, i\'m the one messaging you all day' ]);
+      case 'name':
+        return pickFresh('name', [
+          'it\'s ' + L.client.name + '! did i not say?',
+          L.client.name + ' :) i booked in earlier',
+          'haha it\'s ' + L.client.name + '. sorry, new number' ]);
+      case 'excited':
+        return pickFresh('excited', [
+          'SAME. i\'ve been looking forward to this all week',
+          'me too!! i keep looking at pictures',
+          'right?? i can\'t stop thinking about it',
+          'i\'m so ready, my nails are not' ]);
+      case 'compliment':
+        return pickFresh('compliment', [
+          'aw stop!! now i\'m blushing',
+          'you are actually so nice, thank you',
+          'i tell everyone about you honestly',
+          'ok now i\'m even more excited' ]);
+      case 'laugh':
+        return pickFresh('laugh', [
+          'hahaha', 'i know right 😂', 'stopp', 'you\'re so funny',
+          'ok that made me actually laugh out loud' ]);
+      case 'yes':
+        return pickFresh('yesr', [
+          'perfect!', 'yay ok', 'amazing, thank you', 'sound. see you then',
+          'ok good, i was worried for a second' ]);
+      case 'no':
+        return pickFresh('nor', [
+          'aw ok, no worries',
+          'that\'s alright! another time maybe',
+          'ok fair enough. can i still come though?',
+          'oh no. is everything alright?' ]);
+      case 'confused':
+        return pickFresh('confused', [
+          'sorry! ignore me, i\'m rambling',
+          'haha what did i just say. let me start again',
+          'i mean about my appointment! sorry' ]);
+      case 'emojionly':
+        return pickFresh('emojionly', [
+          'haha i don\'t know what that means but ok 😄',
+          'i\'m taking that as a good sign',
+          '😂 same' ]);
+    }
+
+    // If you asked her something she has no scripted answer for, she still has
+    // to answer it — changing the subject is what made her feel like a bot.
+    if (s.asked) {
+      TX.pending = 'q';
+      return pickFresh('qfallback', [
+        'hmm good question. i genuinely don\'t know 😅 what do you think?',
+        'ooh i\'m not sure! you probably know better than me',
+        'honestly? no idea. you decide, i trust you',
+        'i\'ve never thought about that. is that bad',
+        'maybe? sorry i\'m useless at deciding things' ]);
     }
 
     // Nothing matched — so do something a person would do, and never the same
