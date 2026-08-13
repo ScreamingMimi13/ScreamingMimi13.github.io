@@ -1,0 +1,3167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Truffle Trail — You, a Farm, and a Pig</title>
+<style>
+  :root {
+    --sky1:#8fb9d8; --sky2:#cfe0d2; --sky3:#e6d7b4;
+    --panel:#fffaf2; --panel2:#f4ece0; --ink:#2f2822; --muted:#7d7263;
+    --line:#e2d7c6; --accent:#7a5c34; --accent-d:#57411f;
+    --gold:#c8992e; --gold-d:#9a7118;
+    --pink:#d1607e; --pink-d:#a5445f;
+    --green:#5c8f45; --green-d:#3f6b2c;
+    --bad:#c0503f; --bad-d:#93392b;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin:0; padding:0; min-height:100%; }
+  body {
+    font-family: "Iowan Old Style", "Palatino Linotype", Georgia, "Segoe UI", system-ui, serif;
+    background: linear-gradient(170deg, var(--sky1), var(--sky2) 45%, var(--sky3));
+    background-attachment: fixed;
+    color: var(--ink); min-height:100vh;
+    display:flex; flex-direction:column; align-items:center;
+    user-select:none; overflow-x:hidden;
+  }
+  .wrap { width:100%; max-width:1000px; padding:10px 10px 92px; display:flex; flex-direction:column; gap:10px; }
+
+  /* ---------- top bar ---------- */
+  .topbar { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .brand { flex:1 1 190px; color:#fff; text-shadow:0 2px 0 rgba(60,40,20,.35); line-height:1.05; }
+  .brand b { font-size:22px; letter-spacing:.3px; display:block; }
+  .brand small { font-size:11px; letter-spacing:1.2px; opacity:.95; font-family:"Segoe UI",system-ui,sans-serif; }
+  .purse { display:flex; gap:6px; flex-wrap:wrap; }
+  .chip {
+    font-family:"Segoe UI",system-ui,sans-serif; font-weight:800; font-size:13px;
+    padding:6px 12px; border-radius:999px; display:flex; align-items:center; gap:5px;
+    white-space:nowrap; transition:transform .15s ease;
+  }
+  .chip.bump { transform:scale(1.2); }
+  .chip.cash { background:linear-gradient(180deg,#f0d98a,var(--gold)); color:#4a3606; box-shadow:0 3px 0 var(--gold-d); }
+  .chip.heart { background:linear-gradient(180deg,#eda3b6,var(--pink)); color:#4d1023; box-shadow:0 3px 0 var(--pink-d); }
+  .chip.pig { background:linear-gradient(180deg,#fff,#e8ddcc); color:#5a4326; box-shadow:0 3px 0 #c9bba3; }
+
+  /* ---------- panels ---------- */
+  .panel { background:var(--panel); border-radius:16px; padding:14px; box-shadow:0 10px 26px rgba(60,40,20,.24); }
+  .panel.tight { padding:10px; }
+  h2 { margin:0 0 4px; font-size:19px; }
+  h3 { margin:0 0 6px; font-size:15px; }
+  p { margin:0 0 8px; line-height:1.55; font-size:14px; }
+  .sub { color:var(--muted); font-size:13px; line-height:1.5; }
+  .hr { height:2px; background:var(--line); border-radius:2px; margin:10px 0; }
+  .screen { display:none; flex-direction:column; gap:10px; }
+  .screen.on { display:flex; }
+
+  /* ---------- buttons ---------- */
+  button { font:inherit; cursor:pointer; border:none; font-family:"Segoe UI",system-ui,sans-serif; }
+  .btn {
+    background:linear-gradient(180deg,#a5834f,var(--accent)); color:#fff; font-weight:800; font-size:14px;
+    padding:10px 16px; border-radius:12px; box-shadow:0 4px 0 var(--accent-d);
+    transition:transform .08s ease, box-shadow .08s ease;
+  }
+  .btn:active { transform:translateY(3px); box-shadow:0 1px 0 var(--accent-d); }
+  .btn.wide { width:100%; }
+  .btn.small { font-size:12.5px; padding:7px 12px; border-radius:10px; }
+  .btn.gold { background:linear-gradient(180deg,#e9c96f,var(--gold)); color:#4a3606; box-shadow:0 4px 0 var(--gold-d); }
+  .btn.green { background:linear-gradient(180deg,#83bb63,var(--green)); box-shadow:0 4px 0 var(--green-d); }
+  .btn.pink { background:linear-gradient(180deg,#e58aa4,var(--pink)); box-shadow:0 4px 0 var(--pink-d); }
+  .btn.ghost { background:var(--panel2); color:var(--accent-d); box-shadow:0 3px 0 var(--line); }
+  .btn[disabled] { filter:grayscale(.65); opacity:.5; pointer-events:none; }
+
+  /* ---------- nav ---------- */
+  .nav { position:fixed; left:0; right:0; bottom:0; z-index:40; display:flex; justify-content:center;
+    background:linear-gradient(180deg,rgba(0,0,0,0),rgba(50,35,15,.3)); padding:7px 8px 9px; }
+  .nav-inner { width:100%; max-width:1000px; display:flex; gap:5px; background:var(--panel);
+    border-radius:16px; padding:5px; box-shadow:0 8px 22px rgba(50,35,15,.32); }
+  .nav button { flex:1; background:transparent; color:var(--muted); font-weight:800; font-size:10.5px;
+    padding:6px 2px 5px; border-radius:12px; line-height:1.15; display:flex; flex-direction:column;
+    align-items:center; gap:3px; position:relative; }
+  .nav button .ico { font-size:19px; line-height:1; }
+  .nav button.active { background:var(--panel2); color:var(--accent-d); }
+  .nav button .pip { position:absolute; top:3px; right:calc(50% - 20px); width:8px; height:8px;
+    border-radius:50%; background:var(--bad); box-shadow:0 0 0 2px var(--panel); }
+
+  /* ---------- farm / canvas ---------- */
+  .stage { position:relative; width:100%; border-radius:16px; overflow:hidden;
+    box-shadow:0 12px 30px rgba(50,35,15,.32); background:#6f8c4a; line-height:0; }
+  canvas#world { width:100%; height:auto; display:block; touch-action:none; }
+  .overlay { position:absolute; inset:0; pointer-events:none; font-family:"Segoe UI",system-ui,sans-serif; }
+  .vitals { position:absolute; left:8px; top:8px; display:flex; flex-direction:column; gap:4px; width:172px; }
+  .vrow { display:flex; align-items:center; gap:5px; font-size:10.5px; font-weight:800; color:#fff;
+    text-shadow:0 1px 2px rgba(0,0,0,.7); }
+  .vrow .lab { width:44px; }
+  .bar { flex:1; height:8px; border-radius:5px; background:rgba(0,0,0,.42); overflow:hidden;
+    box-shadow:inset 0 1px 2px rgba(0,0,0,.4); }
+  .bar i { display:block; height:100%; width:50%; border-radius:5px; transition:width .25s ease; }
+  .prompt { position:absolute; left:50%; bottom:12px; transform:translateX(-50%); max-width:82%;
+    background:rgba(28,22,14,.82); color:#fff; padding:7px 14px; border-radius:999px; font-size:12.5px;
+    font-weight:700; text-align:center; opacity:0; transition:opacity .18s ease; }
+  .prompt.on { opacity:1; }
+  .toastbox { position:absolute; right:8px; top:8px; display:flex; flex-direction:column; gap:4px;
+    align-items:flex-end; max-width:56%; }
+  .toast { background:rgba(28,22,14,.8); color:#fff; padding:5px 11px; border-radius:9px; font-size:11.5px;
+    font-weight:700; animation:tin .3s ease; }
+  .toast.good { background:rgba(60,110,45,.9); }
+  .toast.warn { background:rgba(150,80,25,.9); }
+  .toast.heart { background:rgba(150,55,85,.9); }
+  @keyframes tin { from { opacity:0; transform:translateX(14px); } }
+  .clockbox { position:absolute; left:50%; top:8px; transform:translateX(-50%); background:rgba(28,22,14,.72);
+    color:#fff; padding:4px 12px; border-radius:999px; font-size:11px; font-weight:800; letter-spacing:.4px; }
+  .hotbar { position:absolute; left:8px; bottom:10px; display:flex; gap:5px; }
+  .hot { background:rgba(28,22,14,.78); color:#fff; border-radius:9px; padding:4px 8px; font-size:10.5px;
+    font-weight:700; line-height:1.3; text-align:center; min-width:66px; }
+  .hot b { display:block; font-size:11.5px; }
+  .hot span { opacity:.7; font-size:9px; letter-spacing:.5px; }
+
+  /* touch controls */
+  .touch { position:absolute; inset:0; pointer-events:none; }
+  .stick { position:absolute; left:10px; bottom:52px; width:104px; height:104px; border-radius:50%;
+    background:rgba(255,255,255,.16); border:2px solid rgba(255,255,255,.34); pointer-events:auto; }
+  .stick i { position:absolute; left:50%; top:50%; width:44px; height:44px; margin:-22px 0 0 -22px;
+    border-radius:50%; background:rgba(255,255,255,.55); }
+  .tbtns { position:absolute; right:8px; bottom:48px; display:grid; grid-template-columns:repeat(2,1fr);
+    gap:6px; pointer-events:auto; }
+  .tbtns button { width:58px; height:44px; border-radius:12px; background:rgba(255,255,255,.82);
+    color:#3a2c18; font-weight:800; font-size:11px; box-shadow:0 3px 0 rgba(0,0,0,.28); line-height:1.1; }
+  body.no-touch .touch { display:none; }
+
+  .keys { display:grid; grid-template-columns:repeat(auto-fill,minmax(128px,1fr)); gap:5px;
+    font-family:"Segoe UI",system-ui,sans-serif; font-size:11.5px; }
+  .keys div { background:var(--panel2); border-radius:9px; padding:5px 8px; color:var(--muted); }
+  .keys b { color:var(--accent-d); font-family:ui-monospace,Consolas,monospace; }
+
+  /* ---------- lists / cards ---------- */
+  .cards { display:grid; gap:9px; }
+  .card { background:var(--panel2); border-radius:13px; padding:11px; display:flex; gap:10px; align-items:flex-start;
+    border:2px solid transparent; }
+  .card.owned { border-color:var(--green); }
+  .card.sel { border-color:var(--accent); background:#fff; }
+  .card canvas { border-radius:9px; background:linear-gradient(180deg,#dfe8d2,#c9d6b4); flex:0 0 auto; }
+  .card .body { flex:1; min-width:0; }
+  .card .nm { font-weight:800; font-size:15px; }
+  .card .meta { font-size:11.5px; color:var(--muted); font-family:"Segoe UI",system-ui,sans-serif; margin-top:2px; }
+  .card .note { font-size:12.5px; margin-top:5px; line-height:1.45; }
+  .card .buyrow { display:flex; align-items:center; gap:8px; margin-top:8px; flex-wrap:wrap; }
+  .price { font-family:"Segoe UI",system-ui,sans-serif; font-weight:900; font-size:14px; color:var(--gold-d); }
+  .tag { font-family:"Segoe UI",system-ui,sans-serif; font-size:10px; font-weight:800; letter-spacing:.5px;
+    padding:2px 7px; border-radius:999px; background:#e6dcc8; color:#6b5a3c; }
+  .tag.hot { background:#f2d0c9; color:#8f3a2a; }
+  .tag.rare { background:#d9d2ee; color:#4b3a86; }
+  .stars { font-size:11px; letter-spacing:1px; color:var(--gold-d); }
+  .tabs { display:flex; gap:6px; flex-wrap:wrap; }
+  .tabs button { background:var(--panel2); color:var(--muted); font-weight:800; font-size:12px;
+    padding:7px 13px; border-radius:999px; box-shadow:0 2px 0 var(--line); }
+  .tabs button.on { background:var(--accent); color:#fff; box-shadow:0 2px 0 var(--accent-d); }
+
+  /* ---------- talk ---------- */
+  .chat { height:min(46vh,360px); overflow-y:auto; display:flex; flex-direction:column; gap:8px;
+    padding:4px 2px; scroll-behavior:smooth; }
+  .bub { max-width:86%; padding:9px 13px; border-radius:14px; font-size:14px; line-height:1.5; }
+  .bub.me { align-self:flex-end; background:linear-gradient(180deg,#a5834f,var(--accent)); color:#fff;
+    border-bottom-right-radius:5px; }
+  .bub.pigb { align-self:flex-start; background:var(--panel2); border-bottom-left-radius:5px; }
+  .bub.pigb em { color:var(--muted); font-style:italic; }
+  .bub.sysb { align-self:center; background:transparent; color:var(--muted); font-size:12px; text-align:center;
+    font-family:"Segoe UI",system-ui,sans-serif; }
+  .bub .snd { display:block; margin-top:4px; font-weight:800; color:var(--accent-d); letter-spacing:.4px; }
+  .sayrow { display:flex; gap:7px; margin-top:8px; }
+  .sayrow input { flex:1; min-width:0; font:inherit; font-size:15px; padding:11px 13px; border-radius:12px;
+    border:2px solid var(--line); background:#fff; color:var(--ink); }
+  .sayrow input:focus { outline:none; border-color:var(--accent); }
+  .quick { display:flex; gap:5px; flex-wrap:wrap; margin-top:7px; }
+  .quick button { background:var(--panel2); color:var(--accent-d); font-size:11.5px; font-weight:700;
+    padding:5px 10px; border-radius:999px; box-shadow:0 2px 0 var(--line); }
+  .typing { font-size:12px; color:var(--muted); font-style:italic; padding-left:4px; }
+
+  /* ---------- misc ---------- */
+  .grid2 { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:8px; }
+  .stat { background:var(--panel2); border-radius:11px; padding:9px 11px; }
+  .stat .k { font-size:10.5px; letter-spacing:.8px; color:var(--muted); font-family:"Segoe UI",system-ui,sans-serif;
+    font-weight:800; text-transform:uppercase; }
+  .stat .v { font-size:17px; font-weight:800; margin-top:2px; }
+  .meter { height:9px; border-radius:5px; background:#e4d9c6; overflow:hidden; margin-top:6px; }
+  .meter i { display:block; height:100%; border-radius:5px; }
+  .warnbox { background:#f7e5df; border-left:4px solid var(--bad); border-radius:0 10px 10px 0; padding:9px 12px;
+    font-size:12.5px; line-height:1.5; }
+  .infobox { background:#eaf0e2; border-left:4px solid var(--green); border-radius:0 10px 10px 0; padding:9px 12px;
+    font-size:12.5px; line-height:1.5; }
+  .baglist { display:flex; flex-direction:column; gap:5px; max-height:210px; overflow-y:auto; }
+  .bagrow { display:flex; align-items:center; gap:8px; background:var(--panel2); border-radius:10px;
+    padding:7px 10px; font-size:13px; }
+  .bagrow .g { font-family:"Segoe UI",system-ui,sans-serif; font-weight:800; color:var(--muted); font-size:11.5px; }
+  .bagrow .v { margin-left:auto; font-weight:800; color:var(--gold-d); font-family:"Segoe UI",system-ui,sans-serif; }
+  .empty { text-align:center; color:var(--muted); font-size:13px; padding:16px 8px; font-style:italic; }
+  .modal { position:fixed; inset:0; z-index:60; background:rgba(30,22,12,.62); display:none;
+    align-items:center; justify-content:center; padding:16px; }
+  .modal.on { display:flex; }
+  .modal .panel { max-width:420px; width:100%; }
+  footer { text-align:center; color:#fff; opacity:.85; font-size:11px; padding:2px 0 4px;
+    font-family:"Segoe UI",system-ui,sans-serif; text-shadow:0 1px 2px rgba(0,0,0,.3); }
+  @media (max-width:560px) {
+    .vitals { width:132px; }
+    .keys { display:none; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <div class="brand"><b>Truffle Trail</b><small>A SMALLHOLDING, A SNOUT, AND THE PRICE OF TUBERS</small></div>
+    <div class="purse">
+      <div class="chip cash" id="chipCash">$60</div>
+      <div class="chip heart" id="chipHeart">0 hearts</div>
+      <div class="chip pig" id="chipPig">no pig</div>
+    </div>
+  </div>
+
+  <!-- ============ FARM ============ -->
+  <section class="screen on" id="scr-farm">
+    <div class="stage">
+      <canvas id="world" width="960" height="560"></canvas>
+      <div class="overlay">
+        <div class="clockbox" id="clockBox">Day 1 &middot; 7:00 am</div>
+        <div class="vitals" id="vitals"></div>
+        <div class="toastbox" id="toastBox"></div>
+        <div class="hotbar" id="hotbar"></div>
+        <div class="prompt" id="prompt"></div>
+      </div>
+      <div class="touch">
+        <div class="stick" id="stick"><i id="stickNub"></i></div>
+        <div class="tbtns">
+          <button data-k="e">E<br>Do</button>
+          <button data-k="f">F<br>Treat</button>
+          <button data-k="g">G<br>Play</button>
+          <button data-k="h">H<br>Pet</button>
+          <button data-k="c">C<br>Call</button>
+          <button data-k="r">R<br>Hunt</button>
+        </div>
+      </div>
+    </div>
+    <div class="panel tight">
+      <div class="keys">
+        <div><b>W A S D</b> / arrows &mdash; walk</div>
+        <div><b>Shift</b> &mdash; jog (costs your wind)</div>
+        <div><b>E</b> &mdash; work the job you're standing at</div>
+        <div><b>F</b> &mdash; offer the selected treat</div>
+        <div><b>G</b> &mdash; play with the selected toy</div>
+        <div><b>H</b> &mdash; scratch her behind the ear</div>
+        <div><b>C</b> &mdash; call her by name</div>
+        <div><b>R</b> &mdash; send her hunting / call her off</div>
+        <div><b>1&ndash;9</b> &mdash; pick a treat &middot; <b>Tab</b> toy</div>
+      </div>
+    </div>
+    <div class="panel tight" id="farmNote"></div>
+  </section>
+
+  <!-- ============ MARKET ============ -->
+  <section class="screen" id="scr-market">
+    <div class="panel">
+      <h2>Bellhollow Livestock Market</h2>
+      <div class="sub" id="marketSub"></div>
+      <div class="hr"></div>
+      <div class="tabs" id="marketTabs"></div>
+    </div>
+    <div class="panel" id="marketPanel"></div>
+  </section>
+
+  <!-- ============ SHOP ============ -->
+  <section class="screen" id="scr-shop">
+    <div class="panel">
+      <h2>The Feed &amp; Enrichment Store</h2>
+      <div class="sub">Treats get eaten. Toys stay yours forever &mdash; but a pig who sees the same toy every day stops seeing it at all, so rotate them.</div>
+      <div class="hr"></div>
+      <div class="tabs">
+        <button class="on" data-shop="treats">Treats</button>
+        <button data-shop="toys">Toys &amp; enrichment</button>
+        <button data-shop="never">Never feed a pig</button>
+      </div>
+    </div>
+    <div class="panel" id="shopPanel"></div>
+  </section>
+
+  <!-- ============ TALK ============ -->
+  <section class="screen" id="scr-talk">
+    <div class="panel">
+      <h2 id="talkTitle">Talking to your pig</h2>
+      <div class="sub" id="talkSub"></div>
+      <div class="hr"></div>
+      <div class="chat" id="chat"></div>
+      <div class="typing" id="typing" style="display:none"></div>
+      <div class="sayrow">
+        <input id="sayInput" type="text" maxlength="180" placeholder="Say something to her&hellip;" autocomplete="off">
+        <button class="btn" id="sayBtn">Say</button>
+      </div>
+      <div class="quick" id="quickRow"></div>
+    </div>
+  </section>
+
+  <!-- ============ PIG ============ -->
+  <section class="screen" id="scr-pig">
+    <div class="panel" id="pigPanel"></div>
+    <div class="panel" id="bagPanel"></div>
+  </section>
+
+  <footer>Every breed, price, truffle and warning in here is the real thing, scaled to a real 0.4&nbsp;acre paddock.</footer>
+</div>
+
+<nav class="nav"><div class="nav-inner">
+  <button class="active" data-scr="farm"><span class="ico">&#127806;</span>Farm</button>
+  <button data-scr="market"><span class="ico">&#127974;</span>Market</button>
+  <button data-scr="shop"><span class="ico">&#127805;</span>Treats &amp; Toys</button>
+  <button data-scr="talk"><span class="ico">&#128172;</span>Talk</button>
+  <button data-scr="pig"><span class="ico">&#128055;</span>Your Pig</button>
+</div></nav>
+
+<div class="modal" id="modal"><div class="panel" id="modalBody"></div></div>
+
+<script>
+(function(){
+'use strict';
+
+/* =======================================================================
+   0. UTILITIES
+   ======================================================================= */
+const clamp = (v,a,b)=> v<a?a:(v>b?b:v);
+const rand  = (a,b)=> a + Math.random()*(b-a);
+const randi = (a,b)=> Math.floor(rand(a,b+1));
+const pick  = arr => arr[Math.floor(Math.random()*arr.length)];
+const dist  = (ax,ay,bx,by)=> Math.hypot(ax-bx, ay-by);
+const lerp  = (a,b,t)=> a + (b-a)*t;
+const $     = id => document.getElementById(id);
+function money(n){
+  if (n >= 1e6) return '$' + (n/1e6).toFixed(n%1e6===0?0:2).replace(/\.00$/,'') + 'M';
+  return '$' + Math.round(n).toLocaleString('en-US');
+}
+function exactMoney(n){ return '$' + Math.round(n).toLocaleString('en-US'); }
+function shade(hex, amt){
+  const n = parseInt(hex.slice(1),16);
+  const r = clamp(((n>>16)&255) + amt, 0, 255);
+  const g = clamp(((n>>8)&255) + amt, 0, 255);
+  const b = clamp((n&255) + amt, 0, 255);
+  return '#' + ((1<<24)|(r<<16)|(g<<8)|b).toString(16).slice(1);
+}
+function stars(n, max){
+  max = max || 5;
+  return '★'.repeat(n) + '☆'.repeat(Math.max(0,max-n));
+}
+
+/* =======================================================================
+   1. DATA — pig breeds
+   Prices track real going rates for registered weaners/gilts, then keep
+   climbing past the point of sense, as requested.
+   ======================================================================= */
+const BREEDS = [
+  { id:'feral', name:'Feral Razorback cross', price:80, tier:'starter',
+    origin:'Escaped stock, southeastern United States', matureLb:180, nose:3, calm:1, stam:5,
+    note:'Free to a good home, and worth every penny of that. Half the shape of a domestic hog and twice the opinion. Roots relentlessly — which is exactly the trait a truffle hunter wants, if you can keep hold of the other end of the rope.',
+    look:{ base:'#5a4a3d', shade:'#3b2f26', pattern:'bristled', patch:'#2a211a', ears:'erect', bristle:1, size:.82, tusks:true } },
+
+  { id:'yorkshire', name:'Yorkshire (Large White)', price:190, tier:'starter',
+    origin:'Yorkshire, England, 1761', matureLb:600, nose:2, calm:3, stam:3,
+    note:'The white pig on every feed-sack in the world. Enormous, sensible, prolific, and utterly uninterested in your oak grove. Sunburns like a Scottish tourist — she needs shade by ten in the morning.',
+    look:{ base:'#f2e2d2', shade:'#d6c0ac', pattern:'solid', patch:'#e8cdba', ears:'erect', bristle:.2, size:1.18 } },
+
+  { id:'hampshire', name:'Hampshire', price:280, tier:'starter',
+    origin:'Hampshire, England, exported to Kentucky c.1825', matureLb:550, nose:2, calm:3, stam:4,
+    note:'Black with a clean white belt over the shoulders and down both front legs. Lean, fast-growing, and the breed that wins more county-fair carcass classes than any other. A workmanlike pig.',
+    look:{ base:'#2c2724', shade:'#171412', pattern:'belted', patch:'#f4ece2', ears:'erect', bristle:.4, size:1.1 } },
+
+  { id:'chester', name:'Chester White', price:360, tier:'starter',
+    origin:'Chester County, Pennsylvania, 1810s', matureLb:560, nose:3, calm:4, stam:3,
+    note:'Droopy-eared, cream-coloured and famously good-natured. Sows here are the gold standard for mothering. She will follow you around the yard purely out of friendliness.',
+    look:{ base:'#f6ead9', shade:'#dcc9b2', pattern:'solid', patch:'#eeddc8', ears:'lop', bristle:.25, size:1.12 } },
+
+  { id:'duroc', name:'Duroc', price:520, tier:'working',
+    origin:'New York and New Jersey, 1820s', matureLb:600, nose:3, calm:3, stam:5,
+    note:'Deep red, partly-drooped ears, and the hardiest feet in the business. Durocs handle cold, mud and long days better than almost anything. The heavy marbling that makes their meat famous also makes them tireless.',
+    look:{ base:'#9d4f2c', shade:'#6f341a', pattern:'solid', patch:'#b8663c', ears:'semi', bristle:.5, size:1.14 } },
+
+  { id:'berkshire', name:'Berkshire', price:750, tier:'working',
+    origin:'Berkshire, England — the herd of Oliver Cromwell’s army', matureLb:600, nose:3, calm:4, stam:4,
+    note:'Black with six white points: four socks, a snout blaze and a tail tip. Sold in Japan as Kurobuta. Level-headed, curious, and just greedy enough to take direction from a pocket of acorns.',
+    look:{ base:'#2a2521', shade:'#131110', pattern:'points', patch:'#f2ece2', ears:'erect', bristle:.4, size:1.1 } },
+
+  { id:'tamworth', name:'Tamworth', price:1200, tier:'working',
+    origin:'Tamworth, Staffordshire — closest living breed to the wild boar', matureLb:550, nose:5, calm:3, stam:5,
+    note:'Ginger, long-snouted, upright-eared, and the finest rooting nose in domestic pigs. If you only ever own one truffle hog, this is the sensible answer. Fence her properly: a Tamworth treats a weak fence as a suggestion.',
+    look:{ base:'#c0642c', shade:'#8c4218', pattern:'solid', patch:'#d98a4c', ears:'erect', bristle:.75, size:1.02 } },
+
+  { id:'oldspots', name:'Gloucestershire Old Spots', price:1700, tier:'working',
+    origin:'Berkeley Vale, Gloucestershire', matureLb:600, nose:4, calm:5, stam:3,
+    note:'The Orchard Pig. Folklore says the black spots are bruises from falling apples. Enormous lopped ears fall over her eyes, which is exactly why she is so calm — she cannot see enough to panic about it.',
+    look:{ base:'#f4ecdf', shade:'#d8cbb6', pattern:'spotted', patch:'#2b2521', ears:'lop', bristle:.3, size:1.15 } },
+
+  { id:'largeblack', name:'Large Black', price:2400, tier:'working',
+    origin:'Devon and Cornwall, 19th century', matureLb:700, nose:4, calm:5, stam:4,
+    note:'All black, ears to the ground, and one of the rarest British breeds — the Rare Breeds Survival Trust has watched this one closely for decades. Superb forager, never sunburns, and walks with the gravity of a bishop.',
+    look:{ base:'#241f1c', shade:'#100e0d', pattern:'solid', patch:'#332c27', ears:'lop', bristle:.35, size:1.2 } },
+
+  { id:'hereford', name:'Hereford hog', price:3400, tier:'rare',
+    origin:'Iowa and Nebraska, 1920s', matureLb:600, nose:3, calm:5, stam:4,
+    note:'Bred to match Hereford cattle: red body, white face, white socks. A show-ring pig with a mild, biddable temper. Children’s 4-H projects are built on this breed.',
+    look:{ base:'#8f4526', shade:'#632d16', pattern:'hereford', patch:'#f4ece2', ears:'semi', bristle:.4, size:1.12 } },
+
+  { id:'redwattle', name:'Red Wattle', price:4800, tier:'rare',
+    origin:'Rediscovered in the woods of east Texas, 1970s', matureLb:700, nose:4, calm:4, stam:5,
+    note:'Deep red, with a pair of fleshy wattles swinging from the throat that serve no known purpose whatsoever. Lean, fast, heat-tolerant, and still listed as Critical by the Livestock Conservancy.',
+    look:{ base:'#96371f', shade:'#651e0e', pattern:'solid', patch:'#b04d2c', ears:'semi', bristle:.5, size:1.16, wattles:true } },
+
+  { id:'ossabaw', name:'Ossabaw Island Hog', price:7200, tier:'rare',
+    origin:'Marooned Spanish stock, Ossabaw Island, Georgia, c.1500s', matureLb:200, nose:5, calm:4, stam:4,
+    note:'Four hundred years on a barrier island made her small, black-and-mottled, and metabolically extraordinary — she stores fat like nothing else alive and is studied for it in diabetes research. Genuinely cannot be legally taken off the island; yours is mainland-bred.',
+    look:{ base:'#37302b', shade:'#1c1815', pattern:'spotted', patch:'#b8a894', ears:'erect', bristle:.7, size:.86 } },
+
+  { id:'kunekune', name:'Kunekune', price:9800, tier:'rare',
+    origin:'Māori-kept pig of Aotearoa New Zealand', matureLb:220, nose:3, calm:5, stam:3,
+    note:'Name means “fat and round”, and she is. The only pig that truly grazes grass instead of tearing it up, which makes her useless in the truffle grove and the best-tempered animal on the farm. Those two tassels under her chin are called piri piri.',
+    look:{ base:'#c98f5c', shade:'#96633a', pattern:'spotted', patch:'#3a2a20', ears:'semi', bristle:.55, size:.8, wattles:true } },
+
+  { id:'mangalitsa', name:'Mangalitsa (Blonde)', price:17000, tier:'rare',
+    origin:'Habsburg Hungary, 1830s — the wool-bearing pig', matureLb:350, nose:4, calm:4, stam:4,
+    note:'She grows an actual fleece. Nearly extinct in the 1990s at under 200 sows, now the darling of every chef who has ever said the word “lardo”. The curls shed in summer and come back thicker each autumn.',
+    look:{ base:'#e5cf9c', shade:'#bda368', pattern:'wooly', patch:'#c9ae74', ears:'semi', bristle:1, size:1.0 } },
+
+  { id:'cinta', name:'Cinta Senese', price:29000, tier:'heirloom',
+    origin:'Hills of Siena, Tuscany', matureLb:330, nose:5, calm:4, stam:5,
+    note:'Black with a white sash over the shoulders. She is painted, unmistakably, into Lorenzetti’s 1338 fresco in the Palazzo Pubblico — the same pig, the same belt, seven centuries ago. Protected by DOP status and raised loose in oak woodland.',
+    look:{ base:'#2b2521', shade:'#141110', pattern:'belted', patch:'#efe6da', ears:'semi', bristle:.5, size:.98 } },
+
+  { id:'nebrodi', name:'Nero dei Nebrodi', price:46000, tier:'heirloom',
+    origin:'Nebrodi mountains, Sicily', matureLb:300, nose:6, calm:3, stam:6,
+    note:'Half-wild, black-bristled, and left to run the beech and oak forests above Messina all year. Fewer than three thousand remain. Her nose has been refined by four hundred generations of finding food nobody put out for her.',
+    look:{ base:'#241d18', shade:'#0f0c0a', pattern:'bristled', patch:'#443830', ears:'erect', bristle:1, size:.92, tusks:true } },
+
+  { id:'iberico', name:'Ibérico de Bellota (Pata Negra)', price:95000, tier:'heirloom',
+    origin:'The dehesa oak savannah of Extremadura and Andalucía', matureLb:350, nose:7, calm:4, stam:6,
+    note:'Black trotters, slate skin, and a legal requirement of two hectares of oak pasture per animal. In the montañera she eats ten kilos of acorns a day and nothing else. A pig who has spent her whole life finding things under oak trees knows exactly what you are asking of her.',
+    look:{ base:'#3a332e', shade:'#1b1715', pattern:'solid', patch:'#26201c', ears:'semi', bristle:.6, size:.95 } },
+
+  { id:'kintoa', name:'Basque Kintoa (Pie Noir)', price:160000, tier:'heirloom',
+    origin:'Aldudes valley, Basque Country — down to 25 animals in 1981', matureLb:330, nose:7, calm:5, stam:5,
+    note:'Black head, black rump, white middle, pulled back from the actual brink by a handful of farmers in the Pyrenees. The name comes from the kintoa, the medieval tax of one pig in five owed for the right to graze the royal forest.',
+    look:{ base:'#f0e6d8', shade:'#cfc0ac', pattern:'kintoa', patch:'#241f1b', ears:'lop', bristle:.4, size:1.0 } },
+
+  { id:'royale', name:'Truffière Royale, grand champion line', price:620000, tier:'absurd',
+    origin:'Périgord, France — eleven generations bred for one job', matureLb:340, nose:9, calm:5, stam:7,
+    note:'Every pig in her pedigree was selected on a single criterion: grams of Tuber melanosporum lifted per hour. She arrives with a keeper, a diet sheet, and a scent-work record longer than your arm. She will find truffles in ground you were certain was empty.',
+    look:{ base:'#4a4038', shade:'#28211c', pattern:'points', patch:'#e8dccb', ears:'semi', bristle:.5, size:1.05 } },
+
+  { id:'aureus', name:'“Sus Aureus”, the vault pig', price:5000000, tier:'absurd',
+    origin:'Undisclosed climate-controlled facility, Liechtenstein', matureLb:360, nose:10, calm:5, stam:8,
+    note:'Insured for more than your farm. Travels in a temperature-regulated trailer with her own vet. Nobody can satisfactorily explain what makes her worth five million dollars, and everybody who has watched her work has stopped asking.',
+    look:{ base:'#e8d49a', shade:'#b99f5e', pattern:'wooly', patch:'#d9bd7c', ears:'semi', bristle:1, size:1.08 } },
+
+  { id:'empress', name:'Empress Zhū, sole surviving Ming bloodline', price:50000000, tier:'absurd',
+    origin:'A courtyard in Jiangsu that has held pigs since 1487', matureLb:400, nose:10, calm:5, stam:9,
+    note:'Comes with two handlers, a standing letter from a museum, and a clause forbidding you from putting her in mud. She ignores the clause. She has found a white Alba truffle in ground that had never grown one, and the Piedmontese are still arguing about it.',
+    look:{ base:'#171512', shade:'#000000', pattern:'points', patch:'#f6f0e4', ears:'semi', bristle:.7, size:1.12, tusks:true } }
+];
+const BREED_BY_ID = {}; BREEDS.forEach(b=> BREED_BY_ID[b.id]=b);
+
+/* =======================================================================
+   2. DATA — treats, toys, and the do-not-feed list
+   ======================================================================= */
+const TREATS = [
+  { id:'acorn',   name:'Handful of acorns',    price:2,   joy:9,  fill:5,  bond:2,
+    note:'The single food a foraging pig will cross a field for. An Ibérico eats ten kilos a day of nothing else.' },
+  { id:'carrot',  name:'Carrot, whole',        price:2,   joy:6,  fill:4,  bond:1,
+    note:'Hard, crunchy, low sugar. Good for the teeth and it takes her a while, which is the point.' },
+  { id:'apple',   name:'Apple, quartered',     price:3,   joy:8,  fill:5,  bond:2,
+    note:'Quartered, not whole — a pig will try to swallow a whole apple and a pig can choke.' },
+  { id:'melon',   name:'Watermelon rind',      price:3,   joy:7,  fill:4,  bond:1,
+    note:'Ninety percent water. On a hot afternoon this does more for her than shade does.' },
+  { id:'alfalfa', name:'Alfalfa cube',         price:2,   joy:4,  fill:6,  bond:1,
+    note:'Dull, fibrous, and exactly what a pig’s gut wants between meals.' },
+  { id:'sweetpot',name:'Sweet potato, cooked', price:4,   joy:9,  fill:8,  bond:2,
+    note:'Cooked, always. Raw sweet potato is hard on a pig and she will not thank you for it.' },
+  { id:'pumpkin', name:'Pumpkin chunk',        price:5,   joy:8,  fill:7,  bond:2,
+    note:'Seeds and all. Farmers have fed pumpkin seed as a rough natural wormer for two hundred years.' },
+  { id:'pellet',  name:'Whole-grain hog pellet',price:8,  joy:5,  fill:14, bond:1,
+    note:'The actual ration. Everything else on this shelf is a bribe; this is dinner.' },
+  { id:'berry',   name:'Blueberries, cup',     price:6,   joy:10, fill:3,  bond:3,
+    note:'Costly per calorie and she knows it. Save these for the moment she does something hard and does it right.' },
+  { id:'chestnut',name:'Roasted chestnuts',    price:13,  joy:12, fill:6,  bond:3,
+    note:'What Tuscan farmers have finished a Cinta Senese on for centuries. The smell alone brings her at a run.' },
+  { id:'truffleshave', name:'Truffle shavings, 5g', price:420, joy:20, fill:1, bond:6,
+    note:'Feeding a black Périgord truffle to the animal whose job is finding them is either the most romantic thing you can do on a farm or the stupidest. She will remember it either way.' }
+];
+const TREAT_BY_ID = {}; TREATS.forEach(t=> TREAT_BY_ID[t.id]=t);
+
+const TOYS = [
+  { id:'ball',    name:'Beach ball',              price:9,    joy:6,  note:'Cheap, loud, briefly thrilling. She will burst it within the week and be delighted by that too.' },
+  { id:'squeak',  name:'Hard rubber squeaky toy', price:14,   joy:7,  note:'Rated for a large dog, which means it survives about one afternoon with a pig.' },
+  { id:'strawbale',name:'Straw bale',             price:19,   joy:9,  note:'The most important item in this shop. A pig deprived of something to root in will start rooting her pen-mates instead — EU welfare law requires manipulable material for exactly this reason.' },
+  { id:'puzzle',  name:'Treat-dispensing puzzle ball', price:24, joy:11, note:'Makes her work a problem for her food. Pigs solve these faster than dogs do, then invent ways to cheat.' },
+  { id:'bowling', name:'Bowling ball',            price:28,   joy:10, note:'Not a joke. Genuinely standard enrichment on commercial farms — the one object in the world a pig cannot destroy.' },
+  { id:'snuffle', name:'Snuffle mat',             price:30,   joy:9,  note:'Scatter feed into the fabric and let the nose do the work. Directly trains the skill you need in the grove.' },
+  { id:'logpile', name:'Fresh log pile',          price:38,   joy:10, note:'Bark to strip, grubs underneath, and a scratching surface. Three enrichments in one delivery.' },
+  { id:'brush',   name:'Scratching post with brush', price:48, joy:12, note:'Bolted to a fence post. She will lean into it and go slack-eyed and stay there for twenty minutes.' },
+  { id:'pool',    name:'Hard plastic wading pool', price:65,  joy:13, note:'A pig has almost no functioning sweat glands. In July this is not a toy, it is life support.' },
+  { id:'wallow',  name:'Proper dug wallow, lined', price:140, joy:15, note:'A real wallow — dug, clay-lined, kept wet. Mud cools her, blocks sunburn, and pulls lice and mites off her skin. It is the single best thing you can build for a pig.' },
+  { id:'oakbox',  name:'Oak-and-brass rooting box', price:2600, joy:22, note:'Hand-joined English oak, brass fittings, filled with river gravel and buried hazelnuts. It is a very expensive box of stones. She adores it and it will outlive you both.' }
+];
+const TOY_BY_ID = {}; TOYS.forEach(t=> TOY_BY_ID[t.id]=t);
+
+const NEVER_FEED = [
+  { n:'Meat, or anything that touched meat', w:'Feeding catering waste or kitchen scraps to pigs is illegal in the UK, the EU and the United States. Foot-and-mouth in Britain in 2001 was traced to exactly this, and cost eleven billion pounds.' },
+  { n:'Chocolate, coffee, anything caffeinated', w:'Theobromine and caffeine are cardiac toxins in pigs as they are in dogs.' },
+  { n:'Raw or green potato, and potato leaves', w:'Solanine. Green skin and sprouts are the dangerous part.' },
+  { n:'Mouldy bread, silage or nuts', w:'Mycotoxins. Pigs are more sensitive to them than any other farm species.' },
+  { n:'Salt, or salty scraps, without water', w:'Salt poisoning in pigs is a real and rapid neurological death. It is almost always caused by the water running out, not the salt going up.' },
+  { n:'Avocado, especially the skin and stone', w:'Persin. Not worth the argument.' },
+  { n:'Tomato and pepper leaves, rhubarb leaves', w:'All nightshade foliage, plus oxalates in the rhubarb.' },
+  { n:'Acorns by the sackful', w:'A handful is a treat. Unlimited green acorns are tannin poisoning — the dehesa works because the pigs are also walking twelve kilometres a day over sixty hectares.' }
+];
+
+/* =======================================================================
+   3. DATA — truffles
+   Prices are per pound, in the range wholesale actually trades at.
+   ======================================================================= */
+const TRUFFLES = [
+  { id:'oregon',  name:'Oregon white truffle',  latin:'Tuber oregonense',   perLb:230,  minG:12, maxG:55,  weight:34, season:'winter',
+    note:'Douglas-fir country, not oak. Fine when fresh, worthless four days later.' },
+  { id:'summer',  name:'Summer truffle',        latin:'Tuber aestivum',     perLb:300,  minG:20, maxG:110, weight:30, season:'summer',
+    note:'Black warty rind, pale hazel interior, mild. The one most people have actually eaten.' },
+  { id:'bianch',  name:'Bianchetto truffle',    latin:'Tuber borchii',      perLb:360,  minG:10, maxG:45,  weight:18, season:'spring',
+    note:'Garlicky, sharp, and gets sharper the longer it sits. Often sold as the white truffle to people who have never had one.' },
+  { id:'burgundy',name:'Burgundy truffle',      latin:'Tuber uncinatum',    perLb:450,  minG:25, maxG:120, weight:14, season:'autumn',
+    note:'The autumn form of the summer truffle, harvested later and grown far darker and more aromatic.' },
+  { id:'perigord',name:'Black Périgord truffle', latin:'Tuber melanosporum', perLb:1100, minG:20, maxG:180, weight:9, season:'winter',
+    note:'The black diamond. Purple-black flesh with white veining, and the only truffle that improves with gentle heat.' },
+  { id:'alba',    name:'Alba white truffle',    latin:'Tuber magnatum',     perLb:3200, minG:15, maxG:210, weight:3, season:'autumn',
+    note:'Cannot be farmed. Every one ever sold was found by an animal in wild ground. The record specimen went at auction for triple six figures.' }
+];
+const TRUF_BY_ID = {}; TRUFFLES.forEach(t=> TRUF_BY_ID[t.id]=t);
+const G_PER_LB = 453.59237;
+
+/* =======================================================================
+   4. GAME STATE
+   ======================================================================= */
+const S = {
+  money: 60,
+  hearts: 0,
+  rep: 0,                       // grows as you sell; raises buyer prices
+  pig: null,
+  inv: { treats:{}, toys:{} },
+  selTreat: null,
+  selToy: null,
+  bag: [],                      // { sp, g }
+  totalFound: 0,
+  totalEarned: 0,
+  choresDone: 0,
+  day: 1,
+  tod: 7*60,                    // minutes past midnight
+  season: 'autumn',
+  screen: 'farm',
+  marketTab: 'starter',
+  shopTab: 'treats',
+  seenBrule: false,
+  chat: [],
+  lastSaid: [],
+  saidCount: {},
+  toyLast: {},
+  askedFirstHunt: false
+};
+
+/* farm-wide constants, in centimetres, because the field is a real size */
+const FIELD_W = 4800, FIELD_H = 3400;   // 48 m x 34 m  =  0.40 acre
+const PX = 0.55;                        // px per cm across
+const DEPTH = 0.30;                     // px per cm into the screen (oblique view)
+const VIEW_W = 960, VIEW_H = 560;
+const FPX_W = Math.round(FIELD_W*PX), FPX_H = Math.round(FIELD_H*DEPTH);
+
+const world = $('world');
+/* `ctx` is deliberately a let: the card previews borrow the drawing routines
+   by pointing it at an offscreen canvas for a moment. */
+let ctx = world.getContext('2d');
+let cam = { x:0, y:0 };
+
+/* =======================================================================
+   5. THE FARM LAYOUT
+   ======================================================================= */
+const JOBS = [
+  { id:'water',  x:1150, y:1720, r:190, label:'Water the vegetable rows', verb:'Watering', pay:9,  hold:2.2, cd:52 },
+  { id:'harvest',x:1560, y:2020, r:190, label:'Cut the ripe beds',        verb:'Cutting',  pay:24, hold:3.2, cd:78 },
+  { id:'eggs',   x:3320, y:520,  r:170, label:'Collect the eggs',         verb:'Collecting',pay:13, hold:2.0, cd:60 },
+  { id:'muck',   x:1900, y:640,  r:200, label:'Muck out the barn',        verb:'Mucking out',pay:17,hold:3.6, cd:70 },
+  { id:'wood',   x:2560, y:980,  r:170, label:'Stack the firewood',       verb:'Stacking', pay:12, hold:2.6, cd:56 },
+  { id:'fence',  x:4380, y:1180, r:180, label:'Mend the fence line',      verb:'Mending',  pay:20, hold:3.4, cd:82 },
+  { id:'trough', x:2820, y:1760, r:160, label:'Fill the water trough',    verb:'Filling',  pay:7,  hold:1.6, cd:48 },
+  { id:'wallow', x:3620, y:2180, r:170, label:'Top up the wallow',        verb:'Wetting',  pay:6,  hold:1.8, cd:46 }
+];
+JOBS.forEach(j=>{ j.ready = true; j.timer = 0; j.prog = 0; });
+
+/* the oak grove — truffles only grow with a host tree */
+const OAKS = [];
+(function seedOaks(){
+  /* a planted truffière, set out in rows, the way they actually are */
+  const rows = [[2480,[2620,3420,4220]], [2840,[2980,3780,4560]], [3180,[2600,3400,4210]]];
+  let i = 0;
+  rows.forEach(row=>{
+    row[1].forEach(x=>{
+      OAKS.push({ x: x + (i%2?38:-28), y: row[0] + (i%3)*24,
+                  r: 250 + (i%3)*38, seed:i, kind: i%4===3 ? 'hazel' : 'oak' });
+      i++;
+    });
+  });
+})();
+
+const HEDGE = [];
+(function seedHedge(){
+  for (let i=0;i<28;i++) HEDGE.push({ x: 180 + i*172, y: 110 + Math.sin(i)*16, s: rand(.8,1.25) });
+})();
+
+const spots = [];     // live truffle spots
+function newSpot(){
+  const oak = pick(OAKS);
+  const a = rand(0, Math.PI*2), d = rand(oak.r*0.35, oak.r*1.15);
+  const sp = weightedTruffle();
+  return {
+    x: clamp(oak.x + Math.cos(a)*d, 200, FIELD_W-200),
+    y: clamp(oak.y + Math.sin(a)*d*0.8, 2150, FIELD_H-160),
+    sp: sp.id,
+    g: Math.round(rand(sp.minG, sp.maxG)),
+    depth: rand(4, 22),          // cm below the surface
+    found: false, dug:false, rooted:0, eaten:false, mark:0
+  };
+}
+function weightedTruffle(){
+  const nose = S.pig ? BREED_BY_ID[S.pig.breed].nose : 3;
+  let total = 0; const w = [];
+  TRUFFLES.forEach(t=>{
+    // a better nose does not find more truffles, it finds the ones worth finding
+    let ww = t.weight * (t.perLb > 800 ? (0.25 + nose*0.22) : 1) * (t.perLb > 2000 ? (nose>=7?1.4:0.35) : 1);
+    if (t.season === S.season) ww *= 2.2;
+    w.push(ww); total += ww;
+  });
+  let r = Math.random()*total;
+  for (let i=0;i<TRUFFLES.length;i++){ r -= w[i]; if (r <= 0) return TRUFFLES[i]; }
+  return TRUFFLES[1];
+}
+function refillSpots(){ while (spots.length < 8) spots.push(newSpot()); }
+refillSpots();
+
+/* =======================================================================
+   6. THE FARMER
+   ======================================================================= */
+const you = {
+  x: 1400, y: 1400, vx:0, vy:0,
+  face: 1, step: 0, moving:false,
+  wind: 1,           // stamina for jogging, 0..1
+  carrying: null,
+  heightCm: 175
+};
+
+/* =======================================================================
+   7. INPUT
+   ======================================================================= */
+const keys = {};
+let touchVec = { x:0, y:0, active:false };
+const tapped = {};
+
+function typingInField(){
+  const a = document.activeElement;
+  return a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA');
+}
+window.addEventListener('keydown', e=>{
+  if (typingInField()) return;
+  const k = e.key.toLowerCase();
+  if (['arrowup','arrowdown','arrowleft','arrowright',' ','tab'].includes(k)) e.preventDefault();
+  if (!keys[k]) tapped[k] = true;
+  keys[k] = true;
+});
+window.addEventListener('keyup', e=>{ keys[e.key.toLowerCase()] = false; });
+window.addEventListener('blur', ()=>{ for (const k in keys) keys[k] = false; });
+
+function held(...names){ return names.some(n=> keys[n]); }
+function wasTapped(n){ if (tapped[n]) { tapped[n] = false; return true; } return false; }
+
+/* touch joystick */
+(function touchStick(){
+  const el = $('stick'), nub = $('stickNub');
+  let id = null, cx = 0, cy = 0;
+  const R = 40;
+  function start(e){
+    const t = e.changedTouches[0]; id = t.identifier;
+    const r = el.getBoundingClientRect(); cx = r.left + r.width/2; cy = r.top + r.height/2;
+    touchVec.active = true; move(e); e.preventDefault();
+  }
+  function move(e){
+    for (const t of e.changedTouches){
+      if (t.identifier !== id) continue;
+      let dx = t.clientX - cx, dy = t.clientY - cy;
+      const m = Math.hypot(dx,dy) || 1;
+      const c = Math.min(m, R*1.5);
+      dx = dx/m*c; dy = dy/m*c;
+      nub.style.transform = 'translate(' + dx + 'px,' + dy + 'px)';
+      touchVec.x = clamp(dx/R,-1,1); touchVec.y = clamp(dy/R,-1,1);
+      e.preventDefault();
+    }
+  }
+  function end(e){
+    for (const t of e.changedTouches){
+      if (t.identifier !== id) continue;
+      id = null; touchVec.active = false; touchVec.x = touchVec.y = 0;
+      nub.style.transform = '';
+    }
+  }
+  el.addEventListener('touchstart', start, {passive:false});
+  window.addEventListener('touchmove', move, {passive:false});
+  window.addEventListener('touchend', end);
+  window.addEventListener('touchcancel', end);
+})();
+document.querySelectorAll('.tbtns button').forEach(b=>{
+  const k = b.dataset.k;
+  const down = e=>{ tapped[k] = true; keys[k] = true; e.preventDefault(); };
+  const up   = ()=>{ keys[k] = false; };
+  b.addEventListener('touchstart', down, {passive:false});
+  b.addEventListener('touchend', up);
+  b.addEventListener('mousedown', down);
+  b.addEventListener('mouseup', up);
+});
+if (!('ontouchstart' in window)) document.body.classList.add('no-touch');
+
+/* =======================================================================
+   8. TOASTS + PROMPT
+   ======================================================================= */
+function toast(text, kind){
+  const box = $('toastBox');
+  const d = document.createElement('div');
+  d.className = 'toast' + (kind ? ' ' + kind : '');
+  d.textContent = text;
+  box.appendChild(d);
+  setTimeout(()=>{ d.style.transition='opacity .4s'; d.style.opacity='0'; }, 2600);
+  setTimeout(()=> d.remove(), 3100);
+  while (box.children.length > 5) box.firstChild.remove();
+}
+let promptText = '';
+function setPrompt(t){
+  if (t === promptText) return;
+  promptText = t;
+  const el = $('prompt');
+  el.textContent = t;
+  el.classList.toggle('on', !!t);
+}
+
+/* =======================================================================
+   9. MONEY / HEARTS
+   ======================================================================= */
+function addMoney(n){
+  S.money += n;
+  S.totalEarned += Math.max(0,n);
+  bump('chipCash');
+  paintChips();
+}
+function addHearts(n, why){
+  if (!S.pig) return;
+  S.hearts += n;
+  S.pig.bond = clamp(S.pig.bond + n*0.9, 0, 100);
+  bump('chipHeart');
+  paintChips();
+  if (why) toast(why + '  +' + n + (n===1?' heart':' hearts'), 'heart');
+}
+function loseHearts(n, why){
+  if (!S.pig) return;
+  S.hearts = Math.max(0, S.hearts - n);
+  S.pig.bond = clamp(S.pig.bond - n*1.6, 0, 100);
+  S.pig.trust = clamp(S.pig.trust - n*3, 0, 100);
+  paintChips();
+  if (why) toast(why, 'warn');
+}
+function bump(id){
+  const el = $(id);
+  el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump');
+  setTimeout(()=> el.classList.remove('bump'), 200);
+}
+function paintChips(){
+  $('chipCash').textContent = exactMoney(S.money);
+  $('chipHeart').textContent = S.hearts + (S.hearts===1?' heart':' hearts');
+  $('chipPig').textContent = S.pig ? S.pig.name : 'no pig';
+}
+
+/* =======================================================================
+   10. THE PIG
+   ======================================================================= */
+function makePig(breedId, name){
+  const b = BREED_BY_ID[breedId];
+  return {
+    breed: breedId, name: name,
+    x: you.x + 150, y: you.y + 70, vx:0, vy:0, face:1, step:0, moving:false,
+    state:'follow', stateT:0, sniff:0, headDown:0.15, headTilt:0, earFlick:0,
+    mud:0, wander:null, petCool:0, treatCool:0,
+    bond: 6, trust: 55 + b.calm*5, energy: 100, heat: 34, hunger: 22, joy: 62,
+    training: 0, obedience: 0,
+    spot: null, rootT: 0, mouth: null, mouthT: 0, taken: 0,
+    weightLb: Math.round(b.matureLb * 0.42), ageDays: 0,
+    hunting: false, wallowUrge: 0, restUrge: 0,
+    lastToy: null, toyT: 0, lastGrunt: 0, sunburn: 0
+  };
+}
+function pigBreed(){ return S.pig ? BREED_BY_ID[S.pig.breed] : null; }
+function bondLevel(){
+  if (!S.pig) return 0;
+  const b = S.pig.bond;
+  return b < 12 ? 0 : b < 30 ? 1 : b < 52 ? 2 : b < 76 ? 3 : 4;
+}
+const BOND_NAMES = ['a stranger with hands','wary of you','warming to you','your pig','inseparable'];
+
+/* =======================================================================
+   11. GROUND — pre-rendered once, then blitted
+   ======================================================================= */
+const ground = document.createElement('canvas');
+ground.width = FPX_W; ground.height = FPX_H;
+paintGround();
+
+function gx(wx){ return wx * PX; }
+function gy(wy){ return wy * DEPTH; }
+
+function paintGround(){
+  const g = ground.getContext('2d');
+  const W = FPX_W, H = FPX_H;
+
+  /* base pasture */
+  const grad = g.createLinearGradient(0,0,0,H);
+  grad.addColorStop(0,   '#6a8b44');
+  grad.addColorStop(0.35,'#77974c');
+  grad.addColorStop(1,   '#84a355');
+  g.fillStyle = grad; g.fillRect(0,0,W,H);
+
+  /* very broad tonal drift, so the field reads as ground and not as noise */
+  for (let i=0;i<26;i++){
+    const x = Math.random()*W, y = Math.random()*H, r = 220 + Math.random()*300;
+    const rg = g.createRadialGradient(x,y,0,x,y,r);
+    const dark = i % 2 === 0;
+    rg.addColorStop(0, dark ? 'rgba(72,100,48,.16)' : 'rgba(164,186,110,.13)');
+    rg.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = rg; g.beginPath(); g.ellipse(x,y,r,r*0.55,0,0,7); g.fill();
+  }
+
+  /* grass — a dense tile of blades, laid across the whole field.
+     Building one tile and repeating it is the difference between a
+     quarter of a second and twenty. */
+  const TILE = 200;
+  const tile = document.createElement('canvas');
+  tile.width = tile.height = TILE;
+  const tg = tile.getContext('2d');
+  for (let i=0;i<9000;i++){
+    const x = Math.random()*TILE, y = Math.random()*TILE;
+    const l = 1.6 + Math.random()*3.2;
+    const k = Math.random();
+    tg.strokeStyle = 'rgba(' + Math.round(lerp(88,176,k)) + ',' +
+      Math.round(lerp(120,198,k)) + ',' + Math.round(lerp(52,104,k)) + ',' +
+      (0.18 + Math.random()*0.34) + ')';
+    tg.lineWidth = 0.75;
+    const dx = -0.6 + Math.random()*1.8;
+    /* wrap anything crossing an edge so the tile joins invisibly */
+    for (const ox of (x < 4 ? [0, TILE] : x > TILE-4 ? [0, -TILE] : [0]))
+      for (const oy of (y < 6 ? [0, TILE] : y > TILE-6 ? [0, -TILE] : [0])){
+        tg.beginPath(); tg.moveTo(x+ox, y+oy); tg.lineTo(x+ox+dx, y+oy-l); tg.stroke();
+      }
+  }
+  for (let i=0;i<170;i++){
+    const x = Math.random()*TILE, y = Math.random()*TILE;
+    tg.fillStyle = Math.random() < 0.25 ? 'rgba(236,212,104,.55)' : 'rgba(230,236,218,.34)';
+    tg.beginPath(); tg.arc(x, y, 0.9 + Math.random(), 0, 7); tg.fill();
+  }
+  g.fillStyle = g.createPattern(tile, 'repeat');
+  g.fillRect(0,0,W,H);
+
+  /* the yard — packed bare dirt, only where feet and wheels actually go */
+  function dirt(cx, cy, rx, ry){
+    const rg = g.createRadialGradient(gx(cx),gy(cy),gx(rx)*0.25,gx(cx),gy(cy),gx(rx));
+    rg.addColorStop(0,   'rgba(158,132,94,.88)');
+    rg.addColorStop(0.6, 'rgba(154,128,90,.55)');
+    rg.addColorStop(1,   'rgba(150,124,88,0)');
+    g.fillStyle = rg;
+    g.beginPath(); g.ellipse(gx(cx),gy(cy),gx(rx),gy(ry),0,0,7); g.fill();
+    /* stones and hoof-scuff */
+    for (let i=0;i<130;i++){
+      const a = Math.random()*7, d = Math.sqrt(Math.random());
+      const px = gx(cx + Math.cos(a)*rx*d*0.9), py = gy(cy + Math.sin(a)*ry*d*0.9);
+      g.fillStyle = ['rgba(120,100,72,.35)','rgba(196,176,140,.3)','rgba(90,74,52,.28)'][i%3];
+      g.beginPath(); g.ellipse(px, py, 1 + Math.random()*2, 0.7 + Math.random()*1.1, a, 0, 7); g.fill();
+    }
+  }
+  dirt(1900, 760, 420, 420);
+  dirt(700,  620, 300, 320);
+  dirt(3320, 600, 230, 250);
+  dirt(2560, 1010, 190, 200);
+
+  /* cart track from the yard down to the grove */
+  const trackPts = [[1560,760],[2100,1240],[2460,1820],[3120,2380]];
+  function track(off, w2, col){
+    g.strokeStyle = col; g.lineWidth = w2; g.lineCap = 'round';
+    g.beginPath();
+    g.moveTo(gx(trackPts[0][0])+off, gy(trackPts[0][1]));
+    g.bezierCurveTo(gx(trackPts[1][0])+off, gy(trackPts[1][1]),
+                    gx(trackPts[2][0])+off, gy(trackPts[2][1]),
+                    gx(trackPts[3][0])+off, gy(trackPts[3][1]));
+    g.stroke();
+  }
+  track(0, 22, 'rgba(126,108,74,.20)');
+  track(-6, 4.5, 'rgba(150,126,90,.55)');
+  track(6,  4.5, 'rgba(150,126,90,.55)');
+
+  /* the kitchen garden — six raised beds with a path up the middle */
+  const gx0 = 820, gy0 = 1540, bedW = 900, bedGap = 96;
+  /* worked ground around the beds, fading out rather than stopping at a line */
+  const plotG = g.createRadialGradient(
+    gx(gx0+bedW/2), gy(gy0+2.5*bedGap), gx(bedW*0.30),
+    gx(gx0+bedW/2), gy(gy0+2.5*bedGap), gx(bedW*0.62));
+  plotG.addColorStop(0, 'rgba(122,101,68,.34)');
+  plotG.addColorStop(1, 'rgba(122,101,68,0)');
+  g.fillStyle = plotG;
+  g.beginPath(); g.ellipse(gx(gx0+bedW/2), gy(gy0+2.5*bedGap), gx(bedW*0.62), gy(bedGap*4.6), 0, 0, 7); g.fill();
+  for (let r=0;r<6;r++){
+    const y0 = gy0 + r*bedGap;
+    /* the bed itself */
+    g.fillStyle = r%2 ? '#6f5637' : '#79603d';
+    g.beginPath(); g.ellipse(gx(gx0 + bedW/2), gy(y0), gx(bedW/2), gy(32), 0, 0, 7); g.fill();
+    g.fillStyle = 'rgba(40,28,16,.20)';
+    g.beginPath(); g.ellipse(gx(gx0 + bedW/2), gy(y0)+1.4, gx(bedW/2), gy(19), 0, 0, 7); g.fill();
+    /* tilth */
+    for (let i=0;i<120;i++){
+      const px = gx(gx0 + Math.random()*bedW), py = gy(y0) + (Math.random()-0.5)*gy(46);
+      g.fillStyle = 'rgba(' + (Math.random()<0.5?'44,32,18,.22':'168,144,104,.22') + ')';
+      g.beginPath(); g.arc(px, py, 0.7 + Math.random()*1.2, 0, 7); g.fill();
+    }
+    /* the crop: cabbages one row, tops the next */
+    const n = 13;
+    for (let c=0;c<n;c++){
+      const px = gx(gx0 + 34 + c*((bedW-68)/(n-1))), py = gy(y0) - 1.6;
+      if (r % 2 === 0){
+        g.fillStyle = '#46703a';
+        g.beginPath(); g.ellipse(px, py, 5.4, 3.6, 0, 0, 7); g.fill();
+        g.fillStyle = '#5b8a45';
+        g.beginPath(); g.ellipse(px-0.6, py-0.8, 3.6, 2.4, 0, 0, 7); g.fill();
+        g.fillStyle = '#7aa85c';
+        g.beginPath(); g.ellipse(px-0.9, py-1.4, 1.8, 1.2, 0, 0, 7); g.fill();
+      } else {
+        g.strokeStyle = '#4f7d33'; g.lineWidth = 0.9; g.lineCap = 'round';
+        for (let l=0;l<6;l++){
+          const a = -1.9 + l*0.62;
+          g.beginPath(); g.moveTo(px, py+1);
+          g.lineTo(px + Math.cos(a)*4.4, py + 1 + Math.sin(a)*4.6);
+          g.stroke();
+        }
+      }
+    }
+  }
+
+  /* brûlé — the bare scorched ring truffle mycelium burns around its host */
+  OAKS.forEach(o=>{
+    const rg = g.createRadialGradient(gx(o.x),gy(o.y),0,gx(o.x),gy(o.y),gx(o.r*1.25));
+    rg.addColorStop(0,   'rgba(126,104,74,.86)');
+    rg.addColorStop(0.55,'rgba(126,104,74,.62)');
+    rg.addColorStop(0.86,'rgba(126,104,74,.24)');
+    rg.addColorStop(1,   'rgba(126,104,74,0)');
+    g.fillStyle = rg;
+    g.beginPath(); g.ellipse(gx(o.x),gy(o.y),gx(o.r*1.25),gy(o.r*1.25),0,0,7); g.fill();
+    /* leaf litter */
+    for (let i=0;i<90;i++){
+      const a = Math.random()*7, d = Math.random()*o.r*1.15;
+      const lx = gx(o.x + Math.cos(a)*d), ly = gy(o.y + Math.sin(a)*d);
+      g.fillStyle = ['rgba(122,88,46,.5)','rgba(96,70,38,.45)','rgba(146,110,58,.4)'][i%3];
+      g.beginPath(); g.ellipse(lx,ly,2.2,1.2, Math.random()*3, 0, 7); g.fill();
+    }
+  });
+
+  /* the wallow, dug into the ground itself */
+  const wx = gx(3620), wy = gy(2180);
+  g.fillStyle = '#6a5136';
+  g.beginPath(); g.ellipse(wx,wy,gx(230),gy(230),0,0,7); g.fill();
+  const mud = g.createRadialGradient(wx,wy-2,0,wx,wy,gx(190));
+  mud.addColorStop(0,'#544027'); mud.addColorStop(1,'#3f2f1c');
+  g.fillStyle = mud;
+  g.beginPath(); g.ellipse(wx,wy,gx(190),gy(190),0,0,7); g.fill();
+  g.fillStyle = 'rgba(180,170,140,.16)';
+  g.beginPath(); g.ellipse(wx-4,wy-3,gx(120),gy(90),0.4,0,7); g.fill();
+
+  /* long shadowed field edge at the far side */
+  const far = g.createLinearGradient(0,0,0,gy(420));
+  far.addColorStop(0,'rgba(40,54,28,.55)'); far.addColorStop(1,'rgba(40,54,28,0)');
+  g.fillStyle = far; g.fillRect(0,0,W,gy(420));
+}
+
+/* =======================================================================
+   12. WORLD → SCREEN
+   ======================================================================= */
+function sx(wx){ return wx*PX - cam.x; }
+function sy(wy){ return wy*DEPTH - cam.y; }
+function onScreen(wx, wy, pad){
+  pad = pad || 260;
+  const x = sx(wx), y = sy(wy);
+  return x > -pad && x < VIEW_W + pad && y > -pad && y < VIEW_H + pad;
+}
+
+/* =======================================================================
+   13. DRAWING — props and buildings
+   ======================================================================= */
+function softShadow(x, y, rx, ry, a){
+  ctx.fillStyle = 'rgba(24,30,14,' + (a||0.28) + ')';
+  ctx.beginPath(); ctx.ellipse(x, y, rx, ry, 0, 0, 7); ctx.fill();
+}
+
+function drawFarmhouse(x, y){
+  const w = 210, h = 130;
+  softShadow(x+10, y+4, w*0.55, 15, .3);
+  /* walls */
+  const g = ctx.createLinearGradient(x-w/2, y-h, x+w/2, y);
+  g.addColorStop(0,'#e6ddcb'); g.addColorStop(.55,'#d6ccb6'); g.addColorStop(1,'#bdb097');
+  ctx.fillStyle = g; ctx.fillRect(x-w/2, y-h, w, h);
+  /* timber frame */
+  ctx.strokeStyle = '#5d452c'; ctx.lineWidth = 4;
+  ctx.strokeRect(x-w/2, y-h, w, h);
+  ctx.lineWidth = 3;
+  [-w/6, w/6].forEach(o=>{ ctx.beginPath(); ctx.moveTo(x+o, y-h); ctx.lineTo(x+o, y); ctx.stroke(); });
+  ctx.beginPath(); ctx.moveTo(x-w/2, y-h*0.55); ctx.lineTo(x+w/2, y-h*0.55); ctx.stroke();
+  /* roof */
+  ctx.fillStyle = '#7b4a3a';
+  ctx.beginPath();
+  ctx.moveTo(x-w/2-16, y-h); ctx.lineTo(x, y-h-72); ctx.lineTo(x+w/2+16, y-h); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = 'rgba(50,26,18,.5)'; ctx.lineWidth = 1.2;
+  for (let i=1;i<9;i++){
+    const t = i/9;
+    ctx.beginPath();
+    ctx.moveTo(lerp(x-w/2-16, x, t), lerp(y-h, y-h-72, t));
+    ctx.lineTo(lerp(x+w/2+16, x, t), lerp(y-h, y-h-72, t));
+    ctx.stroke();
+  }
+  /* chimney + smoke */
+  ctx.fillStyle = '#8d6b52'; ctx.fillRect(x+52, y-h-58, 20, 44);
+  ctx.fillStyle = 'rgba(240,240,240,.28)';
+  for (let i=0;i<4;i++){
+    const t = (tSec*0.35 + i*0.25) % 1;
+    ctx.beginPath(); ctx.ellipse(x+62 + Math.sin(t*6+i)*10, y-h-62 - t*54, 7+t*13, 6+t*11, 0,0,7); ctx.fill();
+  }
+  /* door + windows */
+  ctx.fillStyle = '#5d452c'; ctx.fillRect(x-16, y-56, 34, 56);
+  ctx.fillStyle = '#3a2a1a'; ctx.fillRect(x-13, y-52, 28, 52);
+  ctx.fillStyle = '#c9a13a'; ctx.beginPath(); ctx.arc(x+11, y-28, 2.2, 0, 7); ctx.fill();
+  [[-62,-100],[52,-100],[-62,-46]].forEach(p=>{
+    ctx.fillStyle = '#6d8ea0'; ctx.fillRect(x+p[0], y+p[1], 34, 30);
+    ctx.fillStyle = 'rgba(255,255,255,.35)'; ctx.fillRect(x+p[0]+2, y+p[1]+2, 14, 12);
+    ctx.strokeStyle = '#5d452c'; ctx.lineWidth = 3; ctx.strokeRect(x+p[0], y+p[1], 34, 30);
+    ctx.lineWidth = 2; ctx.beginPath();
+    ctx.moveTo(x+p[0]+17, y+p[1]); ctx.lineTo(x+p[0]+17, y+p[1]+30);
+    ctx.moveTo(x+p[0], y+p[1]+15); ctx.lineTo(x+p[0]+34, y+p[1]+15); ctx.stroke();
+  });
+}
+
+function drawBarn(x, y){
+  const w = 250, h = 150;
+  softShadow(x+12, y+5, w*0.56, 17, .32);
+  const g = ctx.createLinearGradient(x-w/2, 0, x+w/2, 0);
+  g.addColorStop(0,'#9e3b2c'); g.addColorStop(.5,'#8c3325'); g.addColorStop(1,'#6f271c');
+  ctx.fillStyle = g; ctx.fillRect(x-w/2, y-h, w, h);
+  ctx.strokeStyle = 'rgba(60,20,14,.55)'; ctx.lineWidth = 1.4;
+  for (let i=1;i<14;i++){ ctx.beginPath(); ctx.moveTo(x-w/2+i*(w/14), y-h); ctx.lineTo(x-w/2+i*(w/14), y); ctx.stroke(); }
+  /* gambrel roof */
+  ctx.fillStyle = '#4b4f55';
+  ctx.beginPath();
+  ctx.moveTo(x-w/2-14, y-h); ctx.lineTo(x-w/2+22, y-h-46); ctx.lineTo(x, y-h-78);
+  ctx.lineTo(x+w/2-22, y-h-46); ctx.lineTo(x+w/2+14, y-h); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = 'rgba(20,22,26,.45)'; ctx.lineWidth = 1.2;
+  for (let i=1;i<7;i++){
+    const t=i/7; ctx.beginPath();
+    ctx.moveTo(lerp(x-w/2-14,x,t), lerp(y-h,y-h-78,t));
+    ctx.lineTo(lerp(x+w/2+14,x,t), lerp(y-h,y-h-78,t)); ctx.stroke();
+  }
+  /* big doors */
+  ctx.fillStyle = '#e8ded0'; ctx.fillRect(x-58, y-104, 116, 104);
+  ctx.strokeStyle = '#5d3a26'; ctx.lineWidth = 5;
+  ctx.strokeRect(x-58, y-104, 116, 104);
+  ctx.lineWidth = 4;
+  ctx.beginPath(); ctx.moveTo(x-58,y-104); ctx.lineTo(x, y); ctx.moveTo(x+58,y-104); ctx.lineTo(x,y);
+  ctx.moveTo(x, y-104); ctx.lineTo(x, y); ctx.stroke();
+  /* hay loft */
+  ctx.fillStyle = '#2b1c12'; ctx.fillRect(x-20, y-h-38, 40, 32);
+  ctx.fillStyle = '#d8b45c';
+  ctx.beginPath(); ctx.moveTo(x-16,y-h-8); ctx.lineTo(x+16,y-h-8); ctx.lineTo(x+8,y-h-22); ctx.lineTo(x-8,y-h-22); ctx.closePath(); ctx.fill();
+}
+
+function drawCoop(x, y){
+  softShadow(x+6, y+3, 58, 11, .3);
+  ctx.fillStyle = '#c7ac82'; ctx.fillRect(x-46, y-52, 92, 52);
+  ctx.strokeStyle = '#6d4f30'; ctx.lineWidth = 3; ctx.strokeRect(x-46, y-52, 92, 52);
+  ctx.fillStyle = '#7c5a3c';
+  ctx.beginPath(); ctx.moveTo(x-56,y-52); ctx.lineTo(x, y-84); ctx.lineTo(x+56, y-52); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#3a2a1a'; ctx.beginPath(); ctx.arc(x, y-16, 13, Math.PI, 0); ctx.fillRect(x-13, y-16, 26, 16); ctx.fill();
+  /* ramp */
+  ctx.fillStyle = '#a98a5f';
+  ctx.beginPath(); ctx.moveTo(x-11,y); ctx.lineTo(x+11,y); ctx.lineTo(x+16,y+16); ctx.lineTo(x-6,y+16); ctx.closePath(); ctx.fill();
+}
+
+function drawTree(o){
+  const x = sx(o.x), y = sy(o.y);
+  const hazel = o.kind === 'hazel';
+  const h = hazel ? 108 : 190;
+  const sw = hazel ? 12 : 22;
+  softShadow(x + 26, y + 4, hazel ? 52 : 92, hazel ? 12 : 20, .3);
+  /* trunk */
+  const tg = ctx.createLinearGradient(x-sw, 0, x+sw, 0);
+  tg.addColorStop(0,'#4a3626'); tg.addColorStop(.42,'#6d5138'); tg.addColorStop(1,'#3d2c1e');
+  ctx.fillStyle = tg;
+  ctx.beginPath();
+  ctx.moveTo(x-sw, y); ctx.lineTo(x-sw*0.5, y-h*0.62); ctx.lineTo(x+sw*0.5, y-h*0.62); ctx.lineTo(x+sw, y);
+  ctx.closePath(); ctx.fill();
+  /* bark grooves */
+  ctx.strokeStyle = 'rgba(30,20,12,.4)'; ctx.lineWidth = 1.3;
+  for (let i=0;i<5;i++){
+    const t = (i+1)/6;
+    ctx.beginPath();
+    ctx.moveTo(x - sw + t*sw*2, y);
+    ctx.lineTo(x - sw*0.5 + t*sw, y - h*0.62);
+    ctx.stroke();
+  }
+  /* anything standing behind this tree would otherwise vanish under it */
+  let fade = 1;
+  const canW = hazel ? 105 : 165;
+  [you, S.pig].forEach(a=>{
+    if (!a) return;
+    if (a.y < o.y && (o.y - a.y) < 760 && Math.abs(sx(a.x) - x) < canW) fade = 0.40;
+  });
+  ctx.globalAlpha = fade;
+
+  /* boughs */
+  ctx.strokeStyle = '#59412c'; ctx.lineCap = 'round';
+  [[-1,.9],[1,1],[-1,.5],[1,.55]].forEach((b,i)=>{
+    ctx.lineWidth = 8 - i*1.4;
+    ctx.beginPath();
+    ctx.moveTo(x, y-h*0.52);
+    ctx.quadraticCurveTo(x + b[0]*36*b[1], y-h*0.72, x + b[0]*62*b[1], y-h*0.80);
+    ctx.stroke();
+  });
+  /* canopy — layered blobs, swaying */
+  const sway = Math.sin(tSec*0.6 + o.seed) * 3.4;
+  const layers = hazel
+    ? [[0,-h*0.82,52,36,'#6f9440'],[-27,-h*0.70,38,27,'#5e8236'],[29,-h*0.72,36,26,'#7ba14b']]
+    : [[0,-h*0.88,82,55,'#4e7333'],[-50,-h*0.76,53,38,'#42642c'],[50,-h*0.78,52,37,'#5c8339'],
+       [0,-h*1.00,60,38,'#67903d'],[-23,-h*0.66,45,31,'#39572a'],[26,-h*0.64,43,29,'#4a6f31']];
+  layers.forEach((L,i)=>{
+    ctx.fillStyle = L[4];
+    ctx.beginPath(); ctx.ellipse(x + L[0] + sway*(1 - i*0.1), y + L[1], L[2], L[3], 0, 0, 7); ctx.fill();
+  });
+  /* leaf speckle for depth */
+  ctx.fillStyle = 'rgba(150,190,96,.34)';
+  for (let i=0;i<(hazel?26:56);i++){
+    const a = (i*2.399), d = Math.sqrt(i/(hazel?26:56));
+    const rx = (hazel?52:82)*d, ry = (hazel?36:55)*d;
+    ctx.beginPath();
+    ctx.ellipse(x + Math.cos(a)*rx*0.9 + sway, y - h*0.88 + Math.sin(a)*ry*0.75, 3.6, 2.3, a, 0, 7); ctx.fill();
+  }
+  ctx.fillStyle = 'rgba(20,32,12,.22)';
+  ctx.beginPath(); ctx.ellipse(x - 30 + sway, y - h*0.80, 46, 32, 0, 0, 7); ctx.fill();
+  ctx.globalAlpha = 1;
+}
+
+function drawTrough(x, y){
+  softShadow(x+4, y+3, 46, 9, .3);
+  ctx.fillStyle = '#7c5f3f'; ctx.beginPath(); ctx.ellipse(x, y-8, 44, 15, 0, 0, 7); ctx.fill();
+  ctx.fillStyle = '#5b4429'; ctx.fillRect(x-44, y-20, 88, 14);
+  ctx.fillStyle = '#8b6c47'; ctx.beginPath(); ctx.ellipse(x, y-20, 44, 15, 0, 0, 7); ctx.fill();
+  ctx.fillStyle = '#4e79a0'; ctx.beginPath(); ctx.ellipse(x, y-19, 37, 11, 0, 0, 7); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,.35)';
+  ctx.beginPath(); ctx.ellipse(x-11 + Math.sin(tSec*1.6)*3, y-21, 12, 3.4, 0, 0, 7); ctx.fill();
+}
+
+function drawWoodpile(x, y){
+  softShadow(x+6, y+3, 62, 12, .3);
+  /* end-on cordwood, stacked square, sitting on two bearers */
+  ctx.fillStyle = '#4e3a25';
+  ctx.fillRect(x-56, y-8, 112, 6);
+  const cols = 9, rows = 5, w = 12, h = 11;
+  for (let r=0;r<rows;r++){
+    const n = cols - (r === rows-1 ? 3 : 0);
+    for (let c=0;c<n;c++){
+      const px = x - (n*w)/2 + c*w + w/2 + ((r%2)?2:0);
+      const py = y - 10 - r*h - h/2;
+      const rr = 5.4 + ((r*7+c*3)%5)*0.35;
+      ctx.fillStyle = ['#6d4f31','#7c5c3a','#5f452b'][(r+c)%3];
+      ctx.beginPath(); ctx.arc(px, py, rr, 0, 7); ctx.fill();
+      /* sawn face: pale sapwood, darker heart, growth rings, one split */
+      ctx.fillStyle = ['#d6bb8e','#c9ac7c','#e0c69c'][(c+r*2)%3];
+      ctx.beginPath(); ctx.arc(px, py, rr-1.2, 0, 7); ctx.fill();
+      ctx.strokeStyle = 'rgba(126,96,58,.45)'; ctx.lineWidth = .6;
+      for (let k=1;k<=3;k++){ ctx.beginPath(); ctx.arc(px, py, (rr-1.4)*k/3.4, 0, 7); ctx.stroke(); }
+      ctx.strokeStyle = 'rgba(96,70,40,.5)'; ctx.lineWidth = .8;
+      const a = (c*1.7 + r);
+      ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px + Math.cos(a)*(rr-1.4), py + Math.sin(a)*(rr-1.4)); ctx.stroke();
+    }
+  }
+}
+
+function drawFencePost(x, y, tall){
+  ctx.fillStyle = '#7a5c3c'; ctx.fillRect(x-3, y-(tall||34), 6, tall||34);
+  ctx.fillStyle = 'rgba(255,255,255,.14)'; ctx.fillRect(x-3, y-(tall||34), 2, tall||34);
+}
+function drawFenceRun(){
+  ctx.save();
+  /* perimeter posts + two rails */
+  const pts = [];
+  for (let x=140; x<=FIELD_W-140; x+=240) pts.push([x, 190]);
+  for (let y=190; y<=FIELD_H-160; y+=240) pts.push([FIELD_W-140, y]);
+  for (let x=FIELD_W-140; x>=140; x-=240) pts.push([x, FIELD_H-160]);
+  for (let y=FIELD_H-160; y>=190; y-=240) pts.push([140, y]);
+  ctx.strokeStyle = '#8a6a45'; ctx.lineWidth = 3.4; ctx.lineCap='round';
+  for (let i=0;i<pts.length-1;i++){
+    const a = pts[i], b = pts[i+1];
+    if (!onScreen(a[0],a[1]) && !onScreen(b[0],b[1])) continue;
+    [12, 26].forEach(hh=>{
+      ctx.beginPath(); ctx.moveTo(sx(a[0]), sy(a[1])-hh); ctx.lineTo(sx(b[0]), sy(b[1])-hh); ctx.stroke();
+    });
+  }
+  pts.forEach(p=>{ if (onScreen(p[0],p[1])) drawFencePost(sx(p[0]), sy(p[1])); });
+  ctx.restore();
+}
+
+function drawHedge(){
+  HEDGE.forEach(h=>{
+    if (!onScreen(h.x,h.y,200)) return;
+    const x = sx(h.x), y = sy(h.y), s = h.s;
+    ctx.fillStyle = '#3c5a2a';
+    ctx.beginPath(); ctx.ellipse(x, y-26*s, 46*s, 32*s, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = '#4a6d33';
+    ctx.beginPath(); ctx.ellipse(x-8*s, y-34*s, 30*s, 22*s, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = 'rgba(120,158,74,.4)';
+    ctx.beginPath(); ctx.ellipse(x+10*s, y-40*s, 18*s, 12*s, 0, 0, 7); ctx.fill();
+  });
+}
+
+function drawWallowProp(x, y){
+  /* ripples on the mud, drawn over the pre-rendered pit */
+  ctx.strokeStyle = 'rgba(190,176,140,.22)'; ctx.lineWidth = 1.4;
+  for (let i=0;i<3;i++){
+    const t = (tSec*0.4 + i/3) % 1;
+    ctx.globalAlpha = (1-t) * 0.5;
+    ctx.beginPath(); ctx.ellipse(x, y, 24 + t*52, 8 + t*17, 0, 0, 7); ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+}
+
+function drawChicken(c){
+  const x = sx(c.x), y = sy(c.y);
+  softShadow(x, y+1, 8, 3, .25);
+  const bob = Math.sin(c.t*8)*1.2;
+  ctx.fillStyle = c.col;
+  ctx.beginPath(); ctx.ellipse(x, y-9+bob, 9, 7.4, 0, 0, 7); ctx.fill();
+  ctx.fillStyle = shade(c.col, -26);
+  ctx.beginPath(); ctx.ellipse(x - c.face*3, y-9+bob, 5.4, 5, 0.3, 0, 7); ctx.fill();
+  ctx.fillStyle = c.col;
+  ctx.beginPath(); ctx.arc(x + c.face*7, y-16+bob, 4.2, 0, 7); ctx.fill();
+  ctx.fillStyle = '#c94a3a';
+  ctx.beginPath(); ctx.ellipse(x + c.face*7, y-20+bob, 2.4, 2.2, 0, 0, 7); ctx.fill();
+  ctx.fillStyle = '#e8a02c';
+  ctx.beginPath(); ctx.moveTo(x + c.face*10, y-16+bob); ctx.lineTo(x + c.face*15, y-15+bob); ctx.lineTo(x + c.face*10, y-14+bob); ctx.fill();
+  ctx.strokeStyle = '#e8a02c'; ctx.lineWidth = 1.4;
+  ctx.beginPath();
+  ctx.moveTo(x-3, y-3+bob); ctx.lineTo(x-3+Math.sin(c.t*9)*2, y);
+  ctx.moveTo(x+3, y-3+bob); ctx.lineTo(x+3-Math.sin(c.t*9)*2, y); ctx.stroke();
+}
+
+/* =======================================================================
+   14. DRAWING — the farmer
+   Drawn in a 100-unit space where 100 units = your full height (175 cm),
+   feet at the origin.
+   ======================================================================= */
+function drawFarmer(x, y, H, face, pose){
+  const swing = Math.sin(pose.step) * (pose.moving ? 1 : 0);
+  const bob = pose.moving ? Math.abs(Math.sin(pose.step))*1.6 : Math.sin(tSec*1.4)*0.5;
+  softShadow(x, y+1, H*0.20, H*0.055, .32);
+  ctx.save();
+  ctx.translate(x, y - bob*H/100);
+  ctx.scale(face*H/100, H/100);
+
+  const denim = '#3f5570', denimD = '#2c3d52';
+  const shirt = '#c9552f', shirtD = '#9c3d1f';
+  const skin  = '#d8a077', skinD = '#b47d55';
+
+  /* back arm */
+  ctx.strokeStyle = shirtD; ctx.lineWidth = 6.5; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(-2, -66); ctx.quadraticCurveTo(-9 - swing*5, -54, -7 - swing*10, -43); ctx.stroke();
+  ctx.strokeStyle = skinD; ctx.lineWidth = 5.4;
+  ctx.beginPath(); ctx.moveTo(-7 - swing*10, -43); ctx.lineTo(-8 - swing*13, -37); ctx.stroke();
+
+  /* back leg */
+  ctx.strokeStyle = denimD; ctx.lineWidth = 9;
+  ctx.beginPath(); ctx.moveTo(-2, -44); ctx.lineTo(-2 - swing*10, -7); ctx.stroke();
+  ctx.fillStyle = '#4a3524';
+  ctx.beginPath(); ctx.ellipse(-2 - swing*11, -4, 8, 4.2, 0, 0, 7); ctx.fill();
+
+  /* front leg */
+  ctx.strokeStyle = denim; ctx.lineWidth = 9.6;
+  ctx.beginPath(); ctx.moveTo(2, -44); ctx.lineTo(2 + swing*10, -7); ctx.stroke();
+  ctx.fillStyle = '#5b4229';
+  ctx.beginPath(); ctx.ellipse(3 + swing*11, -4, 8.6, 4.6, 0, 0, 7); ctx.fill();
+  ctx.fillStyle = '#33241a';
+  ctx.beginPath(); ctx.ellipse(6 + swing*11, -3, 4.6, 2.4, 0, 0, 7); ctx.fill();
+
+  /* torso: work shirt */
+  ctx.fillStyle = shirt;
+  ctx.beginPath();
+  ctx.moveTo(-8, -44); ctx.quadraticCurveTo(-10, -62, -7, -73);
+  ctx.quadraticCurveTo(0, -77, 7, -73);
+  ctx.quadraticCurveTo(10, -62, 8, -44);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = shirtD;
+  ctx.beginPath(); ctx.moveTo(-8,-44); ctx.quadraticCurveTo(-10,-60,-8,-70); ctx.lineTo(-3,-70); ctx.lineTo(-3,-44); ctx.closePath(); ctx.fill();
+
+  /* dungarees over the top */
+  ctx.fillStyle = denim;
+  ctx.beginPath();
+  ctx.moveTo(-8.6, -44); ctx.lineTo(-8.6, -62); ctx.lineTo(8.6, -62); ctx.lineTo(8.6, -44);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = denimD; ctx.fillRect(-8.6, -49, 17.2, 1.4);
+  /* bib + straps */
+  ctx.fillStyle = denim; ctx.fillRect(-6, -71, 12, 10);
+  ctx.strokeStyle = denim; ctx.lineWidth = 2.6;
+  ctx.beginPath(); ctx.moveTo(-5.4, -71); ctx.lineTo(-6.4, -75.5); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(5.4, -71); ctx.lineTo(6.4, -75.5); ctx.stroke();
+  ctx.fillStyle = '#d8b24a';
+  ctx.beginPath(); ctx.arc(-5.6, -70.4, 1.1, 0, 7); ctx.fill();
+  ctx.beginPath(); ctx.arc(5.6, -70.4, 1.1, 0, 7); ctx.fill();
+  /* pocket */
+  ctx.strokeStyle = '#d8b24a'; ctx.lineWidth = .7;
+  ctx.strokeRect(-3.4, -69.2, 6.8, 6.4);
+
+  /* head + neck */
+  ctx.fillStyle = skinD;
+  ctx.beginPath(); ctx.ellipse(1.4, -75.5, 3.2, 3, 0, 0, 7); ctx.fill();
+  ctx.fillStyle = skin;
+  ctx.beginPath(); ctx.ellipse(1.6, -83, 6.6, 7.4, 0, 0, 7); ctx.fill();
+  /* jaw shading */
+  ctx.fillStyle = skinD;
+  ctx.beginPath(); ctx.ellipse(-0.6, -79.5, 4.6, 3.4, 0, 0, 7); ctx.fill();
+  /* ear */
+  ctx.fillStyle = skinD;
+  ctx.beginPath(); ctx.ellipse(-3.4, -83, 1.7, 2.3, 0, 0, 7); ctx.fill();
+  /* eye + brow */
+  ctx.fillStyle = '#2b1e14';
+  ctx.beginPath(); ctx.ellipse(5.2, -84.6, 1.05, 1.25, 0, 0, 7); ctx.fill();
+  ctx.strokeStyle = '#6b4a2e'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(3.8, -87.4); ctx.lineTo(6.4, -87); ctx.stroke();
+  /* nose + mouth */
+  ctx.fillStyle = skinD;
+  ctx.beginPath(); ctx.ellipse(7.4, -82.2, 1.3, 1.1, 0, 0, 7); ctx.fill();
+  ctx.strokeStyle = '#8a5a3a'; ctx.lineWidth = .8;
+  ctx.beginPath(); ctx.arc(5.4, -79.6, 2.1, 0.15, 1.05); ctx.stroke();
+  /* hair */
+  ctx.fillStyle = '#6d4a26';
+  ctx.beginPath(); ctx.ellipse(0.6, -87.4, 6.4, 4.4, 0, Math.PI, 0); ctx.fill();
+
+  /* straw hat */
+  ctx.fillStyle = '#d9b96a';
+  ctx.beginPath(); ctx.ellipse(1, -88.4, 12.4, 3.1, 0, 0, 7); ctx.fill();
+  ctx.fillStyle = '#c4a253';
+  ctx.beginPath(); ctx.ellipse(1, -88.9, 12.4, 2.6, 0, Math.PI, 0); ctx.fill();
+  ctx.fillStyle = '#e2c47b';
+  ctx.beginPath(); ctx.ellipse(1.4, -92.8, 6.2, 5.4, 0, Math.PI*1.02, Math.PI*1.98); ctx.fill();
+  ctx.fillRect(-4.8, -93.2, 12.4, 4.6);
+  ctx.fillStyle = '#8d5f3a'; ctx.fillRect(-4.8, -90.2, 12.4, 1.7);
+
+  /* front arm (+ whatever is in the hand) */
+  ctx.strokeStyle = shirt; ctx.lineWidth = 6.8;
+  ctx.beginPath(); ctx.moveTo(3, -70); ctx.quadraticCurveTo(9 + swing*4, -58, 8 + swing*11, -45); ctx.stroke();
+  ctx.strokeStyle = skin; ctx.lineWidth = 5.6;
+  ctx.beginPath(); ctx.moveTo(8 + swing*11, -45); ctx.lineTo(9 + swing*14, -38); ctx.stroke();
+  ctx.fillStyle = skin;
+  ctx.beginPath(); ctx.arc(9 + swing*14, -37, 3.1, 0, 7); ctx.fill();
+
+  if (pose.tool) drawTool(pose.tool, 9 + swing*14, -37);
+  ctx.restore();
+}
+
+function drawTool(tool, hx, hy){
+  ctx.save();
+  ctx.translate(hx, hy);
+  if (tool === 'bucket'){
+    ctx.fillStyle = '#8d949c';
+    ctx.beginPath(); ctx.moveTo(-5,4); ctx.lineTo(-6.4,14); ctx.lineTo(6.4,14); ctx.lineTo(5,4); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#6d747c'; ctx.beginPath(); ctx.ellipse(0,14,6.4,1.8,0,0,7); ctx.fill();
+    ctx.fillStyle = '#a8b0b8'; ctx.beginPath(); ctx.ellipse(0,4,5,1.6,0,0,7); ctx.fill();
+    ctx.strokeStyle = '#6d747c'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(0,4,5.6,Math.PI,0); ctx.stroke();
+  } else if (tool === 'fork'){
+    ctx.strokeStyle = '#8a6a45'; ctx.lineWidth = 2; ctx.lineCap='round';
+    ctx.beginPath(); ctx.moveTo(0,-6); ctx.lineTo(2,18); ctx.stroke();
+    ctx.strokeStyle = '#aeb6bd'; ctx.lineWidth = 1.4;
+    for (const o of [-3,0,3]){ ctx.beginPath(); ctx.moveTo(2,18); ctx.lineTo(2+o,26); ctx.stroke(); }
+  } else if (tool === 'basket'){
+    ctx.fillStyle = '#b98d54';
+    ctx.beginPath(); ctx.ellipse(0,10,7.4,5.4,0,0,Math.PI); ctx.fill();
+    ctx.fillStyle = '#cda169'; ctx.beginPath(); ctx.ellipse(0,10,7.4,2,0,0,7); ctx.fill();
+    ctx.strokeStyle = '#a87c48'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(0,10,7,Math.PI,0); ctx.stroke();
+    ctx.fillStyle = '#f2ead6';
+    ctx.beginPath(); ctx.arc(-2.6,9,1.9,0,7); ctx.arc(1.4,8.4,1.9,0,7); ctx.arc(4,9.6,1.9,0,7); ctx.fill();
+  } else if (tool === 'axe'){
+    ctx.strokeStyle = '#8a6a45'; ctx.lineWidth = 2.2;
+    ctx.beginPath(); ctx.moveTo(-2,-4); ctx.lineTo(3,16); ctx.stroke();
+    ctx.fillStyle = '#9aa2aa';
+    ctx.beginPath(); ctx.moveTo(-2,-4); ctx.lineTo(4,-8); ctx.lineTo(6,-1); ctx.lineTo(-1,1); ctx.closePath(); ctx.fill();
+  } else if (tool === 'hammer'){
+    ctx.strokeStyle = '#8a6a45'; ctx.lineWidth = 1.8;
+    ctx.beginPath(); ctx.moveTo(0,-2); ctx.lineTo(2,12); ctx.stroke();
+    ctx.fillStyle = '#71787f'; ctx.fillRect(-3.4,-5.6,7.4,3.6);
+  }
+  ctx.restore();
+}
+
+/* =======================================================================
+   15. DRAWING — the pig
+   Drawn in a 100-unit space where 100 units = nose-to-tail body length,
+   trotters at the origin. Shoulder sits at -52, which is a real pig:
+   150 cm long, 76 cm at the shoulder.
+   ======================================================================= */
+function drawPigBody(look, x, y, L, face, pose){
+  pose = pose || {};
+  const headDown = pose.headDown || 0;
+  const step = pose.step || 0;
+  const moving = pose.moving;
+  const mud = pose.mud || 0;
+  const sink = pose.sink || 0;
+  const S1 = Math.sin(step) * (moving ? 1 : 0);
+  const S2 = Math.sin(step + 2.1) * (moving ? 1 : 0);
+  const breathe = Math.sin(tSec*1.7) * 0.5;
+  const sz = look.size || 1;
+
+  softShadow(x, y+1, L*0.42*sz, L*0.11*sz, .3);
+  ctx.save();
+  ctx.translate(x, y + sink*L*0.10);
+  ctx.scale(face*L/100*sz, L/100*sz);
+
+  const base = look.base, dk = look.shade, patch = look.patch;
+  const wooly = look.pattern === 'wooly';
+  /* how pale she is decides the colour of the bare skin on the snout */
+  const lum = parseInt(base.slice(1,3),16)*0.36 + parseInt(base.slice(3,5),16)*0.48 + parseInt(base.slice(5,7),16)*0.16;
+  const snoutC = lum > 165 ? '#e3a794' : lum > 105 ? '#bb8874' : '#6d5a52';
+  const pale = lum > 150;
+
+  /* ---- far legs ---- */
+  drawLeg(-27 - S2*7, base, dk, 1);
+  drawLeg(21 + S1*7, base, dk, 1);
+
+  /* ---- barrel ---- */
+  const bg = ctx.createLinearGradient(0, -58, 0, -10);
+  bg.addColorStop(0, shade(base, 26));
+  bg.addColorStop(0.42, base);
+  bg.addColorStop(1, dk);
+  ctx.fillStyle = bg;
+  bodyPath();
+  ctx.fill();
+
+  ctx.save();
+  bodyPath(); ctx.clip();
+
+  /* ham and shoulder, as soft masses rather than pasted circles */
+  function mass(mx, my, rx, ry, dark){
+    const rg = ctx.createRadialGradient(mx, my, 0, mx, my, Math.max(rx,ry));
+    rg.addColorStop(0, dark ? 'rgba(0,0,0,.16)' : 'rgba(255,255,255,.12)');
+    rg.addColorStop(0.62, dark ? 'rgba(0,0,0,.07)' : 'rgba(255,255,255,.05)');
+    rg.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = rg;
+    ctx.beginPath(); ctx.ellipse(mx, my, rx, ry, 0, 0, 7); ctx.fill();
+  }
+  mass(-30, -26, 17, 20, true);      // under the ham
+  mass(-25, -44, 13, 12, false);     // top of the ham catching light
+  mass(16, -28, 14, 16, true);       // behind the shoulder
+  /* the crease where the shoulder meets the barrel — every pig has it */
+  ctx.strokeStyle = 'rgba(0,0,0,.13)'; ctx.lineWidth = 1.6;
+  ctx.beginPath(); ctx.moveTo(22, -52); ctx.quadraticCurveTo(15, -36, 19, -17); ctx.stroke();
+  /* topline highlight */
+  const hl = ctx.createLinearGradient(0, -57, 0, -40);
+  hl.addColorStop(0, 'rgba(255,255,255,.16)'); hl.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = hl;
+  ctx.beginPath(); ctx.ellipse(-4, -50, 28, 8, 0, 0, 7); ctx.fill();
+
+  /* ---- markings ---- */
+  if (look.pattern === 'belted'){
+    ctx.fillStyle = patch; ctx.fillRect(10, -60, 20, 52);
+    ctx.fillStyle = 'rgba(0,0,0,.10)'; ctx.fillRect(10, -22, 20, 14);
+  } else if (look.pattern === 'kintoa'){
+    ctx.fillStyle = patch; ctx.fillRect(-46, -60, 18, 54);
+    ctx.fillStyle = patch; ctx.fillRect(24, -60, 20, 54);
+  } else if (look.pattern === 'spotted'){
+    const seed = [[-30,-40,7],[ -18,-30,5],[-8,-46,6],[4,-32,5.6],[14,-44,5],[24,-30,4.4],[-34,-25,4],[0,-52,4.6],[18,-24,3.8]];
+    ctx.fillStyle = patch;
+    seed.forEach(s=>{ ctx.beginPath(); ctx.ellipse(s[0], s[1], s[2], s[2]*0.82, s[0]*0.02, 0, 7); ctx.fill(); });
+  } else if (look.pattern === 'hereford'){
+    ctx.fillStyle = patch; ctx.fillRect(28, -60, 18, 54);
+  } else if (look.pattern === 'points'){
+    ctx.fillStyle = patch; ctx.fillRect(30, -60, 14, 54);
+  } else if (wooly){
+    ctx.strokeStyle = 'rgba(255,255,255,.26)'; ctx.lineWidth = 1.2;
+    for (let i=0;i<58;i++){
+      const px = -42 + (i%15)*6 + (i%3)*2, py = -56 + Math.floor(i/15)*11;
+      ctx.beginPath(); ctx.arc(px, py, 3.1, 0.4, 4.2); ctx.stroke();
+    }
+    ctx.strokeStyle = 'rgba(0,0,0,.14)'; ctx.lineWidth = 1;
+    for (let i=0;i<40;i++){
+      const px = -40 + (i%13)*6.6, py = -50 + Math.floor(i/13)*13;
+      ctx.beginPath(); ctx.arc(px, py, 3.4, 3.6, 6.6); ctx.stroke();
+    }
+  } else if (look.pattern === 'bristled'){
+    ctx.strokeStyle = 'rgba(0,0,0,.30)'; ctx.lineWidth = .9;
+    for (let i=0;i<46;i++){
+      const px = -40 + (i%23)*3.6, py = -56 + (i%5)*3;
+      ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px-1.6, py-5); ctx.stroke();
+    }
+  }
+  /* mud, once she has been in the wallow */
+  if (mud > 0){
+    ctx.globalAlpha = mud * 0.8;
+    ctx.fillStyle = '#4b3720';
+    for (let i=0;i<26;i++){
+      const px = -40 + (i*7.3)%80, py = -14 - (i*11.7)%34;
+      ctx.beginPath(); ctx.ellipse(px, py, 5.4 + (i%3)*2, 3.4 + (i%2)*1.6, i, 0, 7); ctx.fill();
+    }
+    ctx.fillStyle = 'rgba(60,44,24,.75)'; ctx.fillRect(-46, -22, 96, 16);
+    ctx.globalAlpha = 1;
+  }
+  /* sun on the back */
+  const sun = ctx.createLinearGradient(0,-58,0,-34);
+  sun.addColorStop(0,'rgba(255,246,214,.20)'); sun.addColorStop(1,'rgba(255,246,214,0)');
+  ctx.fillStyle = sun; ctx.fillRect(-46,-58,96,26);
+  ctx.restore();
+
+  /* dorsal bristles — coarse hair along the spine, not a mohawk */
+  if ((look.bristle || 0) > 0.3 && !wooly){
+    ctx.strokeStyle = 'rgba(34,25,18,' + (0.16 + look.bristle*0.26) + ')';
+    ctx.lineWidth = 0.5; ctx.lineCap = 'round';
+    for (let i=0;i<38;i++){
+      const t = i/37;
+      const px = lerp(-36, 27, t) + Math.sin(i*2.3)*0.7;
+      const py = -55.8 - Math.sin(t*Math.PI)*2.2;
+      const h = (1.2 + look.bristle*2.6) * (0.55 + ((i*13)%7)/9);
+      ctx.beginPath();
+      ctx.moveTo(px, py);
+      ctx.quadraticCurveTo(px - 0.9, py - h*0.6, px - 1.7 - h*0.16, py - h);
+      ctx.stroke();
+    }
+  }
+
+  /* ---- tail: the domestic pig's kinked double curl ---- */
+  ctx.strokeStyle = dk; ctx.lineWidth = 2.6; ctx.lineCap = 'round';
+  const tw = Math.sin(tSec*3 + (pose.wag||0)) * (pose.wag ? 3 : 1);
+  ctx.beginPath();
+  ctx.moveTo(-39, -48);
+  ctx.bezierCurveTo(-47, -52 + tw*0.4, -50, -44, -45, -42 + tw*0.3);
+  ctx.bezierCurveTo(-41, -40.6, -42.5, -46 - tw*0.3, -47, -46);
+  ctx.stroke();
+
+  /* ---- near legs ---- */
+  drawLeg(-24 + S2*7, base, dk, 0);
+  drawLeg(24 - S1*7, base, dk, 0);
+
+  /* ---- head ---- */
+  ctx.save();
+  ctx.translate(31, -44);
+  ctx.rotate(headDown * 0.78 + (pose.headTilt||0));
+  const hg = ctx.createLinearGradient(0,-14,0,14);
+  hg.addColorStop(0, shade(base, 22)); hg.addColorStop(0.5, base); hg.addColorStop(1, dk);
+  ctx.fillStyle = hg;
+  /* the wedge — cheek to snout */
+  ctx.beginPath();
+  ctx.moveTo(-4, -13);
+  ctx.bezierCurveTo(8, -14, 18, -11, 25, -7.4);      // top line of the face
+  ctx.bezierCurveTo(28, -6.2, 29, -2, 28.6, 1.4);    // to the snout disc
+  ctx.bezierCurveTo(28, 5, 24, 6.6, 19, 6.4);        // under the snout
+  ctx.bezierCurveTo(10, 7.6, 2, 11, -4, 13);         // jowl
+  ctx.bezierCurveTo(-12, 10, -13, -9, -4, -13);
+  ctx.closePath(); ctx.fill();
+  /* jowl shading — pigs have a heavy cheek */
+  ctx.fillStyle = 'rgba(0,0,0,.12)';
+  ctx.beginPath(); ctx.ellipse(-2, 6, 9, 5.4, -0.2, 0, 7); ctx.fill();
+  if (look.pattern === 'hereford' || look.pattern === 'points' || look.pattern === 'kintoa'){
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(-4,-13); ctx.bezierCurveTo(8,-14,18,-11,25,-7.4);
+    ctx.bezierCurveTo(28,-6.2,29,-2,28.6,1.4); ctx.bezierCurveTo(28,5,24,6.6,19,6.4);
+    ctx.bezierCurveTo(10,7.6,2,11,-4,13); ctx.bezierCurveTo(-12,10,-13,-9,-4,-13);
+    ctx.closePath(); ctx.clip();
+    ctx.fillStyle = patch;
+    if (look.pattern === 'hereford') ctx.fillRect(-14,-16,44,32);
+    else ctx.fillRect(16,-16,20,32);
+    ctx.restore();
+  }
+  /* the rhinarium — bare skin, flat as a coin, two nostrils.
+     This disc is the most sensitive thing on the farm and the reason
+     anyone ever put a pig to work. */
+  const sg = ctx.createRadialGradient(26.6, -2, 0.5, 27.4, 0, 7);
+  sg.addColorStop(0, shade(snoutC, 26)); sg.addColorStop(1, shade(snoutC, -34));
+  ctx.fillStyle = sg;
+  ctx.beginPath(); ctx.ellipse(27.4, -0.4, 3.9, 5.9, 0.06, 0, 7); ctx.fill();
+  ctx.strokeStyle = 'rgba(0,0,0,.30)'; ctx.lineWidth = .55;
+  ctx.beginPath(); ctx.ellipse(27.4, -0.4, 3.9, 5.9, 0.06, 0, 7); ctx.stroke();
+  ctx.fillStyle = 'rgba(18,11,8,.75)';
+  ctx.beginPath(); ctx.ellipse(28.2, -2.8, 0.95, 1.5, 0.25, 0, 7); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(28.2, 2.0, 0.95, 1.5, -0.25, 0, 7); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,.26)';
+  ctx.beginPath(); ctx.ellipse(25.8, -2.4, 1.2, 1.8, 0.3, 0, 7); ctx.fill();
+  /* the wrinkles that run back off the disc */
+  ctx.strokeStyle = 'rgba(0,0,0,.13)'; ctx.lineWidth = .45;
+  for (let i=0;i<3;i++){
+    ctx.beginPath();
+    ctx.moveTo(23.4, -4.6 + i*3.4);
+    ctx.quadraticCurveTo(19, -4.2 + i*3.6, 15.4, -3.4 + i*3.8);
+    ctx.stroke();
+  }
+  /* mouth line */
+  ctx.strokeStyle = 'rgba(0,0,0,.32)'; ctx.lineWidth = .9;
+  ctx.beginPath(); ctx.moveTo(24.6, 5.2); ctx.quadraticCurveTo(16, 8.4, 8, 8.2); ctx.stroke();
+  if (look.tusks){
+    ctx.fillStyle = '#efe6d2';
+    ctx.beginPath(); ctx.moveTo(17, 7.4); ctx.quadraticCurveTo(19.4, 4.6, 20.6, 1.6);
+    ctx.lineTo(18.6, 1.4); ctx.quadraticCurveTo(18, 5, 15.6, 7.2); ctx.closePath(); ctx.fill();
+  }
+  /* eye — small, set high and far back, with real lashes */
+  ctx.fillStyle = pale ? 'rgba(0,0,0,.14)' : 'rgba(255,255,255,.13)';
+  ctx.beginPath(); ctx.ellipse(6.4, -6.2, 3.8, 3.1, 0, 0, 7); ctx.fill();
+  const blink = (tSec % 4.6) < 0.13 ? 0.12 : 1;
+  ctx.fillStyle = '#20160f';
+  ctx.beginPath(); ctx.ellipse(6.6, -6.2, 2.05, 1.75*blink, 0.1, 0, 7); ctx.fill();
+  if (blink > 0.5){
+    ctx.fillStyle = 'rgba(255,255,255,.75)';
+    ctx.beginPath(); ctx.ellipse(7.3, -6.9, 0.66, 0.56, 0, 0, 7); ctx.fill();
+  }
+  ctx.strokeStyle = 'rgba(40,28,18,.7)'; ctx.lineWidth = .55;
+  for (let i=0;i<4;i++){
+    const a = -0.5 + i*0.28;
+    ctx.beginPath();
+    ctx.moveTo(6.6 + Math.cos(a)*3, -7.6 - Math.sin(a)*1.2);
+    ctx.lineTo(6.6 + Math.cos(a)*5.4, -9.4 - Math.sin(a)*1.8); ctx.stroke();
+  }
+  /* ears */
+  const flick = (pose.ear || 0);
+  ctx.save();
+  ctx.translate(-1, -11);
+  if (look.ears === 'erect'){
+    ctx.rotate(-0.12 + flick*0.22);
+    ctx.fillStyle = dk;
+    ctx.beginPath(); ctx.moveTo(-5, 2); ctx.quadraticCurveTo(-3, -16, 5, -17.5);
+    ctx.quadraticCurveTo(8, -9, 5.5, 1.5); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = 'rgba(220,150,140,.42)';
+    ctx.beginPath(); ctx.moveTo(-2, 0.4); ctx.quadraticCurveTo(-1, -12, 4, -13.6);
+    ctx.quadraticCurveTo(5.4, -7, 3.6, 0); ctx.closePath(); ctx.fill();
+  } else if (look.ears === 'lop'){
+    ctx.rotate(0.30 + flick*0.16);
+    ctx.fillStyle = dk;
+    ctx.beginPath(); ctx.moveTo(-5, -2); ctx.quadraticCurveTo(10, -6, 17, 6);
+    ctx.quadraticCurveTo(11, 13, 1, 6); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = 'rgba(0,0,0,.16)';
+    ctx.beginPath(); ctx.moveTo(2, 0); ctx.quadraticCurveTo(11, -1, 15, 6);
+    ctx.quadraticCurveTo(10, 10, 3, 5); ctx.closePath(); ctx.fill();
+  } else { /* semi-lop: up at the base, tipping forward */
+    ctx.rotate(0.02 + flick*0.2);
+    ctx.fillStyle = dk;
+    ctx.beginPath(); ctx.moveTo(-5, 1); ctx.quadraticCurveTo(-3, -13, 6, -14);
+    ctx.quadraticCurveTo(13, -8, 8, 0); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = 'rgba(0,0,0,.18)';
+    ctx.beginPath(); ctx.moveTo(4, -12.4); ctx.quadraticCurveTo(12, -8, 7.4, -0.6);
+    ctx.quadraticCurveTo(4, -5, 4, -12.4); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = 'rgba(220,150,140,.30)';
+    ctx.beginPath(); ctx.moveTo(-2, 0); ctx.quadraticCurveTo(-1, -10, 4, -11); ctx.quadraticCurveTo(6, -6, 4, 0); ctx.closePath(); ctx.fill();
+  }
+  ctx.restore();
+  /* wattles — kunekune piri piri, or a Red Wattle's */
+  if (look.wattles){
+    ctx.fillStyle = dk;
+    ctx.beginPath(); ctx.ellipse(-1, 13.6, 1.7, 4.4, 0.2, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(3.4, 13.2, 1.6, 4.0, 0.1, 0, 7); ctx.fill();
+  }
+  /* whatever is in her mouth */
+  if (pose.mouth){
+    ctx.fillStyle = pose.mouth.col || '#3a2a1c';
+    ctx.beginPath(); ctx.ellipse(24, 6.4, 4.2, 3.4, 0.4, 0, 7); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,.14)';
+    ctx.beginPath(); ctx.ellipse(23, 5.4, 1.7, 1.2, 0.4, 0, 7); ctx.fill();
+  }
+  ctx.restore();
+  ctx.restore();
+
+  /* one silhouette, used to fill her, to clip her markings, and to shade her */
+  function bodyPath(){
+    ctx.beginPath();
+    ctx.moveTo(-40, -30);
+    ctx.bezierCurveTo(-42, -48, -32, -56, -16, -56.5 - breathe*0.3);  // back over the ham
+    ctx.bezierCurveTo(2, -57, 18, -56, 28, -52);                      // spine to shoulder
+    ctx.bezierCurveTo(36, -49, 38, -42, 37, -36);                     // shoulder into neck
+    ctx.bezierCurveTo(36, -26, 30, -16, 20, -14 - breathe*0.3);       // brisket
+    ctx.bezierCurveTo(4, -11, -16, -11, -28, -15);                    // belly
+    ctx.bezierCurveTo(-36, -18, -40, -22, -40, -30);                  // ham underline
+    ctx.closePath();
+  }
+
+  function drawLeg(px, col, dark, far){
+    const c = far ? shade(dark, -14) : col;
+    const c2 = far ? shade(dark, -26) : dark;
+    /* thigh into a narrow cannon bone, then the pastern angling forward */
+    ctx.fillStyle = c;
+    ctx.beginPath();
+    ctx.moveTo(px-4.8, -24);
+    ctx.bezierCurveTo(px-4.4, -17, px-2.9, -13, px-2.6, -8);
+    ctx.lineTo(px-2.1, -3.4);
+    ctx.lineTo(px+2.6, -3.4);
+    ctx.bezierCurveTo(px+2.6, -9, px+3.4, -15, px+4.6, -24);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = c2;
+    ctx.beginPath(); ctx.ellipse(px, -21, 4.6, 3.4, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = 'rgba(0,0,0,.10)';
+    ctx.beginPath(); ctx.ellipse(px+2.2, -13, 1.5, 6, 0.08, 0, 7); ctx.fill();
+    /* cloven trotter: two weight-bearing toes, two dewclaws sitting behind */
+    ctx.fillStyle = '#33281f';
+    ctx.beginPath(); ctx.ellipse(px-3.1, -2.9, 1.05, 1.5, -0.2, 0, 7); ctx.fill();
+    ctx.fillStyle = '#241c16';
+    ctx.beginPath();
+    ctx.moveTo(px-2.3, -3.6); ctx.lineTo(px+2.8, -3.6);
+    ctx.bezierCurveTo(px+3.1, -0.6, px+1.6, 0, px-0.1, 0);
+    ctx.bezierCurveTo(px-1.9, 0, px-2.7, -1, px-2.3, -3.6);
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = 'rgba(220,210,190,.35)'; ctx.lineWidth = .5;
+    ctx.beginPath(); ctx.moveTo(px+0.3, -3.4); ctx.lineTo(px+0.3, -0.2); ctx.stroke();
+  }
+}
+
+/* the pig as she currently stands, in the world */
+function drawPigInWorld(){
+  const p = S.pig; if (!p) return;
+  const look = pigBreed().look;
+  const L = 150 * PX * 1.02;          // 150 cm nose to tail
+  const inWallow = p.state === 'wallow';
+  drawPigBody(look, sx(p.x), sy(p.y), L, p.face, {
+    headDown: p.headDown, step: p.step, moving: p.moving,
+    ear: Math.sin(p.earFlick*9) * (p.earFlick>0?1:0),
+    mud: p.mud || 0, sink: inWallow ? 0.32 : 0, wag: p.joy > 70 ? 1 : 0,
+    mouth: p.mouth ? { col: p.mouth.col } : null,
+    headTilt: p.headTilt || 0
+  });
+  /* name over her head, when she is near */
+  if (dist(p.x,p.y,you.x,you.y) < 900){
+    ctx.font = '600 12px "Segoe UI", system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    const ty = sy(p.y) - L*0.62 - 12;
+    ctx.fillStyle = 'rgba(20,16,10,.5)';
+    const w = ctx.measureText(p.name).width + 14;
+    ctx.beginPath(); ctx.roundRect(sx(p.x)-w/2, ty-12, w, 17, 8); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.fillText(p.name, sx(p.x), ty);
+    ctx.textAlign = 'left';
+  }
+}
+
+/* =======================================================================
+   16. PARTICLES
+   ======================================================================= */
+const parts = [];
+function puff(x, y, n, col, spread, life){
+  for (let i=0;i<n;i++){
+    parts.push({ x:x, y:y, vx:rand(-spread,spread), vy:rand(-spread*1.4,-spread*0.2),
+      r:rand(2,5), col:col, life:life||0.8, t:0 });
+  }
+}
+function updateParts(dt){
+  for (let i=parts.length-1;i>=0;i--){
+    const p = parts[i];
+    p.t += dt;
+    p.x += p.vx*dt*60; p.y += p.vy*dt*60; p.vy += 0.14*dt*60;
+    if (p.t > p.life) parts.splice(i,1);
+  }
+}
+function drawParts(){
+  parts.forEach(p=>{
+    ctx.globalAlpha = clamp(1 - p.t/p.life, 0, 1);
+    ctx.fillStyle = p.col;
+    ctx.beginPath(); ctx.arc(sx(p.x), sy(p.y) - (p.z||0), p.r, 0, 7); ctx.fill();
+  });
+  ctx.globalAlpha = 1;
+}
+
+/* floating "+$12" style numbers */
+const floats = [];
+function floatText(x, y, text, col){ floats.push({ x:x, y:y, text:text, col:col||'#fff', t:0 }); }
+function drawFloats(dt){
+  ctx.font = '800 15px "Segoe UI", system-ui, sans-serif';
+  ctx.textAlign = 'center';
+  for (let i=floats.length-1;i>=0;i--){
+    const f = floats[i]; f.t += dt;
+    if (f.t > 1.4) { floats.splice(i,1); continue; }
+    ctx.globalAlpha = clamp(1.4 - f.t, 0, 1);
+    ctx.fillStyle = 'rgba(0,0,0,.45)';
+    ctx.fillText(f.text, sx(f.x)+1, sy(f.y) - 46 - f.t*30 + 1);
+    ctx.fillStyle = f.col;
+    ctx.fillText(f.text, sx(f.x), sy(f.y) - 46 - f.t*30);
+  }
+  ctx.globalAlpha = 1;
+  ctx.textAlign = 'left';
+}
+
+/* =======================================================================
+   17. CHICKENS — because a farm without them looks wrong
+   ======================================================================= */
+const chickens = [];
+for (let i=0;i<7;i++){
+  chickens.push({
+    x: 3320 + rand(-320,320), y: 620 + rand(-200,240), t: rand(0,9),
+    tx: 0, ty: 0, face: 1, col: pick(['#e8e2d6','#c98a4a','#8d6a45','#e8e2d6','#3c332c']),
+    wait: rand(0,3)
+  });
+}
+function updateChickens(dt){
+  chickens.forEach(c=>{
+    c.t += dt;
+    c.wait -= dt;
+    if (c.wait <= 0){
+      c.tx = 3320 + rand(-360,360); c.ty = 600 + rand(-220,260);
+      c.wait = rand(1.6, 5);
+    }
+    const d = dist(c.x,c.y,c.tx,c.ty);
+    if (d > 12){
+      const s = 46*dt;
+      c.x += (c.tx-c.x)/d*s; c.y += (c.ty-c.y)/d*s;
+      c.face = (c.tx > c.x) ? 1 : -1;
+    }
+    /* they scatter from you and, much more urgently, from the pig */
+    [[you.x,you.y,170],[S.pig?S.pig.x:-9999, S.pig?S.pig.y:-9999, 300]].forEach(t=>{
+      const dd = dist(c.x,c.y,t[0],t[1]);
+      if (dd < t[2] && dd > 1){
+        c.x += (c.x-t[0])/dd * 110*dt; c.y += (c.y-t[1])/dd * 110*dt;
+        c.wait = Math.min(c.wait, 0.4);
+      }
+    });
+  });
+}
+
+/* =======================================================================
+   18. TIME OF DAY
+   ======================================================================= */
+let tSec = 0;
+const DAY_START = 5*60, DAY_END = 21*60;
+function todString(){
+  let h = Math.floor(S.tod/60), m = Math.floor(S.tod%60);
+  const ap = h >= 12 ? 'pm' : 'am';
+  let hh = h % 12; if (hh === 0) hh = 12;
+  return hh + ':' + (m<10?'0':'') + m + ' ' + ap;
+}
+function sunHeight(){
+  /* 0 at 5am and 9pm, 1 at 1pm */
+  const t = clamp((S.tod - DAY_START) / (DAY_END - DAY_START), 0, 1);
+  return Math.sin(t * Math.PI);
+}
+function airTempF(){ return Math.round(52 + sunHeight()*32); }
+
+const SEASONS = ['autumn','winter','spring','summer'];
+function rollDay(){
+  S.day++;
+  S.tod = DAY_START;
+  if (S.day % 3 === 1) S.season = SEASONS[(Math.floor((S.day-1)/3)) % 4];
+  JOBS.forEach(j=>{ j.ready = true; j.timer = 0; j.prog = 0; });
+  spots.length = 0; refillSpots();
+  if (S.pig){
+    S.pig.energy = 100; S.pig.hunger = clamp(S.pig.hunger + 18, 0, 100);
+    S.pig.heat = 34; S.pig.mud = Math.max(0, (S.pig.mud||0) - 0.5);
+    S.pig.ageDays++;
+    const b = pigBreed();
+    if (S.pig.weightLb < b.matureLb) S.pig.weightLb = Math.min(b.matureLb, S.pig.weightLb + randi(3,7));
+  }
+  toast('Day ' + S.day + ' — ' + S.season + '. The jobs have come back around.', 'good');
+  paintFarmNote();
+}
+
+/* =======================================================================
+   19. UPDATE
+   ======================================================================= */
+let workingJob = null, workTool = null;
+
+function update(dt){
+  tSec += dt;
+  S.tod += dt * 2.4;
+  if (S.tod >= DAY_END) rollDay();
+
+  /* ---------------- you ---------------- */
+  let ix = 0, iy = 0;
+  if (S.screen === 'farm'){
+    if (held('a','arrowleft'))  ix -= 1;
+    if (held('d','arrowright')) ix += 1;
+    if (held('w','arrowup'))    iy -= 1;
+    if (held('s','arrowdown'))  iy += 1;
+    if (touchVec.active){ ix += touchVec.x; iy += touchVec.y; }
+  }
+  const mag = Math.hypot(ix, iy);
+  if (mag > 1){ ix /= mag; iy /= mag; }
+  const jogging = held('shift') && you.wind > 0.05 && mag > 0.1;
+  const speed = jogging ? 250 : 132;              // cm/s — a real walk, a real jog
+  you.wind = clamp(you.wind + (jogging ? -0.22 : 0.14) * dt, 0, 1);
+  you.x = clamp(you.x + ix*speed*dt, 180, FIELD_W-180);
+  you.y = clamp(you.y + iy*speed*dt, 240, FIELD_H-190);
+  you.moving = mag > 0.08;
+  if (you.moving){
+    you.step += dt * (jogging ? 13 : 8.4);
+    if (Math.abs(ix) > 0.08) you.face = ix > 0 ? 1 : -1;
+  }
+
+  /* ---------------- camera ---------------- */
+  const tcx = clamp(you.x*PX - VIEW_W/2, 0, FPX_W - VIEW_W);
+  const tcy = clamp(you.y*DEPTH - VIEW_H*0.62, 0, FPX_H - VIEW_H);
+  cam.x = lerp(cam.x, tcx, clamp(dt*7, 0, 1));
+  cam.y = lerp(cam.y, tcy, clamp(dt*7, 0, 1));
+
+  /* ---------------- jobs ---------------- */
+  JOBS.forEach(j=>{
+    if (!j.ready){ j.timer -= dt; if (j.timer <= 0){ j.ready = true; j.prog = 0; } }
+  });
+  const nearJob = JOBS.find(j=> dist(you.x,you.y,j.x,j.y) < j.r);
+  workingJob = null; workTool = null;
+  if (nearJob && nearJob.ready && S.screen === 'farm'){
+    if (held('e')){
+      workingJob = nearJob;
+      workTool = { water:'bucket', harvest:'basket', eggs:'basket', muck:'fork',
+                   wood:'axe', fence:'hammer', trough:'bucket', wallow:'bucket' }[nearJob.id];
+      nearJob.prog += dt;
+      if (Math.random() < dt*14) puff(you.x + rand(-40,40), you.y, 1, 'rgba(190,170,120,.7)', 0.5, 0.6);
+      if (nearJob.prog >= nearJob.hold) finishJob(nearJob);
+    } else nearJob.prog = Math.max(0, nearJob.prog - dt*1.6);
+  }
+
+  /* ---------------- the pig ---------------- */
+  if (S.pig) updatePig(dt);
+
+  updateChickens(dt);
+  updateParts(dt);
+
+  /* ---------------- actions ---------------- */
+  if (S.screen === 'farm'){
+    if (wasTapped('f')) offerTreat();
+    if (wasTapped('g')) playWithToy();
+    if (wasTapped('h')) petPig();
+    if (wasTapped('c')) callPig();
+    if (wasTapped('r')) toggleHunt();
+    if (wasTapped('tab')) cycleToy();
+    for (let n=1;n<=9;n++) if (wasTapped(String(n))) selectTreatIndex(n-1);
+    if (wasTapped('e')) tryDigTruffle();
+  }
+  refreshPrompt(nearJob);
+  paintVitals();
+  $('clockBox').textContent = 'Day ' + S.day + ' · ' + todString() + ' · ' + airTempF() + '°F · ' + S.season;
+}
+
+function finishJob(j){
+  const pay = Math.round(j.pay * (1 + S.rep*0.02));
+  addMoney(pay);
+  S.choresDone++;
+  j.ready = false; j.timer = j.cd; j.prog = 0;
+  floatText(you.x, you.y, '+' + exactMoney(pay), '#ffe08a');
+  toast(j.label + ' — ' + exactMoney(pay), 'good');
+  puff(you.x, you.y, 10, 'rgba(230,210,150,.8)', 1.4, 0.9);
+  if (j.id === 'wallow' && S.pig && S.pig.heat > 62){
+    addHearts(1, 'A cool wallow on a hot day.');
+  }
+  if (j.id === 'trough' && S.pig) S.pig.heat = Math.max(30, S.pig.heat - 4);
+  paintFarmNote();
+}
+
+/* ---------------- the pig's whole day ---------------- */
+function updatePig(dt){
+  const p = S.pig, b = pigBreed();
+  const dtMin = dt * 2.4;
+  p.stateT += dt;
+  p.earFlick = Math.max(0, p.earFlick - dt);
+  p.mud = Math.max(0, (p.mud||0) - dt*0.012);
+
+  /* body clocks */
+  const sun = sunHeight();
+  const shady = nearShade(p.x, p.y);
+  let heatTarget = 30 + sun*46 - (shady?12:0) + (p.moving?9:0) - ((p.mud||0)*16);
+  if (p.state === 'wallow') heatTarget = 26;
+  p.heat = lerp(p.heat, heatTarget, clamp(dt*(p.state==='wallow'?0.9:0.24), 0, 1));
+  p.hunger = clamp(p.hunger + dtMin*0.055, 0, 100);
+  if (p.state === 'hunt' || p.state === 'root') p.energy = clamp(p.energy - dtMin*0.10, 0, 100);
+  else if (p.state === 'rest' || p.state === 'wallow') p.energy = clamp(p.energy + dtMin*0.22, 0, 100);
+  else p.energy = clamp(p.energy + dtMin*0.04, 0, 100);
+  p.joy = clamp(p.joy - dtMin*0.02, 0, 100);
+  p.trust = clamp(p.trust + dtMin*0.01, 0, 100);
+
+  /* pale breeds burn. This is not a metaphor, it is a husbandry problem. */
+  const pale = parseInt(b.look.base.slice(1,3),16) > 190;
+  if (pale && sun > 0.7 && !shady && p.state !== 'wallow' && (p.mud||0) < 0.2){
+    p.sunburn += dt*0.9;
+    if (p.sunburn > 12 && Math.random() < dt*0.3){
+      toast(p.name + ' is burning. She needs mud or shade.', 'warn');
+      p.sunburn = 0; p.joy = clamp(p.joy-4, 0, 100);
+    }
+  } else p.sunburn = Math.max(0, p.sunburn - dt*2);
+
+  /* she looks after herself when you don't */
+  if (p.heat > 76 && p.state !== 'wallow'){
+    p.wallowUrge += dt;
+    if (p.wallowUrge > 2.4){
+      if (p.hunting) { p.hunting = false; toast(p.name + ' has broken off. She is too hot to work.', 'warn'); }
+      setPigState('towallow');
+      p.wallowUrge = 0;
+    }
+  } else p.wallowUrge = 0;
+  if (p.energy < 12 && p.hunting){
+    p.hunting = false;
+    setPigState('rest');
+    toast(p.name + ' is done in. Let her lie down.', 'warn');
+  }
+
+  /* ------- states ------- */
+  let tx = null, ty = null, sp = 0;
+  p.headDown = lerp(p.headDown || 0, 0.15, clamp(dt*3,0,1));
+
+  switch (p.state){
+    case 'idle':
+      if (p.stateT > rand(2,4)) setPigState(dist(p.x,p.y,you.x,you.y) > 320 ? 'follow' : 'idle');
+      p.headDown = lerp(p.headDown, 0.62, clamp(dt*2,0,1));
+      if (Math.random() < dt*0.4) p.earFlick = 0.5;
+      break;
+
+    case 'follow': {
+      const d = dist(p.x,p.y,you.x,you.y);
+      if (d > 200){ tx = you.x; ty = you.y; sp = d > 700 ? 235 : 120; }
+      else if (p.stateT > 1.2) setPigState('idle');
+      break;
+    }
+
+    case 'come': {
+      const d = dist(p.x,p.y,you.x,you.y);
+      if (d > 130){ tx = you.x; ty = you.y; sp = 250; }
+      else { setPigState('idle'); p.earFlick = 1; }
+      if (p.stateT > 12) setPigState('follow');
+      break;
+    }
+
+    case 'hunt': {
+      /* a real search: quarter the ground, nose down, until something registers */
+      const detect = 130 + b.nose*52 + bondLevel()*22;
+      let best = null, bd = 1e9;
+      spots.forEach(s=>{
+        if (s.dug) return;
+        const d = dist(p.x,p.y,s.x,s.y);
+        if (d < detect && d < bd){ bd = d; best = s; }
+      });
+      if (best){
+        if (!best.found){ best.found = true; p.earFlick = 1; toast(p.name + ' has caught something.', 'good'); }
+        tx = best.x; ty = best.y; sp = 150;
+        p.spot = best;
+        if (bd < 34){ setPigState('root'); p.rootT = 0; }
+      } else {
+        if (!p.wander || dist(p.x,p.y,p.wander.x,p.wander.y) < 70 || p.stateT > 6){
+          const o = pick(OAKS);
+          p.wander = { x: clamp(o.x + rand(-o.r,o.r), 240, FIELD_W-240),
+                       y: clamp(o.y + rand(-o.r*0.7,o.r*0.7), 2150, FIELD_H-200) };
+          p.stateT = 0;
+        }
+        tx = p.wander.x; ty = p.wander.y; sp = 122;
+      }
+      p.headDown = lerp(p.headDown, 0.85, clamp(dt*3,0,1));
+      p.sniff += dt;
+      if (Math.random() < dt*4) puff(p.x + p.face*70, p.y, 1, 'rgba(150,128,92,.55)', 0.5, 0.5);
+      if (!p.hunting) setPigState('follow');
+      break;
+    }
+
+    case 'root': {
+      const s = p.spot;
+      if (!s || s.dug){ setPigState(p.hunting ? 'hunt' : 'follow'); break; }
+      p.rootT += dt;
+      p.headDown = lerp(p.headDown, 1, clamp(dt*4,0,1));
+      p.headTilt = Math.sin(tSec*9)*0.06;
+      if (Math.random() < dt*22) puff(s.x + rand(-24,24), s.y + rand(-10,10), 1, 'rgba(126,104,74,.8)', 1.1, 0.55);
+      s.rooted = clamp(p.rootT/2.0, 0, 1);
+      if (p.rootT > 2.0 && !s.mark){
+        s.mark = 1;
+        const t = TRUF_BY_ID[s.sp];
+        toast(t.name + ', ' + s.g + ' g — trade her for it (F) or take it (E)', 'good');
+        if (!S.askedFirstHunt){
+          S.askedFirstHunt = true;
+          setTimeout(()=> toast('A pig eats truffles. That is the whole problem with pigs.', 'warn'), 1400);
+        }
+      }
+      const patience = clamp(6.4 - p.hunger/16 - (100-p.trust)/40, 2.2, 7);
+      if (p.rootT > 2.0 + patience){ pigEatsTruffle(s); }
+      break;
+    }
+
+    case 'towallow': {
+      tx = 3620; ty = 2180; sp = 170;
+      if (dist(p.x,p.y,3620,2180) < 130) setPigState('wallow');
+      break;
+    }
+
+    case 'wallow':
+      p.mud = clamp((p.mud||0) + dt*0.35, 0, 1);
+      p.headDown = lerp(p.headDown, 0.4, clamp(dt*2,0,1));
+      if (Math.random() < dt*4) puff(p.x + rand(-40,40), p.y, 1, 'rgba(90,70,44,.7)', 0.9, 0.6);
+      if (p.heat < 40 && p.stateT > 5) setPigState('follow');
+      break;
+
+    case 'rest':
+      p.headDown = lerp(p.headDown, 0.5, clamp(dt*2,0,1));
+      if (p.energy > 65 && p.stateT > 4) setPigState('follow');
+      break;
+
+    case 'eat':
+      p.headDown = lerp(p.headDown, 0.95, clamp(dt*5,0,1));
+      p.headTilt = Math.sin(tSec*14)*0.05;
+      if (Math.random() < dt*8) puff(p.x + p.face*66, p.y, 1, 'rgba(190,170,120,.6)', 0.7, 0.4);
+      if (p.stateT > 2.2){ p.mouth = null; setPigState(p.hunting ? 'hunt' : 'follow'); }
+      break;
+
+    case 'play':
+      p.headDown = lerp(p.headDown, 0.7, clamp(dt*3,0,1));
+      p.x += Math.sin(tSec*6)*70*dt;
+      if (Math.random() < dt*6) puff(p.x + rand(-50,50), p.y, 1, 'rgba(160,180,110,.6)', 1.2, 0.5);
+      if (p.stateT > 3) setPigState('follow');
+      break;
+  }
+
+  /* move her */
+  p.moving = false;
+  if (tx !== null){
+    const d = dist(p.x,p.y,tx,ty);
+    if (d > 8){
+      const v = sp * dt * (0.85 + b.stam*0.04) * (p.energy < 25 ? 0.6 : 1);
+      p.x += (tx-p.x)/d * v;
+      p.y += (ty-p.y)/d * v;
+      p.face = (tx > p.x) ? 1 : (tx < p.x ? -1 : p.face);
+      p.moving = true;
+      p.step += dt * (sp > 200 ? 13 : 8);
+    }
+  }
+  p.x = clamp(p.x, 180, FIELD_W-180);
+  p.y = clamp(p.y, 240, FIELD_H-190);
+
+  /* she grunts. Pigs make roughly twenty distinct sounds and use most of them daily. */
+  p.lastGrunt -= dt;
+  if (p.lastGrunt <= 0){
+    p.lastGrunt = rand(6, 16);
+    if (dist(p.x,p.y,you.x,you.y) < 500 && Math.random() < 0.5){
+      const g = p.joy > 70 ? pick(['unh unh unh','wuff','chuff chuff'])
+              : p.heat > 72 ? pick(['hhhhh','unnnh'])
+              : pick(['unh','grrmph','unh unh']);
+      floatText(p.x, p.y - 20, g, 'rgba(255,255,255,.8)');
+    }
+  }
+}
+function setPigState(s){ S.pig.state = s; S.pig.stateT = 0; }
+function nearShade(x, y){
+  return OAKS.some(o=> dist(x,y,o.x,o.y) < o.r*0.55) || (x < 1100 && y < 900) || (Math.abs(x-1900)<260 && Math.abs(y-700)<260);
+}
+
+function pigEatsTruffle(s){
+  const p = S.pig, t = TRUF_BY_ID[s.sp];
+  s.dug = true; s.eaten = true;
+  p.mouth = null;
+  p.hunger = clamp(p.hunger - 14, 0, 100);
+  p.joy = clamp(p.joy + 10, 0, 100);
+  setPigState('eat');
+  p.mouth = { col: '#2e211a' };
+  spots.splice(spots.indexOf(s), 1); refillSpots();
+  toast(p.name + ' ate the ' + t.name.toLowerCase() + '. ' + exactMoney(t.perLb*s.g/G_PER_LB) + ' gone.', 'warn');
+  floatText(p.x, p.y, 'gulp', '#e8c2a0');
+}
+
+/* =======================================================================
+   20. WHAT THE KEYS DO
+   ======================================================================= */
+function needPig(){
+  if (!S.pig){ toast('You do not have a pig yet. That is rather the point of the Market.', 'warn'); return true; }
+  return false;
+}
+function pigNear(range){
+  return S.pig && dist(S.pig.x, S.pig.y, you.x, you.y) < (range || 220);
+}
+function ownedTreats(){ return TREATS.filter(t=> (S.inv.treats[t.id]||0) > 0); }
+function ownedToys(){ return TOYS.filter(t=> S.inv.toys[t.id]); }
+
+function selectTreatIndex(i){
+  const list = ownedTreats();
+  if (!list.length){ toast('Nothing in your pockets. Try the treats shop.', 'warn'); return; }
+  if (i >= list.length) return;
+  S.selTreat = list[i].id;
+  toast('Selected: ' + list[i].name);
+  paintHotbar();
+}
+function cycleToy(){
+  const list = ownedToys();
+  if (!list.length){ toast('You do not own a single toy.', 'warn'); return; }
+  const i = list.findIndex(t=> t.id === S.selToy);
+  S.selToy = list[(i+1) % list.length].id;
+  toast('Selected: ' + TOY_BY_ID[S.selToy].name);
+  paintHotbar();
+}
+
+function offerTreat(){
+  if (needPig()) return;
+  const p = S.pig;
+  if (!S.selTreat || !(S.inv.treats[S.selTreat] > 0)){
+    const list = ownedTreats();
+    if (!list.length){ toast('You have nothing to offer her.', 'warn'); return; }
+    S.selTreat = list[0].id;
+  }
+  if (!pigNear(280)){ toast(p.name + ' is too far away to smell it. Get closer.', 'warn'); return; }
+  const t = TREAT_BY_ID[S.selTreat];
+  S.inv.treats[t.id]--;
+  if (S.inv.treats[t.id] <= 0){ delete S.inv.treats[t.id]; S.selTreat = (ownedTreats()[0]||{}).id || null; }
+
+  /* the trade: she is holding a truffle, you are holding something better */
+  const s = spots.find(sp=> sp.mark && !sp.dug && dist(sp.x,sp.y,p.x,p.y) < 90);
+  if (s && p.state === 'root'){
+    takeTruffle(s, true);
+    p.hunger = clamp(p.hunger - t.fill, 0, 100);
+    p.joy = clamp(p.joy + t.joy, 0, 100);
+    p.trust = clamp(p.trust + 3, 0, 100);
+    addHearts(2 + Math.min(2, Math.floor(t.bond/2)), 'You traded her for it instead of taking it.');
+    setPigState('eat'); p.mouth = { col:'#8a6a3a' };
+    paintHotbar(); paintPig();
+    return;
+  }
+
+  p.hunger = clamp(p.hunger - t.fill, 0, 100);
+  p.joy = clamp(p.joy + t.joy, 0, 100);
+  p.energy = clamp(p.energy + t.fill*0.5, 0, 100);
+  p.trust = clamp(p.trust + 1.4, 0, 100);
+  p.training = clamp(p.training + 0.25, 0, 20);
+  setPigState('eat'); p.mouth = { col:'#8a6a3a' };
+  p.earFlick = 1;
+  floatText(p.x, p.y, t.name, '#ffe8b0');
+  p.treatCool = p.treatCool || 0;
+  if (tSec > p.treatCool){
+    p.treatCool = tSec + 14;
+    addHearts(t.bond, 'She took it gently from your hand.');
+  } else {
+    toast('She takes it, but she has had plenty. Food is not the only currency.', 'warn');
+  }
+  puff(p.x + p.face*60, p.y, 6, 'rgba(230,200,140,.7)', 1, 0.7);
+  paintHotbar(); paintPig();
+}
+
+function playWithToy(){
+  if (needPig()) return;
+  const p = S.pig;
+  const list = ownedToys();
+  if (!list.length){ toast('No toys yet. She is rooting the fence posts out of boredom.', 'warn'); return; }
+  if (!S.selToy) S.selToy = list[0].id;
+  if (!pigNear(300)){ toast('Get closer to her first.', 'warn'); return; }
+  const toy = TOY_BY_ID[S.selToy];
+  const last = S.toyLast[toy.id] || -999;
+  const since = tSec - last;
+  /* pigs habituate faster than any farm animal. Rotate the enrichment. */
+  const fresh = clamp(since / 90, 0.15, 1);
+  const gain = Math.round(toy.joy * fresh);
+  S.toyLast[toy.id] = tSec;
+  p.joy = clamp(p.joy + gain, 0, 100);
+  p.energy = clamp(p.energy - 3, 0, 100);
+  p.trust = clamp(p.trust + 1, 0, 100);
+  setPigState('play');
+  floatText(p.x, p.y, toy.name, '#c8e8a0');
+  if (fresh > 0.6){
+    addHearts(p.lastToy === toy.id ? 1 : 2, 'She threw it three feet in the air.');
+  } else {
+    toast('She sniffs it once and walks off. She has seen this today already.', 'warn');
+  }
+  p.lastToy = toy.id;
+  paintPig();
+}
+
+function petPig(){
+  if (needPig()) return;
+  const p = S.pig;
+  if (!pigNear(180)){ toast('Too far. Walk up to her shoulder.', 'warn'); return; }
+  if (p.state === 'eat'){
+    p.trust = clamp(p.trust - 2, 0, 100);
+    toast('Never put a hand on a pig while she is eating. She freezes over the food.', 'warn');
+    return;
+  }
+  if (p.heat > 74){
+    toast('She shrugs you off. She is far too hot to enjoy being touched.', 'warn');
+    return;
+  }
+  p.petCool = p.petCool || 0;
+  p.joy = clamp(p.joy + 6, 0, 100);
+  p.trust = clamp(p.trust + 2, 0, 100);
+  p.earFlick = 1;
+  puff(p.x, p.y - 40, 4, 'rgba(255,190,200,.75)', 0.7, 0.9);
+  if (tSec > p.petCool){
+    p.petCool = tSec + 22;
+    addHearts(2, 'Behind the ear, then down the shoulder. She leans in.');
+    floatText(p.x, p.y, 'she leans into it', '#ffc0cb');
+  } else {
+    floatText(p.x, p.y, 'unh', 'rgba(255,255,255,.8)');
+  }
+  paintPig();
+}
+
+function callPig(){
+  if (needPig()) return;
+  const p = S.pig;
+  const chance = clamp(0.30 + p.training*0.035 + p.bond/220 + p.trust/300, 0, 0.97);
+  p.earFlick = 1;
+  if (p.state === 'root' && Math.random() > 0.25){
+    toast(p.name + ' has her nose in the ground and has stopped being a pet.', 'warn');
+    return;
+  }
+  if (Math.random() < chance){
+    setPigState('come');
+    floatText(p.x, p.y, '"' + p.name + '!"', '#fff');
+    p.training = clamp(p.training + 0.15, 0, 20);
+  } else {
+    floatText(p.x, p.y, 'ear flick, nothing more', 'rgba(255,255,255,.7)');
+    toast('She heard you. She has decided that is enough.', 'warn');
+  }
+}
+
+function toggleHunt(){
+  if (needPig()) return;
+  const p = S.pig;
+  if (p.hunting){ p.hunting = false; setPigState('follow'); toast(p.name + ' comes off the scent.'); return; }
+  if (p.heat > 74){ toast('Too hot to work her. Wallow first.', 'warn'); return; }
+  if (p.energy < 18){ toast('She has nothing left today. Let her rest.', 'warn'); return; }
+  if (pigBreed().nose <= 2){
+    toast(pigBreed().name + ' will try, but this is not a nose bred for it.', 'warn');
+  }
+  p.hunting = true; setPigState('hunt');
+  toast(p.name + ' puts her nose down and starts quartering the grove.', 'good');
+}
+
+function takeTruffle(s, traded){
+  const t = TRUF_BY_ID[s.sp];
+  S.bag.push({ sp: s.sp, g: s.g });
+  S.totalFound++;
+  s.dug = true;
+  spots.splice(spots.indexOf(s), 1); refillSpots();
+  const val = t.perLb * s.g / G_PER_LB;
+  floatText(you.x, you.y, t.name + ' · ' + s.g + ' g', '#f0e0b0');
+  toast('Lifted: ' + t.name + ', ' + s.g + ' g — worth about ' + exactMoney(val), 'good');
+  puff(s.x, s.y, 12, 'rgba(126,104,74,.85)', 1.6, 0.8);
+  if (!traded && S.pig){
+    S.pig.taken++;
+    if (S.pig.taken === 3){
+      toast('Third time you have taken it out from under her. She has started bolting them.', 'warn');
+      loseHearts(1, '');
+      S.pig.trust = clamp(S.pig.trust - 6, 0, 100);
+    } else if (S.pig.taken > 3 && Math.random() < 0.5){
+      S.pig.trust = clamp(S.pig.trust - 3, 0, 100);
+    }
+  }
+  paintBag(); paintPig();
+}
+
+function tryDigTruffle(){
+  const s = spots.find(sp=> sp.mark && !sp.dug && dist(sp.x,sp.y,you.x,you.y) < 170);
+  if (!s) return;
+  takeTruffle(s, false);
+  if (S.pig && S.pig.state === 'root') setPigState(S.pig.hunting ? 'hunt' : 'follow');
+}
+
+/* =======================================================================
+   21. THE OVERLAY
+   ======================================================================= */
+function refreshPrompt(nearJob){
+  if (S.screen !== 'farm') return;
+  const marked = spots.find(sp=> sp.mark && !sp.dug && dist(sp.x,sp.y,you.x,you.y) < 170);
+  if (marked){
+    const t = TRUF_BY_ID[marked.sp];
+    setPrompt(t.name + ', ' + marked.g + ' g  ·  E to take it  ·  F to trade her a treat');
+    return;
+  }
+  if (nearJob){
+    if (!nearJob.ready) setPrompt(nearJob.label + ' — done. Back in ' + Math.ceil(nearJob.timer) + 's');
+    else if (workingJob === nearJob) setPrompt(nearJob.verb + '… ' + Math.round(nearJob.prog/nearJob.hold*100) + '%');
+    else setPrompt('Hold E — ' + nearJob.label + '  (' + exactMoney(Math.round(nearJob.pay*(1+S.rep*0.02))) + ')');
+    return;
+  }
+  const inGrove = OAKS.some(o=> dist(you.x,you.y,o.x,o.y) < o.r*1.3);
+  if (inGrove && !S.pig){ setPrompt('Oak roots, bare scorched ground. There is money under here and you cannot smell it.'); return; }
+  if (inGrove && S.pig && !S.pig.hunting){ setPrompt('R — put ' + S.pig.name + ' to work'); return; }
+  if (S.pig && pigNear(200)) { setPrompt('H pet  ·  F treat  ·  G play  ·  C call  ·  R hunt'); return; }
+  setPrompt('');
+}
+
+function bar(label, v, col){
+  return '<div class="vrow"><span class="lab">' + label + '</span><span class="bar"><i style="width:' +
+    clamp(v,0,100) + '%;background:' + col + '"></i></span></div>';
+}
+function paintVitals(){
+  const el = $('vitals');
+  let h = '';
+  if (S.pig){
+    const p = S.pig;
+    h += '<div class="vrow" style="font-size:12px;margin-bottom:1px">' + p.name + ' · ' + pigBreed().name.split(' (')[0] + '</div>';
+    h += bar('Bond',   p.bond,        'linear-gradient(90deg,#f08ba8,#d1607e)');
+    h += bar('Fed',    100 - p.hunger,'linear-gradient(90deg,#e8c96a,#c8992e)');
+    h += bar('Energy', p.energy,      'linear-gradient(90deg,#8fd06a,#4f8f3a)');
+    h += bar('Cool',   100 - p.heat,  'linear-gradient(90deg,#7cc0e8,#3f7fb0)');
+    h += bar('Spirit', p.joy,         'linear-gradient(90deg,#c9a6f0,#8a5fd0)');
+  } else {
+    h += '<div class="vrow" style="font-size:11.5px;line-height:1.35">No pig yet. Work the farm,<br>then the Market.</div>';
+  }
+  h += bar('Wind', you.wind*100, 'linear-gradient(90deg,#e8e8e8,#a8a8a8)');
+  if (el.innerHTML !== h) el.innerHTML = h;
+}
+
+function paintHotbar(){
+  const el = $('hotbar');
+  const t = S.selTreat ? TREAT_BY_ID[S.selTreat] : null;
+  const y = S.selToy ? TOY_BY_ID[S.selToy] : null;
+  let h = '<div class="hot"><span>F · TREAT</span><b>' +
+    (t ? t.name.split(',')[0] + ' ×' + (S.inv.treats[t.id]||0) : '—') + '</b></div>';
+  h += '<div class="hot"><span>G · TOY</span><b>' + (y ? y.name.split(' (')[0] : '—') + '</b></div>';
+  el.innerHTML = h;
+}
+
+/* =======================================================================
+   22. DRAW
+   ======================================================================= */
+function lightWash(){
+  const t = S.tod;
+  if (t < 7*60)   return ['rgba(96,116,172,', clamp((7*60-t)/300, 0, .26)];
+  if (t < 9*60)   return ['rgba(255,204,150,', clamp((9*60-t)/900, 0, .11)];
+  if (t > 19*60)  return ['rgba(72,84,150,', clamp((t-19*60)/340, 0, .34)];
+  if (t > 17*60)  return ['rgba(255,186,112,', clamp((t-17*60)/900, 0, .12)];
+  return null;
+}
+
+function draw(){
+  ctx.clearRect(0,0,VIEW_W,VIEW_H);
+
+  /* the pasture itself */
+  ctx.drawImage(ground, cam.x, cam.y, VIEW_W, VIEW_H, 0, 0, VIEW_W, VIEW_H);
+
+  drawFenceRun();
+  drawHedge();
+
+  /* everything that stands up, painted back to front */
+  const ents = [];
+  const add = (y, fn)=> ents.push({ y:y, fn:fn });
+
+  if (onScreen(700, 560, 400))  add(560,  ()=> drawFarmhouse(sx(700), sy(560)));
+  if (onScreen(1900, 700, 400)) add(700,  ()=> drawBarn(sx(1900), sy(700)));
+  if (onScreen(3320, 520, 300)) add(520,  ()=> drawCoop(sx(3320), sy(520)));
+  if (onScreen(2560, 980, 300)) add(980,  ()=> drawWoodpile(sx(2560), sy(980)));
+  if (onScreen(2820, 1760, 300))add(1760, ()=> drawTrough(sx(2820), sy(1760)));
+  if (onScreen(3620, 2180, 340))add(2178, ()=> drawWallowProp(sx(3620), sy(2180)));
+  OAKS.forEach(o=>{ if (onScreen(o.x,o.y,340)) add(o.y, ()=> drawTree(o)); });
+
+  /* truffle spots: only visible once something has disturbed them */
+  spots.forEach(s=>{
+    if (!onScreen(s.x,s.y,120) || s.dug) return;
+    if (s.found || s.rooted > 0) add(s.y - 1, ()=> drawSpot(s));
+  });
+
+  chickens.forEach(c=>{ if (onScreen(c.x,c.y,120)) add(c.y, ()=> drawChicken(c)); });
+
+  if (S.pig) add(S.pig.y, drawPigInWorld);
+  add(you.y, ()=> drawFarmer(sx(you.x), sy(you.y), 175*PX, you.face,
+      { step: you.step, moving: you.moving, tool: workTool }));
+
+  ents.sort((a,b)=> a.y - b.y);
+  ents.forEach(e=> e.fn());
+
+  drawParts();
+  drawFloats(lastDt);
+  drawJobRing();
+
+  /* the light */
+  const lw = lightWash();
+  if (lw){ ctx.fillStyle = lw[0] + lw[1] + ')'; ctx.fillRect(0,0,VIEW_W,VIEW_H); }
+  const vg = ctx.createRadialGradient(VIEW_W/2, VIEW_H/2, VIEW_H*0.42, VIEW_W/2, VIEW_H/2, VIEW_H*0.95);
+  vg.addColorStop(0,'rgba(0,0,0,0)'); vg.addColorStop(1,'rgba(20,26,12,.20)');
+  ctx.fillStyle = vg; ctx.fillRect(0,0,VIEW_W,VIEW_H);
+}
+
+function drawSpot(s){
+  const x = sx(s.x), y = sy(s.y);
+  /* disturbed earth */
+  ctx.fillStyle = 'rgba(84,66,44,' + (0.35 + s.rooted*0.5) + ')';
+  ctx.beginPath(); ctx.ellipse(x, y, 16 + s.rooted*16, 6 + s.rooted*6, 0, 0, 7); ctx.fill();
+  if (s.found && !s.mark){
+    ctx.strokeStyle = 'rgba(255,240,190,' + (0.3 + Math.sin(tSec*5)*0.2) + ')';
+    ctx.lineWidth = 1.4; ctx.setLineDash([4,4]);
+    ctx.beginPath(); ctx.ellipse(x, y, 26, 11, 0, 0, 7); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+  if (s.mark){
+    const t = TRUF_BY_ID[s.sp];
+    const r = 4 + Math.min(9, s.g/16);
+    const pale = t.id === 'alba' || t.id === 'bianch' || t.id === 'oregon';
+    /* the truffle: a lumpy, warty, wholly unglamorous thing */
+    ctx.fillStyle = pale ? '#c9a86e' : '#2f241c';
+    ctx.beginPath();
+    for (let i=0;i<9;i++){
+      const a = i/9*Math.PI*2;
+      const rr = r * (0.82 + ((i*7)%5)/12);
+      ctx.lineTo(x + Math.cos(a)*rr, y - 3 + Math.sin(a)*rr*0.72);
+    }
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = pale ? 'rgba(255,240,200,.35)' : 'rgba(150,130,110,.30)';
+    ctx.beginPath(); ctx.ellipse(x - r*0.3, y - 3 - r*0.3, r*0.4, r*0.28, 0, 0, 7); ctx.fill();
+    /* bounce arrow */
+    const b = Math.abs(Math.sin(tSec*3))*4;
+    ctx.fillStyle = '#ffe08a';
+    ctx.beginPath();
+    ctx.moveTo(x, y - 20 - b); ctx.lineTo(x-6, y - 30 - b); ctx.lineTo(x+6, y - 30 - b); ctx.closePath(); ctx.fill();
+  }
+}
+
+function drawJobRing(){
+  if (!workingJob) return;
+  const x = sx(you.x), y = sy(you.y) - 175*PX - 16;
+  const p = clamp(workingJob.prog / workingJob.hold, 0, 1);
+  ctx.strokeStyle = 'rgba(0,0,0,.4)'; ctx.lineWidth = 5;
+  ctx.beginPath(); ctx.arc(x, y, 15, 0, 7); ctx.stroke();
+  ctx.strokeStyle = '#ffd979'; ctx.lineWidth = 5; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.arc(x, y, 15, -Math.PI/2, -Math.PI/2 + p*Math.PI*2); ctx.stroke();
+}
+
+/* =======================================================================
+   23. LOOP
+   ======================================================================= */
+let lastT = performance.now(), lastDt = 0.016;
+function loop(now){
+  let dt = (now - lastT)/1000;
+  lastT = now;
+  dt = clamp(dt, 0, 0.05);
+  lastDt = dt;
+  update(dt);
+  draw();
+  requestAnimationFrame(loop);
+}
+
+/* =======================================================================
+   24. SCREENS
+   ======================================================================= */
+S.priceMult = 1;
+function showScreen(name){
+  S.screen = name;
+  document.querySelectorAll('.screen').forEach(s=> s.classList.toggle('on', s.id === 'scr-' + name));
+  document.querySelectorAll('.nav button').forEach(b=> b.classList.toggle('active', b.dataset.scr === name));
+  for (const k in keys) keys[k] = false;
+  if (name === 'market') paintMarket();
+  if (name === 'shop')   paintShop();
+  if (name === 'pig')    { paintPig(); paintBag(); }
+  if (name === 'talk')   { paintTalk(); setTimeout(()=> $('sayInput').focus(), 60); }
+  window.scrollTo(0,0);
+}
+document.querySelectorAll('.nav button').forEach(b=>{
+  b.addEventListener('click', ()=> showScreen(b.dataset.scr));
+});
+
+/* small pig portrait for the cards — the same routine that paints her in the
+   field, pointed at an offscreen canvas */
+function pigCard(breed, w, h){
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  const saved = ctx;
+  ctx = c.getContext('2d');
+  /* she is drawn nose-to-tail across 100 units but the snout reaches to 59,
+     so fit to the widest point and leave the head room to be a head */
+  const L = Math.min(w / (1.30 * (breed.look.size||1)), h / (0.78 * (breed.look.size||1)));
+  drawPigBody(breed.look, w*0.46, h*0.94, L, 1, { step:0, moving:false, headDown:0.2 });
+  ctx = saved;
+  return c;
+}
+
+/* ---------------- market ---------------- */
+const TIERS = [
+  ['starter','Starter stock'],
+  ['working','Working pigs'],
+  ['rare','Rare breeds'],
+  ['heirloom','Heirloom &amp; protected'],
+  ['absurd','The far end of the catalogue']
+];
+function paintMarket(){
+  $('marketSub').innerHTML = 'Prices are what a registered weaner or young gilt of that breed actually costs, ' +
+    'right up until the point where they stop being about pigs at all. You can keep one pig at a time. ' +
+    '<b>Today\'s truffle buyers are paying ' + Math.round(S.priceMult*100) + '% of book.</b>';
+  const tabs = $('marketTabs');
+  tabs.innerHTML = TIERS.map(t=>
+    '<button data-tier="' + t[0] + '" class="' + (S.marketTab===t[0]?'on':'') + '">' + t[1] + '</button>').join('');
+  tabs.querySelectorAll('button').forEach(b=> b.onclick = ()=>{ S.marketTab = b.dataset.tier; paintMarket(); });
+
+  const list = BREEDS.filter(b=> b.tier === S.marketTab);
+  const wrap = $('marketPanel');
+  wrap.innerHTML = '<div class="cards"></div>';
+  const cards = wrap.firstChild;
+  list.forEach(b=>{
+    const owned = S.pig && S.pig.breed === b.id;
+    const el = document.createElement('div');
+    el.className = 'card' + (owned ? ' owned' : '');
+    const cv = pigCard(b, 132, 88);
+    el.appendChild(cv);
+    const body = document.createElement('div');
+    body.className = 'body';
+    body.innerHTML =
+      '<div class="nm">' + b.name + '</div>' +
+      '<div class="meta">' + b.origin + ' &middot; mature ' + b.matureLb + ' lb</div>' +
+      '<div class="meta">Nose <span class="stars">' + stars(Math.min(5,b.nose)) +
+        (b.nose>5 ? ' +' + (b.nose-5) : '') + '</span> &nbsp; Temper <span class="stars">' + stars(b.calm) +
+        '</span> &nbsp; Stamina <span class="stars">' + stars(Math.min(5,b.stam)) + '</span></div>' +
+      '<div class="note">' + b.note + '</div>' +
+      '<div class="buyrow"><span class="price">' + exactMoney(b.price) + '</span>' +
+      (owned ? '<span class="tag">in your paddock</span>' :
+        '<button class="btn small ' + (S.money >= b.price ? 'green' : 'ghost') + '"' +
+        (S.money >= b.price ? '' : ' disabled') + '>Buy</button>') +
+      (b.tier === 'absurd' ? '<span class="tag rare">absurd</span>' : '') + '</div>';
+    el.appendChild(body);
+    const btn = body.querySelector('button');
+    if (btn) btn.onclick = ()=> buyPig(b);
+    cards.appendChild(el);
+  });
+}
+
+function buyPig(b){
+  if (S.money < b.price) return;
+  const replacing = !!S.pig;
+  const refund = replacing ? Math.round(BREED_BY_ID[S.pig.breed].price * 0.55) : 0;
+  openModal(
+    '<h2>' + b.name + '</h2>' +
+    (replacing
+      ? '<div class="warnbox">You already keep <b>' + S.pig.name + '</b>. She would go to the Aldudes co-op, ' +
+        'who pay ' + exactMoney(refund) + ' and are decent about it. You do not get her back.</div><div class="hr"></div>'
+      : '') +
+    '<p class="sub">' + b.origin + '</p>' +
+    '<p>What will you call her?</p>' +
+    '<div class="sayrow"><input id="nameIn" maxlength="18" placeholder="Her name" value="' + suggestName() + '"></div>' +
+    '<div class="hr"></div>' +
+    '<div class="buyrow"><span class="price">' + exactMoney(b.price) +
+      (replacing ? ' &minus; ' + exactMoney(refund) : '') + '</span>' +
+      '<button class="btn green" id="confirmBuy">Bring her home</button>' +
+      '<button class="btn ghost" id="cancelBuy">Not today</button></div>'
+  );
+  $('cancelBuy').onclick = closeModal;
+  $('confirmBuy').onclick = ()=>{
+    const nm = ($('nameIn').value || '').trim().slice(0,18) || suggestName();
+    S.money -= b.price; S.money += refund;
+    const oldName = S.pig ? S.pig.name : null;
+    S.pig = makePig(b.id, nm);
+    S.pig.x = you.x + 160; S.pig.y = you.y + 60;
+    S.hearts = 0;
+    paintChips(); closeModal();
+    showScreen('farm');
+    if (oldName) toast(oldName + ' has gone. ' + nm + ' is in the paddock.', 'warn');
+    toast(nm + ' the ' + b.name.split(' (')[0] + ' is yours. She does not know you yet.', 'good');
+    sysLine(nm + ' arrives. She stands with her shoulder to the gate and will not look at you. ' +
+      'A pig you have owned for four minutes owes you nothing.');
+    paintPig(); paintHotbar();
+  };
+}
+const NAMES = ['Ruby','Hazel','Maud','Clementine','Pig','Beatrix','Nell','Winnie','Dot','Marguerite','Sybil','Olive','Peggy','Tilda','Bramble'];
+function suggestName(){ return pick(NAMES); }
+
+/* ---------------- shop ---------------- */
+document.querySelectorAll('[data-shop]').forEach(b=>{
+  b.onclick = ()=>{
+    S.shopTab = b.dataset.shop;
+    document.querySelectorAll('[data-shop]').forEach(x=> x.classList.toggle('on', x === b));
+    paintShop();
+  };
+});
+function paintShop(){
+  const wrap = $('shopPanel');
+  if (S.shopTab === 'never'){
+    wrap.innerHTML = '<h3>Things that will hurt her</h3>' +
+      '<p class="sub">A pig will eat all of this happily. That is the problem with pigs.</p>' +
+      NEVER_FEED.map(n=> '<div class="warnbox" style="margin-bottom:7px"><b>' + n.n + '</b><br>' + n.w + '</div>').join('') +
+      '<div class="infobox">And the one rule under all of them: a pig has almost no sweat glands and drinks ' +
+      'anywhere from two to six gallons a day. If the water goes, nothing else on this page matters.</div>';
+    return;
+  }
+  if (S.shopTab === 'treats'){
+    wrap.innerHTML = '<div class="cards"></div>';
+    const cards = wrap.firstChild;
+    TREATS.forEach(t=>{
+      const have = S.inv.treats[t.id] || 0;
+      const el = document.createElement('div');
+      el.className = 'card' + (S.selTreat === t.id ? ' sel' : '');
+      el.innerHTML =
+        '<div class="body"><div class="nm">' + t.name + (have ? ' <span class="tag">×' + have + '</span>' : '') + '</div>' +
+        '<div class="meta">Spirit +' + t.joy + ' &middot; fills ' + t.fill + ' &middot; bond ' + stars(t.bond,6) + '</div>' +
+        '<div class="note">' + t.note + '</div>' +
+        '<div class="buyrow"><span class="price">' + exactMoney(t.price) + '</span>' +
+        '<button class="btn small ' + (S.money>=t.price?'gold':'ghost') + '"' + (S.money>=t.price?'':' disabled') + '>Buy 1</button>' +
+        '<button class="btn small ' + (S.money>=t.price*5?'gold':'ghost') + '"' + (S.money>=t.price*5?'':' disabled') + '>Buy 5</button>' +
+        (have ? '<button class="btn small ghost">Carry this one</button>' : '') + '</div></div>';
+      const bs = el.querySelectorAll('button');
+      if (bs[0]) bs[0].onclick = ()=> buyTreat(t, 1);
+      if (bs[1]) bs[1].onclick = ()=> buyTreat(t, 5);
+      if (bs[2]) bs[2].onclick = ()=>{ S.selTreat = t.id; paintShop(); paintHotbar(); toast('Carrying ' + t.name); };
+      cards.appendChild(el);
+    });
+    return;
+  }
+  wrap.innerHTML = '<div class="cards"></div>';
+  const cards = wrap.firstChild;
+  TOYS.forEach(t=>{
+    const owned = !!S.inv.toys[t.id];
+    const el = document.createElement('div');
+    el.className = 'card' + (owned ? ' owned' : '') + (S.selToy === t.id ? ' sel' : '');
+    el.innerHTML =
+      '<div class="body"><div class="nm">' + t.name + '</div>' +
+      '<div class="meta">Spirit +' + t.joy + ' when it is fresh to her</div>' +
+      '<div class="note">' + t.note + '</div>' +
+      '<div class="buyrow"><span class="price">' + exactMoney(t.price) + '</span>' +
+      (owned
+        ? '<span class="tag">owned</span><button class="btn small ghost">Carry this one</button>'
+        : '<button class="btn small ' + (S.money>=t.price?'green':'ghost') + '"' + (S.money>=t.price?'':' disabled') + '>Buy</button>') +
+      '</div></div>';
+    const btn = el.querySelector('.buyrow button');
+    if (btn) btn.onclick = owned
+      ? ()=>{ S.selToy = t.id; paintShop(); paintHotbar(); toast('Carrying ' + t.name); }
+      : ()=> buyToy(t);
+    cards.appendChild(el);
+  });
+}
+function buyTreat(t, n){
+  const cost = t.price * n;
+  if (S.money < cost) return;
+  S.money -= cost;
+  S.inv.treats[t.id] = (S.inv.treats[t.id]||0) + n;
+  if (!S.selTreat) S.selTreat = t.id;
+  paintChips(); paintShop(); paintHotbar();
+  toast(n + ' × ' + t.name + ' — ' + exactMoney(cost));
+}
+function buyToy(t){
+  if (S.money < t.price || S.inv.toys[t.id]) return;
+  S.money -= t.price;
+  S.inv.toys[t.id] = true;
+  if (!S.selToy) S.selToy = t.id;
+  if (t.id === 'wallow' && S.pig) S.pig.heat = Math.min(S.pig.heat, 46);
+  paintChips(); paintShop(); paintHotbar();
+  toast(t.name + ' delivered.', 'good');
+}
+
+/* ---------------- your pig ---------------- */
+function paintPig(){
+  const wrap = $('pigPanel');
+  if (!S.pig){
+    wrap.innerHTML = '<h2>No pig</h2>' +
+      '<p class="sub">There is a paddock, a wallow somebody dug years ago, and a stand of old oaks with ' +
+      'bare scorched ground under them. Everything is here except the nose.</p>' +
+      '<div class="infobox">Work the farm for money. A feral cross costs ' + exactMoney(80) +
+      ' and will find you truffles worth more than that in an afternoon.</div>';
+    return;
+  }
+  const p = S.pig, b = pigBreed();
+  const cv = pigCard(b, 300, 190);
+  const pct = v => Math.round(v);
+  wrap.innerHTML =
+    '<h2>' + p.name + '</h2>' +
+    '<div class="sub">' + b.name + ' &middot; ' + b.origin + '</div>' +
+    '<div class="hr"></div>' +
+    '<div id="pigPortrait" style="text-align:center;background:linear-gradient(180deg,#dfe8d2,#c2d1ab);border-radius:13px;padding:6px 0"></div>' +
+    '<div class="hr"></div>' +
+    '<div class="grid2">' +
+      statBox('Bond', BOND_NAMES[bondLevel()], p.bond, 'linear-gradient(90deg,#f08ba8,#d1607e)') +
+      statBox('Fed', pct(100-p.hunger) + '%', 100-p.hunger, 'linear-gradient(90deg,#e8c96a,#c8992e)') +
+      statBox('Energy', pct(p.energy) + '%', p.energy, 'linear-gradient(90deg,#8fd06a,#4f8f3a)') +
+      statBox('Body temp', p.heat > 76 ? 'overheating' : p.heat > 60 ? 'warm' : 'comfortable', 100-p.heat, 'linear-gradient(90deg,#7cc0e8,#3f7fb0)') +
+      statBox('Spirit', pct(p.joy) + '%', p.joy, 'linear-gradient(90deg,#c9a6f0,#8a5fd0)') +
+      statBox('Trust', pct(p.trust) + '%', p.trust, 'linear-gradient(90deg,#e8b57a,#b57a3a)') +
+    '</div>' +
+    '<div class="hr"></div>' +
+    '<div class="grid2">' +
+      '<div class="stat"><div class="k">Weight</div><div class="v">' + p.weightLb + ' lb</div></div>' +
+      '<div class="stat"><div class="k">Days with you</div><div class="v">' + p.ageDays + '</div></div>' +
+      '<div class="stat"><div class="k">Commands known</div><div class="v">' + Math.floor(p.training) + '</div></div>' +
+      '<div class="stat"><div class="k">Truffles lifted</div><div class="v">' + S.totalFound + '</div></div>' +
+    '</div>' +
+    '<div class="hr"></div>' +
+    (p.heat > 74 ? '<div class="warnbox">She is overheating. Pigs cannot sweat — she needs the wallow, and she needs it now.</div>' : '') +
+    (p.hunger > 72 ? '<div class="warnbox">She is genuinely hungry. A hungry pig will swallow every truffle she finds and you will not be quick enough.</div>' : '') +
+    (p.energy < 25 ? '<div class="warnbox">Worn out. Hunting is hard physical work and she has been at it all day.</div>' : '') +
+    (p.joy < 30 ? '<div class="warnbox">Bored. A bored pig chews fences, chews ears, and stops working. Buy her something to root in.</div>' : '') +
+    '<div class="infobox">' + b.note + '</div>';
+  $('pigPortrait').appendChild(cv);
+}
+function statBox(k, v, meter, col){
+  return '<div class="stat"><div class="k">' + k + '</div><div class="v">' + v + '</div>' +
+    '<div class="meter"><i style="width:' + clamp(meter,0,100) + '%;background:' + col + '"></i></div></div>';
+}
+
+function bagValue(g, spId){
+  const t = TRUF_BY_ID[spId];
+  return t.perLb * g / G_PER_LB * S.priceMult * (1 + S.rep*0.03);
+}
+function paintBag(){
+  const wrap = $('bagPanel');
+  let total = 0;
+  S.bag.forEach(x=> total += bagValue(x.g, x.sp));
+  let h = '<h2>The basket</h2>' +
+    '<div class="sub">Buyers today are paying <b>' + Math.round(S.priceMult*100) + '%</b> of book price. ' +
+    'Your standing with them adds <b>' + Math.round(S.rep*3) + '%</b> on top. Truffles lose aroma by the day, ' +
+    'so nobody sensible sits on them.</div><div class="hr"></div>';
+  if (!S.bag.length){
+    h += '<div class="empty">Nothing in the basket.</div>';
+  } else {
+    h += '<div class="baglist">' + S.bag.map((x,i)=>{
+      const t = TRUF_BY_ID[x.sp];
+      return '<div class="bagrow"><span>' + t.name + '</span><span class="g">' + x.g + ' g</span>' +
+        '<span class="v">' + exactMoney(bagValue(x.g,x.sp)) + '</span></div>';
+    }).join('') + '</div>' +
+    '<div class="hr"></div><div class="buyrow"><span class="price">' + exactMoney(total) + '</span>' +
+    '<button class="btn gold" id="sellAll">Sell the lot</button></div>';
+  }
+  h += '<div class="hr"></div><h3>What the buyers want</h3>' +
+    TRUFFLES.map(t=> '<div class="bagrow"><span>' + t.name + ' <i style="color:var(--muted)">' + t.latin + '</i></span>' +
+      '<span class="g">' + t.season + '</span><span class="v">' + exactMoney(t.perLb) + '/lb</span></div>').join('');
+  wrap.innerHTML = h;
+  const sb = $('sellAll');
+  if (sb) sb.onclick = sellAll;
+}
+function sellAll(){
+  let total = 0;
+  S.bag.forEach(x=> total += bagValue(x.g, x.sp));
+  if (!total) return;
+  const n = S.bag.length;
+  S.rep += n * 0.5;
+  S.bag.length = 0;
+  addMoney(Math.round(total));
+  toast('Sold ' + n + ' truffle' + (n===1?'':'s') + ' for ' + exactMoney(total), 'good');
+  paintBag(); paintMarket();
+}
+
+/* ---------------- farm note ---------------- */
+function paintFarmNote(){
+  const el = $('farmNote');
+  const ready = JOBS.filter(j=> j.ready).length;
+  el.innerHTML = '<h3>Today on the farm</h3>' +
+    '<div class="sub">' + ready + ' of ' + JOBS.length + ' jobs are waiting. Walk to one and hold <b>E</b>. ' +
+    'They come back around through the day, and all of them reset overnight.</div>' +
+    '<div class="hr"></div><div class="keys">' +
+    JOBS.map(j=> '<div>' + (j.ready ? '<b>' + exactMoney(Math.round(j.pay*(1+S.rep*0.02))) + '</b> ' + j.label
+      : '<span style="opacity:.5">' + j.label + ' — ' + Math.ceil(j.timer) + 's</span>') + '</div>').join('') +
+    '</div>';
+}
+
+/* =======================================================================
+   25. TALKING TO HER
+   ======================================================================= */
+function sysLine(text){
+  S.chat.push({ who:'sys', text:text });
+  if (S.screen === 'talk') paintTalk();
+}
+function paintTalk(){
+  const p = S.pig;
+  $('talkTitle').textContent = p ? 'Talking to ' + p.name : 'Talking to nobody in particular';
+  $('talkSub').innerHTML = p
+    ? 'Type anything. She is a pig, so she will answer with her body — ears, weight, snout, the noise she makes. ' +
+      'Pigs learn their own names, hold on to about twenty distinct calls, and remember for years who was decent to them. ' +
+      '<b>' + BOND_NAMES[bondLevel()] + '.</b>'
+    : 'You are standing in an empty paddock talking to yourself. Buy a pig.';
+  const c = $('chat');
+  c.innerHTML = S.chat.map(m=>{
+    if (m.who === 'sys') return '<div class="bub sysb">' + m.text + '</div>';
+    if (m.who === 'me')  return '<div class="bub me">' + escapeHtml(m.text) + '</div>';
+    return '<div class="bub pigb"><em>' + m.text + '</em>' + (m.snd ? '<span class="snd">' + m.snd + '</span>' : '') + '</div>';
+  }).join('');
+  c.scrollTop = c.scrollHeight;
+  const q = ['Good girl.', 'Find me a truffle.', 'Come here.', "Who's a clever pig?", "I'm sorry.", 'Are you hot?', 'Bedtime.'];
+  $('quickRow').innerHTML = q.map(t=> '<button>' + t + '</button>').join('');
+  $('quickRow').querySelectorAll('button').forEach(b=>{
+    b.onclick = ()=>{ $('sayInput').value = b.textContent; say(); };
+  });
+}
+function escapeHtml(s){
+  return s.replace(/[&<>"']/g, c=> ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+$('sayBtn').onclick = say;
+$('sayInput').addEventListener('keydown', e=>{ if (e.key === 'Enter') say(); });
+
+function say(){
+  const inp = $('sayInput');
+  const raw = inp.value.trim();
+  if (!raw) return;
+  inp.value = '';
+  S.chat.push({ who:'me', text:raw });
+  paintTalk();
+  if (!S.pig){
+    setTimeout(()=>{
+      sysLine(pick([
+        'The paddock does not answer. A chicken looks over, decides against it, and goes back to the dirt.',
+        'Nothing. The oaks move a bit. You have said this to an empty field.',
+        'Somewhere off past the fence a neighbour\'s pig grunts, which is worse, really.'
+      ]));
+    }, 500);
+    return;
+  }
+  $('typing').style.display = 'block';
+  $('typing').textContent = S.pig.name + ' lifts her head…';
+  setTimeout(()=>{
+    $('typing').style.display = 'none';
+    const r = respond(raw);
+    S.chat.push({ who:'pig', text:r.text, snd:r.snd });
+    if (S.chat.length > 60) S.chat.splice(0, S.chat.length - 60);
+    paintTalk();
+  }, rand(500, 1100));
+}
+
+/* --- the parser --- */
+function norm(s){ return ' ' + s.toLowerCase().replace(/[^a-z0-9' ]/g,' ').replace(/\s+/g,' ').trim() + ' '; }
+/* every entry is matched at a word start. Give an entry a trailing space to
+   force a whole word ('no ' must not fire on 'nothing'). */
+function hasAny(t, list){ return list.some(w=> t.indexOf(' ' + w) >= 0); }
+
+const MEAN   = ['stupid','idiot','dumb','useless','worthless','shut up','hate you','bad pig','disgusting','filthy pig','damn you','get lost','go away','you\'re worthless','ugly'];
+const PRAISE = ['good girl','good pig','good lass','well done','clever','brilliant','proud of you','best pig','nice work','atta girl','thats my girl','that\'s my girl','good job','you did it','well found','smart','genius','champion'];
+const LOVE   = ['love you','i love','my girl','sweetheart','darling','sweetie','miss you','best friend','adore you','you\'re my','beautiful','gorgeous','precious'];
+const THANKS = ['thank you','thanks','cheers','ta very much','appreciate'];
+const SORRY  = ['sorry','forgive','apologi','my fault','i was wrong','didn\'t mean'];
+const HELLO  = ['hello','hi ','hey','morning','good morning','good evening','afternoon','howdy','hiya'];
+const BYE    = ['goodbye','bye','goodnight','good night','night night','see you','see ya','sleep well','off to bed'];
+const FOODW  = ['treat','snack','dinner','breakfast','supper','food','apple','acorn','carrot','pumpkin','chestnut','blueberr','hungry','eat','feed'];
+const HOTQ   = ['hot','warm','cool','heat','sweat','shade','mud','wallow','temperature'];
+
+function respond(raw){
+  const p = S.pig, b = pigBreed();
+  const t = norm(raw);
+  const lvl = bondLevel();
+  const question = /\?\s*$/.test(raw) || /^(who|what|where|why|how|when|do you|are you|can you|will you|did you|would you|is that|have you|shall we)\b/i.test(raw.trim());
+
+  /* she habituates. Saying the same thing over and over stops being information. */
+  const key = t.slice(0,42);
+  S.saidCount[key] = (S.saidCount[key]||0) + 1;
+  const repeated = S.lastSaid.slice(-3).includes(key);
+  S.lastSaid.push(key); if (S.lastSaid.length > 12) S.lastSaid.shift();
+
+  const namedHer = t.indexOf(p.name.toLowerCase()) >= 0;
+  if (namedHer) p.earFlick = 1;
+
+  /* ---- unkind ---- */
+  if (hasAny(t, MEAN)){
+    p.trust = clamp(p.trust - 7, 0, 100);
+    p.joy = clamp(p.joy - 8, 0, 100);
+    loseHearts(2, 'She heard the tone, not the words.');
+    return { text: pick([
+      'She stops dead. The ears go back flat against the skull and she turns her shoulder to you — not running, just no longer available. Pigs read tone the way dogs do, and hers has just filed this away.',
+      'Her head comes up fast and she backs off two steps, one trotter at a time, watching you sideways. Whatever she was about to do, she is not doing it now.',
+      p.name + ' freezes with her snout an inch off the ground and does not move for a long moment. Then she walks off toward the fence line and stands there facing away.'
+    ]), snd: pick(['unh.','— nothing —','hhh.']) };
+  }
+
+  /* ---- apology ---- */
+  if (hasAny(t, SORRY)){
+    p.trust = clamp(p.trust + 5, 0, 100);
+    if (!repeated) addHearts(1, 'She came back over.');
+    return { text: pick([
+      'She does not understand a word of it, but she understands that you are crouched down at her level with your hands open and your voice gone soft. After a moment she comes over and pushes her snout hard into your knee.',
+      'A long pause. Then the ears come forward, and she walks the distance back to you and stands against your leg with her whole weight, which is her entire vocabulary for this.',
+      'She takes her time about it. Pigs remember. But she comes.'
+    ]), snd: 'unh… unh' };
+  }
+
+  /* ---- praise ---- */
+  if (hasAny(t, PRAISE)){
+    p.joy = clamp(p.joy + 7, 0, 100);
+    p.trust = clamp(p.trust + 2, 0, 100);
+    if (repeated){
+      return { text: 'You have said that three times running now. Her ear swivels back at you, but she does not lift her head out of the grass. Praise means nothing to a pig if it is just weather.', snd:'' };
+    }
+    addHearts(lvl >= 2 ? 2 : 1, 'She knows that tone.');
+    return { text: pick([
+      'The tail goes — a genuine corkscrew wag, the whole hindquarters swinging with it. She trots two steps toward you and shoves her head under your hand.',
+      'She makes the noise pigs make when they are pleased and slightly showing off: a run of fast, soft grunts, all on the same note. Her ears are as far forward as they go.',
+      p.name + ' plants herself in front of you, tips over sideways against your shins, and waits. This is a pig asking for a belly rub, and she has earned it.'
+    ]), snd: pick(['unh unh unh unh','chuff — chuff','wuff!']) };
+  }
+
+  /* ---- love ---- */
+  if (hasAny(t, LOVE)){
+    p.joy = clamp(p.joy + 6, 0, 100);
+    p.trust = clamp(p.trust + 3, 0, 100);
+    if (!repeated) addHearts(lvl >= 3 ? 3 : 2, 'She leaned her whole weight on you.');
+    return { text: lvl >= 3 ? pick([
+      'She leans. Four hundred pounds of pig puts a shoulder against your thigh and lets it rest there, eyes half shut, and you have to brace to stay upright. This is the most affectionate thing a pig can physically do.',
+      'She flops. Not gracefully — a controlled collapse onto her side in the dirt at your feet, belly exposed, which is an animal telling you it has decided nothing here is going to hurt it.',
+      'Her snout finds your hand, then your pocket, then your hand again, and she makes a low continuous rumble that you can feel through your boot.'
+    ]) : pick([
+      'She looks at you for a while, working out whether this leads to food. It does not appear to. She stays anyway, which is something.',
+      'Her ears come forward. She takes one step in and stops, still deciding about you.'
+    ]), snd: lvl >= 3 ? 'rrrrmph — unh unh' : 'unh?' };
+  }
+
+  /* ---- thanks ---- */
+  if (hasAny(t, THANKS)){
+    if (!repeated) addHearts(1, '');
+    return { text: 'She has no idea. She takes it as an invitation and pushes her snout into your palm to check it for chestnuts, finds none, and pushes again in case you were hiding them.', snd:'unh?' };
+  }
+
+  /* ---- commands ---- */
+  const trained = p.training;
+  const obey = clamp(0.25 + trained*0.045 + p.bond/200 + p.trust/280, 0, 0.95);
+  const willObey = Math.random() < obey;
+
+  if (hasAny(t, ['come here','come on','come','here girl','heel','follow me','with me','this way'])){
+    p.training = clamp(p.training + 0.3, 0, 20);
+    if (willObey){
+      setPigState('come');
+      return { text: pick([
+        'She comes at a fast walk that turns into a trot halfway, which is a startling thing to have moving toward you, and stops a foot short with her snout up.',
+        'Ears forward, head up, and she is moving before you have finished the word. She has learned this one properly.'
+      ]), snd:'unh unh' };
+    }
+    return { text: 'She looks up. She looks at the thing she was doing. She goes back to the thing she was doing. Recall in a pig is not a command, it is a negotiation, and today you have nothing to negotiate with.', snd:'—' };
+  }
+
+  if (hasAny(t, ['sit','sit down'])){
+    p.training = clamp(p.training + 0.4, 0, 20);
+    if (trained > 3 && willObey){
+      return { text: 'She drops her hindquarters straight down into the dirt and holds it, front legs braced, looking directly at your hand. Pigs learn to sit faster than most dogs do — the trouble is they will only do it while they believe payment is coming.', snd:'unh.' };
+    }
+    return { text: 'Nothing. She does not know this one yet. Say it, then put something in her mouth the instant her back end touches the ground, and say it again tomorrow. That is the whole method.', snd:'' };
+  }
+
+  if (hasAny(t, ['stay','wait','hold on','stop there','stand'])){
+    p.training = clamp(p.training + 0.3, 0, 20);
+    if (trained > 2 && willObey){
+      setPigState('idle');
+      return { text: 'She stops. Not still — no pig is still — but she stops going anywhere, and stands rocking very slightly from foot to foot with her eyes on you.', snd:'hnf' };
+    }
+    return { text: 'She stops for slightly under two seconds, then carries on. Two seconds is honestly not bad.', snd:'' };
+  }
+
+  if (hasAny(t, ['find','seek','search','hunt','truffle','look for','get to work','work'])){
+    if (p.heat > 74) return { text:'She is standing with her mouth open and her sides going. She is far too hot to work and she is telling you so by ignoring you completely. Get her into the wallow.', snd:'hhhhh' };
+    if (p.energy < 18) return { text:'She has nothing left. Her head is down and it is not the good kind of down. Let her sleep.', snd:'hnnh' };
+    p.hunting = true; setPigState('hunt');
+    p.training = clamp(p.training + 0.5, 0, 20);
+    return { text: pick([
+      'The whole animal changes. Head drops, ears come forward, and she starts working the ground in long sweeps with her snout an inch off the leaf litter — a pig can pick up truffle scent through nearly two feet of soil, and she is not guessing.',
+      'She goes straight past you toward the oaks without being asked twice. Nose down, tail up, quartering the brûlé where nothing else will grow.'
+    ]), snd:'snf snf snf' };
+  }
+
+  if (hasAny(t, ['leave it','drop it','drop','give it','let go','spit'])){
+    const s = spots.find(sp=> sp.mark && !sp.dug && dist(sp.x,sp.y,p.x,p.y) < 90);
+    if (s && p.state === 'root'){
+      if (trained > 5 && willObey){
+        return { text: 'She lifts her head off it. Actually lifts her head off a truffle, on the word. Get down there and take it before she reconsiders, because she is already reconsidering.', snd:'unh!' };
+      }
+      return { text: 'Her jaw is already moving. "Leave it" is the hardest thing you will ever teach a pig and this is the exact moment it matters. Trade her — put something in front of her nose that is worth more to her than what is under it.', snd:'nom' };
+    }
+    return { text: 'There is nothing in her mouth. She checks, in case there is.', snd:'' };
+  }
+
+  if (hasAny(t, ['no ','stop','enough','oi','pack it in','behave','get off','out of it'])){
+    p.joy = clamp(p.joy - 2, 0, 100);
+    return { text: willObey
+      ? 'She stops mid-root and stands up, ears half back, waiting to find out how much trouble she is in. Sharp and short works on a pig. Loud and long does not.'
+      : 'She hears you and keeps going, which is the honest answer of an animal who has correctly worked out that you are forty feet away and she is faster than she looks.',
+      snd:'hnf' };
+  }
+
+  if (hasAny(t, ['bed','home','barn','inside','shed','stable','night time','bedtime','go in'])){
+    setPigState('rest');
+    p.hunting = false;
+    return { text: pick([
+      'She turns for the barn without being asked twice, and once she is in the straw she does what pigs do at the end of a day: builds a nest out of it with her snout, turns twice, and drops into it with a grunt like a dropped sack.',
+      'Straw first. She spends four full minutes rearranging bedding that was already fine, because a pig that cannot build a nest is a pig that will not settle, and then she goes down all at once.'
+    ]), snd:'hhhhnnnh' };
+  }
+
+  /* ---- food ---- */
+  if (hasAny(t, FOODW)){
+    p.joy = clamp(p.joy + 3, 0, 100);
+    const hungry = p.hunger > 55;
+    return { text: hungry ? pick([
+      'Instantly. She is at your pocket before the sentence is finished, snout working the seam of it, and she has started the food noise — a rising urgent squeal-grunt that does not stop until something arrives.',
+      'The word registers. She swings around fast enough to knock the bucket over and puts her nose flat against your thigh, pushing hard, checking every pocket in order.'
+    ]) : pick([
+      'She is interested but not desperate. She comes over, checks your hands, finds nothing, and gives you a look of frank disappointment before wandering off.',
+      'One ear comes forward. She has heard that word before and she knows what it usually precedes, but she has eaten today and she is prepared to be patient about it.'
+    ]), snd: hungry ? 'EEE-unh! unh! unh!' : 'unh?' };
+  }
+
+  /* ---- heat ---- */
+  if (hasAny(t, HOTQ)){
+    const hot = p.heat > 66;
+    return { text: hot
+      ? 'She is panting shallowly with her mouth slightly open, and she has already started drifting toward the low ground. A pig has essentially no working sweat glands — everything she has for cooling is mud, shade and water, and right now she needs at least two of them.'
+      : 'She is fine. Ears relaxed, breathing slow, lying with her belly against the cool dirt in the shade of the oaks, which is exactly what she should be doing at this hour.',
+      snd: hot ? 'hhhh hhhh' : 'hnnnh' };
+  }
+
+  /* ---- greetings ---- */
+  if (hasAny(t, HELLO)){
+    return { text: lvl >= 2 ? pick([
+      'She has already heard you coming — she heard the gate. By the time you are through it she is at the fence with her snout through the rails and her tail going.',
+      'A run of soft fast grunts, ears up, weight shifting onto her front feet. This is the greeting she keeps for you and she does not use it on the postman.'
+    ]) : pick([
+      'She looks up, works out that you have not brought anything, and goes back to the grass.',
+      'One ear rotates toward you. That is the entire greeting. You have not earned the rest of it yet.'
+    ]), snd: lvl >= 2 ? 'unh unh unh unh' : 'unh' };
+  }
+
+  if (hasAny(t, BYE)){
+    return { text: pick([
+      'She watches you go all the way to the gate and stands there after it shuts, which is either loyalty or the reasonable expectation that gates sometimes produce food.',
+      'She is already turning back toward the straw. Pigs sleep somewhere near half the day and she has been waiting for you to be finished for a while now.'
+    ]), snd:'hnnnh' };
+  }
+
+  /* ---- her name alone ---- */
+  if (namedHer && t.split(' ').filter(Boolean).length <= 3){
+    if (Math.random() < obey) setPigState('come');
+    return { text: pick([
+      'Her head comes straight up out of the grass. Pigs learn their own name inside a fortnight and hold on to it for life — she has picked it out of everything else you have ever said to her.',
+      'Both ears swivel and lock onto you before her head has even turned. She takes three steps in your direction and stops, waiting for the rest of the sentence.'
+    ]), snd:'unh?' };
+  }
+
+  /* ---- questions ---- */
+  if (question){
+    return { text: pick([
+      'She tilts her head, which looks like understanding and is actually her getting a better line of sight — a pig\'s eyes are set for spotting a hawk, not for reading your face. She is listening, though. The ears never stop moving while you talk.',
+      'A long, considering look. Then she goes back to rooting, which is a pig\'s answer to almost every question anyone has ever asked one.',
+      'She grunts back at exactly the moment you stop talking. Sows do this with their piglets constantly — a call-and-answer that goes on all day — and she has decided you count.'
+    ]), snd:'unh? unh.' };
+  }
+
+  /* ---- anything else ---- */
+  if (repeated){
+    return { text: 'She has heard this one. Her ear flicks in your direction without the rest of her joining in, and she carries on turning over the same patch of dirt she was already turning over.', snd:'' };
+  }
+  if (raw.length > 90){
+    return { text: 'You talk for a while. She stays. That is not nothing — she could be anywhere in this field and she is standing beside your boot with her eyes half shut, grunting back at the pauses like she is holding up her end of it.', snd:'unh… unh… hnnh' };
+  }
+  const generic = lvl >= 2 ? [
+    'She grunts back. Not at random either — she waits for you to stop, then answers, then waits again.',
+    'She works her snout under your hand and levers it upward until you take the hint and put it on her head.',
+    'Her ears follow your voice around while the rest of her stays put, working the same square foot of dirt with tremendous concentration.',
+    'She sighs — an actual long sigh, all the way out — and settles onto her elbows in the dirt beside you.'
+  ] : [
+    'She looks at you. She looks at the ground. The ground is more interesting so far.',
+    'She keeps one eye on you and the fence between you, and does not stop chewing.',
+    'One ear tracks you. She is building a picture of whether you are worth trusting, and she is not finished.'
+  ];
+  if (!repeated && Math.random() < 0.3 && lvl >= 1) addHearts(1, 'You keep talking to her. It counts.');
+  return { text: pick(generic), snd: pick(['unh','unh unh','hnf','—']) };
+}
+
+/* =======================================================================
+   26. MODAL
+   ======================================================================= */
+function openModal(html){ $('modalBody').innerHTML = html; $('modal').classList.add('on'); }
+function closeModal(){ $('modal').classList.remove('on'); }
+$('modal').addEventListener('click', e=>{ if (e.target === $('modal')) closeModal(); });
+
+/* =======================================================================
+   27. GO
+   ======================================================================= */
+paintChips();
+paintHotbar();
+paintFarmNote();
+paintVitals();
+paintMarket();
+paintShop();
+paintPig();
+paintBag();
+sysLine('Bellhollow, half past six. Forty-eight metres of paddock, a barn that needs mucking out, ' +
+  'and twelve oaks with bare ground under them that nobody has been able to work since the last pig died.');
+paintTalk();
+requestAnimationFrame(loop);
+
+})();
+</script>
+</body>
+</html>
