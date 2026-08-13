@@ -691,6 +691,33 @@
       { n: 'Almond', h: '#f4d9e6', shape: 'almond' },
       { n: 'Coffin', h: '#ecd2e2', shape: 'coffin', item: 'shapeKit' },
       { n: 'Stiletto', h: '#f6d0e2', shape: 'stiletto', item: 'shapeKit' }
+    ],
+    hairdye: [
+      { n: 'Chocolate', h: '#4a2c1c' }, { n: 'Honey Blonde', h: '#d9a95c' },
+      { n: 'Chestnut', h: '#7a4526' }, { n: 'Jet Black', h: '#221a1e' },
+      { n: 'Copper', h: '#b8552a' }, { n: 'Ash Brown', h: '#6b5a4e' },
+      { n: 'Rose Gold', h: '#d98a86', item: 'dyeBar' }, { n: 'Platinum', h: '#e8e2d6', item: 'dyeBar' },
+      { n: 'Cherry Red', h: '#a01f38', item: 'dyeBar' }, { n: 'Lilac', h: '#b48be0', item: 'dyeBar' },
+      { n: 'Mermaid Teal', h: '#2f9a9a', item: 'fantasyDye' }, { n: 'Cotton Candy', h: '#ff8fc4', item: 'fantasyDye' },
+      { n: 'Electric Blue', h: '#3f6ee0', item: 'fantasyDye' }, { n: 'Galaxy Purple', h: '#6a3ba8', item: 'fantasyDye' }
+    ],
+    streaks: [
+      { n: 'Caramel', h: '#c98f4e' }, { n: 'Sunlight', h: '#e8cf8a' },
+      { n: 'Silver Streak', h: '#d6d9e0', item: 'dyeBar' },
+      { n: 'Peach Streak', h: '#ffb08a', item: 'fantasyDye' },
+      { n: 'Rainbow Streak', h: '#a86fd6', item: 'holoDust' }
+    ],
+    hairstyle: [
+      { n: 'Straight', h: '#e6d3c4', style: 'straight' },
+      { n: 'Wavy', h: '#e0cbb8', style: 'wavy' },
+      { n: 'Curly', h: '#d8c0aa', style: 'curly' },
+      { n: 'Ponytail', h: '#eadbcd', style: 'pony', item: 'curlWand' }
+    ],
+    clip: [
+      { n: 'Pearl Clip', h: '#f4ecdf' }, { n: 'Pink Bow', h: '#ff86bb' },
+      { n: 'Butterfly', h: '#7fc4f0' },
+      { n: 'Gold Pin', h: '#e8b83c', item: 'hairJewels' },
+      { n: 'Star Gem', h: '#ffd23f', item: 'hairJewels' }
     ]
   };
 
@@ -717,19 +744,31 @@
     top:        { label: 'Top Coat', ic: '🛡️', colors: null, groups: ['nails', 'toes'], layer: 8, verb: 'sealing' },
     lotion:     { label: 'Hand Lotion', ic: '🧴', colors: null, groups: ['skin'], layer: 1, verb: 'massaging' },
     scrub:      { label: 'Foot Scrub', ic: '🧽', colors: null, groups: ['heel'], layer: 1, verb: 'scrubbing' },
-    massage:    { label: 'Spa Massage', ic: '🤲', colors: null, groups: ['skin', 'heel'], layer: 2, verb: 'massaging', item: 'spaTable' }
+    massage:    { label: 'Spa Massage', ic: '🤲', colors: null, groups: ['skin', 'heel'], layer: 2, verb: 'massaging', item: 'spaTable' },
+
+    shampoo:    { label: 'Shampoo', ic: '🧴', colors: null, groups: ['roots'], layer: 1, verb: 'washing' },
+    detangle:   { label: 'Detangle Brush', ic: '🪮', colors: null, groups: ['hair'], layer: 2, verb: 'brushing' },
+    trim:       { label: 'Trim the Ends', ic: '✂️', colors: null, groups: ['ends'], layer: 3, verb: 'trimming' },
+    dye:        { label: 'Hair Dye', ic: '🎨', colors: 'hairdye', groups: ['hair'], layer: 4, verb: 'colouring' },
+    streaks:    { label: 'Highlights', ic: '🌟', colors: 'streaks', groups: ['hair'], layer: 5, verb: 'painting', item: 'foilKit' },
+    serum:      { label: 'Shine Serum', ic: '💧', colors: null, groups: ['ends'], layer: 6, verb: 'smoothing' },
+    style:      { label: 'Style It', ic: '💇', colors: 'hairstyle', groups: ['hair'], layer: 7, verb: 'styling' },
+    clips:      { label: 'Clips & Bows', ic: '🎀', colors: 'clip', groups: ['hair'], layer: 8, verb: 'clipping' },
+    spray:      { label: 'Hairspray', ic: '💨', colors: null, groups: ['hair'], layer: 9, verb: 'setting' }
   };
 
   var GROUP_LABEL = {
     face: 'the face', brows: 'the brows', lids: 'the eyelids', lashes: 'the lashes',
     cheeks: 'the cheeks', lips: 'the lips', nails: 'every fingernail', toes: 'every toenail',
-    skin: 'the hand', heel: 'the heel'
+    skin: 'the hand', heel: 'the heel',
+    roots: 'the roots', hair: 'the lengths', ends: 'the ends'
   };
 
   var SUBJECT_GROUPS = {
     face: ['face', 'brows', 'lids', 'lashes', 'cheeks', 'lips'],
     hand: ['nails', 'skin'],
-    foot: ['toes', 'heel']
+    foot: ['toes', 'heel'],
+    hair: ['roots', 'hair', 'ends']
   };
 
   function productOwned(id) {
@@ -764,6 +803,16 @@
       desc: 'Adds Berry Kiss and Terracotta.' },
     { id: 'glitterBar', name: 'Glitter Bar', ic: '🌟', cat: 'nails', price: 2600,
       desc: 'Unlocks glitter, plus Pink Confetti and Ocean Shimmer.' },
+    { id: 'foilKit', name: 'Foil & Highlight Kit', ic: '🌟', cat: 'hair', price: 2200,
+      desc: 'Unlocks highlights — painted-on streaks in Caramel and Sunlight.' },
+    { id: 'dyeBar', name: 'The Colour Bar', ic: '🎨', cat: 'hair', price: 7400,
+      desc: 'Rose Gold, Platinum, Cherry Red and Lilac dye, plus Silver Streaks.' },
+    { id: 'curlWand', name: 'Ceramic Curling Wand', ic: '💇', cat: 'hair', price: 16000, tip: 0.05,
+      desc: 'Adds the Ponytail style. Tips +5%.' },
+    { id: 'hairJewels', name: 'Hair Jewellery Box', ic: '🎀', cat: 'hair', price: 46000, tip: 0.07,
+      desc: 'Gold pins and star gems to clip in. Tips +7%.' },
+    { id: 'fantasyDye', name: 'Fantasy Colour Lab', ic: '🧪', cat: 'hair', price: 380000, tip: 0.1,
+      desc: 'Mermaid Teal, Cotton Candy, Electric Blue and Galaxy Purple. Tips +10%.' },
     { id: 'linerPro', name: 'Precision Liner Set', ic: '🖊️', cat: 'eyes', price: 3200, skill: 2,
       desc: 'Unlocks eyeliner and three bold liner colours. Steadier hand: +2%.' },
     { id: 'shapeKit', name: 'Pro Shaping Kit', ic: '📏', cat: 'tools', price: 4500,
@@ -1091,6 +1140,11 @@
       { p: 'polish', g: 'toes' }, { p: 'glitter', g: 'toes' }, { p: 'art', g: 'toes' },
       { p: 'gems', g: 'toes' }, { p: 'top', g: 'toes' }, { p: 'scrub', g: 'heel' },
       { p: 'massage', g: 'heel' }
+    ],
+    hair: [
+      { p: 'shampoo', g: 'roots' }, { p: 'detangle', g: 'hair' }, { p: 'trim', g: 'ends' },
+      { p: 'dye', g: 'hair' }, { p: 'streaks', g: 'hair' }, { p: 'serum', g: 'ends' },
+      { p: 'style', g: 'hair' }, { p: 'clips', g: 'hair' }, { p: 'spray', g: 'hair' }
     ]
   };
 
@@ -1102,9 +1156,9 @@
     n = clamp(Math.round(n), 1, MAX_LEVEL);
     var rng = seeded(n * 7919 + 13);
     var ch = chapterOf(n);
-    var subject = ['face', 'hand', 'foot'][(n - 1) % 3];
-    // After level 30 the order gets shuffled so it isn't always face-hand-foot.
-    if (n > 30) subject = pick(rng, ['face', 'face', 'hand', 'hand', 'foot']);
+    var subject = ['face', 'hand', 'hair', 'foot'][(n - 1) % 4];
+    // After level 30 the order gets shuffled so it isn't a fixed rotation.
+    if (n > 30) subject = pick(rng, ['face', 'face', 'hand', 'hand', 'hair', 'hair', 'foot']);
 
     var vip = (n % 100 === 0);
     var mood = vip ? MOODS[4] : pick(rng, MOODS);
@@ -1131,6 +1185,15 @@
         dryHeel: subject === 'foot' && rng() < 0.8,
         seed: n
       };
+    } else if (subject === 'hair') {
+      cond = {
+        greasy: rng() < 0.75,
+        tangled: rng() < 0.8,
+        splitEnds: rng() < 0.7,
+        frizzy: rng() < 0.65,
+        fadedDye: rng() < 0.5 ? pick(rng, OLD_POLISH) : null,
+        seed: n
+      };
     }
 
     // How many things they want.
@@ -1148,7 +1211,11 @@
     // The state of her nails dictates the prep work — she is always going to ask
     // for the old polish to come off before anything else goes on.
     var forced = [];
-    if (cond) {
+    if (cond && subject === 'hair') {
+      if (cond.greasy) forced.push({ p: 'shampoo', g: 'roots' });
+      if (cond.tangled) forced.push({ p: 'detangle', g: 'hair' });
+      if (cond.splitEnds) forced.push({ p: 'trim', g: 'ends' });
+    } else if (cond) {
       var grp = subject === 'foot' ? 'toes' : 'nails';
       if (cond.oldPolish) forced.push({ p: 'remover', g: grp });
       if (cond.jagged) forced.push({ p: 'file', g: grp });
@@ -1226,7 +1293,8 @@
     currentLevel = makeLevel(G.level);
     var L = currentLevel;
     $('chapterTitle').textContent = 'Chapter ' + L.chapter + ' — ' + L.chapterName;
-    var subjWord = L.subject === 'face' ? 'a full face of makeup' : (L.subject === 'hand' ? 'a manicure' : 'a pedicure');
+    var SUBJ_WORD = { face: 'a full face of makeup', hand: 'a manicure', foot: 'a pedicure', hair: 'her hair done' };
+    var subjWord = SUBJ_WORD[L.subject];
     $('clientHeading').textContent = (L.vip ? '⭐ VIP: ' : '') + L.client.name + ' — ' + subjWord;
     $('clientBlurb').innerHTML = L.client.mood.ic + ' ' + L.client.name + ' is <b>' + L.client.mood.n +
       '</b> today. She is getting ready for ' + L.client.occasion + '.' +
@@ -2189,7 +2257,273 @@
     }
   };
 
-  var SUBJECTS = { face: FACE_SUBJECT, hand: HAND_SUBJECT, foot: FOOT_SUBJECT };
+  /* ---------------- HAIR ----------------
+     Seen from behind in the chair, so there is no face competing with the
+     hair for attention and the whole canvas is workable. ---------------- */
+  var H = { cx: 360, top: 96, wide: 168, drop: 452 };
+
+  // Five vertical sections, the way a stylist actually works through hair.
+  function hairSections() {
+    var out = [];
+    for (var i = 0; i < 5; i++) {
+      out.push({ x: H.cx - 116 + i * 58, y: 300, i: i });
+    }
+    return out;
+  }
+
+  function hairMassPath(ctx) {
+    var cx = H.cx, w = H.wide;
+    ctx.beginPath();
+    ctx.moveTo(cx, H.top);
+    ctx.bezierCurveTo(cx + w * 0.85, H.top + 6, cx + w, 250, cx + w * 0.94, 340);
+    ctx.bezierCurveTo(cx + w * 0.9, H.drop - 40, cx + w * 0.72, H.drop, cx + w * 0.5, H.drop + 8);
+    ctx.quadraticCurveTo(cx, H.drop + 34, cx - w * 0.5, H.drop + 8);
+    ctx.bezierCurveTo(cx - w * 0.72, H.drop, cx - w * 0.9, H.drop - 40, cx - w * 0.94, 340);
+    ctx.bezierCurveTo(cx - w, 250, cx - w * 0.85, H.top + 6, cx, H.top);
+    ctx.closePath();
+  }
+
+  var HAIR_SUBJECT = {
+    bounds: [150, 60, 420, 470],
+    paintParts: function (ctx) {
+      hairMassPath(ctx);
+      ctx.fill();
+    },
+    anchors: {
+      roots: { x: H.cx, y: 150, label: 'Roots' },
+      hair: { x: H.cx, y: 300, label: 'Lengths' },
+      ends: { x: H.cx, y: 424, label: 'Ends' }
+    },
+    regions: {
+      roots: function (ctx) {
+        ctx.beginPath();
+        ctx.moveTo(H.cx - 150, 200);
+        ctx.quadraticCurveTo(H.cx, 96, H.cx + 150, 200);
+        ctx.quadraticCurveTo(H.cx, 178, H.cx - 150, 200);
+        ctx.closePath();
+      },
+      hair: function (ctx) {
+        ctx.beginPath();
+        ctx.moveTo(H.cx - 156, 196);
+        ctx.lineTo(H.cx + 156, 196);
+        ctx.lineTo(H.cx + 160, 388);
+        ctx.quadraticCurveTo(H.cx, 410, H.cx - 160, 388);
+        ctx.closePath();
+      },
+      ends: function (ctx) {
+        ctx.beginPath();
+        ctx.moveTo(H.cx - 160, 386);
+        ctx.lineTo(H.cx + 160, 386);
+        ctx.quadraticCurveTo(H.cx + 90, H.drop + 16, H.cx, H.drop + 22);
+        ctx.quadraticCurveTo(H.cx - 90, H.drop + 16, H.cx - 160, 386);
+        ctx.closePath();
+      }
+    },
+
+    back: function (ctx, L) {
+      var skin = SKIN_TONES[L.client.skin];
+      var hair = HAIR_COLORS[L.client.hairColor];
+      var cond = L.cond;
+
+      // salon cape over the shoulders
+      ctx.fillStyle = '#6f5f8c';
+      ctx.beginPath();
+      ctx.moveTo(H.cx - 250, SH);
+      ctx.bezierCurveTo(H.cx - 210, 470, H.cx - 96, 430, H.cx - 60, 424);
+      ctx.lineTo(H.cx + 60, 424);
+      ctx.bezierCurveTo(H.cx + 96, 430, H.cx + 210, 470, H.cx + 250, SH);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,.12)';
+      ctx.beginPath();
+      ctx.ellipse(H.cx, 430, 66, 16, 0, 0, Math.PI);
+      ctx.fill();
+
+      // neck and ears peeking out
+      ctx.fillStyle = mix(skin, '#7a4028', 0.12);
+      ctx.beginPath();
+      ctx.moveTo(H.cx - 52, 350);
+      ctx.lineTo(H.cx - 56, 430);
+      ctx.quadraticCurveTo(H.cx, 452, H.cx + 56, 430);
+      ctx.lineTo(H.cx + 52, 350);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = skin;
+      ctx.beginPath(); ctx.ellipse(H.cx - 152, 268, 17, 26, 0.1, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(H.cx + 152, 268, 17, 26, -0.1, 0, TAU); ctx.fill();
+
+      // the hair itself
+      var g = ctx.createLinearGradient(0, H.top, 0, H.drop);
+      g.addColorStop(0, mix(hair, '#000000', 0.18));
+      g.addColorStop(0.45, hair);
+      g.addColorStop(1, mix(hair, '#ffffff', 0.12));
+      ctx.fillStyle = g;
+      hairMassPath(ctx);
+      ctx.fill();
+
+      // faded old colour she has grown out
+      if (cond && cond.fadedDye) {
+        var dl = findLayer('hair', 'dye');
+        var covered = dl ? clamp(dl.cover * 1.2, 0, 1) : 0;
+        if (covered < 1) {
+          ctx.save();
+          ctx.globalAlpha = (1 - covered) * 0.75;
+          hairMassPath(ctx);
+          ctx.clip();
+          var fg = ctx.createLinearGradient(0, 300, 0, H.drop);
+          fg.addColorStop(0, rgba(cond.fadedDye, 0));
+          fg.addColorStop(1, rgba(cond.fadedDye, 0.9));
+          ctx.fillStyle = fg;
+          ctx.fillRect(H.cx - H.wide, 280, H.wide * 2, 220);
+          ctx.restore();
+        }
+      }
+    },
+
+    // Texture, tangles, frizz and split ends all sit above the colour.
+    front: function (ctx, L) {
+      var hair = HAIR_COLORS[L.client.hairColor];
+      var cond = L.cond;
+      var style = P.hairStyle || 'straight';
+      var dl = findLayer('hair', 'dye');
+      var strandCol = dl && dl.cover > 0.35 && dl.color ? dl.color.h : hair;
+
+      ctx.save();
+      hairMassPath(ctx);
+      ctx.clip();
+
+      // strand texture, which is what the chosen style actually changes
+      ctx.lineCap = 'round';
+      for (var i = 0; i < 22; i++) {
+        var x0 = H.cx - 156 + i * 15 + (i % 2) * 5;
+        ctx.strokeStyle = rgba(i % 3 === 0 ? mix(strandCol, '#ffffff', 0.35) : mix(strandCol, '#000000', 0.25),
+          i % 3 === 0 ? 0.4 : 0.28);
+        ctx.lineWidth = i % 3 === 0 ? 3 : 2;
+        ctx.beginPath();
+        if (style === 'curly') {
+          for (var y = H.top + 40; y < H.drop; y += 16) {
+            ctx.moveTo(x0 + Math.sin(y / 16 + i) * 9, y);
+            ctx.arc(x0 + Math.sin(y / 16 + i) * 9, y, 7, 0, Math.PI);
+          }
+        } else if (style === 'wavy') {
+          ctx.moveTo(x0, H.top + 30);
+          for (var wy = H.top + 30; wy < H.drop + 10; wy += 12) {
+            ctx.lineTo(x0 + Math.sin(wy / 34 + i * 0.7) * 14, wy);
+          }
+        } else if (style === 'pony') {
+          // everything sweeps toward a band, then falls as one tail
+          var band = 250;
+          ctx.moveTo(x0, H.top + 26);
+          ctx.quadraticCurveTo(x0, band - 30, H.cx + (x0 - H.cx) * 0.16, band);
+          ctx.lineTo(H.cx + (x0 - H.cx) * 0.3, H.drop);
+        } else {
+          ctx.moveTo(x0, H.top + 26);
+          ctx.quadraticCurveTo(x0 + (x0 - H.cx) * 0.06, 300, x0 + (x0 - H.cx) * 0.14, H.drop + 6);
+        }
+        ctx.stroke();
+      }
+
+      if (style === 'pony') {
+        ctx.strokeStyle = 'rgba(60,43,69,.5)';
+        ctx.lineWidth = 12;
+        ctx.beginPath();
+        ctx.ellipse(H.cx, 252, 42, 13, 0, 0, TAU);
+        ctx.stroke();
+      }
+
+      // greasy, unwashed roots
+      if (cond && cond.greasy) {
+        var sh = findLayer('roots', 'shampoo');
+        var washed = clamp((sh ? sh.cover : 0) * 1.25, 0, 1);
+        if (washed < 1) {
+          ctx.save();
+          ctx.globalAlpha = (1 - washed) * 0.55;
+          softBlob(ctx, H.cx, 168, 132, 54, '#6b5a3a', 0.85);
+          ctx.globalAlpha = (1 - washed) * 0.3;
+          ctx.fillStyle = '#fff6d8';
+          ctx.beginPath();
+          ctx.ellipse(H.cx - 40, 150, 44, 16, -0.2, 0, TAU);
+          ctx.fill();
+          ctx.restore();
+        }
+      }
+      ctx.restore();
+
+      // knots — one per section, brushed out one at a time
+      if (cond && cond.tangled) {
+        hairSections().forEach(function (s, i) {
+          if (P.brushed && P.brushed[i]) return;
+          var kx = s.x, ky = 258 + ((i * 37) % 60);
+          ctx.strokeStyle = rgba(mix(hair, '#000000', 0.35), 0.85);
+          ctx.lineWidth = 2.4;
+          for (var k = 0; k < 5; k++) {
+            ctx.beginPath();
+            ctx.ellipse(kx + (grime(i * 9 + k) - 0.5) * 12, ky + (grime(i * 5 + k) - 0.5) * 12,
+              10 + grime(i + k) * 7, 6 + grime(i * 3 + k) * 5, grime(i * 7 + k) * 3, 0, TAU);
+            ctx.stroke();
+          }
+        });
+      }
+
+      // frizz haloing the whole silhouette
+      if (cond && cond.frizzy) {
+        var se = findLayer('ends', 'serum');
+        var smooth = clamp((se ? se.cover : 0) * 1.3, 0, 1);
+        if (smooth < 1) {
+          ctx.save();
+          ctx.globalAlpha = (1 - smooth) * 0.8;
+          ctx.strokeStyle = rgba(hair, 0.75);
+          ctx.lineWidth = 1.5;
+          for (var f = 0; f < 46; f++) {
+            var t = f / 46;
+            var ang = Math.PI + t * Math.PI;
+            var fx = H.cx + Math.cos(ang) * (H.wide * 0.92) * (0.5 + grime(f) * 0.5);
+            var fy = H.top + 60 + t * 330 + (grime(f * 3) - 0.5) * 40;
+            var dir = fx < H.cx ? -1 : 1;
+            ctx.beginPath();
+            ctx.moveTo(fx, fy);
+            ctx.quadraticCurveTo(fx + dir * 12, fy - 6, fx + dir * (10 + grime(f * 7) * 16), fy + (grime(f * 5) - 0.5) * 18);
+            ctx.stroke();
+          }
+          ctx.restore();
+        }
+      }
+
+      // split ends, trimmed away a section at a time
+      if (cond && cond.splitEnds) {
+        hairSections().forEach(function (s, i) {
+          if (P.trimmed && P.trimmed[i]) return;
+          ctx.strokeStyle = rgba(mix(hair, '#ffffff', 0.3), 0.9);
+          ctx.lineWidth = 1.6;
+          for (var e = 0; e < 7; e++) {
+            var ex = s.x - 22 + e * 7 + (grime(i * 11 + e) - 0.5) * 6;
+            var ey = H.drop - 10 + grime(i * 4 + e) * 14;
+            ctx.beginPath();
+            ctx.moveTo(ex, ey);
+            ctx.lineTo(ex + (grime(i + e) - 0.5) * 10, ey + 16 + grime(i * 6 + e) * 12);
+            ctx.stroke();
+          }
+        });
+      }
+
+      // hairspray leaves a set, glossy finish
+      var sp = findLayer('hair', 'spray');
+      if (sp && sp.cover > 0.3) {
+        ctx.save();
+        hairMassPath(ctx);
+        ctx.clip();
+        ctx.globalAlpha = Math.min(0.3, sp.cover * 0.3);
+        var shine = ctx.createLinearGradient(H.cx - 120, 0, H.cx + 60, 0);
+        shine.addColorStop(0, 'rgba(255,255,255,0)');
+        shine.addColorStop(0.5, 'rgba(255,255,255,.9)');
+        shine.addColorStop(1, 'rgba(255,255,255,0)');
+        ctx.fillStyle = shine;
+        ctx.fillRect(H.cx - 150, H.top, 220, H.drop);
+        ctx.restore();
+      }
+    }
+  };
+  var SUBJECTS = { face: FACE_SUBJECT, hand: HAND_SUBJECT, foot: FOOT_SUBJECT, hair: HAIR_SUBJECT };
 
   // A white stencil of "where paint may land", rebuilt whenever the subject changes.
   var silCv = document.createElement('canvas');
@@ -2326,7 +2660,17 @@
     gems:       { r: 10, a: 1, stamp: 1 },
     art:        { r: 10, a: 1, stamp: 1 },
     file:       { r: 22, a: 1, file: 1 },
-    remover:    { r: 26, a: 1, file: 1, strip: 1 }
+    remover:    { r: 26, a: 1, file: 1, strip: 1 },
+
+    shampoo:    { r: 40, a: 0.10, soft: 1, shine: 1, clean: 26 },
+    dye:        { r: 30, a: 0.13, soft: 0.7, clean: 18, even: 2 },
+    streaks:    { r: 11, a: 0.4, soft: 0.3, clean: 12 },
+    serum:      { r: 34, a: 0.09, soft: 1, shine: 1, clean: 24 },
+    spray:      { r: 38, a: 0.09, soft: 1, shine: 1, clean: 24 },
+    detangle:   { r: 34, a: 1, sect: 1 },
+    trim:       { r: 30, a: 1, sect: 1, cut: 1 },
+    style:      { r: 40, a: 1, sect: 1, styling: 1 },
+    clips:      { r: 14, a: 1, stamp: 1, hairclip: 1 }
   };
 
   function resetPlay(L) {
@@ -2348,6 +2692,9 @@
     P.filed = [false, false, false, false, false];
     P.stripped = [false, false, false, false, false];
     P.wiping = false;
+    P.brushed = [false, false, false, false, false];
+    P.trimmed = [false, false, false, false, false];
+    P.hairStyle = 'straight';
     if ($('wipeBtn')) $('wipeBtn').classList.remove('on');
     // Whatever you sorted out by text carries into the appointment.
     var texted = (TX.level === L.n);
@@ -2529,6 +2876,72 @@
     ctx.restore();
   }
 
+  // Hair is worked in five sections — brushed, trimmed or styled one at a time.
+  var SECT_BAND = { detangle: [200, 400], trim: [372, 500], style: [120, 470] };
+
+  function sectAt(layer, x, y) {
+    var spec = BRUSH[layer.product] || {};
+    var band = SECT_BAND[layer.product] || [H.top, H.drop + 30];
+    if (y < band[0] || y > band[1]) return false;
+    var hit = false;
+    hairSections().forEach(function (s, i) {
+      if (Math.abs(x - s.x) > 34 || layer.marks[i]) return;
+      layer.marks[i] = true;
+      hit = true;
+      if (spec.cut) P.trimmed[i] = true;
+      else if (!spec.styling) P.brushed[i] = true;
+      popSparkles(s.x, spec.cut ? H.drop - 6 : y, spec.cut ? '#e8e0f0' : '#ffffff', 5);
+    });
+    return hit;
+  }
+
+  function clipAt(layer, x, y) {
+    var secs = hairSections();
+    var best = -1, bd = 1e9;
+    secs.forEach(function (s, i) {
+      var d = Math.abs(s.x - x);
+      if (d < bd) { bd = d; best = i; }
+    });
+    if (best < 0 || bd > 40 || y < H.top || y > H.drop) return false;
+    var ctx = layer.ctx, col = layer.color.h;
+    ctx.save();
+    ctx.translate(secs[best].x, clamp(y, 150, H.drop - 30));
+    if (layer.color.n === 'Pink Bow') {
+      ctx.fillStyle = col;
+      ctx.beginPath(); ctx.ellipse(-13, 0, 13, 9, -0.3, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(13, 0, 13, 9, 0.3, 0, TAU); ctx.fill();
+      ctx.fillStyle = mix(col, '#000000', 0.2);
+      ctx.beginPath(); ctx.arc(0, 0, 5, 0, TAU); ctx.fill();
+    } else if (layer.color.n === 'Butterfly') {
+      ctx.fillStyle = col;
+      ctx.beginPath(); ctx.ellipse(-9, -4, 9, 7, -0.4, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(9, -4, 9, 7, 0.4, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(-7, 6, 6, 5, 0.3, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(7, 6, 6, 5, -0.3, 0, TAU); ctx.fill();
+      ctx.fillStyle = '#3c2b45';
+      ctx.fillRect(-1.5, -8, 3, 16);
+    } else if (layer.color.n === 'Star Gem') {
+      ctx.fillStyle = col;
+      ctx.beginPath();
+      for (var p = 0; p < 10; p++) {
+        var a = -Math.PI / 2 + p * Math.PI / 5, rr = p % 2 ? 5 : 12;
+        ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr);
+      }
+      ctx.closePath(); ctx.fill();
+    } else {
+      ctx.fillStyle = col;                       // clip / pin
+      ctx.beginPath();
+      ctx.roundRect ? ctx.roundRect(-16, -5, 32, 10, 5) : ctx.rect(-16, -5, 32, 10);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,.75)';
+      ctx.beginPath(); ctx.arc(-8, 0, 2.6, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.arc(8, 0, 2.6, 0, TAU); ctx.fill();
+    }
+    ctx.restore();
+    layer.marks[best] = true;
+    return true;
+  }
+
   // Filing: drag across the tips to reshape them.
   function fileAt(layer, x, y) {
     var nails = P.L.subject === 'foot' ? footNails() : handNails();
@@ -2608,7 +3021,7 @@
 
   function measureLayer(layer) {
     var spec = BRUSH[layer.product] || { r: 12 };
-    if (spec.stamp || spec.file) {
+    if (spec.stamp || spec.file || spec.sect) {
       var done = layer.marks.filter(Boolean).length;
       layer.cover = done / 5;
       layer.spill = 0;
@@ -2666,7 +3079,7 @@
   // outside the lines — you watch it stay inside as you work.
   function applyLiveClean(layer) {
     var spec = BRUSH[layer.product] || {};
-    if (spec.stamp || spec.file || spec.clean === undefined) return;
+    if (spec.stamp || spec.file || spec.sect || spec.clean === undefined) return;
     layer.ctx.globalCompositeOperation = 'destination-in';
     layer.ctx.drawImage(cleanMask(layer.group, spec.clean, true), 0, 0);
     layer.ctx.globalCompositeOperation = 'source-over';
@@ -2674,7 +3087,7 @@
 
   function cleanEdges(layer) {
     var spec = BRUSH[layer.product] || {};
-    if (spec.stamp || spec.file || spec.clean === undefined) return;
+    if (spec.stamp || spec.file || spec.sect || spec.clean === undefined) return;
     // Products that are meant to sit as one flat film get blended out, so
     // overlapping swipes stop reading as stripes.
     for (var i = 0; i < (spec.even || 0); i++) layer.ctx.drawImage(layer.cv, 0, 0);
@@ -2746,11 +3159,12 @@
     var spec = BRUSH[P.selProduct] || {};
 
     if (spec.stamp) {
-      if (stampAt(layer, pt.x, pt.y)) {
+      var placed = spec.hairclip ? clipAt(layer, pt.x, pt.y) : stampAt(layer, pt.x, pt.y);
+      if (placed) {
         popSparkles(pt.x, pt.y, layer.color.h, 6);
         afterStroke(layer);
       } else {
-        toast('Tap right on a nail to place that.');
+        toast(spec.hairclip ? 'Tap on her hair to clip that in.' : 'Tap right on a nail to place that.');
       }
       return;
     }
@@ -2758,7 +3172,8 @@
     P.last = null;
     layer.dIn = 0;
     layer.dOut = 0;
-    if (spec.file) fileAt(layer, pt.x, pt.y);
+    if (spec.sect) sectAt(layer, pt.x, pt.y);
+    else if (spec.file) fileAt(layer, pt.x, pt.y);
     else strokeTo(layer, pt.x, pt.y);
     try { stage.setPointerCapture(ev.pointerId); } catch (e) {}
   }, { passive: false });
@@ -2785,7 +3200,9 @@
     var group = targetGroup(P.selProduct);
     var layer = findLayer(group, P.selProduct);
     if (!layer) return;
-    if ((BRUSH[P.selProduct] || {}).file) fileAt(layer, pt.x, pt.y);
+    var mspec = BRUSH[P.selProduct] || {};
+    if (mspec.sect) sectAt(layer, pt.x, pt.y);
+    else if (mspec.file) fileAt(layer, pt.x, pt.y);
     else strokeTo(layer, pt.x, pt.y);
   }, { passive: false });
 
@@ -2812,13 +3229,18 @@
       layer.spill = (layer.spill * (layer.strokeCount - 1) + layer.lastSpill) / layer.strokeCount;
     }
     cleanEdges(layer);
-    if ((BRUSH[layer.product] || {}).file && layer.cover > 0) {
+    var aspec = BRUSH[layer.product] || {};
+    if (aspec.file && layer.cover > 0) {
       var newShape = layer.color && layer.color.shape ? layer.color.shape : P.shape;
       if (newShape !== P.shape) {
         P.shape = newShape;              // the nail stencils just changed
         buildSilhouette(P.L.subject);
         clearMaskCaches();
       }
+    }
+    // Styling does not change the silhouette, only how the strands are drawn.
+    if (aspec.styling && layer.cover > 0 && layer.color && layer.color.style) {
+      P.hairStyle = layer.color.style;
     }
     var before = P.L.tasks.map(function (t) { return t.done; });
     syncTasks();
@@ -3348,6 +3770,16 @@
     var c = L.cond;
     if (!c) return 'it\'s my face this time so nothing to warn you about';
     var bits = [];
+    if (L.subject === 'hair') {
+      if (c.greasy) bits.push('i haven\'t washed it since tuesday');
+      if (c.tangled) bits.push('there are knots i can\'t get through');
+      if (c.splitEnds) bits.push('the ends are so split');
+      if (c.frizzy) bits.push('and it\'s gone SO frizzy');
+      if (c.fadedDye) bits.push('plus the old colour is still hanging on');
+      if (!bits.length) return 'honestly it\'s behaving itself for once!';
+      return pickFresh('hairopen', ['ok don\'t judge me but ', 'right, brace yourself — ', 'ugh ok so ']) +
+        bits.join(', ');
+    }
     if (c.oldPolish) bits.push('i\'ve still got old polish on from ages ago');
     if (c.jagged) bits.push('two of them are snapped');
     if (c.cuticles) bits.push('my cuticles are a mess');
@@ -3811,9 +4243,9 @@
     renderTray();
     renderTasks();
     updateCoverBar();
-    $('trayHint').textContent = L.subject === 'face' ? 'makeup' : (L.subject === 'hand' ? 'manicure' : 'pedicure');
+    $('trayHint').textContent = { face: 'makeup', hand: 'manicure', foot: 'pedicure', hair: 'hair' }[L.subject];
     $('playHint').innerHTML = 'Pick a product, then <b>press and drag</b> on ' +
-      (L.subject === 'face' ? 'her face' : (L.subject === 'hand' ? 'her hand' : 'her foot')) + ' to put it on.';
+      { face: 'her face', hand: 'her hand', foot: 'her foot', hair: 'her hair' }[L.subject] + ' to work on it.';
     show('playScreen');
     refreshHeader();
   }
@@ -3990,6 +4422,7 @@
     { id: 'eyes', label: '👁️ Eyes' },
     { id: 'lips', label: '💄 Lips' },
     { id: 'nails', label: '💅 Nails' },
+    { id: 'hair', label: '💇 Hair' },
     { id: 'tools', label: '🧰 Tools' },
     { id: 'salon', label: '🏠 Salon' },
     { id: 'luxury', label: '👑 Absurd' }
