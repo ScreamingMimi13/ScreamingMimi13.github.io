@@ -226,7 +226,7 @@
   <div class="topbar">
     <div class="brand"><b>Truffle Trail</b><small>A SMALLHOLDING, A SNOUT, AND THE PRICE OF TUBERS</small></div>
     <div class="purse">
-      <div class="chip cash" id="chipCash">$60</div>
+      <div class="chip cash" id="chipCash">$50,000,000</div>
       <div class="chip heart" id="chipHeart">0 hearts</div>
       <div class="chip pig" id="chipPig">no pig</div>
     </div>
@@ -324,7 +324,7 @@
     <div class="panel" id="bagPanel"></div>
   </section>
 
-  <footer>Every breed, price, truffle and warning in here is the real thing, scaled to a real 0.4&nbsp;acre paddock.</footer>
+  <footer>Every breed, price, truffle and warning in here is the real thing, scaled to a real 0.4&nbsp;acre paddock. The bank balance is not.</footer>
 </div>
 
 <nav class="nav"><div class="nav-inner">
@@ -561,7 +561,7 @@ const G_PER_LB = 453.59237;
    4. GAME STATE
    ======================================================================= */
 const S = {
-  money: 60,
+  money: 50000000,
   hearts: 0,
   rep: 0,                       // grows as you sell; raises buyer prices
   pigs: [],                     // the whole sounder
@@ -2568,7 +2568,9 @@ function paintVitals(){
   let h = '';
   if (S.pig){
     const p = S.pig;
-    h += '<div class="vrow" style="font-size:12px;margin-bottom:1px">' + p.name + ' · ' + pigBreed(p).name.split(' (')[0] +
+    const bn = pigBreed(p).name.split(' (')[0].split(',')[0];
+    h += '<div class="vrow" style="font-size:12px;margin-bottom:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' +
+      p.name + ' · ' + (bn.length > 20 ? bn.slice(0,19) + '…' : bn) +
       (S.pigs.length > 1 ? ' <span style="opacity:.7">(' + (S.sel+1) + '/' + S.pigs.length + ')</span>' : '') + '</div>';
     h += bar('Bond',   p.bond,        'linear-gradient(90deg,#f08ba8,#d1607e)');
     h += bar('Fed',    100 - p.hunger,'linear-gradient(90deg,#e8c96a,#c8992e)');
@@ -2576,7 +2578,7 @@ function paintVitals(){
     h += bar('Cool',   100 - p.heat,  'linear-gradient(90deg,#7cc0e8,#3f7fb0)');
     h += bar('Spirit', p.joy,         'linear-gradient(90deg,#c9a6f0,#8a5fd0)');
   } else {
-    h += '<div class="vrow" style="font-size:11.5px;line-height:1.35">No pig yet. Work the farm,<br>then the Market.</div>';
+    h += '<div class="vrow" style="font-size:11.5px;line-height:1.35">No pig yet, and money is<br>not the thing stopping you.</div>';
   }
   if (S.pigs.length > 1){
     const busy = S.pigs.filter(p=> p.hunting).length;
@@ -2956,8 +2958,10 @@ function paintPig(){
     wrap.innerHTML = '<h2>No pig</h2>' +
       '<p class="sub">There is a paddock, a wallow somebody dug years ago, and a stand of old oaks with ' +
       'bare scorched ground under them. Everything is here except the nose.</p>' +
-      '<div class="infobox">Work the farm for money. A feral cross costs ' + exactMoney(80) +
-      ' and will find you truffles worth more than that in an afternoon.</div>';
+      '<div class="infobox">You have ' + exactMoney(S.money) + ' and nothing to spend it on but pigs. ' +
+      'A feral cross costs ' + exactMoney(80) + ' and will find you truffles worth more than that in an ' +
+      'afternoon; the Empress costs ' + exactMoney(50000000) + ' and will not find you fifty million dollars ' +
+      'of anything. Buy whichever you like &mdash; neither of them will care about you for free.</div>';
     return;
   }
   const p = S.pig, b = pigBreed(p);
@@ -3432,7 +3436,9 @@ paintShop();
 paintPig();
 paintBag();
 sysLine('Bellhollow, half past six. Forty-eight metres of paddock, a barn that needs mucking out, ' +
-  'and twelve oaks with bare ground under them that nobody has been able to work since the last pig died.');
+  'nine oaks with bare ground under them that nobody has been able to work since the last pig died, ' +
+  'and fifty million dollars sitting in the account, which buys every pig in the county and not one ' +
+  'hour of any of them liking you.');
 paintTalk();
 requestAnimationFrame(loop);
 
