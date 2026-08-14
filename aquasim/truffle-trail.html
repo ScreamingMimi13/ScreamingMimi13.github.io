@@ -162,6 +162,8 @@
     border-bottom-right-radius:5px; }
   .bub.pigb { align-self:flex-start; background:var(--panel2); border-bottom-left-radius:5px; }
   .bub.pigb em { color:var(--muted); font-style:italic; }
+  .bub.pigb .who { display:block; font-size:11px; letter-spacing:.6px; text-transform:uppercase;
+    color:var(--accent-d); font-family:"Segoe UI",system-ui,sans-serif; margin-bottom:3px; }
   .bub.sysb { align-self:center; background:transparent; color:var(--muted); font-size:12px; text-align:center;
     font-family:"Segoe UI",system-ui,sans-serif; }
   .bub .snd { display:block; margin-top:4px; font-weight:800; color:var(--accent-d); letter-spacing:.4px; }
@@ -192,6 +194,21 @@
   .bagrow .g { font-family:"Segoe UI",system-ui,sans-serif; font-weight:800; color:var(--muted); font-size:11.5px; }
   .bagrow .v { margin-left:auto; font-weight:800; color:var(--gold-d); font-family:"Segoe UI",system-ui,sans-serif; }
   .empty { text-align:center; color:var(--muted); font-size:13px; padding:16px 8px; font-style:italic; }
+  /* the sounder strip */
+  .herd { display:flex; gap:7px; flex-wrap:wrap; }
+  .pigchip { background:var(--panel2); border-radius:12px; padding:5px 7px 6px; display:flex;
+    flex-direction:column; align-items:center; gap:2px; border:2px solid transparent; cursor:pointer;
+    box-shadow:0 2px 0 var(--line); min-width:86px; }
+  .pigchip.on { border-color:var(--accent); background:#fff; }
+  .pigchip canvas { border-radius:8px; background:linear-gradient(180deg,#dfe8d2,#c9d6b4); display:block; }
+  .pigchip span { font-family:"Segoe UI",system-ui,sans-serif; font-size:11px; line-height:1.25; color:var(--ink); text-align:center; }
+  .pigchip span i { display:block; font-style:normal; font-size:9.5px; color:var(--muted); }
+  .pigchip span i.w { color:var(--green-d); font-weight:800; }
+  .pigchip span i.h { color:var(--bad); font-weight:800; }
+  .pigtabs { display:flex; gap:5px; flex-wrap:wrap; margin-bottom:8px; }
+  .pigtabs button { background:var(--panel2); color:var(--muted); font-weight:800; font-size:11.5px;
+    padding:6px 11px; border-radius:999px; box-shadow:0 2px 0 var(--line); }
+  .pigtabs button.on { background:var(--accent); color:#fff; box-shadow:0 2px 0 var(--accent-d); }
   .modal { position:fixed; inset:0; z-index:60; background:rgba(30,22,12,.62); display:none;
     align-items:center; justify-content:center; padding:16px; }
   .modal.on { display:flex; }
@@ -235,6 +252,8 @@
           <button data-k="h">H<br>Pet</button>
           <button data-k="c">C<br>Call</button>
           <button data-k="r">R<br>Hunt</button>
+          <button data-k="q">Q<br>Swap</button>
+          <button data-k="y">Y<br>All</button>
         </div>
       </div>
     </div>
@@ -248,6 +267,8 @@
         <div><b>H</b> &mdash; scratch her behind the ear</div>
         <div><b>C</b> &mdash; call her by name</div>
         <div><b>R</b> &mdash; send her hunting / call her off</div>
+        <div><b>Q</b> &mdash; switch which pig you're dealing with</div>
+        <div><b>Y</b> &mdash; send the whole sounder to the oaks</div>
         <div><b>1&ndash;9</b> &mdash; pick a treat &middot; <b>Tab</b> toy</div>
       </div>
     </div>
@@ -286,6 +307,7 @@
       <h2 id="talkTitle">Talking to your pig</h2>
       <div class="sub" id="talkSub"></div>
       <div class="hr"></div>
+      <div class="pigtabs" id="pigTabs" style="display:none"></div>
       <div class="chat" id="chat"></div>
       <div class="typing" id="typing" style="display:none"></div>
       <div class="sayrow">
@@ -542,7 +564,8 @@ const S = {
   money: 60,
   hearts: 0,
   rep: 0,                       // grows as you sell; raises buyer prices
-  pig: null,
+  pigs: [],                     // the whole sounder
+  sel: 0,                       // which one you are currently dealing with
   inv: { treats:{}, toys:{} },
   selTreat: null,
   selToy: null,
@@ -563,6 +586,30 @@ const S = {
   toyLast: {},
   askedFirstHunt: false
 };
+
+/* `S.pig` means "the one you are dealing with right now" — everything that
+   used to assume a single pig still reads correctly through it. */
+Object.defineProperty(S, 'pig', {
+  get: function(){ return S.pigs[S.sel] || null; },
+  configurable: true
+});
+function selectPig(p){
+  const i = S.pigs.indexOf(p);
+  if (i >= 0 && i !== S.sel){ S.sel = i; paintChips(); paintPig(); paintTalk(); }
+}
+function nearestPig(range){
+  let best = null, bd = range || 260;
+  S.pigs.forEach(p=>{
+    const d = dist(p.x, p.y, you.x, you.y);
+    if (d < bd){ bd = d; best = p; }
+  });
+  return best;
+}
+function bestNose(){
+  let n = 3;
+  S.pigs.forEach(p=> { n = Math.max(n, BREED_BY_ID[p.breed].nose); });
+  return n;
+}
 
 /* farm-wide constants, in centimetres, because the field is a real size */
 const FIELD_W = 4800, FIELD_H = 3400;   // 48 m x 34 m  =  0.40 acre
@@ -627,7 +674,7 @@ function newSpot(){
   };
 }
 function weightedTruffle(){
-  const nose = S.pig ? BREED_BY_ID[S.pig.breed].nose : 3;
+  const nose = bestNose();
   let total = 0; const w = [];
   TRUFFLES.forEach(t=>{
     // a better nose does not find more truffles, it finds the ones worth finding
@@ -777,7 +824,9 @@ function bump(id){
 function paintChips(){
   $('chipCash').textContent = exactMoney(S.money);
   $('chipHeart').textContent = S.hearts + (S.hearts===1?' heart':' hearts');
-  $('chipPig').textContent = S.pig ? S.pig.name : 'no pig';
+  $('chipPig').textContent = !S.pigs.length ? 'no pig'
+    : S.pigs.length === 1 ? S.pig.name
+    : S.pig.name + ' +' + (S.pigs.length - 1);
 }
 
 /* =======================================================================
@@ -798,10 +847,11 @@ function makePig(breedId, name){
     lastToy: null, toyT: 0, lastGrunt: 0, sunburn: 0
   };
 }
-function pigBreed(){ return S.pig ? BREED_BY_ID[S.pig.breed] : null; }
-function bondLevel(){
-  if (!S.pig) return 0;
-  const b = S.pig.bond;
+function pigBreed(p){ p = p || S.pig; return p ? BREED_BY_ID[p.breed] : null; }
+function bondLevel(p){
+  p = p || S.pig;
+  if (!p) return 0;
+  const b = p.bond;
   return b < 12 ? 0 : b < 30 ? 1 : b < 52 ? 2 : b < 76 ? 3 : 4;
 }
 const BOND_NAMES = ['a stranger with hands','wary of you','warming to you','your pig','inseparable'];
@@ -1118,8 +1168,7 @@ function drawTree(o){
   /* anything standing behind this tree would otherwise vanish under it */
   let fade = 1;
   const canW = hazel ? 105 : 165;
-  [you, S.pig].forEach(a=>{
-    if (!a) return;
+  [you].concat(S.pigs).forEach(a=>{
     if (a.y < o.y && (o.y - a.y) < 760 && Math.abs(sx(a.x) - x) < canW) fade = 0.40;
   });
   ctx.globalAlpha = fade;
@@ -1436,12 +1485,15 @@ function drawPigBody(look, x, y, L, face, pose){
   const snoutC = lum > 165 ? '#e3a794' : lum > 105 ? '#bb8874' : '#6d5a52';
   const pale = lum > 150;
 
+  /* white points on the feet, worn by Berkshires and Herefords */
+  const socks = look.pattern === 'points' || look.pattern === 'hereford';
+
   /* ---- far legs ---- */
-  drawLeg(-27 - S2*7, base, dk, 1);
-  drawLeg(21 + S1*7, base, dk, 1);
+  drawLeg(-27 - S2*6, 1, 1, socks);
+  drawLeg(16 + S1*6, 1, 0, socks);
 
   /* ---- barrel ---- */
-  const bg = ctx.createLinearGradient(0, -58, 0, -10);
+  const bg = ctx.createLinearGradient(0, -56, 0, -14);
   bg.addColorStop(0, shade(base, 26));
   bg.addColorStop(0.42, base);
   bg.addColorStop(1, dk);
@@ -1461,49 +1513,53 @@ function drawPigBody(look, x, y, L, face, pose){
     ctx.fillStyle = rg;
     ctx.beginPath(); ctx.ellipse(mx, my, rx, ry, 0, 0, 7); ctx.fill();
   }
-  mass(-30, -26, 17, 20, true);      // under the ham
-  mass(-25, -44, 13, 12, false);     // top of the ham catching light
-  mass(16, -28, 14, 16, true);       // behind the shoulder
-  /* the crease where the shoulder meets the barrel — every pig has it */
-  ctx.strokeStyle = 'rgba(0,0,0,.13)'; ctx.lineWidth = 1.6;
-  ctx.beginPath(); ctx.moveTo(22, -52); ctx.quadraticCurveTo(15, -36, 19, -17); ctx.stroke();
-  /* topline highlight */
-  const hl = ctx.createLinearGradient(0, -57, 0, -40);
-  hl.addColorStop(0, 'rgba(255,255,255,.16)'); hl.addColorStop(1, 'rgba(255,255,255,0)');
+  mass(-32, -24, 16, 18, true);      // under the ham
+  mass(-26, -45, 14, 12, false);     // the ham catching light off the top
+  mass(14, -26, 13, 15, true);       // the hollow behind the shoulder
+  mass(-2, -22, 26, 9, true);        // the underline of the barrel
+  /* the crease where the shoulder blade slides under the skin — a soft
+     shadow, not a drawn line, or she reads as two pigs joined together */
+  ctx.strokeStyle = 'rgba(0,0,0,.07)'; ctx.lineWidth = 3.4;
+  ctx.beginPath(); ctx.moveTo(22, -46); ctx.quadraticCurveTo(16.5, -34, 19, -23); ctx.stroke();
+  ctx.strokeStyle = 'rgba(0,0,0,.05)'; ctx.lineWidth = 2.6;
+  ctx.beginPath(); ctx.moveTo(-19, -47); ctx.quadraticCurveTo(-15, -34, -19, -22); ctx.stroke();
+  /* topline highlight along the loin */
+  const hl = ctx.createLinearGradient(0, -55, 0, -40);
+  hl.addColorStop(0, 'rgba(255,255,255,.17)'); hl.addColorStop(1, 'rgba(255,255,255,0)');
   ctx.fillStyle = hl;
-  ctx.beginPath(); ctx.ellipse(-4, -50, 28, 8, 0, 0, 7); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(-8, -50, 27, 7, 0, 0, 7); ctx.fill();
 
   /* ---- markings ---- */
   if (look.pattern === 'belted'){
-    ctx.fillStyle = patch; ctx.fillRect(10, -60, 20, 52);
-    ctx.fillStyle = 'rgba(0,0,0,.10)'; ctx.fillRect(10, -22, 20, 14);
+    /* the belt goes over the shoulders and down both forelegs */
+    ctx.fillStyle = patch; ctx.fillRect(7, -58, 20, 46);
+    ctx.fillStyle = 'rgba(0,0,0,.09)'; ctx.fillRect(7, -24, 20, 12);
   } else if (look.pattern === 'kintoa'){
-    ctx.fillStyle = patch; ctx.fillRect(-46, -60, 18, 54);
-    ctx.fillStyle = patch; ctx.fillRect(24, -60, 20, 54);
+    ctx.fillStyle = patch; ctx.fillRect(-50, -58, 26, 46);
+    ctx.fillStyle = patch; ctx.fillRect(12, -58, 26, 46);
   } else if (look.pattern === 'spotted'){
-    const seed = [[-30,-40,7],[ -18,-30,5],[-8,-46,6],[4,-32,5.6],[14,-44,5],[24,-30,4.4],[-34,-25,4],[0,-52,4.6],[18,-24,3.8]];
+    const seed = [[-31,-38,6.4],[-19,-27,4.6],[-9,-44,5.6],[3,-30,5],[13,-42,4.6],[22,-28,4],
+                  [-35,-24,3.6],[-2,-50,4.2],[16,-22,3.4],[-24,-49,3.8]];
     ctx.fillStyle = patch;
-    seed.forEach(s=>{ ctx.beginPath(); ctx.ellipse(s[0], s[1], s[2], s[2]*0.82, s[0]*0.02, 0, 7); ctx.fill(); });
+    seed.forEach(s=>{ ctx.beginPath(); ctx.ellipse(s[0], s[1], s[2], s[2]*0.84, s[0]*0.02, 0, 7); ctx.fill(); });
   } else if (look.pattern === 'hereford'){
-    ctx.fillStyle = patch; ctx.fillRect(28, -60, 18, 54);
-  } else if (look.pattern === 'points'){
-    ctx.fillStyle = patch; ctx.fillRect(30, -60, 14, 54);
+    ctx.fillStyle = patch; ctx.fillRect(16, -58, 26, 46);
   } else if (wooly){
-    ctx.strokeStyle = 'rgba(255,255,255,.26)'; ctx.lineWidth = 1.2;
-    for (let i=0;i<58;i++){
-      const px = -42 + (i%15)*6 + (i%3)*2, py = -56 + Math.floor(i/15)*11;
-      ctx.beginPath(); ctx.arc(px, py, 3.1, 0.4, 4.2); ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,255,255,.28)'; ctx.lineWidth = 1.2;
+    for (let i=0;i<64;i++){
+      const px = -44 + (i%16)*5.6 + (i%3)*2, py = -54 + Math.floor(i/16)*10;
+      ctx.beginPath(); ctx.arc(px, py, 3.0, 0.4, 4.2); ctx.stroke();
     }
-    ctx.strokeStyle = 'rgba(0,0,0,.14)'; ctx.lineWidth = 1;
-    for (let i=0;i<40;i++){
-      const px = -40 + (i%13)*6.6, py = -50 + Math.floor(i/13)*13;
-      ctx.beginPath(); ctx.arc(px, py, 3.4, 3.6, 6.6); ctx.stroke();
+    ctx.strokeStyle = 'rgba(0,0,0,.15)'; ctx.lineWidth = 1;
+    for (let i=0;i<44;i++){
+      const px = -42 + (i%14)*6.2, py = -49 + Math.floor(i/14)*12;
+      ctx.beginPath(); ctx.arc(px, py, 3.3, 3.6, 6.6); ctx.stroke();
     }
   } else if (look.pattern === 'bristled'){
-    ctx.strokeStyle = 'rgba(0,0,0,.30)'; ctx.lineWidth = .9;
-    for (let i=0;i<46;i++){
-      const px = -40 + (i%23)*3.6, py = -56 + (i%5)*3;
-      ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px-1.6, py-5); ctx.stroke();
+    ctx.strokeStyle = 'rgba(0,0,0,.26)'; ctx.lineWidth = .8;
+    for (let i=0;i<54;i++){
+      const px = -42 + (i%27)*3.1, py = -54 + (i%6)*3.4;
+      ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px-1.4, py-4.4); ctx.stroke();
     }
   }
   /* mud, once she has been in the wallow */
@@ -1511,220 +1567,275 @@ function drawPigBody(look, x, y, L, face, pose){
     ctx.globalAlpha = mud * 0.8;
     ctx.fillStyle = '#4b3720';
     for (let i=0;i<26;i++){
-      const px = -40 + (i*7.3)%80, py = -14 - (i*11.7)%34;
+      const px = -42 + (i*7.3)%78, py = -17 - (i*11.7)%32;
       ctx.beginPath(); ctx.ellipse(px, py, 5.4 + (i%3)*2, 3.4 + (i%2)*1.6, i, 0, 7); ctx.fill();
     }
-    ctx.fillStyle = 'rgba(60,44,24,.75)'; ctx.fillRect(-46, -22, 96, 16);
+    ctx.fillStyle = 'rgba(60,44,24,.75)'; ctx.fillRect(-48, -24, 96, 16);
     ctx.globalAlpha = 1;
   }
   /* sun on the back */
-  const sun = ctx.createLinearGradient(0,-58,0,-34);
+  const sun = ctx.createLinearGradient(0,-56,0,-34);
   sun.addColorStop(0,'rgba(255,246,214,.20)'); sun.addColorStop(1,'rgba(255,246,214,0)');
-  ctx.fillStyle = sun; ctx.fillRect(-46,-58,96,26);
+  ctx.fillStyle = sun; ctx.fillRect(-48,-56,96,24);
   ctx.restore();
 
-  /* dorsal bristles — coarse hair along the spine, not a mohawk */
+  /* dorsal bristles — coarse hair standing off the actual topline */
   if ((look.bristle || 0) > 0.3 && !wooly){
-    ctx.strokeStyle = 'rgba(34,25,18,' + (0.16 + look.bristle*0.26) + ')';
-    ctx.lineWidth = 0.5; ctx.lineCap = 'round';
-    for (let i=0;i<38;i++){
-      const t = i/37;
-      const px = lerp(-36, 27, t) + Math.sin(i*2.3)*0.7;
-      const py = -55.8 - Math.sin(t*Math.PI)*2.2;
-      const h = (1.2 + look.bristle*2.6) * (0.55 + ((i*13)%7)/9);
+    ctx.strokeStyle = 'rgba(34,25,18,' + (0.18 + look.bristle*0.28) + ')';
+    ctx.lineWidth = 0.55; ctx.lineCap = 'round';
+    for (let i=0;i<44;i++){
+      const t = i/43;
+      const px = lerp(-34, 22, t) + Math.sin(i*2.3)*0.6;
+      const py = topLine(px) + 0.5;
+      const h = (1.1 + look.bristle*2.4) * (0.55 + ((i*13)%7)/9);
       ctx.beginPath();
       ctx.moveTo(px, py);
-      ctx.quadraticCurveTo(px - 0.9, py - h*0.6, px - 1.7 - h*0.16, py - h);
+      ctx.lineTo(px - 0.9 - h*0.22, py - h);
       ctx.stroke();
     }
   }
 
-  /* ---- tail: the domestic pig's kinked double curl ---- */
-  ctx.strokeStyle = dk; ctx.lineWidth = 2.6; ctx.lineCap = 'round';
+  /* ---- tail: set high on the rump, kinked into the double curl ---- */
   const tw = Math.sin(tSec*3 + (pose.wag||0)) * (pose.wag ? 3 : 1);
+  ctx.strokeStyle = look.pattern === 'points' ? patch : dk;
+  ctx.lineWidth = 2.4; ctx.lineCap = 'round';
   ctx.beginPath();
-  ctx.moveTo(-39, -48);
-  ctx.bezierCurveTo(-47, -52 + tw*0.4, -50, -44, -45, -42 + tw*0.3);
-  ctx.bezierCurveTo(-41, -40.6, -42.5, -46 - tw*0.3, -47, -46);
+  ctx.moveTo(-40, -50);
+  ctx.bezierCurveTo(-46, -53 + tw*0.4, -49, -46, -44.5, -44 + tw*0.3);
+  ctx.bezierCurveTo(-41, -42.8, -42.5, -48 - tw*0.3, -46.5, -47.6);
   ctx.stroke();
 
   /* ---- near legs ---- */
-  drawLeg(-24 + S2*7, base, dk, 0);
-  drawLeg(24 - S1*7, base, dk, 0);
+  drawLeg(-25 + S2*6, 0, 1, socks);
+  drawLeg(19 - S1*6, 0, 0, socks);
 
-  /* ---- head ---- */
+  /* ---- head ----
+     No neck to speak of: the jowl runs straight into the shoulder, and the
+     whole thing pivots at the poll when she puts her nose down. */
   ctx.save();
-  ctx.translate(31, -44);
-  ctx.rotate(headDown * 0.78 + (pose.headTilt||0));
-  const hg = ctx.createLinearGradient(0,-14,0,14);
-  hg.addColorStop(0, shade(base, 22)); hg.addColorStop(0.5, base); hg.addColorStop(1, dk);
+  ctx.translate(30, -46);
+  ctx.translate(0, headDown * 14);
+  ctx.rotate(headDown * 1.15 + (pose.headTilt||0));
+  ctx.scale(1.08, 1.08);            // a pig's head is bigger than you think
+
+  const hg = ctx.createLinearGradient(0,-6,0,22);
+  hg.addColorStop(0, shade(base, 20)); hg.addColorStop(0.45, base); hg.addColorStop(1, dk);
   ctx.fillStyle = hg;
-  /* the wedge — cheek to snout */
-  ctx.beginPath();
-  ctx.moveTo(-4, -13);
-  ctx.bezierCurveTo(8, -14, 18, -11, 25, -7.4);      // top line of the face
-  ctx.bezierCurveTo(28, -6.2, 29, -2, 28.6, 1.4);    // to the snout disc
-  ctx.bezierCurveTo(28, 5, 24, 6.6, 19, 6.4);        // under the snout
-  ctx.bezierCurveTo(10, 7.6, 2, 11, -4, 13);         // jowl
-  ctx.bezierCurveTo(-12, 10, -13, -9, -4, -13);
-  ctx.closePath(); ctx.fill();
-  /* jowl shading — pigs have a heavy cheek */
-  ctx.fillStyle = 'rgba(0,0,0,.12)';
-  ctx.beginPath(); ctx.ellipse(-2, 6, 9, 5.4, -0.2, 0, 7); ctx.fill();
-  if (look.pattern === 'hereford' || look.pattern === 'points' || look.pattern === 'kintoa'){
-    ctx.save();
-    ctx.beginPath();
-    ctx.moveTo(-4,-13); ctx.bezierCurveTo(8,-14,18,-11,25,-7.4);
-    ctx.bezierCurveTo(28,-6.2,29,-2,28.6,1.4); ctx.bezierCurveTo(28,5,24,6.6,19,6.4);
-    ctx.bezierCurveTo(10,7.6,2,11,-4,13); ctx.bezierCurveTo(-12,10,-13,-9,-4,-13);
-    ctx.closePath(); ctx.clip();
+  headPath(); ctx.fill();
+
+  /* head markings */
+  if (look.pattern === 'hereford' || look.pattern === 'kintoa' || look.pattern === 'points'){
+    ctx.save(); headPath(); ctx.clip();
     ctx.fillStyle = patch;
-    if (look.pattern === 'hereford') ctx.fillRect(-14,-16,44,32);
-    else ctx.fillRect(16,-16,20,32);
+    if (look.pattern === 'points') ctx.fillRect(17, -10, 14, 34);   // the white snout blaze
+    else ctx.fillRect(-14, -10, 44, 40);                            // whole white face
     ctx.restore();
   }
-  /* the rhinarium — bare skin, flat as a coin, two nostrils.
-     This disc is the most sensitive thing on the farm and the reason
-     anyone ever put a pig to work. */
-  const sg = ctx.createRadialGradient(26.6, -2, 0.5, 27.4, 0, 7);
-  sg.addColorStop(0, shade(snoutC, 26)); sg.addColorStop(1, shade(snoutC, -34));
+  /* the jowl is the heaviest thing on a pig's head */
+  ctx.fillStyle = 'rgba(0,0,0,.13)';
+  ctx.beginPath(); ctx.ellipse(0, 17, 8.6, 5.6, -0.15, 0, 7); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,.09)';
+  ctx.beginPath(); ctx.ellipse(6, 1, 9, 4.4, 0.32, 0, 7); ctx.fill();
+
+  /* the rhinarium — bare skin, flat as a coin, two nostrils. The most
+     sensitive thing on the farm, and the reason anyone ever put a pig to work. */
+  const sg = ctx.createRadialGradient(21, 9.4, 0.4, 21.6, 11.6, 5.6);
+  sg.addColorStop(0, shade(snoutC, 28)); sg.addColorStop(1, shade(snoutC, -36));
   ctx.fillStyle = sg;
-  ctx.beginPath(); ctx.ellipse(27.4, -0.4, 3.9, 5.9, 0.06, 0, 7); ctx.fill();
-  ctx.strokeStyle = 'rgba(0,0,0,.30)'; ctx.lineWidth = .55;
-  ctx.beginPath(); ctx.ellipse(27.4, -0.4, 3.9, 5.9, 0.06, 0, 7); ctx.stroke();
-  ctx.fillStyle = 'rgba(18,11,8,.75)';
-  ctx.beginPath(); ctx.ellipse(28.2, -2.8, 0.95, 1.5, 0.25, 0, 7); ctx.fill();
-  ctx.beginPath(); ctx.ellipse(28.2, 2.0, 0.95, 1.5, -0.25, 0, 7); ctx.fill();
-  ctx.fillStyle = 'rgba(255,255,255,.26)';
-  ctx.beginPath(); ctx.ellipse(25.8, -2.4, 1.2, 1.8, 0.3, 0, 7); ctx.fill();
-  /* the wrinkles that run back off the disc */
-  ctx.strokeStyle = 'rgba(0,0,0,.13)'; ctx.lineWidth = .45;
+  ctx.beginPath(); ctx.ellipse(21.5, 11.6, 2.9, 4.3, 0.16, 0, 7); ctx.fill();
+  ctx.strokeStyle = 'rgba(0,0,0,.32)'; ctx.lineWidth = .5;
+  ctx.beginPath(); ctx.ellipse(21.5, 11.6, 2.9, 4.3, 0.16, 0, 7); ctx.stroke();
+  ctx.fillStyle = 'rgba(18,11,8,.78)';
+  ctx.beginPath(); ctx.ellipse(22.1, 9.7, 0.72, 1.15, 0.4, 0, 7); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(21.6, 13.5, 0.72, 1.15, 0.1, 0, 7); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,.24)';
+  ctx.beginPath(); ctx.ellipse(20.2, 9.6, 0.9, 1.4, 0.4, 0, 7); ctx.fill();
+  /* the ridge where the snout disc meets the face */
+  ctx.strokeStyle = 'rgba(0,0,0,.16)'; ctx.lineWidth = .55;
+  ctx.beginPath(); ctx.moveTo(18.6, 6.6); ctx.quadraticCurveTo(17.6, 12, 18.4, 16.4); ctx.stroke();
+  /* wrinkles running back along the muzzle */
+  ctx.strokeStyle = 'rgba(0,0,0,.11)'; ctx.lineWidth = .42;
   for (let i=0;i<3;i++){
     ctx.beginPath();
-    ctx.moveTo(23.4, -4.6 + i*3.4);
-    ctx.quadraticCurveTo(19, -4.2 + i*3.6, 15.4, -3.4 + i*3.8);
+    ctx.moveTo(17, 6 + i*3.6);
+    ctx.quadraticCurveTo(12.6, 6.6 + i*3.8, 8.6, 8 + i*3.6);
     ctx.stroke();
   }
-  /* mouth line */
-  ctx.strokeStyle = 'rgba(0,0,0,.32)'; ctx.lineWidth = .9;
-  ctx.beginPath(); ctx.moveTo(24.6, 5.2); ctx.quadraticCurveTo(16, 8.4, 8, 8.2); ctx.stroke();
+  /* mouth: a long line back under the jowl, turned up at the corner */
+  ctx.strokeStyle = 'rgba(0,0,0,.34)'; ctx.lineWidth = .85;
+  ctx.beginPath(); ctx.moveTo(19.6, 15.4); ctx.quadraticCurveTo(13, 18.6, 6.4, 17.6); ctx.stroke();
   if (look.tusks){
     ctx.fillStyle = '#efe6d2';
-    ctx.beginPath(); ctx.moveTo(17, 7.4); ctx.quadraticCurveTo(19.4, 4.6, 20.6, 1.6);
-    ctx.lineTo(18.6, 1.4); ctx.quadraticCurveTo(18, 5, 15.6, 7.2); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(13.6, 17.6); ctx.quadraticCurveTo(16.4, 14.6, 17.4, 11.2);
+    ctx.lineTo(15.4, 11); ctx.quadraticCurveTo(14.8, 14.6, 12.2, 17.2); ctx.closePath(); ctx.fill();
   }
-  /* eye — small, set high and far back, with real lashes */
-  ctx.fillStyle = pale ? 'rgba(0,0,0,.14)' : 'rgba(255,255,255,.13)';
-  ctx.beginPath(); ctx.ellipse(6.4, -6.2, 3.8, 3.1, 0, 0, 7); ctx.fill();
+  /* eye — small, high, set well back toward the ear */
+  ctx.fillStyle = pale ? 'rgba(0,0,0,.13)' : 'rgba(255,255,255,.12)';
+  ctx.beginPath(); ctx.ellipse(6.2, 2.4, 3.5, 2.9, 0.1, 0, 7); ctx.fill();
   const blink = (tSec % 4.6) < 0.13 ? 0.12 : 1;
   ctx.fillStyle = '#20160f';
-  ctx.beginPath(); ctx.ellipse(6.6, -6.2, 2.05, 1.75*blink, 0.1, 0, 7); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(6.4, 2.4, 1.85, 1.6*blink, 0.15, 0, 7); ctx.fill();
   if (blink > 0.5){
     ctx.fillStyle = 'rgba(255,255,255,.75)';
-    ctx.beginPath(); ctx.ellipse(7.3, -6.9, 0.66, 0.56, 0, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(7.0, 1.8, 0.6, 0.5, 0, 0, 7); ctx.fill();
   }
-  ctx.strokeStyle = 'rgba(40,28,18,.7)'; ctx.lineWidth = .55;
+  ctx.strokeStyle = 'rgba(40,28,18,.7)'; ctx.lineWidth = .5;
   for (let i=0;i<4;i++){
-    const a = -0.5 + i*0.28;
+    const a = -0.3 + i*0.26;
     ctx.beginPath();
-    ctx.moveTo(6.6 + Math.cos(a)*3, -7.6 - Math.sin(a)*1.2);
-    ctx.lineTo(6.6 + Math.cos(a)*5.4, -9.4 - Math.sin(a)*1.8); ctx.stroke();
+    ctx.moveTo(6.4 + Math.cos(a)*2.8, 1.2 - Math.sin(a)*1.1);
+    ctx.lineTo(6.4 + Math.cos(a)*5.0, -0.5 - Math.sin(a)*1.7); ctx.stroke();
   }
-  /* ears */
+
+  /* ears, set high and well back on the skull */
   const flick = (pose.ear || 0);
   ctx.save();
-  ctx.translate(-1, -11);
+  ctx.translate(-1.5, -2.5);
   if (look.ears === 'erect'){
-    ctx.rotate(-0.12 + flick*0.22);
+    ctx.rotate(-0.16 + flick*0.22);
     ctx.fillStyle = dk;
-    ctx.beginPath(); ctx.moveTo(-5, 2); ctx.quadraticCurveTo(-3, -16, 5, -17.5);
-    ctx.quadraticCurveTo(8, -9, 5.5, 1.5); ctx.closePath(); ctx.fill();
-    ctx.fillStyle = 'rgba(220,150,140,.42)';
-    ctx.beginPath(); ctx.moveTo(-2, 0.4); ctx.quadraticCurveTo(-1, -12, 4, -13.6);
-    ctx.quadraticCurveTo(5.4, -7, 3.6, 0); ctx.closePath(); ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(-5.5, 3); ctx.bezierCurveTo(-6, -8, -2, -16, 4.6, -17.5);
+    ctx.bezierCurveTo(8.2, -11, 7.4, -3, 5.6, 2.4); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = 'rgba(214,148,138,.40)';
+    ctx.beginPath();
+    ctx.moveTo(-2.4, 1.6); ctx.bezierCurveTo(-2.6, -7, -0.4, -12, 3.6, -13.6);
+    ctx.bezierCurveTo(5.4, -8, 4.6, -2.6, 3.4, 1.2); ctx.closePath(); ctx.fill();
   } else if (look.ears === 'lop'){
-    ctx.rotate(0.30 + flick*0.16);
+    ctx.rotate(0.34 + flick*0.14);
     ctx.fillStyle = dk;
-    ctx.beginPath(); ctx.moveTo(-5, -2); ctx.quadraticCurveTo(10, -6, 17, 6);
-    ctx.quadraticCurveTo(11, 13, 1, 6); ctx.closePath(); ctx.fill();
-    ctx.fillStyle = 'rgba(0,0,0,.16)';
-    ctx.beginPath(); ctx.moveTo(2, 0); ctx.quadraticCurveTo(11, -1, 15, 6);
-    ctx.quadraticCurveTo(10, 10, 3, 5); ctx.closePath(); ctx.fill();
-  } else { /* semi-lop: up at the base, tipping forward */
-    ctx.rotate(0.02 + flick*0.2);
-    ctx.fillStyle = dk;
-    ctx.beginPath(); ctx.moveTo(-5, 1); ctx.quadraticCurveTo(-3, -13, 6, -14);
-    ctx.quadraticCurveTo(13, -8, 8, 0); ctx.closePath(); ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(-5, -3); ctx.bezierCurveTo(6, -8, 15, -2, 17.5, 7);
+    ctx.bezierCurveTo(11, 13.5, 1.5, 8, -2, 3); ctx.closePath(); ctx.fill();
     ctx.fillStyle = 'rgba(0,0,0,.18)';
-    ctx.beginPath(); ctx.moveTo(4, -12.4); ctx.quadraticCurveTo(12, -8, 7.4, -0.6);
-    ctx.quadraticCurveTo(4, -5, 4, -12.4); ctx.closePath(); ctx.fill();
-    ctx.fillStyle = 'rgba(220,150,140,.30)';
-    ctx.beginPath(); ctx.moveTo(-2, 0); ctx.quadraticCurveTo(-1, -10, 4, -11); ctx.quadraticCurveTo(6, -6, 4, 0); ctx.closePath(); ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(1, -1.4); ctx.bezierCurveTo(8, -3.4, 13.4, 1.4, 15, 6.8);
+    ctx.bezierCurveTo(10, 10.8, 3.4, 6.4, 1, 2.6); ctx.closePath(); ctx.fill();
+  } else { /* semi-lop: upright at the base, tipping forward at the tip */
+    ctx.rotate(-0.04 + flick*0.2);
+    ctx.fillStyle = dk;
+    ctx.beginPath();
+    ctx.moveTo(-5.4, 2.4); ctx.bezierCurveTo(-5.6, -7, -1.6, -13.6, 5, -14.4);
+    ctx.bezierCurveTo(11.6, -9.4, 9.8, -2.4, 7.6, 1.8); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = 'rgba(0,0,0,.20)';
+    ctx.beginPath();
+    ctx.moveTo(3, -12.6); ctx.bezierCurveTo(11, -9, 9.4, -2.6, 7.2, 1.4);
+    ctx.bezierCurveTo(4.4, -3.4, 3, -8, 3, -12.6); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = 'rgba(214,148,138,.28)';
+    ctx.beginPath();
+    ctx.moveTo(-2.6, 1.4); ctx.bezierCurveTo(-2.6, -6.4, -0.4, -10.6, 3.2, -11.6);
+    ctx.bezierCurveTo(4.4, -6.4, 3.6, -2, 2.6, 1); ctx.closePath(); ctx.fill();
   }
   ctx.restore();
-  /* wattles — kunekune piri piri, or a Red Wattle's */
+
+  /* wattles — a kunekune's piri piri, or a Red Wattle's */
   if (look.wattles){
     ctx.fillStyle = dk;
-    ctx.beginPath(); ctx.ellipse(-1, 13.6, 1.7, 4.4, 0.2, 0, 7); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(3.4, 13.2, 1.6, 4.0, 0.1, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(-1.4, 25, 1.6, 4.2, 0.22, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(2.6, 24.4, 1.5, 3.8, 0.12, 0, 7); ctx.fill();
   }
   /* whatever is in her mouth */
   if (pose.mouth){
     ctx.fillStyle = pose.mouth.col || '#3a2a1c';
-    ctx.beginPath(); ctx.ellipse(24, 6.4, 4.2, 3.4, 0.4, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(17.4, 16.6, 3.8, 3.1, 0.4, 0, 7); ctx.fill();
     ctx.fillStyle = 'rgba(255,255,255,.14)';
-    ctx.beginPath(); ctx.ellipse(23, 5.4, 1.7, 1.2, 0.4, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(16.4, 15.6, 1.5, 1.1, 0.4, 0, 7); ctx.fill();
   }
   ctx.restore();
   ctx.restore();
 
-  /* one silhouette, used to fill her, to clip her markings, and to shade her */
-  function bodyPath(){
+  /* the head: a blunt cone, deep at the jowl, with no neck behind it */
+  function headPath(){
     ctx.beginPath();
-    ctx.moveTo(-40, -30);
-    ctx.bezierCurveTo(-42, -48, -32, -56, -16, -56.5 - breathe*0.3);  // back over the ham
-    ctx.bezierCurveTo(2, -57, 18, -56, 28, -52);                      // spine to shoulder
-    ctx.bezierCurveTo(36, -49, 38, -42, 37, -36);                     // shoulder into neck
-    ctx.bezierCurveTo(36, -26, 30, -16, 20, -14 - breathe*0.3);       // brisket
-    ctx.bezierCurveTo(4, -11, -16, -11, -28, -15);                    // belly
-    ctx.bezierCurveTo(-36, -18, -40, -22, -40, -30);                  // ham underline
+    ctx.moveTo(-5, -2.5);                                   // poll
+    ctx.bezierCurveTo(1, -5.4, 8, -3.6, 13.4, 0.6);         // skull and brow
+    ctx.bezierCurveTo(17.4, 3.6, 19.4, 5.8, 20.2, 8);       // face down to the muzzle
+    ctx.bezierCurveTo(21.4, 10.2, 21.4, 13.4, 20, 15.4);    // round the snout disc
+    ctx.bezierCurveTo(18.4, 17.6, 15.6, 18.4, 12.4, 18.6);  // under the muzzle
+    ctx.bezierCurveTo(8, 21.6, 4, 24.6, -1, 24.2);          // the jowl
+    ctx.bezierCurveTo(-6.6, 23.6, -9.6, 19, -10, 12);       // throat
+    ctx.bezierCurveTo(-10.4, 5, -8.6, 0, -5, -2.5);         // cheek back to the poll
     ctx.closePath();
   }
 
-  function drawLeg(px, col, dark, far){
-    const c = far ? shade(dark, -14) : col;
-    const c2 = far ? shade(dark, -26) : dark;
-    /* thigh into a narrow cannon bone, then the pastern angling forward */
+  /* where her back actually is at a given x, so the hair sits on it */
+  function topLine(px){
+    const pts = [[-40,-50.5],[-35,-54.1],[-26,-54.9],[-14,-53.8],[-4,-52.6],
+                 [8,-51.9],[18,-52.4],[24,-51.0],[30,-48.2]];
+    if (px <= pts[0][0]) return pts[0][1];
+    for (let i=1;i<pts.length;i++){
+      if (px <= pts[i][0]){
+        const a = pts[i-1], b = pts[i];
+        return lerp(a[1], b[1], (px - a[0]) / (b[0] - a[0]));
+      }
+    }
+    return pts[pts.length-1][1];
+  }
+
+  /* one silhouette, used to fill her, clip her markings, and shade her */
+  function bodyPath(){
+    ctx.beginPath();
+    ctx.moveTo(-40, -50.5);                                          // tail set, high on the rump
+    ctx.bezierCurveTo(-45, -47, -46, -37, -41, -28);                 // down the back of the ham
+    ctx.bezierCurveTo(-37, -21, -32, -18.5, -25, -18);               // ham into the flank
+    ctx.bezierCurveTo(-12, -16.6 + breathe*0.3, 3, -16.6, 15, -18);  // the belly, slung low
+    ctx.bezierCurveTo(24, -19.4, 30, -23, 32, -30);                  // brisket
+    ctx.bezierCurveTo(33.6, -36, 34, -42, 31.5, -47);                // front of the shoulder
+    ctx.bezierCurveTo(29, -51, 25, -52.4, 20, -52.6);                // the crest, into the withers
+    ctx.bezierCurveTo(8, -51.4, -4, -52.4, -14, -53.8 - breathe*0.3);// loin
+    ctx.bezierCurveTo(-26, -55, -35, -54.4, -40, -50.5);             // over the ham to the tail
+    ctx.closePath();
+  }
+
+  function drawLeg(px, far, hind, sock){
+    const c  = far ? shade(dk, -12) : base;
+    const c2 = far ? shade(dk, -24) : dk;
+    const lean = hind ? -1.6 : 0.8;   // the hind leg stands under her, the fore leg is straight
+    /* forearm into a short cannon bone, then the pastern */
     ctx.fillStyle = c;
     ctx.beginPath();
-    ctx.moveTo(px-4.8, -24);
-    ctx.bezierCurveTo(px-4.4, -17, px-2.9, -13, px-2.6, -8);
-    ctx.lineTo(px-2.1, -3.4);
-    ctx.lineTo(px+2.6, -3.4);
-    ctx.bezierCurveTo(px+2.6, -9, px+3.4, -15, px+4.6, -24);
+    ctx.moveTo(px-5, -22);
+    ctx.bezierCurveTo(px-4.6, -15, px-3+lean*0.4, -11, px-2.6+lean, -6.5);
+    ctx.lineTo(px-2.2+lean, -3.2);
+    ctx.lineTo(px+2.7+lean, -3.2);
+    ctx.bezierCurveTo(px+2.8+lean, -8, px+3.6, -14, px+4.8, -22);
     ctx.closePath(); ctx.fill();
+    /* the white sock of a Berkshire or a Hereford */
+    if (sock){
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(px-5, -22);
+      ctx.bezierCurveTo(px-4.6, -15, px-3+lean*0.4, -11, px-2.6+lean, -6.5);
+      ctx.lineTo(px-2.2+lean, -3.2); ctx.lineTo(px+2.7+lean, -3.2);
+      ctx.bezierCurveTo(px+2.8+lean, -8, px+3.6, -14, px+4.8, -22);
+      ctx.closePath(); ctx.clip();
+      ctx.fillStyle = far ? shade(patch, -26) : patch;
+      ctx.fillRect(px-8, -11, 16, 11);
+      ctx.restore();
+    }
+    /* the muscle at the top of the leg, tucking under the barrel */
     ctx.fillStyle = c2;
-    ctx.beginPath(); ctx.ellipse(px, -21, 4.6, 3.4, 0, 0, 7); ctx.fill();
-    ctx.fillStyle = 'rgba(0,0,0,.10)';
-    ctx.beginPath(); ctx.ellipse(px+2.2, -13, 1.5, 6, 0.08, 0, 7); ctx.fill();
-    /* cloven trotter: two weight-bearing toes, two dewclaws sitting behind */
+    ctx.beginPath(); ctx.ellipse(px, -20, 4.8, 3.2, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = 'rgba(0,0,0,.09)';
+    ctx.beginPath(); ctx.ellipse(px+2.4+lean*0.5, -11, 1.4, 5.4, 0.08, 0, 7); ctx.fill();
+    /* cloven trotter: two weight-bearing toes, two dewclaws behind */
     ctx.fillStyle = '#33281f';
-    ctx.beginPath(); ctx.ellipse(px-3.1, -2.9, 1.05, 1.5, -0.2, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(px-3.2+lean, -2.7, 1, 1.4, -0.2, 0, 7); ctx.fill();
     ctx.fillStyle = '#241c16';
     ctx.beginPath();
-    ctx.moveTo(px-2.3, -3.6); ctx.lineTo(px+2.8, -3.6);
-    ctx.bezierCurveTo(px+3.1, -0.6, px+1.6, 0, px-0.1, 0);
-    ctx.bezierCurveTo(px-1.9, 0, px-2.7, -1, px-2.3, -3.6);
+    ctx.moveTo(px-2.4+lean, -3.4); ctx.lineTo(px+2.9+lean, -3.4);
+    ctx.bezierCurveTo(px+3.2+lean, -0.6, px+1.7+lean, 0, px+lean, 0);
+    ctx.bezierCurveTo(px-1.8+lean, 0, px-2.8+lean, -1, px-2.4+lean, -3.4);
     ctx.closePath(); ctx.fill();
     ctx.strokeStyle = 'rgba(220,210,190,.35)'; ctx.lineWidth = .5;
-    ctx.beginPath(); ctx.moveTo(px+0.3, -3.4); ctx.lineTo(px+0.3, -0.2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(px+0.4+lean, -3.2); ctx.lineTo(px+0.4+lean, -0.2); ctx.stroke();
   }
 }
 
 /* the pig as she currently stands, in the world */
-function drawPigInWorld(){
-  const p = S.pig; if (!p) return;
-  const look = pigBreed().look;
+function drawPigInWorld(p){
+  if (!p) return;
+  const look = pigBreed(p).look;
   const L = 150 * PX * 1.02;          // 150 cm nose to tail
   const inWallow = p.state === 'wallow';
   drawPigBody(look, sx(p.x), sy(p.y), L, p.face, {
@@ -1736,11 +1847,12 @@ function drawPigInWorld(){
   });
   /* name over her head, when she is near */
   if (dist(p.x,p.y,you.x,you.y) < 900){
-    ctx.font = '600 12px "Segoe UI", system-ui, sans-serif';
+    const active = p === S.pig;
+    ctx.font = (active ? '700 ' : '600 ') + '12px "Segoe UI", system-ui, sans-serif';
     ctx.textAlign = 'center';
     const ty = sy(p.y) - L*0.62 - 12;
-    ctx.fillStyle = 'rgba(20,16,10,.5)';
     const w = ctx.measureText(p.name).width + 14;
+    ctx.fillStyle = active ? 'rgba(122,92,52,.88)' : 'rgba(20,16,10,.45)';
     ctx.beginPath(); ctx.roundRect(sx(p.x)-w/2, ty-12, w, 17, 8); ctx.fill();
     ctx.fillStyle = '#fff'; ctx.fillText(p.name, sx(p.x), ty);
     ctx.textAlign = 'left';
@@ -1818,8 +1930,10 @@ function updateChickens(dt){
       c.x += (c.tx-c.x)/d*s; c.y += (c.ty-c.y)/d*s;
       c.face = (c.tx > c.x) ? 1 : -1;
     }
-    /* they scatter from you and, much more urgently, from the pig */
-    [[you.x,you.y,170],[S.pig?S.pig.x:-9999, S.pig?S.pig.y:-9999, 300]].forEach(t=>{
+    /* they scatter from you and, much more urgently, from the pigs */
+    const threats = [[you.x, you.y, 170]];
+    S.pigs.forEach(p=> threats.push([p.x, p.y, 300]));
+    threats.forEach(t=>{
       const dd = dist(c.x,c.y,t[0],t[1]);
       if (dd < t[2] && dd > 1){
         c.x += (c.x-t[0])/dd * 110*dt; c.y += (c.y-t[1])/dd * 110*dt;
@@ -1847,6 +1961,9 @@ function sunHeight(){
 }
 function airTempF(){ return Math.round(52 + sunHeight()*32); }
 
+/* what it costs to keep one pig for a day: ration, straw, water */
+function keepCost(p){ return Math.max(2, Math.round(pigBreed(p).matureLb / 190)); }
+
 const SEASONS = ['autumn','winter','spring','summer'];
 function rollDay(){
   S.day++;
@@ -1854,15 +1971,28 @@ function rollDay(){
   if (S.day % 3 === 1) S.season = SEASONS[(Math.floor((S.day-1)/3)) % 4];
   JOBS.forEach(j=>{ j.ready = true; j.timer = 0; j.prog = 0; });
   spots.length = 0; refillSpots();
-  if (S.pig){
-    S.pig.energy = 100; S.pig.hunger = clamp(S.pig.hunger + 18, 0, 100);
-    S.pig.heat = 34; S.pig.mud = Math.max(0, (S.pig.mud||0) - 0.5);
-    S.pig.ageDays++;
-    const b = pigBreed();
-    if (S.pig.weightLb < b.matureLb) S.pig.weightLb = Math.min(b.matureLb, S.pig.weightLb + randi(3,7));
+  /* feed, bedding and straw for the night — a pig eats every day whether or
+     not she found you anything */
+  let keep = 0;
+  S.pigs.forEach(p=> keep += keepCost(p));
+  const fed = keep <= S.money;
+  if (keep){
+    if (fed) S.money -= keep;
+    else toast('You could not cover ' + exactMoney(keep) + ' of feed. They went to bed hungry.', 'warn');
   }
-  toast('Day ' + S.day + ' — ' + S.season + '. The jobs have come back around.', 'good');
-  paintFarmNote();
+  S.pigs.forEach(p=>{
+    p.energy = 100;
+    p.hunger = clamp(p.hunger + (fed ? -22 : 26), 0, 100);
+    if (!fed){ p.joy = clamp(p.joy - 12, 0, 100); p.trust = clamp(p.trust - 5, 0, 100); }
+    p.heat = 34; p.mud = Math.max(0, (p.mud||0) - 0.5);
+    p.ageDays++;
+    const b = pigBreed(p);
+    if (p.weightLb < b.matureLb) p.weightLb = Math.min(b.matureLb, p.weightLb + randi(3,7));
+  });
+  paintChips();
+  toast('Day ' + S.day + ' — ' + S.season + '.' + (keep ? ' Keep cost ' + exactMoney(keep) + '.' : '') +
+    ' The jobs have come back around.', 'good');
+  paintFarmNote(); paintPig();
 }
 
 /* =======================================================================
@@ -1921,7 +2051,7 @@ function update(dt){
   }
 
   /* ---------------- the pig ---------------- */
-  if (S.pig) updatePig(dt);
+  for (let i=0;i<S.pigs.length;i++) updatePig(S.pigs[i], dt);
 
   updateChickens(dt);
   updateParts(dt);
@@ -1933,6 +2063,8 @@ function update(dt){
     if (wasTapped('h')) petPig();
     if (wasTapped('c')) callPig();
     if (wasTapped('r')) toggleHunt();
+    if (wasTapped('q')) cyclePig();
+    if (wasTapped('y')) workAll(!S.pigs.some(p=> p.hunting));
     if (wasTapped('tab')) cycleToy();
     for (let n=1;n<=9;n++) if (wasTapped(String(n))) selectTreatIndex(n-1);
     if (wasTapped('e')) tryDigTruffle();
@@ -1950,16 +2082,16 @@ function finishJob(j){
   floatText(you.x, you.y, '+' + exactMoney(pay), '#ffe08a');
   toast(j.label + ' — ' + exactMoney(pay), 'good');
   puff(you.x, you.y, 10, 'rgba(230,210,150,.8)', 1.4, 0.9);
-  if (j.id === 'wallow' && S.pig && S.pig.heat > 62){
+  if (j.id === 'wallow' && S.pigs.some(p=> p.heat > 62)){
     addHearts(1, 'A cool wallow on a hot day.');
   }
-  if (j.id === 'trough' && S.pig) S.pig.heat = Math.max(30, S.pig.heat - 4);
+  if (j.id === 'trough') S.pigs.forEach(p=> p.heat = Math.max(30, p.heat - 4));
   paintFarmNote();
 }
 
 /* ---------------- the pig's whole day ---------------- */
-function updatePig(dt){
-  const p = S.pig, b = pigBreed();
+function updatePig(p, dt){
+  const b = pigBreed(p);
   const dtMin = dt * 2.4;
   p.stateT += dt;
   p.earFlick = Math.max(0, p.earFlick - dt);
@@ -1993,56 +2125,62 @@ function updatePig(dt){
     p.wallowUrge += dt;
     if (p.wallowUrge > 2.4){
       if (p.hunting) { p.hunting = false; toast(p.name + ' has broken off. She is too hot to work.', 'warn'); }
-      setPigState('towallow');
+      setPigState(p, 'towallow');
       p.wallowUrge = 0;
     }
   } else p.wallowUrge = 0;
   if (p.energy < 12 && p.hunting){
     p.hunting = false;
-    setPigState('rest');
+    setPigState(p, 'rest');
     toast(p.name + ' is done in. Let her lie down.', 'warn');
   }
 
   /* ------- states ------- */
   let tx = null, ty = null, sp = 0;
   p.headDown = lerp(p.headDown || 0, 0.15, clamp(dt*3,0,1));
+  /* each pig keeps her own bit of ground beside you rather than stacking up */
+  const slot = S.pigs.indexOf(p);
+  const offA = slot * 2.4, offR = 150 + slot * 62;
+  const hx = you.x + Math.cos(offA) * offR, hy = you.y + Math.sin(offA) * offR * 0.6;
 
   switch (p.state){
     case 'idle':
-      if (p.stateT > rand(2,4)) setPigState(dist(p.x,p.y,you.x,you.y) > 320 ? 'follow' : 'idle');
+      if (p.stateT > rand(2,4)) setPigState(p, dist(p.x,p.y,hx,hy) > 320 ? 'follow' : 'idle');
       p.headDown = lerp(p.headDown, 0.62, clamp(dt*2,0,1));
       if (Math.random() < dt*0.4) p.earFlick = 0.5;
       break;
 
     case 'follow': {
-      const d = dist(p.x,p.y,you.x,you.y);
-      if (d > 200){ tx = you.x; ty = you.y; sp = d > 700 ? 235 : 120; }
-      else if (p.stateT > 1.2) setPigState('idle');
+      const d = dist(p.x,p.y,hx,hy);
+      if (d > 110){ tx = hx; ty = hy; sp = d > 700 ? 235 : 120; }
+      else if (p.stateT > 1.2) setPigState(p, 'idle');
       break;
     }
 
     case 'come': {
       const d = dist(p.x,p.y,you.x,you.y);
       if (d > 130){ tx = you.x; ty = you.y; sp = 250; }
-      else { setPigState('idle'); p.earFlick = 1; }
-      if (p.stateT > 12) setPigState('follow');
+      else { setPigState(p, 'idle'); p.earFlick = 1; }
+      if (p.stateT > 12) setPigState(p, 'follow');
       break;
     }
 
     case 'hunt': {
       /* a real search: quarter the ground, nose down, until something registers */
-      const detect = 130 + b.nose*52 + bondLevel()*22;
+      const detect = 130 + b.nose*52 + bondLevel(p)*22;
       let best = null, bd = 1e9;
       spots.forEach(s=>{
         if (s.dug) return;
+        /* leave alone anything another pig already has her nose in */
+        if (s.claim && s.claim !== p && S.pigs.indexOf(s.claim) >= 0 && s.claim.spot === s) return;
         const d = dist(p.x,p.y,s.x,s.y);
         if (d < detect && d < bd){ bd = d; best = s; }
       });
       if (best){
         if (!best.found){ best.found = true; p.earFlick = 1; toast(p.name + ' has caught something.', 'good'); }
         tx = best.x; ty = best.y; sp = 150;
-        p.spot = best;
-        if (bd < 34){ setPigState('root'); p.rootT = 0; }
+        p.spot = best; best.claim = p;
+        if (bd < 34){ setPigState(p, 'root'); p.rootT = 0; }
       } else {
         if (!p.wander || dist(p.x,p.y,p.wander.x,p.wander.y) < 70 || p.stateT > 6){
           const o = pick(OAKS);
@@ -2055,13 +2193,13 @@ function updatePig(dt){
       p.headDown = lerp(p.headDown, 0.85, clamp(dt*3,0,1));
       p.sniff += dt;
       if (Math.random() < dt*4) puff(p.x + p.face*70, p.y, 1, 'rgba(150,128,92,.55)', 0.5, 0.5);
-      if (!p.hunting) setPigState('follow');
+      if (!p.hunting) setPigState(p, 'follow');
       break;
     }
 
     case 'root': {
       const s = p.spot;
-      if (!s || s.dug){ setPigState(p.hunting ? 'hunt' : 'follow'); break; }
+      if (!s || s.dug){ setPigState(p, p.hunting ? 'hunt' : 'follow'); break; }
       p.rootT += dt;
       p.headDown = lerp(p.headDown, 1, clamp(dt*4,0,1));
       p.headTilt = Math.sin(tSec*9)*0.06;
@@ -2077,13 +2215,14 @@ function updatePig(dt){
         }
       }
       const patience = clamp(6.4 - p.hunger/16 - (100-p.trust)/40, 2.2, 7);
-      if (p.rootT > 2.0 + patience){ pigEatsTruffle(s); }
+      if (p.rootT > 2.0 + patience){ pigEatsTruffle(p, s); }
       break;
     }
 
     case 'towallow': {
-      tx = 3620; ty = 2180; sp = 170;
-      if (dist(p.x,p.y,3620,2180) < 130) setPigState('wallow');
+      const slotA = slot * 1.9;
+      tx = 3620 + Math.cos(slotA)*70; ty = 2180 + Math.sin(slotA)*44; sp = 170;
+      if (dist(p.x,p.y,3620,2180) < 150) setPigState(p, 'wallow');
       break;
     }
 
@@ -2091,26 +2230,26 @@ function updatePig(dt){
       p.mud = clamp((p.mud||0) + dt*0.35, 0, 1);
       p.headDown = lerp(p.headDown, 0.4, clamp(dt*2,0,1));
       if (Math.random() < dt*4) puff(p.x + rand(-40,40), p.y, 1, 'rgba(90,70,44,.7)', 0.9, 0.6);
-      if (p.heat < 40 && p.stateT > 5) setPigState('follow');
+      if (p.heat < 40 && p.stateT > 5) setPigState(p, 'follow');
       break;
 
     case 'rest':
       p.headDown = lerp(p.headDown, 0.5, clamp(dt*2,0,1));
-      if (p.energy > 65 && p.stateT > 4) setPigState('follow');
+      if (p.energy > 65 && p.stateT > 4) setPigState(p, 'follow');
       break;
 
     case 'eat':
       p.headDown = lerp(p.headDown, 0.95, clamp(dt*5,0,1));
       p.headTilt = Math.sin(tSec*14)*0.05;
       if (Math.random() < dt*8) puff(p.x + p.face*66, p.y, 1, 'rgba(190,170,120,.6)', 0.7, 0.4);
-      if (p.stateT > 2.2){ p.mouth = null; setPigState(p.hunting ? 'hunt' : 'follow'); }
+      if (p.stateT > 2.2){ p.mouth = null; setPigState(p, p.hunting ? 'hunt' : 'follow'); }
       break;
 
     case 'play':
       p.headDown = lerp(p.headDown, 0.7, clamp(dt*3,0,1));
       p.x += Math.sin(tSec*6)*70*dt;
       if (Math.random() < dt*6) puff(p.x + rand(-50,50), p.y, 1, 'rgba(160,180,110,.6)', 1.2, 0.5);
-      if (p.stateT > 3) setPigState('follow');
+      if (p.stateT > 3) setPigState(p, 'follow');
       break;
   }
 
@@ -2142,18 +2281,24 @@ function updatePig(dt){
     }
   }
 }
-function setPigState(s){ S.pig.state = s; S.pig.stateT = 0; }
+/* setPigState(pig, state), or setPigState(state) for whichever pig you are
+   currently dealing with */
+function setPigState(a, b){
+  if (typeof a === 'string'){ b = a; a = S.pig; }
+  if (!a) return;
+  a.state = b; a.stateT = 0;
+}
 function nearShade(x, y){
   return OAKS.some(o=> dist(x,y,o.x,o.y) < o.r*0.55) || (x < 1100 && y < 900) || (Math.abs(x-1900)<260 && Math.abs(y-700)<260);
 }
 
-function pigEatsTruffle(s){
-  const p = S.pig, t = TRUF_BY_ID[s.sp];
+function pigEatsTruffle(p, s){
+  const t = TRUF_BY_ID[s.sp];
   s.dug = true; s.eaten = true;
   p.mouth = null;
   p.hunger = clamp(p.hunger - 14, 0, 100);
   p.joy = clamp(p.joy + 10, 0, 100);
-  setPigState('eat');
+  setPigState(p, 'eat');
   p.mouth = { col: '#2e211a' };
   spots.splice(spots.indexOf(s), 1); refillSpots();
   toast(p.name + ' ate the ' + t.name.toLowerCase() + '. ' + exactMoney(t.perLb*s.g/G_PER_LB) + ' gone.', 'warn');
@@ -2164,11 +2309,37 @@ function pigEatsTruffle(s){
    20. WHAT THE KEYS DO
    ======================================================================= */
 function needPig(){
-  if (!S.pig){ toast('You do not have a pig yet. That is rather the point of the Market.', 'warn'); return true; }
+  if (!S.pigs.length){ toast('You do not have a pig yet. That is rather the point of the Market.', 'warn'); return true; }
   return false;
 }
 function pigNear(range){
   return S.pig && dist(S.pig.x, S.pig.y, you.x, you.y) < (range || 220);
+}
+/* A hand held out goes to whichever pig is actually standing there, and she
+   becomes the one you are dealing with. */
+function pigAtHand(range){
+  const p = nearestPig(range);
+  if (p) selectPig(p);
+  return p;
+}
+function cyclePig(){
+  if (S.pigs.length < 2) return;
+  S.sel = (S.sel + 1) % S.pigs.length;
+  paintChips(); paintPig(); paintTalk();
+  toast('Now dealing with ' + S.pig.name + '.');
+  floatText(S.pig.x, S.pig.y, S.pig.name, '#fff');
+}
+function workAll(on){
+  if (!S.pigs.length) return;
+  let n = 0;
+  S.pigs.forEach(p=>{
+    if (on){
+      if (p.heat > 74 || p.energy < 18) return;
+      p.hunting = true; setPigState(p, 'hunt'); n++;
+    } else { p.hunting = false; setPigState(p, 'follow'); n++; }
+  });
+  toast(on ? n + ' of them go down to the oaks.' : 'The whole sounder comes in.', on ? 'good' : '');
+  paintPig();
 }
 function ownedTreats(){ return TREATS.filter(t=> (S.inv.treats[t.id]||0) > 0); }
 function ownedToys(){ return TOYS.filter(t=> S.inv.toys[t.id]); }
@@ -2192,13 +2363,13 @@ function cycleToy(){
 
 function offerTreat(){
   if (needPig()) return;
-  const p = S.pig;
   if (!S.selTreat || !(S.inv.treats[S.selTreat] > 0)){
     const list = ownedTreats();
     if (!list.length){ toast('You have nothing to offer her.', 'warn'); return; }
     S.selTreat = list[0].id;
   }
-  if (!pigNear(280)){ toast(p.name + ' is too far away to smell it. Get closer.', 'warn'); return; }
+  const p = pigAtHand(280);
+  if (!p){ toast('None of them are close enough to smell it. Get closer.', 'warn'); return; }
   const t = TREAT_BY_ID[S.selTreat];
   S.inv.treats[t.id]--;
   if (S.inv.treats[t.id] <= 0){ delete S.inv.treats[t.id]; S.selTreat = (ownedTreats()[0]||{}).id || null; }
@@ -2211,7 +2382,7 @@ function offerTreat(){
     p.joy = clamp(p.joy + t.joy, 0, 100);
     p.trust = clamp(p.trust + 3, 0, 100);
     addHearts(2 + Math.min(2, Math.floor(t.bond/2)), 'You traded her for it instead of taking it.');
-    setPigState('eat'); p.mouth = { col:'#8a6a3a' };
+    setPigState(p, 'eat'); p.mouth = { col:'#8a6a3a' };
     paintHotbar(); paintPig();
     return;
   }
@@ -2221,7 +2392,7 @@ function offerTreat(){
   p.energy = clamp(p.energy + t.fill*0.5, 0, 100);
   p.trust = clamp(p.trust + 1.4, 0, 100);
   p.training = clamp(p.training + 0.25, 0, 20);
-  setPigState('eat'); p.mouth = { col:'#8a6a3a' };
+  setPigState(p, 'eat'); p.mouth = { col:'#8a6a3a' };
   p.earFlick = 1;
   floatText(p.x, p.y, t.name, '#ffe8b0');
   p.treatCool = p.treatCool || 0;
@@ -2237,11 +2408,11 @@ function offerTreat(){
 
 function playWithToy(){
   if (needPig()) return;
-  const p = S.pig;
   const list = ownedToys();
-  if (!list.length){ toast('No toys yet. She is rooting the fence posts out of boredom.', 'warn'); return; }
+  if (!list.length){ toast('No toys yet. They are rooting the fence posts out of boredom.', 'warn'); return; }
   if (!S.selToy) S.selToy = list[0].id;
-  if (!pigNear(300)){ toast('Get closer to her first.', 'warn'); return; }
+  const p = pigAtHand(300);
+  if (!p){ toast('Get closer to one of them first.', 'warn'); return; }
   const toy = TOY_BY_ID[S.selToy];
   const last = S.toyLast[toy.id] || -999;
   const since = tSec - last;
@@ -2252,7 +2423,7 @@ function playWithToy(){
   p.joy = clamp(p.joy + gain, 0, 100);
   p.energy = clamp(p.energy - 3, 0, 100);
   p.trust = clamp(p.trust + 1, 0, 100);
-  setPigState('play');
+  setPigState(p, 'play');
   floatText(p.x, p.y, toy.name, '#c8e8a0');
   if (fresh > 0.6){
     addHearts(p.lastToy === toy.id ? 1 : 2, 'She threw it three feet in the air.');
@@ -2265,8 +2436,8 @@ function playWithToy(){
 
 function petPig(){
   if (needPig()) return;
-  const p = S.pig;
-  if (!pigNear(180)){ toast('Too far. Walk up to her shoulder.', 'warn'); return; }
+  const p = pigAtHand(190);
+  if (!p){ toast('Too far. Walk up to a shoulder.', 'warn'); return; }
   if (p.state === 'eat'){
     p.trust = clamp(p.trust - 2, 0, 100);
     toast('Never put a hand on a pig while she is eating. She freezes over the food.', 'warn');
@@ -2301,7 +2472,7 @@ function callPig(){
     return;
   }
   if (Math.random() < chance){
-    setPigState('come');
+    setPigState(p, 'come');
     floatText(p.x, p.y, '"' + p.name + '!"', '#fff');
     p.training = clamp(p.training + 0.15, 0, 20);
   } else {
@@ -2313,18 +2484,20 @@ function callPig(){
 function toggleHunt(){
   if (needPig()) return;
   const p = S.pig;
-  if (p.hunting){ p.hunting = false; setPigState('follow'); toast(p.name + ' comes off the scent.'); return; }
+  if (p.hunting){ p.hunting = false; setPigState(p, 'follow'); toast(p.name + ' comes off the scent.'); return; }
   if (p.heat > 74){ toast('Too hot to work her. Wallow first.', 'warn'); return; }
   if (p.energy < 18){ toast('She has nothing left today. Let her rest.', 'warn'); return; }
-  if (pigBreed().nose <= 2){
-    toast(pigBreed().name + ' will try, but this is not a nose bred for it.', 'warn');
+  if (pigBreed(p).nose <= 2){
+    toast(pigBreed(p).name + ' will try, but this is not a nose bred for it.', 'warn');
   }
-  p.hunting = true; setPigState('hunt');
+  p.hunting = true; setPigState(p, 'hunt');
   toast(p.name + ' puts her nose down and starts quartering the grove.', 'good');
 }
 
-function takeTruffle(s, traded){
+function takeTruffle(s, traded, who){
   const t = TRUF_BY_ID[s.sp];
+  /* whoever had her nose in it is the one you took it from */
+  const owner = who || s.claim || S.pigs.find(p=> p.state === 'root' && p.spot === s) || null;
   S.bag.push({ sp: s.sp, g: s.g });
   S.totalFound++;
   s.dug = true;
@@ -2333,14 +2506,14 @@ function takeTruffle(s, traded){
   floatText(you.x, you.y, t.name + ' · ' + s.g + ' g', '#f0e0b0');
   toast('Lifted: ' + t.name + ', ' + s.g + ' g — worth about ' + exactMoney(val), 'good');
   puff(s.x, s.y, 12, 'rgba(126,104,74,.85)', 1.6, 0.8);
-  if (!traded && S.pig){
-    S.pig.taken++;
-    if (S.pig.taken === 3){
-      toast('Third time you have taken it out from under her. She has started bolting them.', 'warn');
+  if (!traded && owner){
+    owner.taken++;
+    if (owner.taken === 3){
+      toast('Third time you have taken it out from under ' + owner.name + '. She has started bolting them.', 'warn');
       loseHearts(1, '');
-      S.pig.trust = clamp(S.pig.trust - 6, 0, 100);
-    } else if (S.pig.taken > 3 && Math.random() < 0.5){
-      S.pig.trust = clamp(S.pig.trust - 3, 0, 100);
+      owner.trust = clamp(owner.trust - 6, 0, 100);
+    } else if (owner.taken > 3 && Math.random() < 0.5){
+      owner.trust = clamp(owner.trust - 3, 0, 100);
     }
   }
   paintBag(); paintPig();
@@ -2349,8 +2522,9 @@ function takeTruffle(s, traded){
 function tryDigTruffle(){
   const s = spots.find(sp=> sp.mark && !sp.dug && dist(sp.x,sp.y,you.x,you.y) < 170);
   if (!s) return;
-  takeTruffle(s, false);
-  if (S.pig && S.pig.state === 'root') setPigState(S.pig.hunting ? 'hunt' : 'follow');
+  const owner = s.claim || S.pigs.find(p=> p.state === 'root' && p.spot === s) || null;
+  takeTruffle(s, false, owner);
+  if (owner && owner.state === 'root') setPigState(owner, owner.hunting ? 'hunt' : 'follow');
 }
 
 /* =======================================================================
@@ -2371,9 +2545,17 @@ function refreshPrompt(nearJob){
     return;
   }
   const inGrove = OAKS.some(o=> dist(you.x,you.y,o.x,o.y) < o.r*1.3);
-  if (inGrove && !S.pig){ setPrompt('Oak roots, bare scorched ground. There is money under here and you cannot smell it.'); return; }
-  if (inGrove && S.pig && !S.pig.hunting){ setPrompt('R — put ' + S.pig.name + ' to work'); return; }
-  if (S.pig && pigNear(200)) { setPrompt('H pet  ·  F treat  ·  G play  ·  C call  ·  R hunt'); return; }
+  if (inGrove && !S.pigs.length){ setPrompt('Oak roots, bare scorched ground. There is money under here and you cannot smell it.'); return; }
+  if (inGrove && !S.pigs.some(p=> p.hunting)){
+    setPrompt('R — put ' + S.pig.name + ' to work' + (S.pigs.length > 1 ? '   ·   Y — send the whole sounder' : ''));
+    return;
+  }
+  const near = nearestPig(200);
+  if (near){
+    setPrompt((near === S.pig ? '' : near.name + ' — ') +
+      'H pet  ·  F treat  ·  G play  ·  C call  ·  R hunt' + (S.pigs.length > 1 ? '  ·  Q switch' : ''));
+    return;
+  }
   setPrompt('');
 }
 
@@ -2386,7 +2568,8 @@ function paintVitals(){
   let h = '';
   if (S.pig){
     const p = S.pig;
-    h += '<div class="vrow" style="font-size:12px;margin-bottom:1px">' + p.name + ' · ' + pigBreed().name.split(' (')[0] + '</div>';
+    h += '<div class="vrow" style="font-size:12px;margin-bottom:1px">' + p.name + ' · ' + pigBreed(p).name.split(' (')[0] +
+      (S.pigs.length > 1 ? ' <span style="opacity:.7">(' + (S.sel+1) + '/' + S.pigs.length + ')</span>' : '') + '</div>';
     h += bar('Bond',   p.bond,        'linear-gradient(90deg,#f08ba8,#d1607e)');
     h += bar('Fed',    100 - p.hunger,'linear-gradient(90deg,#e8c96a,#c8992e)');
     h += bar('Energy', p.energy,      'linear-gradient(90deg,#8fd06a,#4f8f3a)');
@@ -2394,6 +2577,10 @@ function paintVitals(){
     h += bar('Spirit', p.joy,         'linear-gradient(90deg,#c9a6f0,#8a5fd0)');
   } else {
     h += '<div class="vrow" style="font-size:11.5px;line-height:1.35">No pig yet. Work the farm,<br>then the Market.</div>';
+  }
+  if (S.pigs.length > 1){
+    const busy = S.pigs.filter(p=> p.hunting).length;
+    h += '<div class="vrow" style="font-size:10px;opacity:.9">' + S.pigs.length + ' pigs · ' + busy + ' working</div>';
   }
   h += bar('Wind', you.wind*100, 'linear-gradient(90deg,#e8e8e8,#a8a8a8)');
   if (el.innerHTML !== h) el.innerHTML = h;
@@ -2450,7 +2637,7 @@ function draw(){
 
   chickens.forEach(c=>{ if (onScreen(c.x,c.y,120)) add(c.y, ()=> drawChicken(c)); });
 
-  if (S.pig) add(S.pig.y, drawPigInWorld);
+  S.pigs.forEach(p=>{ if (onScreen(p.x,p.y,200)) add(p.y, ()=> drawPigInWorld(p)); });
   add(you.y, ()=> drawFarmer(sx(you.x), sy(you.y), 175*PX, you.face,
       { step: you.step, moving: you.moving, tool: workTool }));
 
@@ -2555,8 +2742,9 @@ function pigCard(breed, w, h){
   ctx = c.getContext('2d');
   /* she is drawn nose-to-tail across 100 units but the snout reaches to 59,
      so fit to the widest point and leave the head room to be a head */
-  const L = Math.min(w / (1.30 * (breed.look.size||1)), h / (0.78 * (breed.look.size||1)));
-  drawPigBody(breed.look, w*0.46, h*0.94, L, 1, { step:0, moving:false, headDown:0.2 });
+  const sz = breed.look.size || 1;
+  const L = Math.min(w / (1.10 * sz), h / (0.72 * sz));
+  drawPigBody(breed.look, w*0.46, h*0.93, L, 1, { step:0, moving:false, headDown:0.16 });
   ctx = saved;
   return c;
 }
@@ -2570,8 +2758,10 @@ const TIERS = [
   ['absurd','The far end of the catalogue']
 ];
 function paintMarket(){
+  const keep = S.pigs.reduce((a,p)=> a + keepCost(p), 0);
   $('marketSub').innerHTML = 'Prices are what a registered weaner or young gilt of that breed actually costs, ' +
-    'right up until the point where they stop being about pigs at all. You can keep one pig at a time. ' +
+    'right up until the point where they stop being about pigs at all. Keep as many as you can feed &mdash; ' +
+    'you have <b>' + S.pigs.length + '</b> and they cost <b>' + exactMoney(keep) + ' a day</b> in ration and straw. ' +
     '<b>Today\'s truffle buyers are paying ' + Math.round(S.priceMult*100) + '% of book.</b>';
   const tabs = $('marketTabs');
   tabs.innerHTML = TIERS.map(t=>
@@ -2583,7 +2773,7 @@ function paintMarket(){
   wrap.innerHTML = '<div class="cards"></div>';
   const cards = wrap.firstChild;
   list.forEach(b=>{
-    const owned = S.pig && S.pig.breed === b.id;
+    const owned = S.pigs.filter(p=> p.breed === b.id).length;
     const el = document.createElement('div');
     el.className = 'card' + (owned ? ' owned' : '');
     const cv = pigCard(b, 132, 88);
@@ -2598,9 +2788,10 @@ function paintMarket(){
         '</span> &nbsp; Stamina <span class="stars">' + stars(Math.min(5,b.stam)) + '</span></div>' +
       '<div class="note">' + b.note + '</div>' +
       '<div class="buyrow"><span class="price">' + exactMoney(b.price) + '</span>' +
-      (owned ? '<span class="tag">in your paddock</span>' :
-        '<button class="btn small ' + (S.money >= b.price ? 'green' : 'ghost') + '"' +
-        (S.money >= b.price ? '' : ' disabled') + '>Buy</button>') +
+      '<button class="btn small ' + (S.money >= b.price ? 'green' : 'ghost') + '"' +
+      (S.money >= b.price ? '' : ' disabled') + '>Buy' + (owned ? ' another' : '') + '</button>' +
+      '<span class="tag">' + exactMoney(keepCost({breed:b.id})) + '/day to keep</span>' +
+      (owned ? '<span class="tag">' + owned + ' in your paddock</span>' : '') +
       (b.tier === 'absurd' ? '<span class="tag rare">absurd</span>' : '') + '</div>';
     el.appendChild(body);
     const btn = body.querySelector('button');
@@ -2611,42 +2802,70 @@ function paintMarket(){
 
 function buyPig(b){
   if (S.money < b.price) return;
-  const replacing = !!S.pig;
-  const refund = replacing ? Math.round(BREED_BY_ID[S.pig.breed].price * 0.55) : 0;
   openModal(
     '<h2>' + b.name + '</h2>' +
-    (replacing
-      ? '<div class="warnbox">You already keep <b>' + S.pig.name + '</b>. She would go to the Aldudes co-op, ' +
-        'who pay ' + exactMoney(refund) + ' and are decent about it. You do not get her back.</div><div class="hr"></div>'
-      : '') +
     '<p class="sub">' + b.origin + '</p>' +
+    (S.pigs.length
+      ? '<div class="infobox">She joins ' + S.pigs.map(p=> p.name).join(', ') +
+        '. Pigs are herd animals and settle faster with company &mdash; but every one of them eats ' +
+        'every day, and this one will cost you ' + exactMoney(keepCost({breed:b.id})) + ' a day to keep.</div>'
+      : '') +
     '<p>What will you call her?</p>' +
     '<div class="sayrow"><input id="nameIn" maxlength="18" placeholder="Her name" value="' + suggestName() + '"></div>' +
     '<div class="hr"></div>' +
-    '<div class="buyrow"><span class="price">' + exactMoney(b.price) +
-      (replacing ? ' &minus; ' + exactMoney(refund) : '') + '</span>' +
+    '<div class="buyrow"><span class="price">' + exactMoney(b.price) + '</span>' +
       '<button class="btn green" id="confirmBuy">Bring her home</button>' +
       '<button class="btn ghost" id="cancelBuy">Not today</button></div>'
   );
   $('cancelBuy').onclick = closeModal;
   $('confirmBuy').onclick = ()=>{
-    const nm = ($('nameIn').value || '').trim().slice(0,18) || suggestName();
-    S.money -= b.price; S.money += refund;
-    const oldName = S.pig ? S.pig.name : null;
-    S.pig = makePig(b.id, nm);
-    S.pig.x = you.x + 160; S.pig.y = you.y + 60;
-    S.hearts = 0;
+    let nm = ($('nameIn').value || '').trim().slice(0,18) || suggestName();
+    while (S.pigs.some(p=> p.name.toLowerCase() === nm.toLowerCase())) nm = suggestName();
+    S.money -= b.price;
+    const p = makePig(b.id, nm);
+    p.x = clamp(you.x + rand(-220, 220), 200, FIELD_W-200);
+    p.y = clamp(you.y + rand(60, 200), 260, FIELD_H-200);
+    S.pigs.push(p);
+    S.sel = S.pigs.length - 1;
     paintChips(); closeModal();
     showScreen('farm');
-    if (oldName) toast(oldName + ' has gone. ' + nm + ' is in the paddock.', 'warn');
     toast(nm + ' the ' + b.name.split(' (')[0] + ' is yours. She does not know you yet.', 'good');
-    sysLine(nm + ' arrives. She stands with her shoulder to the gate and will not look at you. ' +
-      'A pig you have owned for four minutes owes you nothing.');
+    sysLine(S.pigs.length === 1
+      ? nm + ' arrives. She stands with her shoulder to the gate and will not look at you. ' +
+        'A pig you have owned for four minutes owes you nothing.'
+      : nm + ' comes off the trailer and goes straight at the others, and there is ten minutes of shoving ' +
+        'and shrieking while they work out the order. Then it is settled, and it stays settled.');
     paintPig(); paintHotbar();
   };
 }
-const NAMES = ['Ruby','Hazel','Maud','Clementine','Pig','Beatrix','Nell','Winnie','Dot','Marguerite','Sybil','Olive','Peggy','Tilda','Bramble'];
-function suggestName(){ return pick(NAMES); }
+const NAMES = ['Ruby','Hazel','Maud','Clementine','Pig','Beatrix','Nell','Winnie','Dot','Marguerite','Sybil','Olive','Peggy','Tilda','Bramble','Agnes','Flora','Juno','Prue','Mabel','Iris','Cleo','Rosalind','Bess'];
+function suggestName(){
+  const free = NAMES.filter(n=> !S.pigs.some(p=> p.name === n));
+  return free.length ? pick(free) : pick(NAMES) + ' II';
+}
+function rehomePig(p){
+  const b = pigBreed(p);
+  const refund = Math.round(b.price * 0.55);
+  openModal(
+    '<h2>Rehome ' + p.name + '?</h2>' +
+    '<div class="warnbox">She goes to the Aldudes co-op, who pay <b>' + exactMoney(refund) +
+    '</b> and are decent about it. You do not get her back, and she has ' + Math.round(p.bond) +
+    ' of bond with you that goes with her.</div>' +
+    '<div class="buyrow"><button class="btn ghost" id="keepHer">Keep her</button>' +
+    '<button class="btn" id="doRehome">Load her up</button></div>'
+  );
+  $('keepHer').onclick = closeModal;
+  $('doRehome').onclick = ()=>{
+    const i = S.pigs.indexOf(p);
+    if (i < 0) return;
+    S.pigs.splice(i, 1);
+    S.sel = clamp(S.sel, 0, Math.max(0, S.pigs.length - 1));
+    addMoney(refund);
+    closeModal();
+    toast(p.name + ' has gone to the Aldudes.', 'warn');
+    paintChips(); paintPig(); paintTalk(); paintMarket();
+  };
+}
 
 /* ---------------- shop ---------------- */
 document.querySelectorAll('[data-shop]').forEach(b=>{
@@ -2733,7 +2952,7 @@ function buyToy(t){
 /* ---------------- your pig ---------------- */
 function paintPig(){
   const wrap = $('pigPanel');
-  if (!S.pig){
+  if (!S.pigs.length){
     wrap.innerHTML = '<h2>No pig</h2>' +
       '<p class="sub">There is a paddock, a wallow somebody dug years ago, and a stand of old oaks with ' +
       'bare scorched ground under them. Everything is here except the nose.</p>' +
@@ -2741,17 +2960,33 @@ function paintPig(){
       ' and will find you truffles worth more than that in an afternoon.</div>';
     return;
   }
-  const p = S.pig, b = pigBreed();
+  const p = S.pig, b = pigBreed(p);
   const cv = pigCard(b, 300, 190);
   const pct = v => Math.round(v);
-  wrap.innerHTML =
+  const keep = S.pigs.reduce((a,q)=> a + keepCost(q), 0);
+  const working = S.pigs.filter(q=> q.hunting).length;
+
+  /* the whole sounder, most bonded first is not the point — keep them in the
+     order you bought them so the list stops moving under your hand */
+  const herd = '<h3>The sounder &mdash; ' + S.pigs.length + ' pig' + (S.pigs.length===1?'':'s') +
+    ', ' + exactMoney(keep) + ' a day to keep</h3>' +
+    '<div class="herd" id="herdRow"></div>' +
+    '<div class="buyrow" style="margin-top:8px">' +
+      (S.pigs.length > 1
+        ? '<button class="btn small ' + (working ? 'ghost' : 'green') + '" id="workAllBtn">' +
+          (working ? 'Call them all in' : 'Send them all to the oaks') + '</button>'
+        : '') +
+      '<span class="tag">' + working + ' working</span>' +
+    '</div><div class="hr"></div>';
+
+  wrap.innerHTML = herd +
     '<h2>' + p.name + '</h2>' +
     '<div class="sub">' + b.name + ' &middot; ' + b.origin + '</div>' +
     '<div class="hr"></div>' +
     '<div id="pigPortrait" style="text-align:center;background:linear-gradient(180deg,#dfe8d2,#c2d1ab);border-radius:13px;padding:6px 0"></div>' +
     '<div class="hr"></div>' +
     '<div class="grid2">' +
-      statBox('Bond', BOND_NAMES[bondLevel()], p.bond, 'linear-gradient(90deg,#f08ba8,#d1607e)') +
+      statBox('Bond', BOND_NAMES[bondLevel(p)], p.bond, 'linear-gradient(90deg,#f08ba8,#d1607e)') +
       statBox('Fed', pct(100-p.hunger) + '%', 100-p.hunger, 'linear-gradient(90deg,#e8c96a,#c8992e)') +
       statBox('Energy', pct(p.energy) + '%', p.energy, 'linear-gradient(90deg,#8fd06a,#4f8f3a)') +
       statBox('Body temp', p.heat > 76 ? 'overheating' : p.heat > 60 ? 'warm' : 'comfortable', 100-p.heat, 'linear-gradient(90deg,#7cc0e8,#3f7fb0)') +
@@ -2770,8 +3005,32 @@ function paintPig(){
     (p.hunger > 72 ? '<div class="warnbox">She is genuinely hungry. A hungry pig will swallow every truffle she finds and you will not be quick enough.</div>' : '') +
     (p.energy < 25 ? '<div class="warnbox">Worn out. Hunting is hard physical work and she has been at it all day.</div>' : '') +
     (p.joy < 30 ? '<div class="warnbox">Bored. A bored pig chews fences, chews ears, and stops working. Buy her something to root in.</div>' : '') +
-    '<div class="infobox">' + b.note + '</div>';
+    '<div class="infobox">' + b.note + '</div>' +
+    '<div class="buyrow" style="margin-top:10px">' +
+      '<button class="btn small ghost" id="rehomeBtn">Rehome ' + p.name + '</button>' +
+      '<span class="sub">' + exactMoney(keepCost(p)) + ' a day to keep her</span></div>';
   $('pigPortrait').appendChild(cv);
+
+  /* the herd strip: click a pig to make her the one you are dealing with */
+  const row = $('herdRow');
+  S.pigs.forEach((q, i)=>{
+    const qb = pigBreed(q);
+    const el = document.createElement('button');
+    el.className = 'pigchip' + (i === S.sel ? ' on' : '');
+    el.appendChild(pigCard(qb, 74, 50));
+    const lab = document.createElement('span');
+    lab.innerHTML = '<b>' + q.name + '</b>' +
+      (q.hunting ? '<i class="w">working</i>' : q.heat > 74 ? '<i class="h">too hot</i>'
+        : q.energy < 25 ? '<i class="h">tired</i>' : q.hunger > 72 ? '<i class="h">hungry</i>'
+        : '<i>' + BOND_NAMES[bondLevel(q)] + '</i>');
+    el.appendChild(lab);
+    el.onclick = ()=>{ S.sel = i; paintChips(); paintPig(); paintTalk(); };
+    row.appendChild(el);
+  });
+  const wa = $('workAllBtn');
+  if (wa) wa.onclick = ()=> workAll(!working);
+  const rb = $('rehomeBtn');
+  if (rb) rb.onclick = ()=> rehomePig(p);
 }
 function statBox(k, v, meter, col){
   return '<div class="stat"><div class="k">' + k + '</div><div class="v">' + v + '</div>' +
@@ -2846,13 +3105,25 @@ function paintTalk(){
   $('talkSub').innerHTML = p
     ? 'Type anything. She is a pig, so she will answer with her body — ears, weight, snout, the noise she makes. ' +
       'Pigs learn their own names, hold on to about twenty distinct calls, and remember for years who was decent to them. ' +
-      '<b>' + BOND_NAMES[bondLevel()] + '.</b>'
+      '<b>' + BOND_NAMES[bondLevel(p)] + '.</b>' +
+      (S.pigs.length > 1 ? ' The others are within earshot and will answer to their own names, not hers.' : '')
     : 'You are standing in an empty paddock talking to yourself. Buy a pig.';
+  /* who you are addressing */
+  const tabs = $('pigTabs');
+  if (S.pigs.length > 1){
+    tabs.style.display = 'flex';
+    tabs.innerHTML = S.pigs.map((q,i)=>
+      '<button class="' + (i===S.sel?'on':'') + '" data-i="' + i + '">' + escapeHtml(q.name) + '</button>').join('');
+    tabs.querySelectorAll('button').forEach(b=>{
+      b.onclick = ()=>{ S.sel = +b.dataset.i; paintChips(); paintTalk(); paintPig(); };
+    });
+  } else tabs.style.display = 'none';
   const c = $('chat');
   c.innerHTML = S.chat.map(m=>{
     if (m.who === 'sys') return '<div class="bub sysb">' + m.text + '</div>';
     if (m.who === 'me')  return '<div class="bub me">' + escapeHtml(m.text) + '</div>';
-    return '<div class="bub pigb"><em>' + m.text + '</em>' + (m.snd ? '<span class="snd">' + m.snd + '</span>' : '') + '</div>';
+    return '<div class="bub pigb">' + (m.name ? '<b class="who">' + escapeHtml(m.name) + '</b>' : '') +
+      '<em>' + m.text + '</em>' + (m.snd ? '<span class="snd">' + m.snd + '</span>' : '') + '</div>';
   }).join('');
   c.scrollTop = c.scrollHeight;
   const q = ['Good girl.', 'Find me a truffle.', 'Come here.', "Who's a clever pig?", "I'm sorry.", 'Are you hot?', 'Bedtime.'];
@@ -2890,7 +3161,7 @@ function say(){
   setTimeout(()=>{
     $('typing').style.display = 'none';
     const r = respond(raw);
-    S.chat.push({ who:'pig', text:r.text, snd:r.snd });
+    S.chat.push({ who:'pig', text:r.text, snd:r.snd, name: S.pigs.length > 1 ? S.pig.name : null });
     if (S.chat.length > 60) S.chat.splice(0, S.chat.length - 60);
     paintTalk();
   }, rand(500, 1100));
@@ -2913,9 +3184,13 @@ const FOODW  = ['treat','snack','dinner','breakfast','supper','food','apple','ac
 const HOTQ   = ['hot','warm','cool','heat','sweat','shade','mud','wallow','temperature'];
 
 function respond(raw){
-  const p = S.pig, b = pigBreed();
-  const t = norm(raw);
-  const lvl = bondLevel();
+  const t0 = norm(raw);
+  /* say another pig's name and it is that pig who lifts her head */
+  const called = S.pigs.find(q=> q !== S.pig && t0.indexOf(' ' + q.name.toLowerCase()) >= 0);
+  if (called){ S.sel = S.pigs.indexOf(called); paintChips(); }
+  const p = S.pig, b = pigBreed(p);
+  const t = t0;
+  const lvl = bondLevel(p);
   const question = /\?\s*$/.test(raw) || /^(who|what|where|why|how|when|do you|are you|can you|will you|did you|would you|is that|have you|shall we)\b/i.test(raw.trim());
 
   /* she habituates. Saying the same thing over and over stops being information. */
