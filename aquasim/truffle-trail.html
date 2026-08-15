@@ -628,14 +628,22 @@ let cam = { x:0, y:0 };
    5. THE FARM LAYOUT
    ======================================================================= */
 const JOBS = [
-  { id:'water',  x:1150, y:1720, r:190, label:'Water the vegetable rows', verb:'Watering', pay:9,  hold:2.2, cd:52 },
-  { id:'harvest',x:1560, y:2020, r:190, label:'Cut the ripe beds',        verb:'Cutting',  pay:24, hold:3.2, cd:78 },
-  { id:'eggs',   x:3320, y:520,  r:170, label:'Collect the eggs',         verb:'Collecting',pay:13, hold:2.0, cd:60 },
-  { id:'muck',   x:1900, y:640,  r:200, label:'Muck out the barn',        verb:'Mucking out',pay:17,hold:3.6, cd:70 },
-  { id:'wood',   x:2560, y:980,  r:170, label:'Stack the firewood',       verb:'Stacking', pay:12, hold:2.6, cd:56 },
-  { id:'fence',  x:4380, y:1180, r:180, label:'Mend the fence line',      verb:'Mending',  pay:20, hold:3.4, cd:82 },
-  { id:'trough', x:2820, y:1760, r:160, label:'Fill the water trough',    verb:'Filling',  pay:7,  hold:1.6, cd:48 },
-  { id:'wallow', x:3620, y:2180, r:170, label:'Top up the wallow',        verb:'Wetting',  pay:6,  hold:1.8, cd:46 }
+  { id:'water',  x:1150, y:1720, r:190, label:'Water the vegetable rows', verb:'Watering', pay:9,  hold:2.2, cd:52,
+    where:'the kitchen garden, left of the yard' },
+  { id:'harvest',x:1560, y:2020, r:190, label:'Cut the ripe beds',        verb:'Cutting',  pay:24, hold:3.2, cd:78,
+    where:'the bottom beds of the garden' },
+  { id:'eggs',   x:3320, y:520,  r:170, label:'Collect the eggs',         verb:'Collecting',pay:13, hold:2.0, cd:60,
+    where:'the hen house, top right' },
+  { id:'muck',   x:1900, y:640,  r:200, label:'Muck out the barn',        verb:'Mucking out',pay:17,hold:3.6, cd:70,
+    where:'the red barn' },
+  { id:'wood',   x:2560, y:980,  r:170, label:'Stack the firewood',       verb:'Stacking', pay:12, hold:2.6, cd:56,
+    where:'the cordwood pile below the barn' },
+  { id:'fence',  x:4470, y:1180, r:200, label:'Mend the fence line',      verb:'Mending',  pay:20, hold:3.4, cd:82,
+    where:'the broken panel, far right fence' },
+  { id:'trough', x:2820, y:1760, r:160, label:'Fill the water trough',    verb:'Filling',  pay:7,  hold:1.6, cd:48,
+    where:'the trough, middle of the field' },
+  { id:'wallow', x:3620, y:2180, r:170, label:'Top up the wallow',        verb:'Wetting',  pay:6,  hold:1.8, cd:46,
+    where:'the mud wallow, below the trough' }
 ];
 JOBS.forEach(j=>{ j.ready = true; j.timer = 0; j.prog = 0; });
 
@@ -1241,6 +1249,53 @@ function drawWoodpile(x, y){
   }
 }
 
+/* the job you could not find: a snapped post, a gap, and the rails on the floor */
+function drawBrokenFence(x, y){
+  softShadow(x + 6, y + 3, 56, 12, .28);
+  /* the two sound posts either side of the hole */
+  drawFencePost(x - 46, y - 6, 36);
+  drawFencePost(x + 48, y + 8, 36);
+  /* the snapped one, leaning out of the line */
+  ctx.save();
+  ctx.translate(x + 2, y);
+  ctx.rotate(0.42);
+  ctx.fillStyle = '#7a5c3c'; ctx.fillRect(-3.4, -30, 6.8, 30);
+  ctx.fillStyle = 'rgba(255,255,255,.14)'; ctx.fillRect(-3.4, -30, 2.2, 30);
+  /* splintered top */
+  ctx.fillStyle = '#c9ab7e';
+  ctx.beginPath();
+  ctx.moveTo(-3.4, -30); ctx.lineTo(-1, -36); ctx.lineTo(0.6, -31.5);
+  ctx.lineTo(2.4, -37.5); ctx.lineTo(3.4, -30); ctx.closePath(); ctx.fill();
+  ctx.restore();
+  /* two rails down in the grass */
+  ctx.strokeStyle = '#8a6a45'; ctx.lineWidth = 3.6; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(x - 44, y + 4); ctx.lineTo(x + 40, y + 12); ctx.stroke();
+  ctx.strokeStyle = '#75593a'; ctx.lineWidth = 3.2;
+  ctx.beginPath(); ctx.moveTo(x - 38, y + 11); ctx.lineTo(x + 44, y + 5); ctx.stroke();
+  /* the top rail still hanging off the good post */
+  ctx.strokeStyle = '#8a6a45'; ctx.lineWidth = 3.4;
+  ctx.beginPath(); ctx.moveTo(x - 46, y - 24); ctx.lineTo(x - 4, y - 14); ctx.stroke();
+  /* coil of wire */
+  ctx.strokeStyle = '#9aa2aa'; ctx.lineWidth = 1;
+  for (let i=0;i<4;i++){
+    ctx.beginPath(); ctx.ellipse(x + 26, y + 16, 8 - i*1.5, 3.4 - i*0.5, 0.15, 0, 7); ctx.stroke();
+  }
+  /* the toolbox, so you can tell at a glance this is a job */
+  ctx.fillStyle = '#5e6a74';
+  ctx.beginPath(); ctx.moveTo(x - 30, y + 6); ctx.lineTo(x - 8, y + 6); ctx.lineTo(x - 10, y + 18);
+  ctx.lineTo(x - 28, y + 18); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#78848e';
+  ctx.beginPath(); ctx.ellipse(x - 19, y + 6, 11, 2.6, 0, 0, 7); ctx.fill();
+  ctx.strokeStyle = '#4a545c'; ctx.lineWidth = 1.4;
+  ctx.beginPath(); ctx.arc(x - 19, y + 5, 6.4, Math.PI, 0); ctx.stroke();
+  /* a mallet leaning on it */
+  ctx.strokeStyle = '#a8834f'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(x - 8, y + 16); ctx.lineTo(x + 2, y - 2); ctx.stroke();
+  ctx.fillStyle = '#6d5535';
+  ctx.save(); ctx.translate(x + 3, y - 4); ctx.rotate(-0.5);
+  ctx.fillRect(-4, -3.4, 8, 6.8); ctx.restore();
+}
+
 function drawFencePost(x, y, tall){
   ctx.fillStyle = '#7a5c3c'; ctx.fillRect(x-3, y-(tall||34), 6, tall||34);
   ctx.fillStyle = 'rgba(255,255,255,.14)'; ctx.fillRect(x-3, y-(tall||34), 2, tall||34);
@@ -1257,11 +1312,18 @@ function drawFenceRun(){
   for (let i=0;i<pts.length-1;i++){
     const a = pts[i], b = pts[i+1];
     if (!onScreen(a[0],a[1]) && !onScreen(b[0],b[1])) continue;
+    /* the run is down on the ground where the panel went */
+    const my = (a[1]+b[1])/2, mx = (a[0]+b[0])/2;
+    if (mx > FIELD_W-400 && my > 980 && my < 1400) continue;
     [12, 26].forEach(hh=>{
       ctx.beginPath(); ctx.moveTo(sx(a[0]), sy(a[1])-hh); ctx.lineTo(sx(b[0]), sy(b[1])-hh); ctx.stroke();
     });
   }
-  pts.forEach(p=>{ if (onScreen(p[0],p[1])) drawFencePost(sx(p[0]), sy(p[1])); });
+  pts.forEach(p=>{
+    if (!onScreen(p[0],p[1])) return;
+    if (p[0] > FIELD_W-400 && p[1] > 980 && p[1] < 1400) return;
+    drawFencePost(sx(p[0]), sy(p[1]));
+  });
   ctx.restore();
 }
 
@@ -2629,6 +2691,7 @@ function draw(){
   if (onScreen(2560, 980, 300)) add(980,  ()=> drawWoodpile(sx(2560), sy(980)));
   if (onScreen(2820, 1760, 300))add(1760, ()=> drawTrough(sx(2820), sy(1760)));
   if (onScreen(3620, 2180, 340))add(2178, ()=> drawWallowProp(sx(3620), sy(2180)));
+  if (onScreen(4470, 1180, 300))add(1180, ()=> drawBrokenFence(sx(4470), sy(1180)));
   OAKS.forEach(o=>{ if (onScreen(o.x,o.y,340)) add(o.y, ()=> drawTree(o)); });
 
   /* truffle spots: only visible once something has disturbed them */
@@ -3091,8 +3154,10 @@ function paintFarmNote(){
     '<div class="sub">' + ready + ' of ' + JOBS.length + ' jobs are waiting. Walk to one and hold <b>E</b>. ' +
     'They come back around through the day, and all of them reset overnight.</div>' +
     '<div class="hr"></div><div class="keys">' +
-    JOBS.map(j=> '<div>' + (j.ready ? '<b>' + exactMoney(Math.round(j.pay*(1+S.rep*0.02))) + '</b> ' + j.label
-      : '<span style="opacity:.5">' + j.label + ' — ' + Math.ceil(j.timer) + 's</span>') + '</div>').join('') +
+    JOBS.map(j=> '<div>' + (j.ready
+      ? '<b>' + exactMoney(Math.round(j.pay*(1+S.rep*0.02))) + '</b> ' + j.label +
+        '<br><span style="opacity:.6">' + j.where + '</span>'
+      : '<span style="opacity:.45">' + j.label + ' — back in ' + Math.ceil(j.timer) + 's</span>') + '</div>').join('') +
     '</div>';
 }
 
