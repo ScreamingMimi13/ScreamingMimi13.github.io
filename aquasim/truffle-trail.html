@@ -662,6 +662,10 @@ const OAKS = [];
   });
 })();
 
+/* the wallow, and what counts as being in it */
+const WALLOW = { x:3620, y:2180, r:215 };
+function inWallow(p){ return dist(p.x, p.y, WALLOW.x, WALLOW.y) < WALLOW.r; }
+
 const HEDGE = [];
 (function seedHedge(){
   for (let i=0;i<28;i++) HEDGE.push({ x: 180 + i*172, y: 110 + Math.sin(i)*16, s: rand(.8,1.25) });
@@ -1899,11 +1903,11 @@ function drawPigInWorld(p){
   if (!p) return;
   const look = pigBreed(p).look;
   const L = 150 * PX * 1.02;          // 150 cm nose to tail
-  const inWallow = p.state === 'wallow';
+  const settled = p.state === 'wallow';
   drawPigBody(look, sx(p.x), sy(p.y), L, p.face, {
     headDown: p.headDown, step: p.step, moving: p.moving,
     ear: Math.sin(p.earFlick*9) * (p.earFlick>0?1:0),
-    mud: p.mud || 0, sink: inWallow ? 0.32 : 0, wag: p.joy > 70 ? 1 : 0,
+    mud: p.mud || 0, sink: settled ? 0.32 : 0, wag: p.joy > 70 ? 1 : 0,
     mouth: p.mouth ? { col: p.mouth.col } : null,
     headTilt: p.headTilt || 0
   });
@@ -2157,24 +2161,31 @@ function updatePig(p, dt){
   const dtMin = dt * 2.4;
   p.stateT += dt;
   p.earFlick = Math.max(0, p.earFlick - dt);
-  p.mud = Math.max(0, (p.mud||0) - dt*0.012);
 
   /* body clocks */
   const sun = sunHeight();
   const shady = nearShade(p.x, p.y);
+  /* Cooling is about where she is standing, not about what the AI thinks she
+     is doing. Mud on the skin is mud on the skin whether she took herself
+     there or you walked her over. */
+  const wet = inWallow(p);
+  const lined = !!S.inv.toys.wallow;
+  p.mud = wet ? clamp((p.mud||0) + dt*0.42, 0, 1) : Math.max(0, (p.mud||0) - dt*0.012);
+
   let heatTarget = 30 + sun*46 - (shady?12:0) + (p.moving?9:0) - ((p.mud||0)*16);
-  if (p.state === 'wallow') heatTarget = 26;
-  p.heat = lerp(p.heat, heatTarget, clamp(dt*(p.state==='wallow'?0.9:0.24), 0, 1));
+  if (wet) heatTarget = lined ? 21 : 26;
+  p.heat = clamp(lerp(p.heat, heatTarget, clamp(dt*(wet ? (lined?1.4:1.0) : 0.24), 0, 1)), 0, 100);
+
   p.hunger = clamp(p.hunger + dtMin*0.055, 0, 100);
   if (p.state === 'hunt' || p.state === 'root') p.energy = clamp(p.energy - dtMin*0.10, 0, 100);
-  else if (p.state === 'rest' || p.state === 'wallow') p.energy = clamp(p.energy + dtMin*0.22, 0, 100);
+  else if (p.state === 'rest' || wet) p.energy = clamp(p.energy + dtMin*0.22, 0, 100);
   else p.energy = clamp(p.energy + dtMin*0.04, 0, 100);
   p.joy = clamp(p.joy - dtMin*0.02, 0, 100);
   p.trust = clamp(p.trust + dtMin*0.01, 0, 100);
 
   /* pale breeds burn. This is not a metaphor, it is a husbandry problem. */
   const pale = parseInt(b.look.base.slice(1,3),16) > 190;
-  if (pale && sun > 0.7 && !shady && p.state !== 'wallow' && (p.mud||0) < 0.2){
+  if (pale && sun > 0.7 && !shady && !wet && (p.mud||0) < 0.2){
     p.sunburn += dt*0.9;
     if (p.sunburn > 12 && Math.random() < dt*0.3){
       toast(p.name + ' is burning. She needs mud or shade.', 'warn');
@@ -2182,8 +2193,15 @@ function updatePig(p, dt){
     }
   } else p.sunburn = Math.max(0, p.sunburn - dt*2);
 
+  /* a warm pig standing in a wallow gets into it — she does not walk on past
+     because she happened to be following you at the time */
+  if (wet && p.heat > 52 && p.state !== 'wallow' && p.state !== 'towallow'){
+    if (p.hunting){ p.hunting = false; toast(p.name + ' has stopped to get into the wallow.'); }
+    setPigState(p, 'wallow');
+  }
+
   /* she looks after herself when you don't */
-  if (p.heat > 76 && p.state !== 'wallow'){
+  if (p.heat > 76 && !wet){
     p.wallowUrge += dt;
     if (p.wallowUrge > 2.4){
       if (p.hunting) { p.hunting = false; toast(p.name + ' has broken off. She is too hot to work.', 'warn'); }
@@ -2283,16 +2301,18 @@ function updatePig(p, dt){
 
     case 'towallow': {
       const slotA = slot * 1.9;
-      tx = 3620 + Math.cos(slotA)*70; ty = 2180 + Math.sin(slotA)*44; sp = 170;
-      if (dist(p.x,p.y,3620,2180) < 150) setPigState(p, 'wallow');
+      tx = WALLOW.x + Math.cos(slotA)*70; ty = WALLOW.y + Math.sin(slotA)*44; sp = 170;
+      if (inWallow(p)) setPigState(p, 'wallow');
       break;
     }
 
     case 'wallow':
-      p.mud = clamp((p.mud||0) + dt*0.35, 0, 1);
       p.headDown = lerp(p.headDown, 0.4, clamp(dt*2,0,1));
+      p.joy = clamp(p.joy + dt*1.4, 0, 100);
       if (Math.random() < dt*4) puff(p.x + rand(-40,40), p.y, 1, 'rgba(90,70,44,.7)', 0.9, 0.6);
-      if (p.heat < 40 && p.stateT > 5) setPigState(p, 'follow');
+      /* if she has somehow ended up in this state out of the mud, walk her in */
+      if (!inWallow(p)){ setPigState(p, 'towallow'); break; }
+      if (p.heat < 38 && p.stateT > 5) setPigState(p, 'follow');
       break;
 
     case 'rest':
@@ -3009,7 +3029,7 @@ function buyToy(t){
   S.money -= t.price;
   S.inv.toys[t.id] = true;
   if (!S.selToy) S.selToy = t.id;
-  if (t.id === 'wallow' && S.pig) S.pig.heat = Math.min(S.pig.heat, 46);
+  if (t.id === 'wallow' || t.id === 'pool') S.pigs.forEach(q=> q.heat = Math.min(q.heat, 44));
   paintChips(); paintShop(); paintHotbar();
   toast(t.name + ' delivered.', 'good');
 }
@@ -3068,7 +3088,10 @@ function paintPig(){
       '<div class="stat"><div class="k">Truffles lifted</div><div class="v">' + S.totalFound + '</div></div>' +
     '</div>' +
     '<div class="hr"></div>' +
-    (p.heat > 74 ? '<div class="warnbox">She is overheating. Pigs cannot sweat — she needs the wallow, and she needs it now.</div>' : '') +
+    (p.heat > 74 ? '<div class="warnbox">She is overheating. Pigs cannot sweat &mdash; she needs the wallow, ' +
+      'and she needs it now. Walk her down to it, or leave her and she will take herself. ' +
+      '<b>She cannot come to harm over it</b>: an overheated pig here stops working, goes and stands in the mud, ' +
+      'and waits for you. Nothing on this farm can kill her.</div>' : '') +
     (p.hunger > 72 ? '<div class="warnbox">She is genuinely hungry. A hungry pig will swallow every truffle she finds and you will not be quick enough.</div>' : '') +
     (p.energy < 25 ? '<div class="warnbox">Worn out. Hunting is hard physical work and she has been at it all day.</div>' : '') +
     (p.joy < 30 ? '<div class="warnbox">Bored. A bored pig chews fences, chews ears, and stops working. Buy her something to root in.</div>' : '') +
