@@ -1,0 +1,1969 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ChatWave — usernames, requests, group chats</title>
+<style>
+  :root {
+    --bar:#075e54;
+    --bar2:#128c7e;
+    --accent:#25d366;
+    --accent-ink:#075e54;
+    --page:#f0f2f5;
+    --panel:#ffffff;
+    --chatbg:#e5ded8;
+    --ink:#111b21;
+    --muted:#667781;
+    --line:#e9edef;
+    --out:#d9fdd3;
+    --in:#ffffff;
+    --blue:#53bdeb;
+    --danger:#e04a4a;
+    --chip:#f0f2f5;
+    --quote:rgba(0,0,0,.06);
+  }
+  body.dark {
+    --bar:#1f2c33;
+    --bar2:#2a3942;
+    --accent:#00a884;
+    --accent-ink:#e9edef;
+    --page:#111b21;
+    --panel:#1f2c33;
+    --chatbg:#0b141a;
+    --ink:#e9edef;
+    --muted:#8696a0;
+    --line:#2a3942;
+    --out:#005c4b;
+    --in:#1f2c33;
+    --blue:#53bdeb;
+    --danger:#f15c6d;
+    --chip:#2a3942;
+    --quote:rgba(255,255,255,.09);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body {
+    font-family: "Segoe UI", "Helvetica Neue", system-ui, sans-serif;
+    background: #0d1a1f;
+    color: var(--ink);
+    display: flex; align-items: center; justify-content: center;
+    overflow: hidden;
+  }
+  #phone {
+    position: relative;
+    width: 100%; max-width: 440px; height: 100%; max-height: 940px;
+    background: var(--page);
+    overflow: hidden;
+    display: flex; flex-direction: column;
+    box-shadow: 0 20px 60px rgba(0,0,0,.5);
+  }
+  @media (min-width: 500px) and (min-height: 720px) {
+    #phone { border-radius: 26px; height: 94%; }
+  }
+  button, input, textarea { font-family: inherit; font-size: inherit; color: inherit; }
+  button { border: none; background: none; cursor: pointer; }
+
+  /* ---------------- avatars ---------------- */
+  .av {
+    flex: none;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 50%;
+    background: #ccc; color: #16232a;
+    width: 49px; height: 49px; font-size: 26px;
+    user-select: none;
+    box-shadow: inset 0 -3px 9px rgba(0,0,0,.14);
+  }
+  .av.sm { width: 38px; height: 38px; font-size: 20px; }
+  .av.xs { width: 28px; height: 28px; font-size: 15px; }
+  .av.big { width: 116px; height: 116px; font-size: 62px; }
+  .av.dot::after {
+    content: ""; position: absolute; width: 12px; height: 12px; border-radius: 50%;
+    background: var(--accent); border: 2px solid var(--panel);
+    transform: translate(17px, 17px);
+  }
+
+  /* ---------------- setup ---------------- */
+  #setup {
+    position: absolute; inset: 0; z-index: 60;
+    background: linear-gradient(170deg, #075e54, #128c7e 52%, #25d366);
+    display: flex; flex-direction: column; align-items: center;
+    padding: 24px 20px 30px; overflow-y: auto; color: #fff;
+  }
+  #setup h1 { font-size: 2.1rem; letter-spacing: .5px; font-weight: 800; }
+  #setup .tag { opacity: .93; margin: 5px 0 16px; font-size: .93rem; text-align: center; line-height: 1.45; }
+  .card {
+    background: var(--panel); color: var(--ink); border-radius: 16px;
+    padding: 15px; width: 100%; box-shadow: 0 10px 26px rgba(0,0,0,.22);
+    margin-bottom: 13px;
+  }
+  .card h3 { font-size: .74rem; text-transform: uppercase; letter-spacing: .1em; color: var(--bar2); margin-bottom: 9px; }
+  .field {
+    display: flex; align-items: center; gap: 7px;
+    border: 2px solid var(--line); border-radius: 11px; padding: 9px 11px; background: var(--panel);
+  }
+  .field:focus-within { border-color: var(--accent); }
+  .field span.at { color: var(--muted); font-weight: 800; }
+  .field input { border: none; outline: none; width: 100%; background: none; font-size: 1rem; }
+  .hint { font-size: .77rem; color: var(--muted); margin-top: 7px; line-height: 1.45; }
+  .hint.bad { color: var(--danger); font-weight: 600; }
+  .hint.ok { color: #14976a; font-weight: 600; }
+  .picker { display: flex; flex-wrap: wrap; gap: 7px; }
+  .picker button {
+    width: 42px; height: 42px; border-radius: 50%; font-size: 21px;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--chip); border: 3px solid transparent;
+  }
+  .picker button.on { border-color: var(--accent); transform: scale(1.07); }
+  .picker.colors button { box-shadow: inset 0 -3px 8px rgba(0,0,0,.14); }
+  .bigbtn {
+    width: 100%; background: var(--accent); color: #05221b; font-weight: 800;
+    padding: 14px; border-radius: 12px; font-size: 1.04rem;
+    box-shadow: 0 5px 0 rgba(0,0,0,.22);
+  }
+  .bigbtn:active { transform: translateY(3px); box-shadow: 0 2px 0 rgba(0,0,0,.22); }
+  .bigbtn.grey { background: var(--chip); color: var(--muted); box-shadow: 0 4px 0 rgba(0,0,0,.12); }
+  .preview { display: flex; align-items: center; gap: 12px; }
+  .preview .who b { display: block; font-size: 1.06rem; }
+  .preview .who small { color: var(--muted); }
+
+  /* ---------------- app shell ---------------- */
+  #app { display: none; flex: 1; min-height: 0; flex-direction: column; position: relative; }
+  #app.on { display: flex; }
+  .view { display: none; flex: 1; min-height: 0; flex-direction: column; background: var(--page); }
+  .view.on { display: flex; }
+
+  .bar {
+    flex: none; background: var(--bar); color: #fff;
+    padding: 11px 12px; display: flex; align-items: center; gap: 11px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.22); z-index: 5;
+  }
+  .bar h2 { font-size: 1.2rem; font-weight: 700; flex: 1; }
+  .bar .ico {
+    font-size: 1.15rem; width: 34px; height: 34px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; color: #fff; flex: none;
+  }
+  .bar .ico:active { background: rgba(255,255,255,.2); }
+  .scroll { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; background: var(--page); }
+
+  /* ---------------- rows / lists ---------------- */
+  .searchwrap { padding: 9px 11px; background: var(--panel); border-bottom: 1px solid var(--line); }
+  .searchwrap input {
+    width: 100%; border: none; outline: none; background: var(--chip); color: var(--ink);
+    border-radius: 999px; padding: 10px 16px; font-size: .95rem;
+  }
+  .row {
+    display: flex; align-items: center; gap: 12px; padding: 10px 13px;
+    background: var(--panel); cursor: pointer; position: relative;
+  }
+  .row:active { background: var(--chip); }
+  .row + .row::before {
+    content: ""; position: absolute; left: 74px; right: 0; top: 0; height: 1px; background: var(--line);
+  }
+  .row .mid { flex: 1; min-width: 0; }
+  .row .mid .top { display: flex; align-items: baseline; gap: 8px; }
+  .row .mid b { font-size: 1.01rem; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .row .mid .when { font-size: .72rem; color: var(--muted); flex: none; }
+  .row .mid .prev {
+    font-size: .86rem; color: var(--muted); margin-top: 3px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    display: flex; align-items: center; gap: 5px;
+  }
+  .row .mid .when.new { color: var(--accent); font-weight: 700; }
+  .row .rt { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; flex: none; }
+  .badge {
+    background: var(--accent); color: #05221b; font-size: .73rem; font-weight: 800;
+    min-width: 21px; height: 21px; padding: 0 6px; border-radius: 999px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .mini { font-size: .82rem; }
+  .empty { padding: 44px 30px; text-align: center; color: var(--muted); line-height: 1.6; }
+  .empty .em { font-size: 3rem; display: block; margin-bottom: 10px; }
+  .sectionlbl {
+    padding: 13px 15px 6px; font-size: .72rem; font-weight: 800; letter-spacing: .09em;
+    text-transform: uppercase; color: var(--bar2); background: var(--page);
+  }
+  body.dark .sectionlbl { color: var(--accent); }
+  .uname { font-size: .81rem; color: var(--muted); }
+  .pill {
+    background: var(--accent); color: #05221b; font-size: .77rem; font-weight: 800;
+    padding: 7px 14px; border-radius: 999px; flex: none; white-space: nowrap;
+  }
+  .pill.ghost { background: var(--chip); color: var(--muted); }
+  .pill.line { background: none; border: 2px solid var(--accent); color: var(--accent); padding: 5px 12px; }
+  .pill.bad { background: none; border: 2px solid var(--line); color: var(--muted); padding: 5px 12px; }
+
+  .fab {
+    position: absolute; right: 15px; bottom: 76px; z-index: 8;
+    width: 57px; height: 57px; border-radius: 19px; background: var(--accent);
+    color: #05221b; font-size: 1.5rem; display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 6px 16px rgba(0,0,0,.34);
+  }
+  .fab:active { transform: scale(.94); }
+
+  /* ---------------- bottom nav ---------------- */
+  #nav { flex: none; display: flex; background: var(--panel); border-top: 1px solid var(--line); }
+  #nav button {
+    flex: 1; padding: 7px 0 9px; display: flex; flex-direction: column; align-items: center; gap: 2px;
+    color: var(--muted); font-size: .69rem; font-weight: 700; position: relative;
+  }
+  #nav button i { font-style: normal; font-size: 1.3rem; line-height: 1; }
+  #nav button.on { color: var(--accent); }
+  #nav .nb {
+    position: absolute; top: 3px; left: 50%; margin-left: 4px;
+    background: var(--danger); color: #fff; font-size: .64rem; font-weight: 800;
+    min-width: 17px; height: 17px; padding: 0 4px; border-radius: 999px;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  /* ---------------- chat view ---------------- */
+  #chatScroll {
+    background-color: var(--chatbg);
+    background-image:
+      radial-gradient(circle at 18% 26%, rgba(0,0,0,.035) 0 3px, transparent 4px),
+      radial-gradient(circle at 68% 62%, rgba(0,0,0,.03) 0 2px, transparent 3px),
+      radial-gradient(circle at 44% 86%, rgba(0,0,0,.03) 0 3px, transparent 4px);
+    background-size: 88px 88px, 66px 66px, 112px 112px;
+    padding: 12px 9px 8px;
+  }
+  body.dark #chatScroll {
+    background-image:
+      radial-gradient(circle at 18% 26%, rgba(255,255,255,.03) 0 3px, transparent 4px),
+      radial-gradient(circle at 68% 62%, rgba(255,255,255,.025) 0 2px, transparent 3px),
+      radial-gradient(circle at 44% 86%, rgba(255,255,255,.025) 0 3px, transparent 4px);
+  }
+  .daysplit { text-align: center; margin: 10px 0; }
+  .daysplit span {
+    background: var(--panel); color: var(--muted); font-size: .7rem; font-weight: 700;
+    padding: 5px 12px; border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,.14);
+  }
+  .msg { display: flex; margin-bottom: 6px; }
+  .msg.out { justify-content: flex-end; }
+  .bub {
+    max-width: 79%; background: var(--in); border-radius: 9px; padding: 6px 9px 5px;
+    box-shadow: 0 1px 1px rgba(0,0,0,.18); position: relative; cursor: pointer;
+    word-wrap: break-word; overflow-wrap: anywhere;
+  }
+  .msg.out .bub { background: var(--out); }
+  .bub .who { font-size: .77rem; font-weight: 800; margin-bottom: 2px; }
+  .bub .tx { font-size: .96rem; line-height: 1.36; white-space: pre-wrap; }
+  .bub .tx.jumbo { font-size: 2.6rem; line-height: 1.15; }
+  .bub .meta {
+    float: right; margin: 4px 0 0 8px; font-size: .66rem; color: var(--muted);
+    display: flex; align-items: center; gap: 3px;
+  }
+  .tick { font-size: .78rem; letter-spacing: -3px; padding-right: 3px; }
+  .tick.read { color: var(--blue); }
+  .bub.gone { opacity: .72; }
+  .bub.gone .tx { font-style: italic; font-size: .89rem; color: var(--muted); }
+  .quote {
+    background: var(--quote); border-left: 3px solid var(--accent);
+    border-radius: 5px; padding: 4px 8px; margin-bottom: 4px; font-size: .82rem;
+  }
+  .quote b { display: block; color: var(--accent); font-size: .78rem; }
+  .quote span { color: var(--muted); display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .react {
+    position: absolute; bottom: -11px; left: 8px; background: var(--panel); border-radius: 999px;
+    padding: 1px 6px; font-size: .77rem; box-shadow: 0 1px 3px rgba(0,0,0,.3);
+  }
+  .sysmsg { text-align: center; margin: 9px 4px 12px; }
+  .sysmsg span {
+    display: inline-block; background: var(--panel); color: var(--muted);
+    font-size: .77rem; line-height: 1.45; padding: 6px 12px; border-radius: 8px;
+    max-width: 88%; box-shadow: 0 1px 2px rgba(0,0,0,.12);
+  }
+  .typing .bub { padding: 11px 14px; }
+  .dots { display: flex; gap: 4px; }
+  .dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); animation: bob .9s infinite; }
+  .dots i:nth-child(2) { animation-delay: .15s; }
+  .dots i:nth-child(3) { animation-delay: .3s; }
+  @keyframes bob { 0%,60%,100% { transform: translateY(0); opacity: .5; } 30% { transform: translateY(-4px); opacity: 1; } }
+
+  /* composer */
+  #replyBar {
+    display: none; align-items: center; gap: 8px; padding: 7px 10px 0; background: var(--page);
+  }
+  #replyBar.on { display: flex; }
+  #replyBar .rq {
+    flex: 1; min-width: 0; background: var(--quote); border-left: 3px solid var(--accent);
+    border-radius: 6px; padding: 5px 9px; font-size: .84rem;
+  }
+  #replyBar .rq b { display: block; color: var(--accent); font-size: .78rem; }
+  #replyBar .rq span { color: var(--muted); display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #replyBar button { color: var(--muted); font-size: 1.1rem; padding: 4px 6px; }
+  #composer {
+    flex: none; padding: 7px 8px 8px; display: flex; align-items: flex-end; gap: 7px; background: var(--page);
+  }
+  #composer .inputwrap {
+    flex: 1; background: var(--panel); border-radius: 22px; display: flex; align-items: center;
+    padding: 3px 6px 3px 8px; box-shadow: 0 1px 2px rgba(0,0,0,.14);
+  }
+  #composer input { flex: 1; border: none; outline: none; background: none; padding: 8px 6px; font-size: 1rem; }
+  #composer .ic { font-size: 1.2rem; padding: 4px 6px; color: var(--muted); }
+  #sendBtn {
+    flex: none; width: 46px; height: 46px; border-radius: 50%; background: var(--accent);
+    color: #05221b; font-size: 1.25rem; display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 2px 6px rgba(0,0,0,.25);
+  }
+  #sendBtn:active { transform: scale(.93); }
+  #emojiBar {
+    display: none; flex-wrap: wrap; gap: 3px; padding: 8px 9px; background: var(--panel);
+    border-top: 1px solid var(--line); max-height: 170px; overflow-y: auto;
+  }
+  #emojiBar.on { display: flex; }
+  #emojiBar button { font-size: 1.45rem; width: 13.5%; padding: 5px 0; border-radius: 8px; }
+  #emojiBar button:active { background: var(--chip); }
+
+  /* ---------------- sheets, toast, notification ---------------- */
+  .sheet {
+    position: absolute; inset: 0; z-index: 30; background: rgba(0,0,0,.5);
+    display: none; align-items: flex-end;
+  }
+  .sheet.on { display: flex; }
+  .sheet .inner {
+    background: var(--panel); width: 100%; border-radius: 17px 17px 0 0; padding: 13px 0 18px;
+    max-height: 84%; overflow-y: auto; animation: rise .18s ease-out;
+  }
+  @keyframes rise { from { transform: translateY(60px); opacity: .5; } }
+  .sheet h4 { padding: 4px 19px 11px; font-size: 1.03rem; }
+  .sheet .opt {
+    display: flex; align-items: center; gap: 14px; padding: 13px 19px; width: 100%;
+    text-align: left; font-size: .97rem; color: var(--ink);
+  }
+  .sheet .opt:active { background: var(--chip); }
+  .sheet .opt.danger { color: var(--danger); }
+  .sheet .opt i { font-style: normal; font-size: 1.22rem; width: 22px; flex: none; }
+  .sheet .body { padding: 0 19px; }
+  #toast {
+    position: absolute; left: 50%; bottom: 94px; transform: translateX(-50%) translateY(20px);
+    background: #263238; color: #fff; padding: 11px 16px; border-radius: 11px;
+    font-size: .87rem; opacity: 0; pointer-events: none; transition: .25s; z-index: 40;
+    max-width: 88%; text-align: center; box-shadow: 0 6px 20px rgba(0,0,0,.4);
+  }
+  #toast.on { opacity: 1; transform: translateX(-50%) translateY(0); }
+  #notif {
+    position: absolute; top: 8px; left: 8px; right: 8px; z-index: 45;
+    background: var(--panel); border-radius: 14px; padding: 10px 12px;
+    display: flex; align-items: center; gap: 10px;
+    box-shadow: 0 8px 26px rgba(0,0,0,.4);
+    transform: translateY(-130%); transition: transform .26s cubic-bezier(.2,.9,.3,1.3);
+    cursor: pointer;
+  }
+  #notif.on { transform: translateY(0); }
+  #notif .nt { flex: 1; min-width: 0; }
+  #notif .nt b { display: block; font-size: .92rem; }
+  #notif .nt span {
+    display: block; font-size: .82rem; color: var(--muted);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  #notif .tagline { font-size: .64rem; color: var(--accent); font-weight: 800; letter-spacing: .06em; }
+
+  /* ---------------- profile ---------------- */
+  .prohead {
+    background: var(--bar); color: #fff; padding: 8px 20px 24px;
+    display: flex; flex-direction: column; align-items: center; gap: 9px;
+  }
+  .prohead b { font-size: 1.3rem; }
+  .prohead .ab { opacity: .9; font-size: .87rem; text-align: center; }
+  .stats { display: flex; gap: 9px; padding: 13px; }
+  .stat { flex: 1; background: var(--panel); border-radius: 13px; padding: 13px 6px; text-align: center; box-shadow: 0 2px 6px rgba(0,0,0,.1); }
+  .stat b { display: block; font-size: 1.45rem; color: var(--accent); }
+  .stat span { font-size: .71rem; color: var(--muted); }
+  .block { margin: 0 13px 14px; background: var(--panel); border-radius: 13px; padding: 14px; box-shadow: 0 2px 6px rgba(0,0,0,.1); }
+  .block h3 { font-size: .92rem; margin-bottom: 9px; color: var(--accent); }
+  .lineitem { display: flex; align-items: center; gap: 10px; padding: 11px 0; border-top: 1px solid var(--line); font-size: .92rem; }
+  .lineitem:first-of-type { border-top: none; }
+  .lineitem b { flex: 1; font-weight: 600; }
+  .sw { width: 46px; height: 26px; border-radius: 999px; background: var(--line); position: relative; flex: none; transition: background .16s; }
+  .sw.on { background: var(--accent); }
+  .sw::after {
+    content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px;
+    border-radius: 50%; background: #fff; transition: transform .16s;
+  }
+  .sw.on::after { transform: translateX(20px); }
+</style>
+</head>
+<body>
+<div id="phone">
+
+  <!-- ================= SETUP ================= -->
+  <div id="setup">
+    <div style="font-size:3rem">🌊</div>
+    <h1>ChatWave</h1>
+    <div class="tag">Pick a username. Search your friends.<br>Send a request, start the chat.</div>
+
+    <div class="card">
+      <h3>Your username</h3>
+      <div class="field"><span class="at">@</span><input id="unameIn" maxlength="18" placeholder="yourname13" autocomplete="off" spellcheck="false"></div>
+      <div class="hint" id="unameHint">Letters, numbers and _ — this is how friends find you.</div>
+    </div>
+
+    <div class="card">
+      <h3>Display name</h3>
+      <div class="field"><input id="dnameIn" maxlength="20" placeholder="What people call you" autocomplete="off"></div>
+      <h3 style="margin-top:13px">About</h3>
+      <div class="field"><input id="aboutIn" maxlength="42" placeholder="hey there! i'm on ChatWave" autocomplete="off"></div>
+    </div>
+
+    <div class="card">
+      <h3>Avatar</h3>
+      <div class="picker" id="emojiPick"></div>
+      <h3 style="margin-top:13px">Color</h3>
+      <div class="picker colors" id="colorPick"></div>
+      <div style="margin-top:14px" class="preview">
+        <div class="av" id="prevAv">🎧</div>
+        <div class="who"><b id="prevName">@your_name</b><small id="prevAbout">hey there! i'm on ChatWave</small></div>
+      </div>
+    </div>
+
+    <button class="bigbtn" id="startBtn">Create my account →</button>
+    <div class="hint" style="color:#e6fff5;text-align:center;margin:13px 0 4px">
+      Everyone in ChatWave is a made-up character. Nothing you type ever leaves this page —
+      there is no server, no account and no saving.
+    </div>
+  </div>
+
+  <!-- ================= APP ================= -->
+  <div id="app">
+
+    <!-- ---- chats ---- -->
+    <div class="view on" id="v-chats">
+      <div class="bar">
+        <h2>ChatWave</h2>
+        <button class="ico" id="toFind">🔍</button>
+        <button class="ico" id="toMe">⋮</button>
+      </div>
+      <div class="searchwrap"><input id="chatFilter" placeholder="Search chats" autocomplete="off"></div>
+      <div class="scroll" id="chatList"></div>
+      <button class="fab" id="fabNew">✏️</button>
+    </div>
+
+    <!-- ---- requests ---- -->
+    <div class="view" id="v-requests">
+      <div class="bar">
+        <h2>Requests</h2>
+        <button class="ico" id="reqFind">🔍</button>
+      </div>
+      <div class="scroll" id="reqList"></div>
+    </div>
+
+    <!-- ---- find people ---- -->
+    <div class="view" id="v-find">
+      <div class="bar">
+        <button class="ico" id="findBack">←</button>
+        <h2>Find people</h2>
+      </div>
+      <div class="searchwrap"><input id="userSearch" placeholder="Search a username, e.g. @pixel_fenn" autocomplete="off" spellcheck="false"></div>
+      <div class="scroll" id="findResults"></div>
+    </div>
+
+    <!-- ---- me ---- -->
+    <div class="view" id="v-me">
+      <div class="bar">
+        <button class="ico" id="meBack">←</button>
+        <h2>You</h2>
+      </div>
+      <div class="scroll">
+        <div class="prohead">
+          <div class="av big" id="myAv">🎧</div>
+          <b id="myName">@you</b>
+          <div class="ab" id="myAbout">hey there!</div>
+          <div style="opacity:.75;font-size:.78rem" id="myDisplay">Display name</div>
+        </div>
+        <div class="stats">
+          <div class="stat"><b id="stFriends">0</b><span>friends</span></div>
+          <div class="stat"><b id="stChats">0</b><span>chats</span></div>
+          <div class="stat"><b id="stSent">0</b><span>messages sent</span></div>
+        </div>
+        <div class="block">
+          <h3>Settings</h3>
+          <div class="lineitem"><b>Dark mode</b><div class="sw" id="swDark"></div></div>
+          <div class="lineitem"><b>Notification pop-ups</b><div class="sw on" id="swNotif"></div></div>
+          <div class="lineitem"><b>Read receipts (blue ticks)</b><div class="sw on" id="swRead"></div></div>
+          <div class="lineitem"><b>Anyone can send me requests</b><div class="sw on" id="swOpen"></div></div>
+        </div>
+        <div class="block">
+          <h3>Edit profile</h3>
+          <button class="opt lineitem" id="edAbout" style="width:100%;text-align:left"><b>About</b><span class="uname" id="edAboutVal"></span></button>
+          <button class="opt lineitem" id="edName" style="width:100%;text-align:left"><b>Display name</b><span class="uname" id="edNameVal"></span></button>
+          <button class="opt lineitem" id="edAv" style="width:100%;text-align:left"><b>Avatar</b><span class="uname" id="edAvVal"></span></button>
+        </div>
+        <div style="padding:0 13px 22px">
+          <button class="bigbtn grey" id="resetBtn">Log out &amp; start over</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ---- one chat ---- -->
+    <div class="view" id="v-chat">
+      <div class="bar">
+        <button class="ico" id="chatBack">←</button>
+        <div class="av sm" id="chatAv">🎧</div>
+        <div style="flex:1;min-width:0" id="chatHeadTap">
+          <div id="chatTitle" style="font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Chat</div>
+          <div id="chatStatus" style="font-size:.73rem;opacity:.9">online</div>
+        </div>
+        <button class="ico" id="chatMenu">⋮</button>
+      </div>
+      <div class="scroll" id="chatScroll"></div>
+      <div id="emojiBar"></div>
+      <div id="replyBar">
+        <div class="rq"><b id="rqWho"></b><span id="rqTx"></span></div>
+        <button id="rqX">✕</button>
+      </div>
+      <div id="composer">
+        <div class="inputwrap">
+          <button class="ic" id="emojiBtn">😀</button>
+          <input id="msgIn" placeholder="Message" autocomplete="off">
+        </div>
+        <button id="sendBtn">➤</button>
+      </div>
+    </div>
+
+    <!-- ---- bottom nav ---- -->
+    <div id="nav">
+      <button data-go="chats" class="on"><i>💬</i>Chats<span class="nb" id="nbChats" style="display:none">0</span></button>
+      <button data-go="requests"><i>🔔</i>Requests<span class="nb" id="nbReq" style="display:none">0</span></button>
+      <button data-go="find"><i>🔍</i>Find</button>
+      <button data-go="me"><i>👤</i>You</button>
+    </div>
+
+    <div id="notif"><div class="av sm" id="notifAv">💬</div>
+      <div class="nt"><span class="tagline" id="notifTag">CHATWAVE</span><b id="notifTitle"></b><span id="notifText"></span></div>
+    </div>
+    <div class="sheet" id="sheet"><div class="inner" id="sheetInner"></div></div>
+    <div id="toast"></div>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* =========================================================
+     1. PEOPLE
+     ========================================================= */
+
+  var AV_EMOJI = ['🎧','🎮','🛹','🏀','🎨','📚','🐈','🐕','🍕','🧋','⚽','🎸','🌙','⚡','🔥','🌊','🦈','🐙','🦋','👽','🍄','🧊','🎬','🪐'];
+  var AV_COLOR = ['#7ee0c0','#8fd0f5','#ffb3c6','#ffd45e','#c9b6f7','#ffc08a','#a8e6a3','#f7a8a8','#b8d97a','#9fb8ff','#f5b8e0','#8fe3e3'];
+
+  var EMOJI_BAR = ('😀 😂 🤣 😭 😅 😊 🙂 😉 😍 🥹 🤩 😎 🥲 🤔 😴 🥳 😮 🙄 😬 💀 ' +
+    '👍 👎 👏 🙌 🤝 💪 ✌️ 🤙 👋 🫶 ❤️ 🧡 💛 💚 💙 💜 ✨ 🔥 💯 🎉 ' +
+    '🐶 🐱 🦊 🐢 🦋 🐙 🦈 🍕 🍟 🍦 🍪 🧋 🍓 🍉 🥤 🍫 ⚽ 🏀 🏐 🛹 ' +
+    '🎮 🎧 🎨 🎸 📚 🚀 🪐 🧩 📸 🎬 🧊 🌙 ⚡ 🌊 🍄 👽').split(' ');
+
+  // style drives voice; likes drive what they light up about
+  var PEOPLE = [
+    { u:'pixel_fenn', n:'Fenn', e:'🎮', c:'#8fd0f5', bio:'building a whole city in survival mode', style:'hype', grade:'7th',
+      likes:['minecraft','gaming','games','building','roblox','redstone','survival'] },
+    { u:'hoop_marcus', n:'Marcus', e:'🏀', c:'#ffc08a', bio:'gym before school, gym after school', style:'blunt', grade:'8th',
+      likes:['basketball','hoops','sports','nba','training','dunking'] },
+    { u:'luna_draws', n:'Luna', e:'🖊️', c:'#c9b6f7', bio:'sketchbook is 90% full, help', style:'sweet', grade:'7th',
+      likes:['drawing','art','digital art','sketching','characters','comics','painting'] },
+    { u:'bassdrop_bex', n:'Bex', e:'🎧', c:'#7ee0c0', bio:'making beats in my closet', style:'chaotic', grade:'8th',
+      likes:['music','beats','producing','headphones','playlists','songs','concerts'] },
+    { u:'skate_or_dae', n:'Dae', e:'🛹', c:'#ffb3c6', bio:'landed it. eventually.', style:'chill', grade:'8th',
+      likes:['skateboarding','skating','tricks','skate park','bmx','longboard'] },
+    { u:'anime_amara', n:'Amara', e:'🌸', c:'#f5b8e0', bio:'watchlist is out of control', style:'hype', grade:'7th',
+      likes:['anime','manga','episodes','drawing','cosplay','shows','japan'] },
+    { u:'code_kiran', n:'Kiran', e:'💻', c:'#9fb8ff', bio:'robotics club, mostly the code part', style:'nerdy', grade:'8th',
+      likes:['coding','robotics','python','computers','engineering','building','ai'] },
+    { u:'volley_vee', n:'Vee', e:'🏐', c:'#ffd45e', bio:'outside hitter, loud on the court', style:'hype', grade:'7th',
+      likes:['volleyball','sports','practice','team','serving','tournaments'] },
+    { u:'boba_bennett', n:'Bennett', e:'🧋', c:'#ffc08a', bio:'rating every boba place in town', style:'dry', grade:'8th',
+      likes:['boba','food','snacks','pizza','ramen','tea','eating'] },
+    { u:'track_tati', n:'Tati', e:'🏃', c:'#a8e6a3', bio:'400m and complaining about the 400m', style:'blunt', grade:'8th',
+      likes:['track','running','sports','races','sprinting','cross country'] },
+    { u:'lore_liam', n:'Liam', e:'📚', c:'#b8d97a', bio:'three books going at once', style:'nerdy', grade:'7th',
+      likes:['reading','books','fantasy','writing','stories','series','library'] },
+    { u:'drum_dez', n:'Dez', e:'🥁', c:'#f7a8a8', bio:'band kid and proud of it', style:'chaotic', grade:'8th',
+      likes:['drums','band','music','marching band','percussion','rhythm'] },
+    { u:'sneaker_sy', n:'Sy', e:'👟', c:'#8fe3e3', bio:'thrift finds only', style:'dry', grade:'8th',
+      likes:['sneakers','shoes','thrifting','clothes','style','fashion'] },
+    { u:'cam_captures', n:'Cam', e:'📸', c:'#9fb8ff', bio:'everything is content', style:'chill', grade:'7th',
+      likes:['photos','photography','editing','videos','filming','cameras'] },
+    { u:'chess_wren', n:'Wren', e:'♟️', c:'#c9b6f7', bio:'four moves ahead, allegedly', style:'nerdy', grade:'7th',
+      likes:['chess','puzzles','strategy','math','board games','riddles'] },
+    { u:'plant_priya', n:'Priya', e:'🪴', c:'#a8e6a3', bio:'11 plants, 2 are thriving', style:'sweet', grade:'8th',
+      likes:['plants','gardening','nature','flowers','succulents','hiking'] },
+    { u:'meme_milo', n:'Milo', e:'😹', c:'#ffd45e', bio:'professional group chat menace', style:'chaotic', grade:'7th',
+      likes:['memes','jokes','funny videos','pranks','comedy','videos'] },
+    { u:'swim_soren', n:'Soren', e:'🌊', c:'#8fd0f5', bio:'5am practice is a personality', style:'chill', grade:'8th',
+      likes:['swimming','swim team','ocean','water','surfing','diving'] },
+    { u:'bake_bri', n:'Bri', e:'🧁', c:'#ffb3c6', bio:'cupcakes > homework', style:'sweet', grade:'7th',
+      likes:['baking','cupcakes','cooking','desserts','cookies','recipes','food'] },
+    { u:'rocket_rae', n:'Rae', e:'🚀', c:'#c9b6f7', bio:'science fair champion (2 years running)', style:'nerdy', grade:'8th',
+      likes:['space','science','rockets','experiments','physics','stars','mars'] },
+    { u:'goalie_gabi', n:'Gabi', e:'🥅', c:'#7ee0c0', bio:'nothing gets past me. mostly.', style:'hype', grade:'7th',
+      likes:['soccer','goalkeeping','sports','football','practice','team'] },
+    { u:'stage_stell', n:'Stella', e:'🎭', c:'#f5b8e0', bio:'drama club, lead role energy', style:'chaotic', grade:'8th',
+      likes:['theater','drama','acting','musicals','singing','plays','stage'] },
+    { u:'dog_dax', n:'Dax', e:'🐕', c:'#ffc08a', bio:'my dog runs this account', style:'sweet', grade:'7th',
+      likes:['dogs','puppies','pets','animals','walks','training'] },
+    { u:'cardgame_cass', n:'Cass', e:'🃏', c:'#b8d97a', bio:'deck is undefeated at lunch', style:'dry', grade:'8th',
+      likes:['card games','trading cards','pokemon','collecting','strategy','tournaments'] },
+    { u:'mtn_micah', n:'Micah', e:'🚵', c:'#a8e6a3', bio:'trails every weekend', style:'chill', grade:'8th',
+      likes:['biking','mountain biking','trails','outdoors','camping','hiking'] },
+    { u:'paintbox_poppy', n:'Poppy', e:'🎨', c:'#ffb3c6', bio:'my hands are always some color', style:'sweet', grade:'7th',
+      likes:['painting','art','colors','crafts','murals','drawing'] },
+    { u:'quiz_quincy', n:'Quincy', e:'🧠', c:'#9fb8ff', bio:'quiz bowl captain, sorry about it', style:'nerdy', grade:'8th',
+      likes:['trivia','facts','history','quizzes','geography','learning'] },
+    { u:'guitar_gus', n:'Gus', e:'🎸', c:'#ffd45e', bio:'know 4 chords, use all 4', style:'dry', grade:'7th',
+      likes:['guitar','music','songs','bands','playing','practice'] },
+    { u:'cat_kiki', n:'Kiki', e:'🐈', c:'#c9b6f7', bio:'two cats, zero regrets', style:'sweet', grade:'7th',
+      likes:['cats','kittens','animals','pets','naps'] },
+    { u:'moto_mo', n:'Mo', e:'🏁', c:'#f7a8a8', bio:'go-kart lap record holder (local)', style:'hype', grade:'8th',
+      likes:['racing','go karts','cars','speed','f1','motorsport'] },
+    { u:'speedcube_sena', n:'Sena', e:'🧊', c:'#8fe3e3', bio:'PB is 14 seconds', style:'nerdy', grade:'7th',
+      likes:['rubiks cube','cubing','puzzles','speed','math','patterns'] },
+    { u:'lunchtable_lex', n:'Lex', e:'🥪', c:'#b8d97a', bio:'runs six group chats. sends the plans.', style:'hype', grade:'8th',
+      likes:['friends','plans','hanging out','group chats','weekends','parties'] },
+    { u:'ghost_gio', n:'Gio', e:'👽', c:'#8fd0f5', bio:'up too late every night', style:'dry', grade:'8th',
+      likes:['horror','mysteries','conspiracies','games','stories','space'] },
+    { u:'flip_farrah', n:'Farrah', e:'🤸', c:'#ffd45e', bio:'gym 4 nights a week', style:'hype', grade:'7th',
+      likes:['gymnastics','tumbling','flips','cheer','dance','competitions'] }
+  ];
+
+  var STYLE = {
+    hype:    { tails:['LETS GOOO','🔥🔥','no bc same','fr fr','i cant'], chance:.5, lower:false },
+    chill:   { tails:['👌','its whatever','pretty solid','yeah fair'], chance:.4, lower:true },
+    dry:     { tails:['sure.','anyway','ok','...allegedly'], chance:.35, lower:true },
+    sweet:   { tails:['💛','aw yay','thats so cute','🥹'], chance:.5, lower:false },
+    nerdy:   { tails:['(technically)','fun fact','🤓','actually wait'], chance:.45, lower:false },
+    chaotic: { tails:['💀💀','IM CRYING','ok unrelated but','wait what'], chance:.55, lower:true },
+    blunt:   { tails:['thats it','period','no notes','yeah'], chance:.35, lower:true }
+  };
+
+  var JOKES = [
+    ["why did the scarecrow get promoted", "he was outstanding in his field 🌾"],
+    ["what do you call cheese that isnt yours", "nacho cheese 🧀"],
+    ["why dont skeletons fight each other", "no guts 💀"],
+    ["whats the best thing about switzerland", "idk but the flag is a big plus 🇨🇭"],
+    ["why did the math book look stressed", "too many problems"],
+    ["what do you call a sleeping dinosaur", "a dino-snore 🦕"],
+    ["how do you organize a space party", "you planet 🪐"],
+    ["whats orange and sounds like a parrot", "a carrot 🥕"],
+    ["why cant your nose be 12 inches long", "then it would be a foot 👃"],
+    ["what did one wall say to the other", "meet you at the corner"],
+    ["why did the bike fall over", "it was two tired 🚲"],
+    ["whats a computers favorite snack", "microchips 💻"]
+  ];
+
+  var FACTS = [
+    'octopuses have three hearts 🐙',
+    'a group of flamingos is a flamboyance',
+    'honey literally never spoils',
+    'bananas are berries and strawberries arent',
+    'sea otters hold hands while they sleep 🦦',
+    'a day on venus is longer than its year',
+    'sharks are older than trees',
+    'cows have best friends',
+    'your bones are 4x stronger than concrete',
+    'wombat poop is cube shaped (sorry)',
+    'there are more possible chess games than atoms in the observable universe',
+    'the loudest animal is a shrimp'
+  ];
+
+  var TOPICS = [
+    { k:['minecraft','roblox','fortnite','video game','videogame','games','gaming','xbox','playstation','switch','nintendo','valorant','among us','geometry dash','ps5'],
+      s:['ok whats your first move on a new world','i played way too much of that this weekend ngl',
+         'my best build is a floating base and i will not be humble about it','are you a builder or a fighter',
+         'wait add me next time'] },
+    { k:['anime','manga','episode','episodes','season','arc'],
+      s:['ok which one, this is important','i binged like 6 episodes last night 💀','no spoilers PLEASE',
+         'the animation in that one goes so hard'] },
+    { k:['dog','dogs','puppy','puppies'], s:['dogs. correct answer 🐕','my dog eats socks. actual socks.',
+        'big dog or small dog','i want to meet every dog alive'] },
+    { k:['cat','cats','kitten','kitty'], s:['cats are tiny landlords 🐈','mine sits on my homework every single time',
+        'do you have one or do you just want one'] },
+    { k:['pizza','burger','taco','ramen','noodle','sandwich','food','hungry','snack','lunch','dinner','boba','fries'],
+      s:['now im hungry, thanks','ok but which topping. this decides everything','i could eat that daily',
+         'best cafeteria day is pizza day and thats just facts'] },
+    { k:['ice cream','candy','cookie','cake','chocolate','dessert','donut','cupcake'],
+      s:['ok big yes 🍦','what flavor, be honest','i would trade homework for that right now'] },
+    { k:['school','homework','teacher','class','test','quiz','math','science','english','history','project','locker','bus','grades','study','exam'],
+      s:['whats your best class though','group projects are a scam and i said what i said',
+         'i studied for like 6 minutes and hoped','tests are fine. its the waiting for grades that gets me.',
+         'my teacher assigned that on a friday. rude.'] },
+    { k:['soccer','football','basketball','baseball','softball','volleyball','hockey','tennis','swim','swimming','sport','sports','running','track','gymnastics','wrestling','cheer','practice'],
+      s:['do you play on a team','practice like 4x a week over here 😮‍💨','what position',
+         'im not the fastest but im the loudest'] },
+    { k:['music','song','singing','guitar','piano','drums','band','concert','playlist','album','headphones','beats'],
+      s:['whats on repeat for you right now','send the playlist i need new stuff','i play badly but LOUD 🎸',
+         'music makes everything 40% better'] },
+    { k:['book','books','reading','story','comic','library','series','novel'],
+      s:['ooh what are you reading','i stayed up way too late finishing a chapter','comics count, i will defend this'] },
+    { k:['draw','drawing','art','paint','painting','craft','crafts','doodle','sketch','digital art'],
+      s:['what do you like drawing most','i draw the same character over and over 💀','hands are impossible. hands.'] },
+    { k:['space','planet','planets','star','stars','moon','mars','rocket','astronaut','galaxy','nasa'],
+      s:['space is the best subject and im not taking questions 🚀','would you actually go to mars though',
+         'jupiter has like 95 moons, thats unreasonable'] },
+    { k:['code','coding','python','program','programming','robot','robotics','computer','javascript','ai'],
+      s:['ok what are you making','my code works and i genuinely dont know why','robotics club is chaos but good chaos'] },
+    { k:['skate','skateboard','skateboarding','bike','biking','scooter','trick','ramp'],
+      s:['did you land it or eat it 💀','the skate park was PACKED last weekend','ok teach me that one'] },
+    { k:['birthday','party','cake','present','presents','sleepover','dance','hangout','hang out'],
+      s:['ok wait thats exciting 🎉','who all is going','birthdays are elite, no notes'] },
+    { k:['summer','vacation','holiday','beach','camp','trip','pool','weekend','break'],
+      s:['ok that sounds unreal ☀️','i need summer to come back immediately','beach or pool, pick'] },
+    { k:['snow','winter','ski','sled','cold','christmas','holidays'],
+      s:['snow days are undefeated ❄️','i can sled. i cannot ski.','hot chocolate is mandatory here'] },
+    { k:['meme','memes','funny','video','videos','tiktok','youtube','show','movie','watch','streaming','edit'],
+      s:['send it send it send it','i rewatch the same 3 things forever','no spoilers though!!','ok that one is actually funny'] },
+    { k:['bored','boring','nothing to do'], s:['same honestly 😩','emergency plan: pick a color, find 5 things that color',
+        'want a joke, i have a concerning supply'] },
+    { k:['tired','sleepy','sleep','nap','exhausted'], s:['same, i stayed up too late again','naps are so underrated 😴','go to sleep!! (says the person still awake)'] },
+    { k:['pet','pets','hamster','fish','bird','bunny','rabbit','turtle','lizard','snake','horse'],
+      s:['pets make a house 10x better 🐾','whats their name','i want one so badly'] },
+    { k:['friend','friends','bff','new kid','group chat','drama'],
+      s:['friends make everything easier honestly','thats actually really nice of you','do they go to your school'] },
+    { k:['nervous','worried','scared','anxious','stressed','stress','shy','overwhelmed'],
+      s:['thats such a normal way to feel','you dont have to do it perfectly, you just have to do it',
+         'i get like that before big stuff too 💛'] },
+    { k:['weather','rain','rainy','sunny','storm','hot','windy','humid'],
+      s:['its doing the exact same thing here','rainy days = blanket days','perfect weather for doing nothing'] },
+    { k:['phone','charger','battery','wifi','screen','app','signal'],
+      s:['my battery is at 4% permanently','the wifi at my house is a rumor at this point','ok this app is actually kind of clean'] },
+    { k:['sneaker','sneakers','shoes','clothes','outfit','thrift','style','fashion','hoodie'],
+      s:['ok drop the fit pic (kidding)','thrifting is the only way','i wear the same hoodie 5 days a week, its a look'] },
+    { k:['chess','puzzle','puzzles','cube','rubiks','strategy','riddle'],
+      s:['ok what is your best time','i lose but i lose with STYLE','give me a riddle, right now'] }
+  ];
+
+  var FOLLOWUPS = [
+    'what about you', 'ok what do you think', 'have you tried it', 'is that your favorite',
+    'what else did you do today', 'ok tell me the best part', 'hows your day going tho',
+    'do you like that kind of stuff', 'would you do it again', 'ok explain'
+  ];
+
+  var REQ_OPENERS = [
+    'hey! you\'re in the same group chat as my friend, wanna chat?',
+    'saw your username, we have like 4 mutuals 😅',
+    'hey! Lex said i should add you',
+    'hi!! adding people from the club list',
+    'yo. adding everyone from my class group.',
+    'hey, you like the same stuff i do apparently. add?',
+    'hi! new here, collecting friends',
+    'heyyy add me back?'
+  ];
+
+  /* =========================================================
+     2. STATE + HELPERS
+     ========================================================= */
+
+  var S = {
+    me: { u:'', n:'', e:'🎧', c:'#7ee0c0', about:'hey there! i\'m on ChatWave' },
+    friends: [],        // usernames you are connected with
+    chats: [],          // { id, kind, members[], title, msgs[], unread, muted, pinned, blocked, lastQ, typing }
+    incoming: [],       // { id, u, text, at }
+    outgoing: [],       // { u, at }
+    declined: [],       // usernames you turned down
+    open: null,
+    reply: null,
+    sent: 0,
+    view: 'chats',
+    started: false,
+    opts: { dark:false, notif:true, read:true, openReq:true }
+  };
+
+  var idSeq = 1;
+  function uid() { return 'x' + (idSeq++); }
+  function $(id) { return document.getElementById(id); }
+  function pick(a) { return a[Math.floor(Math.random() * a.length)]; }
+  function esc(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+  function personOf(u) {
+    for (var i = 0; i < PEOPLE.length; i++) if (PEOPLE[i].u === u) return PEOPLE[i];
+    return null;
+  }
+  function isFriend(u) { return S.friends.indexOf(u) > -1; }
+  function isPending(u) {
+    for (var i = 0; i < S.outgoing.length; i++) if (S.outgoing[i].u === u) return true;
+    return false;
+  }
+  function hasIncoming(u) {
+    for (var i = 0; i < S.incoming.length; i++) if (S.incoming[i].u === u) return true;
+    return false;
+  }
+  function clockOf(d) {
+    var h = d.getHours(), m = d.getMinutes(), ap = h >= 12 ? 'PM' : 'AM';
+    h = h % 12; if (!h) h = 12;
+    return h + ':' + (m < 10 ? '0' : '') + m + ' ' + ap;
+  }
+  function shortWhen(d) {
+    var now = new Date();
+    if (d.toDateString() === now.toDateString()) return clockOf(d);
+    var y = new Date(now.getTime() - 864e5);
+    if (d.toDateString() === y.toDateString()) return 'Yesterday';
+    return (d.getMonth() + 1) + '/' + d.getDate();
+  }
+  function agoOf(d) {
+    var s = Math.round((Date.now() - d.getTime()) / 1000);
+    if (s < 60) return 'just now';
+    if (s < 3600) return Math.floor(s / 60) + 'm ago';
+    return Math.floor(s / 3600) + 'h ago';
+  }
+  function avHTML(emoji, color, cls) {
+    return '<div class="av ' + (cls || '') + '" style="background:' + color + '">' + emoji + '</div>';
+  }
+  var toastT;
+  function toast(msg) {
+    var el = $('toast');
+    el.textContent = msg;
+    el.classList.add('on');
+    clearTimeout(toastT);
+    toastT = setTimeout(function () { el.classList.remove('on'); }, 2500);
+  }
+
+  /* ---- push-style notification banner ---- */
+  var notifT, notifGo = null;
+  function notify(tag, avEmoji, avColor, title, text, go) {
+    if (!S.opts.notif) { toast(title + ' — ' + text); return; }
+    $('notifTag').textContent = tag;
+    $('notifAv').textContent = avEmoji;
+    $('notifAv').style.background = avColor;
+    $('notifTitle').textContent = title;
+    $('notifText').textContent = text;
+    notifGo = go || null;
+    var el = $('notif');
+    el.classList.add('on');
+    clearTimeout(notifT);
+    notifT = setTimeout(function () { el.classList.remove('on'); }, 4200);
+  }
+  $('notif').addEventListener('click', function () {
+    $('notif').classList.remove('on');
+    if (notifGo) { var g = notifGo; notifGo = null; g(); }
+  });
+
+  /* =========================================================
+     3. SETUP SCREEN
+     ========================================================= */
+
+  var chosenE = AV_EMOJI[0], chosenC = AV_COLOR[0];
+
+  function buildPickers(epId, cpId, onChange) {
+    var ep = $(epId), cp = $(cpId), i, html = '';
+    for (i = 0; i < AV_EMOJI.length; i++) {
+      html += '<button data-e="' + AV_EMOJI[i] + '"' + (AV_EMOJI[i] === chosenE ? ' class="on"' : '') + '>' + AV_EMOJI[i] + '</button>';
+    }
+    ep.innerHTML = html;
+    html = '';
+    for (i = 0; i < AV_COLOR.length; i++) {
+      html += '<button data-c="' + AV_COLOR[i] + '" style="background:' + AV_COLOR[i] + '"' +
+        (AV_COLOR[i] === chosenC ? ' class="on"' : '') + '></button>';
+    }
+    cp.innerHTML = html;
+    ep.onclick = function (ev) {
+      var b = ev.target.closest('button'); if (!b) return;
+      ep.querySelectorAll('button').forEach(function (x) { x.classList.remove('on'); });
+      b.classList.add('on'); chosenE = b.dataset.e; onChange();
+    };
+    cp.onclick = function (ev) {
+      var b = ev.target.closest('button'); if (!b) return;
+      cp.querySelectorAll('button').forEach(function (x) { x.classList.remove('on'); });
+      b.classList.add('on'); chosenC = b.dataset.c; onChange();
+    };
+  }
+  buildPickers('emojiPick', 'colorPick', paintPreview);
+
+  function cleanName(v) { return v.toLowerCase().replace(/[^a-z0-9_]/g, '').slice(0, 18); }
+
+  function paintPreview() {
+    var v = cleanName($('unameIn').value);
+    $('prevAv').textContent = chosenE;
+    $('prevAv').style.background = chosenC;
+    $('prevName').textContent = '@' + (v || 'your_name');
+    $('prevAbout').textContent = $('aboutIn').value.trim() || 'hey there! i\'m on ChatWave';
+  }
+
+  $('unameIn').addEventListener('input', function () {
+    var c = cleanName(this.value);
+    if (c !== this.value) this.value = c;
+    var hint = $('unameHint');
+    hint.className = 'hint';
+    if (!c) hint.textContent = 'Letters, numbers and _ — this is how friends find you.';
+    else if (c.length < 3) hint.textContent = 'A bit longer — at least 3 characters.';
+    else if (personOf(c)) { hint.textContent = '@' + c + ' is already taken. Try another.'; hint.className = 'hint bad'; }
+    else { hint.textContent = '@' + c + ' is available ✓'; hint.className = 'hint ok'; }
+    paintPreview();
+  });
+  $('aboutIn').addEventListener('input', paintPreview);
+
+  $('startBtn').addEventListener('click', function () {
+    var u = cleanName($('unameIn').value);
+    if (u.length < 3) { toast('Username needs at least 3 characters'); $('unameIn').focus(); return; }
+    if (personOf(u)) { toast('That username is taken — try another'); return; }
+    S.me = {
+      u: u,
+      n: $('dnameIn').value.trim().slice(0, 20) || u,
+      e: chosenE, c: chosenC,
+      about: $('aboutIn').value.trim().slice(0, 42) || 'hey there! i\'m on ChatWave'
+    };
+    S.started = true;
+    $('setup').style.display = 'none';
+    $('app').classList.add('on');
+    seedStart();
+    go('chats');
+    ambientLoop();
+    requestLoop();
+  });
+  $('unameIn').addEventListener('keydown', function (e) { if (e.key === 'Enter') $('dnameIn').focus(); });
+  $('aboutIn').addEventListener('keydown', function (e) { if (e.key === 'Enter') $('startBtn').click(); });
+
+  /* =========================================================
+     4. CHAT DATA
+     ========================================================= */
+
+  function newChat(kind, members, title) {
+    var c = {
+      id: uid(), kind: kind, members: members, title: title || '',
+      msgs: [], unread: 0, muted: false, pinned: false, blocked: false,
+      lastQ: null, typing: null
+    };
+    S.chats.push(c);
+    return c;
+  }
+  function dmWith(u) {
+    for (var i = 0; i < S.chats.length; i++) {
+      var c = S.chats[i];
+      if (c.kind === 'dm' && c.members[0] === u) return c;
+    }
+    return null;
+  }
+  function chatById(id) {
+    for (var i = 0; i < S.chats.length; i++) if (S.chats[i].id === id) return S.chats[i];
+    return null;
+  }
+  function defaultName(c) {
+    if (c.kind === 'group') {
+      var names = c.members.map(function (u) { var p = personOf(u); return p ? p.n : u; });
+      return names.slice(0, 2).join(' & ') + (names.length > 2 ? ' +' + (names.length - 2) : '');
+    }
+    var p = personOf(c.members[0]);
+    return p ? p.n : c.members[0];
+  }
+  function chatName(c) { return c.title || defaultName(c); }
+  function chatSub(c) {
+    if (c.kind === 'group') return c.members.length + 1 + ' people';
+    return '@' + c.members[0];
+  }
+  function chatAv(c) {
+    if (c.kind === 'group') return { e: c.emoji || '👥', c: '#b8c4cc' };
+    var p = personOf(c.members[0]);
+    return p ? { e:p.e, c:p.c } : { e:'🙂', c:'#ccc' };
+  }
+  function lastMsg(c) { return c.msgs.length ? c.msgs[c.msgs.length - 1] : null; }
+
+  function push(c, m) {
+    m.id = uid();
+    m.at = new Date();
+    c.msgs.push(m);
+    if (m.from !== 'me' && m.from !== 'sys' && S.open !== c.id) c.unread++;
+    return m;
+  }
+
+  function seedStart() {
+    // one friend already added, plus one request waiting for you
+    var lex = personOf('lunchtable_lex');
+    S.friends.push(lex.u);
+    var c = newChat('dm', [lex.u]);
+    var t = new Date(Date.now() - 6 * 60000);
+    var a = push(c, { from:lex.u, text:'@' + S.me.u + ' welcome to ChatWave 🌊' });
+    var b = push(c, { from:lex.u, text:'im the one who adds everybody. what do you actually like doing?' });
+    a.at = t; b.at = new Date(t.getTime() + 25000);
+    c.lastQ = 'fun';
+    c.unread = 2;
+
+    var first = pick(PEOPLE.filter(function (p) { return p.u !== lex.u; }));
+    S.incoming.push({ id: uid(), u: first.u, text: pick(REQ_OPENERS), at: new Date(Date.now() - 90000) });
+  }
+
+  /* =========================================================
+     5. NAVIGATION
+     ========================================================= */
+
+  var VIEWS = ['chats','requests','find','me','chat'];
+
+  function go(view) {
+    S.view = view;
+    VIEWS.forEach(function (v) { $('v-' + v).classList.toggle('on', v === view); });
+    $('nav').style.display = view === 'chat' ? 'none' : 'flex';
+    document.querySelectorAll('#nav button').forEach(function (b) {
+      b.classList.toggle('on', b.dataset.go === view);
+    });
+    if (view === 'chats') { S.open = null; renderChats(); }
+    if (view === 'requests') renderRequests();
+    if (view === 'find') { renderFind(); setTimeout(function () { $('userSearch').focus(); }, 60); }
+    if (view === 'me') renderMe();
+    updateBadges();
+  }
+
+  document.querySelectorAll('#nav button').forEach(function (b) {
+    b.addEventListener('click', function () { go(b.dataset.go); });
+  });
+  $('toFind').addEventListener('click', function () { go('find'); });
+  $('reqFind').addEventListener('click', function () { go('find'); });
+  $('toMe').addEventListener('click', function () { go('me'); });
+  $('findBack').addEventListener('click', function () { go('chats'); });
+  $('meBack').addEventListener('click', function () { go('chats'); });
+  $('chatBack').addEventListener('click', function () { S.reply = null; paintReply(); go('chats'); });
+  $('fabNew').addEventListener('click', function () { go('find'); });
+
+  function updateBadges() {
+    var n = 0, i;
+    for (i = 0; i < S.chats.length; i++) n += S.chats[i].unread;
+    $('nbChats').style.display = n ? 'flex' : 'none';
+    $('nbChats').textContent = n > 99 ? '99+' : n;
+    var r = S.incoming.length;
+    $('nbReq').style.display = r ? 'flex' : 'none';
+    $('nbReq').textContent = r;
+  }
+
+  /* =========================================================
+     6. CHAT LIST
+     ========================================================= */
+
+  function sortedChats() {
+    return S.chats.slice().sort(function (a, b) {
+      if (!!a.pinned !== !!b.pinned) return a.pinned ? -1 : 1;
+      var la = lastMsg(a), lb = lastMsg(b);
+      return (lb ? lb.at : 0) - (la ? la.at : 0);
+    });
+  }
+
+  function previewText(c) {
+    var m = lastMsg(c);
+    if (!m) return 'Tap to start chatting';
+    if (m.from === 'sys') return m.text;
+    if (m.removed) return '🚫 message deleted';
+    var who = m.from === 'me' ? 'You: ' : (c.kind === 'group' ? ((personOf(m.from) || {}).n || m.from) + ': ' : '');
+    return who + m.text;
+  }
+
+  function renderChats() {
+    var box = $('chatList');
+    var q = $('chatFilter').value.trim().toLowerCase();
+    var list = sortedChats().filter(function (c) {
+      if (!q) return true;
+      return chatName(c).toLowerCase().indexOf(q) > -1 || c.members.join(' ').toLowerCase().indexOf(q) > -1;
+    });
+    if (!list.length) {
+      box.innerHTML = '<div class="empty"><span class="em">💬</span>' +
+        (q ? 'No chats match "' + esc(q) + '".' :
+         'No chats yet.<br>Tap <b>Find</b> and search a username to send a chat request.') + '</div>';
+      return;
+    }
+    var html = '';
+    for (var i = 0; i < list.length; i++) {
+      var c = list[i], m = lastMsg(c), a = chatAv(c);
+      var tick = '';
+      if (m && m.from === 'me' && !m.removed) {
+        tick = '<span class="tick' + (m.status === 'read' && S.opts.read ? ' read' : '') + '">' +
+               (m.status === 'sent' ? '✓' : '✓✓') + '</span>';
+      }
+      html += '<div class="row" data-chat="' + c.id + '">' +
+        avHTML(a.e, a.c) +
+        '<div class="mid"><div class="top"><b>' + esc(chatName(c)) +
+        (c.pinned ? ' <span class="mini">📌</span>' : '') + '</b>' +
+        '<span class="when' + (c.unread ? ' new' : '') + '">' + (m ? shortWhen(m.at) : '') + '</span></div>' +
+        '<div class="prev">' + tick + '<span style="overflow:hidden;text-overflow:ellipsis">' +
+        esc(previewText(c)) + '</span></div></div>' +
+        '<div class="rt">' +
+        (c.unread ? '<span class="badge">' + c.unread + '</span>' : '') +
+        (c.muted ? '<span class="mini">🔕</span>' : '') +
+        '</div></div>';
+    }
+    box.innerHTML = html;
+  }
+
+  $('chatFilter').addEventListener('input', renderChats);
+  $('chatList').addEventListener('click', function (ev) {
+    var r = ev.target.closest('.row');
+    if (r) openChat(r.dataset.chat);
+  });
+
+  /* =========================================================
+     7. REQUESTS — the notification centre
+     ========================================================= */
+
+  function renderRequests() {
+    var box = $('reqList'), html = '', i;
+
+    if (!S.incoming.length && !S.outgoing.length) {
+      box.innerHTML = '<div class="empty"><span class="em">🔔</span>Nothing waiting.<br>' +
+        'When somebody wants to chat with you, their request lands here.</div>';
+      return;
+    }
+
+    if (S.incoming.length) {
+      html += '<div class="sectionlbl">' + S.incoming.length + ' chat request' + (S.incoming.length > 1 ? 's' : '') + '</div>';
+      for (i = 0; i < S.incoming.length; i++) {
+        var q = S.incoming[i], p = personOf(q.u);
+        html += '<div class="row" style="align-items:flex-start">' + avHTML(p.e, p.c) +
+          '<div class="mid"><div class="top"><b>' + esc(p.n) + '</b>' +
+          '<span class="when">' + agoOf(q.at) + '</span></div>' +
+          '<div class="uname">@' + p.u + ' · ' + p.grade + '</div>' +
+          '<div style="font-size:.88rem;margin:6px 0 8px;line-height:1.4">' + esc(q.text) + '</div>' +
+          '<div style="display:flex;gap:8px">' +
+          '<button class="pill" data-acc="' + q.id + '">Accept</button>' +
+          '<button class="pill bad" data-dec="' + q.id + '">Decline</button>' +
+          '<button class="pill ghost" data-view="' + p.u + '">Profile</button>' +
+          '</div></div></div>';
+      }
+    }
+
+    if (S.outgoing.length) {
+      html += '<div class="sectionlbl">Sent by you — waiting</div>';
+      for (i = 0; i < S.outgoing.length; i++) {
+        var o = S.outgoing[i], pp = personOf(o.u);
+        html += '<div class="row">' + avHTML(pp.e, pp.c) +
+          '<div class="mid"><b>' + esc(pp.n) + '</b>' +
+          '<div class="prev">@' + pp.u + ' · sent ' + agoOf(o.at) + '</div></div>' +
+          '<button class="pill ghost" data-cancel="' + pp.u + '">Cancel</button></div>';
+      }
+    }
+    box.innerHTML = html;
+  }
+
+  $('reqList').addEventListener('click', function (ev) {
+    var b = ev.target.closest('button'); if (!b) return;
+    if (b.dataset.acc) acceptRequest(b.dataset.acc);
+    else if (b.dataset.dec) declineRequest(b.dataset.dec);
+    else if (b.dataset.view) showProfile(b.dataset.view);
+    else if (b.dataset.cancel) {
+      var u = b.dataset.cancel;
+      S.outgoing = S.outgoing.filter(function (o) { return o.u !== u; });
+      toast('Request to @' + u + ' cancelled');
+      renderRequests(); updateBadges();
+    }
+  });
+
+  function acceptRequest(id) {
+    var q = null;
+    for (var i = 0; i < S.incoming.length; i++) if (S.incoming[i].id === id) q = S.incoming[i];
+    if (!q) return;
+    S.incoming = S.incoming.filter(function (x) { return x.id !== id; });
+    var p = personOf(q.u);
+    S.friends.push(p.u);
+    var c = dmWith(p.u) || newChat('dm', [p.u]);
+    push(c, { from:'sys', text:'You and ' + p.n + ' are now connected. Say something 👋' });
+    renderRequests(); updateBadges(); renderChats();
+    toast('You and @' + p.u + ' are connected');
+    setTimeout(function () { say(c, p, pick(['yooo thanks for adding me', 'okay hi!! 👋', 'ayy accepted, lets go', 'hey!! finally']));
+    }, 800);
+    setTimeout(function () {
+      say(c, p, pick(['so whats your deal, what do you do for fun', 'ok quick, favorite thing to do after school',
+        'im ' + p.n + ' btw — ' + p.bio]));
+      c.lastQ = 'fun';
+    }, 2600);
+  }
+
+  function declineRequest(id) {
+    var q = null;
+    for (var i = 0; i < S.incoming.length; i++) if (S.incoming[i].id === id) q = S.incoming[i];
+    if (!q) return;
+    S.incoming = S.incoming.filter(function (x) { return x.id !== id; });
+    S.declined.push(q.u);
+    toast('Request declined — they are not told');
+    renderRequests(); updateBadges();
+  }
+
+  /* =========================================================
+     8. FIND PEOPLE
+     ========================================================= */
+
+  function findRow(p) {
+    var btn;
+    if (isFriend(p.u)) btn = '<button class="pill ghost" data-open="' + p.u + '">Message</button>';
+    else if (isPending(p.u)) btn = '<button class="pill ghost" data-nope="1">Pending</button>';
+    else if (hasIncoming(p.u)) btn = '<button class="pill" data-go-req="1">Respond</button>';
+    else btn = '<button class="pill" data-add="' + p.u + '">Add</button>';
+    return '<div class="row" data-user="' + p.u + '">' + avHTML(p.e, p.c) +
+      '<div class="mid"><b>' + esc(p.n) + '</b>' +
+      '<div class="prev">@' + p.u + ' · ' + esc(p.bio) + '</div></div>' + btn + '</div>';
+  }
+
+  function renderFind() {
+    var q = $('userSearch').value.trim().toLowerCase().replace(/^@/, '');
+    var box = $('findResults');
+    var html = '';
+    var hits = PEOPLE.filter(function (p) {
+      if (!q) return false;
+      return p.u.indexOf(q) > -1 || p.n.toLowerCase().indexOf(q) > -1 || p.likes.join(' ').indexOf(q) > -1;
+    });
+
+    if (!q) {
+      html += '<div class="sectionlbl">Start something</div>' +
+        '<div class="row" id="mkGroup">' + avHTML('👥', '#b8c4cc') +
+        '<div class="mid"><b>New group chat</b><div class="prev">Pick friends, then name it</div></div>' +
+        '<span class="pill line">Create</span></div>';
+      if (S.friends.length) {
+        html += '<div class="sectionlbl">Your friends</div>';
+        S.friends.forEach(function (u) { var p = personOf(u); if (p) html += findRow(p); });
+      }
+      html += '<div class="sectionlbl">People you might know</div>';
+      hits = PEOPLE.filter(function (p) { return !isFriend(p.u); }).slice(0, 8);
+    } else if (!hits.length) {
+      html += '<div class="empty"><span class="em">🔎</span>Nobody found for <b>@' + esc(q) + '</b>.<br>' +
+        'Try part of a name, or something they are into — like <b>anime</b>, <b>soccer</b> or <b>art</b>.</div>';
+    } else {
+      html += '<div class="sectionlbl">' + hits.length + ' result' + (hits.length > 1 ? 's' : '') + '</div>';
+    }
+
+    for (var i = 0; i < hits.length; i++) html += findRow(hits[i]);
+    box.innerHTML = html;
+  }
+
+  $('userSearch').addEventListener('input', renderFind);
+  $('findResults').addEventListener('click', function (ev) {
+    if (ev.target.closest('#mkGroup')) { groupPicker(); return; }
+    var b = ev.target.closest('button');
+    if (b) {
+      if (b.dataset.add) { sendRequest(b.dataset.add); return; }
+      if (b.dataset.open) { var c = dmWith(b.dataset.open); if (c) openChat(c.id); return; }
+      if (b.dataset.goReq !== undefined && b.dataset.goReq) { go('requests'); return; }
+      if (b.dataset.nope) { toast('Already waiting on them to accept'); return; }
+    }
+    var r = ev.target.closest('[data-user]');
+    if (r) showProfile(r.dataset.user);
+  });
+
+  function sendRequest(u) {
+    var p = personOf(u);
+    if (!p || isFriend(u) || isPending(u)) return;
+    S.outgoing.push({ u:u, at:new Date() });
+    toast('Chat request sent to @' + u);
+    renderFind(); updateBadges();
+    // they answer somewhere between 5 and 20 seconds later
+    setTimeout(function () { resolveRequest(u); }, 5000 + Math.random() * 15000);
+  }
+
+  function resolveRequest(u) {
+    if (!isPending(u)) return;              // you cancelled it
+    S.outgoing = S.outgoing.filter(function (o) { return o.u !== u; });
+    var p = personOf(u);
+    S.friends.push(u);
+    var c = dmWith(u) || newChat('dm', [u]);
+    push(c, { from:'sys', text:p.n + ' accepted your chat request 🎉' });
+    renderChats(); renderFind(); renderRequests(); updateBadges();
+    notify('REQUEST ACCEPTED', p.e, p.c, p.n + ' accepted', '@' + p.u + ' is now in your chats',
+      function () { openChat(c.id); });
+    setTimeout(function () {
+      say(c, p, pick(['hey!! thanks for the add 🎉', 'ok hi, i accept all requests, no regrets so far',
+        'yooo hi @' + S.me.u, 'accepted!! whats up']));
+    }, 1200);
+    setTimeout(function () {
+      say(c, p, pick(['im ' + p.n + ' — ' + p.bio, 'fair warning i talk about ' + p.likes[0] + ' constantly',
+        'so what are you into']));
+      c.lastQ = 'fun';
+    }, 3200);
+  }
+
+  /* ---- somebody's profile card ---- */
+  function showProfile(u) {
+    var p = personOf(u); if (!p) return;
+    var body = '<h4>' + esc(p.n) + '</h4><div class="body" style="display:flex;gap:13px;align-items:center;padding-bottom:12px">' +
+      avHTML(p.e, p.c, 'big') +
+      '<div><b style="font-size:1.05rem">@' + p.u + '</b><div class="uname" style="margin:4px 0">' + p.grade + ' grade</div>' +
+      '<div style="font-size:.9rem">' + esc(p.bio) + '</div></div></div>' +
+      '<div class="body" style="padding-bottom:14px"><div class="uname" style="margin-bottom:5px">Into</div>' +
+      '<div style="font-size:.9rem;line-height:1.5">' + esc(p.likes.slice(0, 5).join(' · ')) + '</div></div>';
+    $('sheetInner').innerHTML = body +
+      (isFriend(p.u)
+        ? '<button class="opt" id="pfMsg"><i>💬</i>Message ' + esc(p.n) + '</button>'
+        : isPending(p.u)
+          ? '<button class="opt" id="pfNone"><i>⏳</i>Request sent — waiting</button>'
+          : '<button class="opt" id="pfAdd"><i>➕</i>Send a chat request</button>') +
+      '<button class="opt" data-close="1"><i>✖️</i>Close</button>';
+    $('sheet').classList.add('on');
+    $('sheetInner').onclick = function (ev) {
+      var b = ev.target.closest('button'); if (!b) return;
+      closeSheet();
+      if (b.id === 'pfAdd') sendRequest(p.u);
+      if (b.id === 'pfMsg') { var c = dmWith(p.u); if (c) openChat(c.id); }
+    };
+  }
+
+  /* ---- group creation, with a name ---- */
+  var groupPicked = [];
+  function groupPicker() {
+    if (S.friends.length < 2) { toast('Add at least 2 friends first'); return; }
+    groupPicked = [];
+    var body = '<h4>New group</h4>' +
+      '<div class="body"><div class="field"><input id="gpName" maxlength="24" placeholder="Name this group" autocomplete="off"></div>' +
+      '<div class="hint">Everybody in the group sees this name. Emoji allowed 🎉</div></div>' +
+      '<div class="sectionlbl" style="background:none">Pick friends</div>' +
+      '<div id="gpList" style="max-height:36vh;overflow-y:auto">';
+    S.friends.forEach(function (u) {
+      var p = personOf(u); if (!p) return;
+      body += '<button class="opt" data-gp="' + p.u + '"><i>' + p.e + '</i>' +
+        '<span style="flex:1">' + esc(p.n) + ' <span class="uname">@' + p.u + '</span></span>' +
+        '<span class="gpmark" style="font-size:1.15rem;color:var(--accent)">＋</span></button>';
+    });
+    body += '</div><div class="body" style="padding-top:12px"><button class="bigbtn" id="gpGo">Create group</button></div>';
+    $('sheetInner').innerHTML = body;
+    $('sheetInner').onclick = null;
+    $('sheet').classList.add('on');
+
+    $('gpList').addEventListener('click', function (ev) {
+      var b = ev.target.closest('[data-gp]'); if (!b) return;
+      var u = b.dataset.gp, ix = groupPicked.indexOf(u);
+      if (ix > -1) { groupPicked.splice(ix, 1); b.querySelector('.gpmark').textContent = '＋'; }
+      else if (groupPicked.length >= 6) { toast('6 people max'); return; }
+      else { groupPicked.push(u); b.querySelector('.gpmark').textContent = '✔️'; }
+    });
+    $('gpGo').addEventListener('click', function () {
+      if (groupPicked.length < 2) { toast('Pick at least 2 friends'); return; }
+      var nm = $('gpName').value.trim().slice(0, 24);
+      var c = newChat('group', groupPicked.slice(), nm);
+      c.emoji = '👥';
+      push(c, { from:'sys', text: nm
+        ? 'You created "' + nm + '"'
+        : 'You created this group. Tap the name up top to name it.' });
+      closeSheet();
+      openChat(c.id);
+      groupPicked.forEach(function (u, i) {
+        setTimeout(function () {
+          var p = personOf(u);
+          say(c, p, pick(['hi everyone 👋', 'ooh group chat, my favorite', 'hey hey', 'ok whats the plan',
+            'yesss what are we doing', 'hi @' + S.me.u + '!']));
+        }, 800 * (i + 1) + Math.random() * 500);
+      });
+    });
+  }
+
+  /* =========================================================
+     9. YOU (profile + settings)
+     ========================================================= */
+
+  function renderMe() {
+    $('myAv').textContent = S.me.e;
+    $('myAv').style.background = S.me.c;
+    $('myName').textContent = '@' + S.me.u;
+    $('myAbout').textContent = S.me.about;
+    $('myDisplay').textContent = S.me.n;
+    $('stFriends').textContent = S.friends.length;
+    $('stChats').textContent = S.chats.length;
+    $('stSent').textContent = S.sent;
+    $('edAboutVal').textContent = S.me.about.slice(0, 18) + (S.me.about.length > 18 ? '…' : '');
+    $('edNameVal').textContent = S.me.n;
+    $('edAvVal').textContent = S.me.e;
+  }
+
+  function toggleOpt(swId, key, after) {
+    $(swId).addEventListener('click', function () {
+      S.opts[key] = !S.opts[key];
+      this.classList.toggle('on', S.opts[key]);
+      if (after) after();
+    });
+  }
+  toggleOpt('swDark', 'dark', function () {
+    document.body.classList.toggle('dark', S.opts.dark);
+    toast(S.opts.dark ? 'Dark mode on 🌙' : 'Light mode on ☀️');
+  });
+  toggleOpt('swNotif', 'notif');
+  toggleOpt('swRead', 'read', function () {
+    if (S.open) drawMsgs();
+    renderChats();
+    toast(S.opts.read ? 'Blue ticks on' : 'Blue ticks off');
+  });
+  toggleOpt('swOpen', 'openReq', function () {
+    toast(S.opts.openReq ? 'Anyone can request you' : 'Requests paused — nobody new can reach you');
+  });
+
+  $('edAbout').addEventListener('click', function () {
+    askText('Edit About', S.me.about, 'hey there!', 42, function (v) {
+      S.me.about = v || 'hey there!'; renderMe(); toast('About updated');
+    });
+  });
+  $('edName').addEventListener('click', function () {
+    askText('Display name', S.me.n, S.me.u, 20, function (v) {
+      S.me.n = v || S.me.u; renderMe(); toast('Name updated');
+    });
+  });
+  $('edAv').addEventListener('click', function () {
+    $('sheetInner').innerHTML = '<h4>Your avatar</h4>' +
+      '<div class="body"><div class="picker" id="mePick"></div>' +
+      '<div style="height:12px"></div><div class="picker colors" id="meColor"></div>' +
+      '<div style="height:14px"></div><button class="bigbtn" id="avSave">Save</button></div>';
+    $('sheetInner').onclick = null;
+    $('sheet').classList.add('on');
+    chosenE = S.me.e; chosenC = S.me.c;
+    buildPickers('mePick', 'meColor', function () {});
+    $('avSave').addEventListener('click', function () {
+      S.me.e = chosenE; S.me.c = chosenC;
+      closeSheet(); renderMe(); toast('Avatar updated');
+    });
+  });
+
+  $('resetBtn').addEventListener('click', function () {
+    sheet('Log out?', [
+      { i:'🚪', t:'Yes, start over', danger:true, go:function () { location.reload(); } }
+    ]);
+  });
+
+  /* =========================================================
+     10. THE OPEN CHAT
+     ========================================================= */
+
+  function openChat(id) {
+    var c = chatById(id);
+    if (!c) return;
+    S.open = id;
+    c.unread = 0;
+    S.reply = null;
+    for (var i = 0; i < c.msgs.length; i++) if (c.msgs[i].from === 'me') c.msgs[i].status = 'read';
+    var a = chatAv(c);
+    $('chatAv').textContent = a.e;
+    $('chatAv').style.background = a.c;
+    $('chatTitle').textContent = chatName(c);
+    setStatusLine(c);
+    $('emojiBar').classList.remove('on');
+    $('msgIn').disabled = !!c.blocked;
+    $('msgIn').placeholder = c.blocked ? 'You blocked this chat' : 'Message';
+    paintReply();
+    go('chat');
+    drawMsgs();
+    setTimeout(function () { $('msgIn').focus(); }, 80);
+  }
+
+  function setStatusLine(c) {
+    if (S.open !== c.id) return;
+    var el = $('chatStatus');
+    if (c.typing) {
+      var tp = personOf(c.typing);
+      el.textContent = c.kind === 'group' ? (tp ? tp.n + ' is typing…' : 'typing…') : 'typing…';
+    } else if (c.blocked) el.textContent = 'blocked';
+    else if (c.kind === 'group') {
+      el.textContent = c.members.map(function (u) { return (personOf(u) || {}).n || u; }).join(', ') + ', You';
+    } else el.textContent = 'online';
+  }
+
+  function quoteHTML(re) {
+    var who = re.from === 'me' ? 'You' : ((personOf(re.from) || {}).n || re.from);
+    return '<div class="quote"><b>' + esc(who) + '</b><span>' + esc(re.text) + '</span></div>';
+  }
+
+  function drawMsgs() {
+    var c = chatById(S.open);
+    if (!c) return;
+    var box = $('chatScroll'), html = '', lastDay = '';
+    for (var i = 0; i < c.msgs.length; i++) {
+      var m = c.msgs[i];
+      var day = m.at.toDateString();
+      if (day !== lastDay) {
+        lastDay = day;
+        var lbl = day === new Date().toDateString() ? 'TODAY' : day.toUpperCase();
+        html += '<div class="daysplit"><span>' + lbl + '</span></div>';
+      }
+      if (m.from === 'sys') {
+        html += '<div class="sysmsg"><span>' + esc(m.text) + '</span></div>';
+        continue;
+      }
+      var mine = m.from === 'me';
+      var p = mine ? null : personOf(m.from);
+      var jumbo = /^[\p{Emoji}️‍\s]+$/u.test(m.text) && m.text.replace(/\s/g, '').length <= 6;
+      var tick = mine && !m.removed
+        ? '<span class="tick' + (m.status === 'read' && S.opts.read ? ' read' : '') + '">' +
+          (m.status === 'sent' ? '✓' : '✓✓') + '</span>'
+        : '';
+      html += '<div class="msg ' + (mine ? 'out' : 'in') + '" data-msg="' + m.id + '">' +
+        '<div class="bub' + (m.removed ? ' gone' : '') + '">' +
+        (!mine && c.kind === 'group'
+          ? '<div class="who" style="color:' + (p ? p.c : '#888') + '">' + esc(p ? p.n : m.from) + '</div>' : '') +
+        (m.re && !m.removed ? quoteHTML(m.re) : '') +
+        (m.removed
+          ? '<div class="tx">🚫 ' + (mine ? 'You deleted this message' : 'This message was deleted') + '</div>'
+          : '<div class="tx' + (jumbo ? ' jumbo' : '') + '">' + esc(m.text) + '</div>') +
+        '<span class="meta">' + clockOf(m.at) + tick + '</span>' +
+        (m.react ? '<span class="react">' + m.react + '</span>' : '') +
+        '</div></div>';
+    }
+    if (c.typing) {
+      html += '<div class="msg in typing"><div class="bub"><div class="dots"><i></i><i></i><i></i></div></div></div>';
+    }
+    setStatusLine(c);
+    box.innerHTML = html;
+    box.scrollTop = box.scrollHeight;
+  }
+
+  // tap a bubble -> reply / react / delete
+  $('chatScroll').addEventListener('click', function (ev) {
+    var el = ev.target.closest('[data-msg]');
+    if (!el) return;
+    var c = chatById(S.open); if (!c) return;
+    var m = null;
+    for (var i = 0; i < c.msgs.length; i++) if (c.msgs[i].id === el.dataset.msg) m = c.msgs[i];
+    if (!m || m.removed) return;
+    var opts = [
+      { i:'↩️', t:'Reply', go:function () {
+        S.reply = { id:m.id, from:m.from, text:m.text };
+        paintReply(); $('msgIn').focus();
+      } },
+      { i:'❤️', t:'React ❤️', go:function () { m.react = m.react === '❤️' ? null : '❤️'; drawMsgs(); } },
+      { i:'😂', t:'React 😂', go:function () { m.react = m.react === '😂' ? null : '😂'; drawMsgs(); } },
+      { i:'👍', t:'React 👍', go:function () { m.react = m.react === '👍' ? null : '👍'; drawMsgs(); } },
+      { i:'📋', t:'Copy text', go:function () {
+        try { navigator.clipboard.writeText(m.text); toast('Copied'); } catch (e) { toast('Could not copy'); }
+      } }
+    ];
+    if (m.from === 'me') {
+      opts.push({ i:'🗑️', t:'Delete for everyone', danger:true, go:function () {
+        m.removed = true; drawMsgs(); renderChats();
+      } });
+    }
+    sheet('Message', opts);
+  });
+
+  function paintReply() {
+    var bar = $('replyBar');
+    if (!S.reply) { bar.classList.remove('on'); return; }
+    $('rqWho').textContent = S.reply.from === 'me' ? 'You' : ((personOf(S.reply.from) || {}).n || S.reply.from);
+    $('rqTx').textContent = S.reply.text;
+    bar.classList.add('on');
+  }
+  $('rqX').addEventListener('click', function () { S.reply = null; paintReply(); });
+
+  /* ---- naming a chat ---- */
+  function nameChat(c) {
+    var isG = c.kind === 'group';
+    askText(isG ? 'Group name' : 'Name this chat',
+      c.title,
+      isG ? defaultName(c) : defaultName(c),
+      24,
+      function (v) {
+        var was = chatName(c);
+        c.title = v;
+        var now = chatName(c);
+        if (now === was) return;
+        push(c, { from:'sys', text: v
+          ? 'You named this chat "' + v + '"'
+          : 'Chat name removed — back to ' + defaultName(c) });
+        $('chatTitle').textContent = now;
+        drawMsgs(); renderChats();
+        toast(v ? 'Chat named "' + v + '"' : 'Name cleared');
+      },
+      isG ? 'Everybody in the group sees this name.' : 'Only you see this name — @' + c.members[0] + ' stays the same.');
+  }
+  $('chatHeadTap').addEventListener('click', function () {
+    var c = chatById(S.open); if (c) nameChat(c);
+  });
+
+  /* ---- chat menu ---- */
+  $('chatMenu').addEventListener('click', function () {
+    var c = chatById(S.open); if (!c) return;
+    var opts = [];
+    opts.push({ i:'✏️', t:c.title ? 'Rename this chat' : 'Name this chat', go:function () { nameChat(c); } });
+    if (c.kind === 'dm') {
+      opts.push({ i:personOf(c.members[0]).e, t:'View @' + c.members[0], go:function () { showProfile(c.members[0]); } });
+    } else {
+      opts.push({ i:'👥', t:'Who is in here', go:function () {
+        push(c, { from:'sys', text:'In this chat: ' +
+          c.members.map(function (u) { return '@' + u; }).join(', ') + ' and you (@' + S.me.u + ')' });
+        drawMsgs();
+      } });
+    }
+    opts.push({ i:c.pinned ? '📌' : '📍', t:c.pinned ? 'Unpin from top' : 'Pin to top', go:function () {
+      c.pinned = !c.pinned; toast(c.pinned ? 'Pinned to the top' : 'Unpinned'); renderChats();
+    } });
+    opts.push({ i:c.muted ? '🔔' : '🔕', t:c.muted ? 'Unmute notifications' : 'Mute notifications', go:function () {
+      c.muted = !c.muted; toast(c.muted ? 'Muted — no pop-ups from this chat' : 'Notifications back on'); renderChats();
+    } });
+    opts.push({ i:'🧹', t:'Clear messages', go:function () { c.msgs = []; c.lastQ = null; drawMsgs(); renderChats(); } });
+    opts.push({ i:c.blocked ? '✅' : '⛔', t:c.blocked ? 'Unblock' : 'Block', danger:!c.blocked, go:function () {
+      c.blocked = !c.blocked;
+      push(c, { from:'sys', text:c.blocked
+        ? 'You blocked this chat. Nobody here can message you until you unblock.'
+        : 'Unblocked. Messages can come through again.' });
+      openChat(c.id);
+    } });
+    opts.push({ i:'🗑️', t:'Delete chat', danger:true, go:function () {
+      if (c.kind === 'dm') S.friends = S.friends.filter(function (u) { return u !== c.members[0]; });
+      S.chats = S.chats.filter(function (x) { return x.id !== c.id; });
+      go('chats');
+      toast('Chat deleted');
+    } });
+    sheet(chatName(c), opts);
+  });
+
+  /* =========================================================
+     11. SHEETS
+     ========================================================= */
+
+  function sheet(title, opts) {
+    var html = '<h4>' + esc(title) + '</h4>';
+    for (var i = 0; i < opts.length; i++) {
+      html += '<button class="opt' + (opts[i].danger ? ' danger' : '') + '" data-ix="' + i + '">' +
+        '<i>' + opts[i].i + '</i>' + esc(opts[i].t) + '</button>';
+    }
+    html += '<button class="opt" data-ix="-1"><i>✖️</i>Cancel</button>';
+    $('sheetInner').innerHTML = html;
+    $('sheet').classList.add('on');
+    $('sheetInner').onclick = function (ev) {
+      var b = ev.target.closest('[data-ix]'); if (!b) return;
+      var ix = +b.dataset.ix;
+      closeSheet();
+      if (ix >= 0) opts[ix].go();
+    };
+  }
+  function closeSheet() { $('sheet').classList.remove('on'); $('sheetInner').onclick = null; }
+  $('sheet').addEventListener('click', function (ev) { if (ev.target === $('sheet')) closeSheet(); });
+
+  // a sheet with one text field
+  function askText(title, value, placeholder, max, done, hint) {
+    $('sheetInner').innerHTML = '<h4>' + esc(title) + '</h4>' +
+      '<div class="body"><div class="field"><input id="askIn" maxlength="' + max + '" placeholder="' +
+      esc(placeholder || '') + '" autocomplete="off"></div>' +
+      (hint ? '<div class="hint">' + esc(hint) + '</div>' : '') +
+      '<div style="height:14px"></div><button class="bigbtn" id="askOk">Save</button>' +
+      '<div style="height:8px"></div><button class="bigbtn grey" id="askNo">Cancel</button></div>';
+    $('sheetInner').onclick = null;
+    $('sheet').classList.add('on');
+    var inp = $('askIn');
+    inp.value = value || '';
+    setTimeout(function () { inp.focus(); }, 60);
+    function ok() { var v = inp.value.trim().slice(0, max); closeSheet(); done(v); }
+    $('askOk').addEventListener('click', ok);
+    $('askNo').addEventListener('click', closeSheet);
+    inp.addEventListener('keydown', function (e) { if (e.key === 'Enter') ok(); });
+  }
+
+  /* =========================================================
+     12. SENDING
+     ========================================================= */
+
+  (function buildEmojiBar() {
+    var bar = $('emojiBar'), html = '';
+    for (var i = 0; i < EMOJI_BAR.length; i++) html += '<button>' + EMOJI_BAR[i] + '</button>';
+    bar.innerHTML = html;
+    bar.addEventListener('click', function (ev) {
+      var b = ev.target.closest('button'); if (!b) return;
+      var inp = $('msgIn');
+      inp.value += b.textContent;
+      inp.focus();
+    });
+  })();
+
+  $('emojiBtn').addEventListener('click', function () { $('emojiBar').classList.toggle('on'); });
+  $('sendBtn').addEventListener('click', send);
+  $('msgIn').addEventListener('keydown', function (e) { if (e.key === 'Enter') send(); });
+
+  function send() {
+    var c = chatById(S.open);
+    if (!c || c.blocked) return;
+    var inp = $('msgIn');
+    var text = inp.value.trim();
+    if (!text) return;
+    inp.value = '';
+    $('emojiBar').classList.remove('on');
+
+    var m = push(c, { from:'me', text:text, status:'sent' });
+    if (S.reply) { m.re = S.reply; S.reply = null; paintReply(); }
+    S.sent++;
+    drawMsgs();
+    renderChats();
+
+    setTimeout(function () { m.status = 'delivered'; if (S.open === c.id) drawMsgs(); renderChats(); }, 500);
+    setTimeout(function () { m.status = 'read'; if (S.open === c.id) drawMsgs(); renderChats(); }, 1500);
+    scheduleReplies(c, text);
+  }
+
+  /* =========================================================
+     13. HOW PEOPLE TALK BACK
+     ========================================================= */
+
+  function flair(p, text) {
+    var st = STYLE[p.style] || STYLE.chill;
+    if (!/\?$/.test(text) && Math.random() < st.chance) text += ' ' + pick(st.tails);
+    if (st.lower && Math.random() < .8) text = text.charAt(0).toLowerCase() + text.slice(1);
+    if (p.style === 'hype' && Math.random() < .18) text = text.toUpperCase();
+    return text;
+  }
+
+  function say(c, p, text, replyTo) {
+    if (!p || c.blocked || !text) return;
+    var think = Math.min(2600, 400 + text.length * 25);
+    c.typing = p.u;
+    if (S.open === c.id) drawMsgs();
+    setTimeout(function () {
+      c.typing = null;
+      var prev = lastMsg(c);
+      if (c.blocked || (prev && prev.text === text)) { if (S.open === c.id) drawMsgs(); return; }
+      var m = push(c, { from:p.u, text:text });
+      if (replyTo) m.re = replyTo;
+      if (S.open === c.id) drawMsgs();
+      renderChats();
+      updateBadges();
+      if (S.open !== c.id && !c.muted) {
+        notify('MESSAGE', p.e, p.c, chatName(c), (c.kind === 'group' ? p.n + ': ' : '') + text,
+          function () { openChat(c.id); });
+      }
+    }, think);
+  }
+
+  function scheduleReplies(c, text) {
+    if (c.blocked) return;
+    if (c.kind === 'dm') {
+      var p = personOf(c.members[0]);
+      var lines = think(p, text, c);
+      lines.forEach(function (line, ix) {
+        setTimeout(function () { say(c, p, line); }, 300 + ix * 950);
+      });
+    } else {
+      var who = c.members.slice().sort(function () { return Math.random() - .5; })
+        .slice(0, Math.random() < .45 ? 2 : 1);
+      who.forEach(function (u, ix) {
+        setTimeout(function () {
+          var pp = personOf(u);
+          say(c, pp, think(pp, text, c)[0]);
+        }, 500 + ix * 2200);
+      });
+    }
+  }
+
+  // rough normalize — just enough to keyword match
+  function norm(t) {
+    var s = String(t).toLowerCase().replace(/[^a-z0-9\s']/g, ' ');
+    return ' ' + s.replace(/\s+/g, ' ').trim() + ' ';
+  }
+
+  function topicFor(word) {
+    for (var t = 0; t < TOPICS.length; t++) if (TOPICS[t].k.indexOf(word) > -1) return TOPICS[t].s;
+    return null;
+  }
+
+  // returns 1-2 lines
+  function think(p, raw, c) {
+    var n = norm(raw);
+    var out = [];
+    var q = c.lastQ;
+    c.lastQ = null;
+
+    // answering a yes/no they just asked
+    if (q && /^\s*(yes|yeah|yea|yep|ya|sure|yup|bet|same|me too|i do|no|nope|nah|not really|i dont|i do not)\s*$/.test(n)) {
+      var yes = /yes|yeah|yea|yep|ya|sure|yup|bet|same|me too|i do/.test(n);
+      out.push(flair(p, yes
+        ? pick(['SAME', 'ok we are friends now officially', 'knew it 😌', 'yesss'])
+        : pick(['fair enough', 'ok ok so what DO you like', 'no worries, different taste', 'hmm noted'])));
+      if (!yes) { out.push('ok so whats your thing then'); c.lastQ = 'likes'; }
+      else out.push(pick(['how long have you been into it', 'ok tell me everything', 'what got you into it']));
+      return out;
+    }
+
+    // greeting only
+    var words = n.trim().split(' ').filter(Boolean);
+    var isGreet = /^(h+i+|h+e+y+|h+e+l+o+|yo+|hiya|howdy|hola|sup|heyy+|wsp)$/;
+    var filler = ['there','everyone','all','guys','yall','again','you','u','man','dude'];
+    var myWords = S.me.u.split('_');
+    var extras = words.filter(function (w) {
+      return !isGreet.test(w) && filler.indexOf(w) === -1 && myWords.indexOf(w) === -1;
+    });
+    if (words.some(function (w) { return isGreet.test(w); }) && extras.length <= 1) {
+      out.push(flair(p, pick(['heyy @' + S.me.u, 'yo 👋', 'hi hi hi', 'oh hey, good timing'])));
+      out.push(pick(['hows your day going', 'what are you up to', 'whats new with you']));
+      c.lastQ = 'day';
+      return out;
+    }
+
+    if (/how (are|r) (you|u)|how (are|r) (ya|things)|hows it going|how is it going|you good|how you doing|wyd|what are you doing|whats up|what is up|whatcha doing|hbu/.test(n)) {
+      out.push(flair(p, pick(['pretty good! just ' + p.likes[0] + ' stuff',
+        'honestly great', 'good, kind of tired', 'so so. better now that you messaged tbh',
+        'avoiding homework, the usual'])));
+      out.push(pick(['hbu', 'what about your day', 'you good?']));
+      c.lastQ = 'day';
+      return out;
+    }
+
+    if (/what is your name|whats your name|who are you|your name|your username/.test(n)) {
+      out.push(flair(p, 'im ' + p.n + '! @' + p.u + ' if you ever lose the chat'));
+      out.push(flair(p, p.bio.replace(/\.+$/, '') + '. you?'));
+      return out;
+    }
+    if (/how old|your age|what grade|what school|where do you go/.test(n)) {
+      out.push(flair(p, pick([p.grade + ' grade! you?', 'im in ' + p.grade + '. you?',
+        p.grade + ' — the year of way too much homework'])));
+      c.lastQ = 'grade';
+      return out;
+    }
+
+    if (/joke|make me laugh|something funny|riddle/.test(n)) {
+      var j = pick(JOKES);
+      out.push(j[0]);
+      out.push(j[1]);
+      return out;
+    }
+    if (/fact|did you know|tell me something/.test(n)) {
+      out.push(flair(p, 'ok did you know ' + pick(FACTS)));
+      out.push('do you have a weird one, i collect them');
+      c.lastQ = 'fact';
+      return out;
+    }
+
+    if (/\b(sad|lonely|upset|crying|bad day|worst day|left out|no friends|mad at me|annoyed|angry)\b/.test(n)) {
+      out.push(flair(p, pick(['oh no 💛 im sorry', 'that sounds genuinely hard', 'ugh that stinks'])));
+      out.push(pick(['do you want to talk about it or do you want a distraction',
+        'im here for the venting AND the dumb jokes, your pick',
+        'youre allowed to feel like that. glad you said something.']));
+      c.lastQ = 'feelings';
+      return out;
+    }
+
+    if (/thank|thanks|thx|\bty\b|appreciate/.test(n)) {
+      out.push(flair(p, pick(['anytime 😄', 'no problem!!', 'of course 💛'])));
+      return out;
+    }
+    if (/you are (cool|nice|funny|awesome|great|kind|the best)|youre (cool|nice|funny|awesome|great|kind)|ur (cool|funny|nice)|i like you|best friend|goat/.test(n)) {
+      out.push(flair(p, pick(['aww YOU are', 'ok now im blushing', 'that genuinely made my day'])));
+      out.push(pick(['friends? friends. ✅', 'ok what are we talking about next']));
+      return out;
+    }
+    if (/\b(bye|gtg|got to go|see ya|see you|later|good night|goodnight|night|cya)\b/.test(n)) {
+      out.push(flair(p, pick(['byeee 👋', 'ok see you later', 'night!! message me tomorrow'])));
+      out.push(pick(['this was fun', 'come back soon 💛']));
+      return out;
+    }
+
+    // something this person specifically loves
+    for (var i = 0; i < p.likes.length; i++) {
+      var like = p.likes[i];
+      if (n.indexOf(' ' + like + ' ') > -1 || n.indexOf(like) > -1) {
+        out.push(flair(p, pick(['WAIT you like ' + like + ' too??', 'ok ' + like + ' is literally my entire personality',
+          'you just said the magic word (' + like + ')', 'oh we are going to get along, ' + like + ' is my thing'])));
+        out.push(pick(topicFor(like) || FOLLOWUPS));
+        c.lastQ = like;
+        return out;
+      }
+    }
+
+    // general topics
+    for (var t = 0; t < TOPICS.length; t++) {
+      for (var k = 0; k < TOPICS[t].k.length; k++) {
+        var key = TOPICS[t].k[k];
+        if (n.indexOf(' ' + key + ' ') > -1 || n.indexOf(' ' + key + 's ') > -1) {
+          out.push(flair(p, pick(TOPICS[t].s)));
+          if (Math.random() < .5) out.push(pick(FOLLOWUPS));
+          c.lastQ = key;
+          return out;
+        }
+      }
+    }
+
+    // emoji only
+    if (/^[\s\p{Emoji}️‍]+$/u.test(raw.trim())) {
+      out.push(pick(['😂😂', '💀', 'same energy', raw.trim() + ' back at you', 'ok that emoji is perfect']));
+      return out;
+    }
+
+    // math
+    if (/\?|what is|whats|how much|solve|equals|answer/.test(n)) {
+      var mm = raw.match(/(\d{1,6})\s*([x*+−\-\/])\s*(\d{1,6})/);
+      if (mm) {
+        var a = +mm[1], b = +mm[3], op = mm[2], ans = null;
+        if (op === '+') ans = a + b;
+        else if (op === '/') ans = b ? Math.round((a / b) * 100) / 100 : null;
+        else if (op === '-' || op === '−') ans = a - b;
+        else ans = a * b;
+        if (ans !== null) {
+          out.push(flair(p, pick(['easy, ' + ans, 'thats ' + ans, 'i got ' + ans + ' 🧮'])));
+          out.push(pick(['did i get it', 'quiz me again, harder', 'ok my turn to ask you one']));
+          return out;
+        }
+      }
+    }
+
+    if (raw.indexOf('?') > -1) {
+      out.push(flair(p, pick(['hmm good question', 'ooh let me think', 'honestly? no idea 😅'])));
+      out.push(pick(['id say yes. what do YOU think', 'my answer is probably ' + pick(['yes', 'no', 'maybe', 'both']),
+        'ask me an easier one 😂', 'i think it depends on the day']));
+      return out;
+    }
+
+    // fallback — reflect and ask
+    var snip = raw.trim().replace(/[.!?]+$/, '');
+    if (snip.length > 40) snip = snip.slice(0, 40) + '...';
+    out.push(flair(p, pick([
+      'ok "' + snip + '" — tell me more',
+      'no way, really',
+      'thats actually interesting',
+      'ok i need details 👀',
+      'wait keep going'
+    ])));
+    if (Math.random() < .7) {
+      out.push(pick([
+        'do you like ' + pick(p.likes) + ', thats my thing',
+        pick(FOLLOWUPS),
+        'what else happened today'
+      ]));
+      c.lastQ = 'likes';
+    }
+    return out;
+  }
+
+  /* =========================================================
+     14. AMBIENT — people message you, and request you
+     ========================================================= */
+
+  function ambientLoop() {
+    setTimeout(function () {
+      try { ambientTick(); } catch (e) {}
+      ambientLoop();
+    }, 17000 + Math.random() * 20000);
+  }
+
+  function ambientTick() {
+    if (!S.started) return;
+    var pool = S.chats.filter(function (c) {
+      if (c.blocked || !c.msgs.length) return false;
+      var m = lastMsg(c);
+      return (Date.now() - m.at.getTime()) > 24000;
+    });
+    if (!pool.length) return;
+    var c = pick(pool);
+    var p = personOf(c.kind === 'group' ? pick(c.members) : c.members[0]);
+    if (!p) return;
+    say(c, p, pick([
+      'random thought: ' + pick(FACTS),
+      'you still there 👀',
+      'ok i just remembered — do you like ' + pick(p.likes) + '?',
+      'what are you doing rn',
+      pick(JOKES)[0] + ' (ask me for the answer)',
+      'guess what i did today',
+      'this is my favorite chat ngl 💛',
+      'sorry my phone died'
+    ]));
+  }
+
+  function requestLoop() {
+    setTimeout(function () {
+      try { requestTick(); } catch (e) {}
+      requestLoop();
+    }, 30000 + Math.random() * 35000);
+  }
+
+  function requestTick() {
+    if (!S.started || !S.opts.openReq) return;
+    if (S.incoming.length >= 4) return;
+    var pool = PEOPLE.filter(function (p) {
+      return !isFriend(p.u) && !isPending(p.u) && !hasIncoming(p.u) && S.declined.indexOf(p.u) === -1;
+    });
+    if (!pool.length) return;
+    var p = pick(pool);
+    var q = { id: uid(), u: p.u, text: pick(REQ_OPENERS), at: new Date() };
+    S.incoming.push(q);
+    updateBadges();
+    if (S.view === 'requests') renderRequests();
+    if (S.view === 'find') renderFind();
+    notify('CHAT REQUEST', p.e, p.c, p.n + ' wants to chat', '@' + p.u + ' · ' + q.text, function () { go('requests'); });
+  }
+
+  /* =========================================================
+     15. BOOT
+     ========================================================= */
+
+  paintPreview();
+  $('unameIn').focus();
+})();
+</script>
+</body>
+</html>
