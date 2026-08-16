@@ -98,8 +98,8 @@
     background:rgba(28,22,14,.82); color:#fff; padding:7px 14px; border-radius:999px; font-size:12.5px;
     font-weight:700; text-align:center; opacity:0; transition:opacity .18s ease; }
   .prompt.on { opacity:1; }
-  .toastbox { position:absolute; right:8px; top:8px; display:flex; flex-direction:column; gap:4px;
-    align-items:flex-end; max-width:56%; }
+  .toastbox { position:absolute; right:8px; top:32px; display:flex; flex-direction:column; gap:4px;
+    align-items:flex-end; max-width:52%; }
   .toast { background:rgba(28,22,14,.8); color:#fff; padding:5px 11px; border-radius:9px; font-size:11.5px;
     font-weight:700; animation:tin .3s ease; }
   .toast.good { background:rgba(60,110,45,.9); }
@@ -205,6 +205,32 @@
   .pigchip span i { display:block; font-style:normal; font-size:9.5px; color:var(--muted); }
   .pigchip span i.w { color:var(--green-d); font-weight:800; }
   .pigchip span i.h { color:var(--bad); font-weight:800; }
+  /* ---------- friends ---------- */
+  .friend { background:var(--panel2); border-radius:14px; padding:11px; display:flex; gap:11px;
+    align-items:flex-start; border:2px solid transparent; }
+  .friend.out { border-color:var(--green); background:#fff; }
+  .friend canvas { border-radius:11px; flex:0 0 auto;
+    background:linear-gradient(180deg,#cfe0ea,#aec6d4); box-shadow:0 2px 0 rgba(0,0,0,.12); }
+  .friend .nm { font-weight:800; font-size:15.5px; }
+  .friend .rg { font-size:11.5px; color:var(--muted); font-family:"Segoe UI",system-ui,sans-serif; margin-top:1px; }
+  .friend .bl { font-size:12.5px; line-height:1.45; margin-top:6px; }
+  .friend .acts { display:flex; gap:6px; flex-wrap:wrap; margin-top:8px; align-items:center; }
+  .bondbar { display:flex; align-items:center; gap:6px; margin-top:6px;
+    font-family:"Segoe UI",system-ui,sans-serif; font-size:10.5px; font-weight:800; color:var(--muted); }
+  .bondbar .m { flex:1; height:7px; border-radius:4px; background:#e4d9c6; overflow:hidden; max-width:150px; }
+  .bondbar .m i { display:block; height:100%; border-radius:4px;
+    background:linear-gradient(90deg,#8fc07a,var(--green)); }
+  /* live scoreboard on the canvas */
+  .board { position:absolute; right:8px; bottom:10px; background:rgba(28,22,14,.84); color:#fff;
+    border-radius:11px; padding:7px 10px; font-family:"Segoe UI",system-ui,sans-serif;
+    font-size:11px; min-width:164px; display:none; }
+  .board.on { display:block; }
+  .board h4 { margin:0 0 5px; font-size:10px; letter-spacing:.9px; text-transform:uppercase; opacity:.75; }
+  .board .r { display:flex; gap:6px; align-items:baseline; padding:1.5px 0; }
+  .board .r b { flex:1; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .board .r span { font-weight:800; }
+  .board .r.me b { color:#ffd979; }
+  .board .clk { margin-top:5px; padding-top:4px; border-top:1px solid rgba(255,255,255,.2); opacity:.8; }
   .pigtabs { display:flex; gap:5px; flex-wrap:wrap; margin-bottom:8px; }
   .pigtabs button { background:var(--panel2); color:var(--muted); font-weight:800; font-size:11.5px;
     padding:6px 11px; border-radius:999px; box-shadow:0 2px 0 var(--line); }
@@ -218,6 +244,10 @@
   @media (max-width:560px) {
     .vitals { width:132px; }
     .keys { display:none; }
+    .board { bottom:104px; font-size:10px; min-width:132px; }
+    .nav button { font-size:9px; }
+    .nav button .ico { font-size:17px; }
+    .friend { flex-direction:column; }
   }
 </style>
 </head>
@@ -241,6 +271,7 @@
         <div class="vitals" id="vitals"></div>
         <div class="toastbox" id="toastBox"></div>
         <div class="hotbar" id="hotbar"></div>
+        <div class="board" id="board"></div>
         <div class="prompt" id="prompt"></div>
       </div>
       <div class="touch">
@@ -318,6 +349,12 @@
     </div>
   </section>
 
+  <!-- ============ FRIENDS ============ -->
+  <section class="screen" id="scr-friends">
+    <div class="panel" id="outingPanel"></div>
+    <div class="panel" id="friendsPanel"></div>
+  </section>
+
   <!-- ============ PIG ============ -->
   <section class="screen" id="scr-pig">
     <div class="panel" id="pigPanel"></div>
@@ -332,6 +369,7 @@
   <button data-scr="market"><span class="ico">&#127974;</span>Market</button>
   <button data-scr="shop"><span class="ico">&#127805;</span>Treats &amp; Toys</button>
   <button data-scr="talk"><span class="ico">&#128172;</span>Talk</button>
+  <button data-scr="friends"><span class="ico">&#128101;</span>Hunters</button>
   <button data-scr="pig"><span class="ico">&#128055;</span>Your Pig</button>
 </div></nav>
 
@@ -558,6 +596,66 @@ const TRUF_BY_ID = {}; TRUFFLES.forEach(t=> TRUF_BY_ID[t.id]=t);
 const G_PER_LB = 453.59237;
 
 /* =======================================================================
+   3b. DATA — the other hunters
+   Every one of them comes from somewhere that genuinely digs truffles, and
+   works the breed that region actually keeps.
+   ======================================================================= */
+const FRIENDS = [
+  { id:'solene', name:'Solène Mercier', from:'Lalbenque, Lot, France',
+    pigBreed:'tamworth', pigName:'Coquine', skill:4, pace:1.0,
+    blurb:'Grew up beside the Tuesday market at Lalbenque, where the baskets stay covered under cloth until a whistle at two o\'clock and the whole thing is over in forty minutes. She is unhurried, exact, and thinks you dig too fast.',
+    look:{ skin:'#e0b48f', hair:'#4a3524', style:'bun', hat:'none', coat:'#4a6350', shirt:'#e8ddc6',
+           trouser:'#39485a', beard:0, age:0.45, brow:'#3a2718' } },
+
+  { id:'ottavio', name:'Ottavio Bardi', from:'Alba, Piedmont, Italy',
+    pigBreed:'cinta', pigName:'Ginevra', skill:5, pace:0.92,
+    blurb:'Alba works its white truffles at night, and so does he — the ground gives up more scent in the cold and there is nobody about to watch where you stop. He will not tell you where his ground is. Nobody in Alba ever has.',
+    look:{ skin:'#cfa070', hair:'#2a2320', style:'short', hat:'flat', hatCol:'#5a5148', coat:'#6b5a3e',
+           shirt:'#c3603f', trouser:'#3d3a34', beard:2, age:0.75, brow:'#241d19' } },
+
+  { id:'marija', name:'Marija Kovačić', from:'Motovun forest, Istria, Croatia',
+    pigBreed:'largeblack', pigName:'Buba', skill:5, pace:1.08,
+    blurb:'The Motovun woods gave up a white truffle of 1.31 kilograms in 1999 — for a while, the largest ever found. She has been walking the same oaks since she was nine and has never once found anything like it, which she says is the entire point.',
+    look:{ skin:'#e6c1a2', hair:'#7a4a2c', style:'long', hat:'none', coat:'#7c4b52', shirt:'#efe6d4',
+           trouser:'#4a4740', beard:0, age:0.5, brow:'#5c3620' } },
+
+  { id:'radu', name:'Radu Anghelescu', from:'Bihor County, Romania',
+    pigBreed:'mangalitsa', pigName:'Aurica', skill:3, pace:1.14,
+    blurb:'Romania sends more wild truffles abroad than almost anywhere in Europe and keeps hardly any of them. He is trying to change that one restaurant at a time, and in the meantime he is the fastest walker in the grove.',
+    look:{ skin:'#dcae86', hair:'#3a2c20', style:'crop', hat:'beanie', hatCol:'#7d3f34', coat:'#3f4a55',
+           shirt:'#c8b48c', trouser:'#2f3a44', beard:1, age:0.35, brow:'#2c2018' } },
+
+  { id:'aicha', name:'Aïcha Benali', from:'Middle Atlas, Morocco',
+    pigBreed:null, pigName:null, skill:4, pace:1.05,
+    blurb:'Works terfez — desert truffles that come up after the autumn rains and split the ground above themselves. She hunts with no animal at all, reading the cracks and the thunder, and finds them by walking very slowly and looking down.',
+    look:{ skin:'#a9744c', hair:'#1e1613', style:'bun', hat:'scarf', hatCol:'#c8823f', coat:'#8a6a3f',
+           shirt:'#efe3cc', trouser:'#6b5a44', beard:0, age:0.4, brow:'#191210' } },
+
+  { id:'jarrah', name:'Jarrah Whitfield', from:'Manjimup, Western Australia',
+    pigBreed:'berkshire', pigName:'Banjo', skill:4, pace:0.98,
+    blurb:'Manjimup grows more black Périgord truffles than anywhere outside Europe, and does it in the wrong hemisphere — his season runs June to August while France sleeps. He finds the northern habit of whispering about it very funny.',
+    look:{ skin:'#c98f62', hair:'#241a12', style:'curls', hat:'bucket', hatCol:'#9a8f6a', coat:'#556b4a',
+           shirt:'#d8cdb4', trouser:'#40484a', beard:1, age:0.4, brow:'#1d150f' } },
+
+  { id:'haruko', name:'Haruko Tanaka', from:'Iwate, northern Japan',
+    pigBreed:'berkshire', pigName:'Kuro', skill:3, pace:1.0,
+    blurb:'Tuber japonicum was only described and named in 2016, and she was out looking for it before the paper was published. Works a Berkshire, which Japan calls kurobuta, and keeps notes on every single hole she has ever dug.',
+    look:{ skin:'#e8c4a0', hair:'#171310', style:'short', hat:'none', coat:'#3f4f63', shirt:'#e4dccb',
+           trouser:'#2f3846', beard:0, age:0.3, brow:'#141010' } },
+
+  { id:'beatriz', name:'Beatriz Salazar', from:'Sarrión, Teruel, Spain',
+    pigBreed:'iberico', pigName:'Duquesa', skill:6, pace:0.95,
+    blurb:'Spain grows more black truffle than France does now, and most of it comes off irrigated plantations within an hour of her house. She is the best hunter you know and the least romantic about it: to her it is a crop, and crops are worked properly.',
+    look:{ skin:'#c08a5e', hair:'#2b1f18', style:'braids', hat:'none', coat:'#6d4a3a', shirt:'#d9c9a8',
+           trouser:'#3b3229', beard:0, age:0.55, brow:'#201710' } }
+];
+const FRIEND_BY_ID = {}; FRIENDS.forEach(f=> FRIEND_BY_ID[f.id]=f);
+
+/* you, as other people see you */
+const YOU_LOOK = { skin:'#d8a077', hair:'#6d4a26', style:'short', hat:'straw', hatCol:'#d9b96a',
+                   coat:null, shirt:'#c9552f', trouser:'#3f5570', beard:0, age:0.4, brow:'#4a3018' };
+
+/* =======================================================================
    4. GAME STATE
    ======================================================================= */
 const S = {
@@ -584,7 +682,10 @@ const S = {
   lastSaid: [],
   saidCount: {},
   toyLast: {},
-  askedFirstHunt: false
+  askedFirstHunt: false,
+  friendship: {},
+  outing: null,
+  rich: false
 };
 
 /* `S.pig` means "the one you are dealing with right now" — everything that
@@ -806,7 +907,16 @@ function setPrompt(t){
 /* =======================================================================
    9. MONEY / HEARTS
    ======================================================================= */
+/* one place that knows whether the purse ever actually goes down */
+function canAfford(n){ return S.rich || S.money >= n; }
+function spend(n){
+  if (S.rich) return true;
+  if (S.money < n) return false;
+  S.money -= n; paintChips();
+  return true;
+}
 function addMoney(n){
+  if (S.rich){ bump('chipCash'); return; }
   S.money += n;
   S.totalEarned += Math.max(0,n);
   bump('chipCash');
@@ -834,7 +944,7 @@ function bump(id){
   setTimeout(()=> el.classList.remove('bump'), 200);
 }
 function paintChips(){
-  $('chipCash').textContent = exactMoney(S.money);
+  $('chipCash').textContent = S.rich ? '∞' : exactMoney(S.money);
   $('chipHeart').textContent = S.hearts + (S.hearts===1?' heart':' hearts');
   $('chipPig').textContent = !S.pigs.length ? 'no pig'
     : S.pigs.length === 1 ? S.pig.name
@@ -1180,7 +1290,7 @@ function drawTree(o){
   /* anything standing behind this tree would otherwise vanish under it */
   let fade = 1;
   const canW = hazel ? 105 : 165;
-  [you].concat(S.pigs).forEach(a=>{
+  [you].concat(S.pigs, rivals).forEach(a=>{
     if (a.y < o.y && (o.y - a.y) < 760 && Math.abs(sx(a.x) - x) < canW) fade = 0.40;
   });
   ctx.globalAlpha = fade;
@@ -1380,7 +1490,8 @@ function drawChicken(c){
    Drawn in a 100-unit space where 100 units = your full height (175 cm),
    feet at the origin.
    ======================================================================= */
-function drawFarmer(x, y, H, face, pose){
+function drawFarmer(x, y, H, face, pose, look){
+  look = look || YOU_LOOK;
   const swing = Math.sin(pose.step) * (pose.moving ? 1 : 0);
   const bob = pose.moving ? Math.abs(Math.sin(pose.step))*1.6 : Math.sin(tSec*1.4)*0.5;
   softShadow(x, y+1, H*0.20, H*0.055, .32);
@@ -1388,9 +1499,9 @@ function drawFarmer(x, y, H, face, pose){
   ctx.translate(x, y - bob*H/100);
   ctx.scale(face*H/100, H/100);
 
-  const denim = '#3f5570', denimD = '#2c3d52';
-  const shirt = '#c9552f', shirtD = '#9c3d1f';
-  const skin  = '#d8a077', skinD = '#b47d55';
+  const denim = look.trouser, denimD = shade(look.trouser, -22);
+  const shirt = look.coat || look.shirt, shirtD = shade(look.coat || look.shirt, -30);
+  const skin  = look.skin, skinD = shade(look.skin, -34);
 
   /* back arm */
   ctx.strokeStyle = shirtD; ctx.lineWidth = 6.5; ctx.lineCap = 'round';
@@ -1461,19 +1572,87 @@ function drawFarmer(x, y, H, face, pose){
   ctx.beginPath(); ctx.ellipse(7.4, -82.2, 1.3, 1.1, 0, 0, 7); ctx.fill();
   ctx.strokeStyle = '#8a5a3a'; ctx.lineWidth = .8;
   ctx.beginPath(); ctx.arc(5.4, -79.6, 2.1, 0.15, 1.05); ctx.stroke();
+  /* beard: stubble along the jaw, or the full thing over the mouth */
+  if (look.beard === 1){
+    ctx.globalAlpha = 0.45;
+    ctx.fillStyle = shade(look.hair, 16);
+    ctx.beginPath(); ctx.ellipse(1, -78.6, 5.8, 3.4, 0, 0, Math.PI); ctx.fill();
+    ctx.globalAlpha = 1;
+  } else if (look.beard > 1){
+    ctx.fillStyle = shade(look.hair, 10);
+    ctx.beginPath(); ctx.ellipse(0.6, -79.6, 6.4, 6.6, 0, 0, Math.PI); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(4.6, -80.6, 2.6, 1.9, 0.2, 0, 7); ctx.fill();
+  }
   /* hair */
-  ctx.fillStyle = '#6d4a26';
-  ctx.beginPath(); ctx.ellipse(0.6, -87.4, 6.4, 4.4, 0, Math.PI, 0); ctx.fill();
+  ctx.fillStyle = look.hair;
+  const st = look.style;
+  if (st !== 'bald'){
+    ctx.beginPath(); ctx.ellipse(0.6, -87.2, 6.6, 4.6, 0, Math.PI, 0); ctx.fill();
+    if (st === 'long'){
+      ctx.beginPath(); ctx.ellipse(-2.4, -80, 4.6, 9.4, 0.12, 0, 7); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(5.2, -81, 3, 7.4, -0.1, 0, 7); ctx.fill();
+    } else if (st === 'bun'){
+      ctx.beginPath(); ctx.arc(-6.4, -86.4, 3.4, 0, 7); ctx.fill();
+    } else if (st === 'braids'){
+      ctx.lineCap = 'round'; ctx.strokeStyle = look.hair; ctx.lineWidth = 2.4;
+      for (const o of [-4.6, -1.4, 1.8]){
+        ctx.beginPath(); ctx.moveTo(o - 1.4, -86); ctx.quadraticCurveTo(o - 4.6, -80, o - 3.4, -73); ctx.stroke();
+      }
+    } else if (st === 'curls'){
+      for (let i=0;i<9;i++){
+        const a = Math.PI + (i/8)*Math.PI;
+        ctx.beginPath(); ctx.arc(0.6 + Math.cos(a)*6.4, -87.4 + Math.sin(a)*4.6, 2.5, 0, 7); ctx.fill();
+      }
+    } else if (st === 'crop'){
+      ctx.beginPath(); ctx.ellipse(0.6, -86.6, 6.7, 4.2, 0, Math.PI, 0); ctx.fill();
+    }
+  }
 
-  /* straw hat */
-  ctx.fillStyle = '#d9b96a';
-  ctx.beginPath(); ctx.ellipse(1, -88.4, 12.4, 3.1, 0, 0, 7); ctx.fill();
-  ctx.fillStyle = '#c4a253';
-  ctx.beginPath(); ctx.ellipse(1, -88.9, 12.4, 2.6, 0, Math.PI, 0); ctx.fill();
-  ctx.fillStyle = '#e2c47b';
-  ctx.beginPath(); ctx.ellipse(1.4, -92.8, 6.2, 5.4, 0, Math.PI*1.02, Math.PI*1.98); ctx.fill();
-  ctx.fillRect(-4.8, -93.2, 12.4, 4.6);
-  ctx.fillStyle = '#8d5f3a'; ctx.fillRect(-4.8, -90.2, 12.4, 1.7);
+  /* hat */
+  const hc = look.hatCol || '#d9b96a';
+  if (look.hat === 'straw'){
+    ctx.fillStyle = hc;
+    ctx.beginPath(); ctx.ellipse(1, -88.4, 12.4, 3.1, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = shade(hc, -22);
+    ctx.beginPath(); ctx.ellipse(1, -88.9, 12.4, 2.6, 0, Math.PI, 0); ctx.fill();
+    ctx.fillStyle = shade(hc, 12);
+    ctx.beginPath(); ctx.ellipse(1.4, -92.8, 6.2, 5.4, 0, Math.PI*1.02, Math.PI*1.98); ctx.fill();
+    ctx.fillRect(-4.8, -93.2, 12.4, 4.6);
+    ctx.fillStyle = '#8d5f3a'; ctx.fillRect(-4.8, -90.2, 12.4, 1.7);
+  } else if (look.hat === 'flat'){
+    ctx.fillStyle = hc;
+    ctx.beginPath(); ctx.ellipse(0.6, -90.6, 7.2, 4.6, 0, Math.PI, 0); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(5.6, -89.6, 6.6, 1.7, -0.06, 0, 7); ctx.fill();
+    ctx.fillStyle = shade(hc, -20);
+    ctx.beginPath(); ctx.ellipse(0.6, -89.8, 7.2, 1.5, 0, 0, 7); ctx.fill();
+  } else if (look.hat === 'beanie'){
+    ctx.fillStyle = hc;
+    ctx.beginPath(); ctx.ellipse(0.6, -89.4, 7, 5.6, 0, Math.PI, 0); ctx.fill();
+    ctx.fillRect(-6.4, -89.8, 14, 3.2);
+    ctx.fillStyle = shade(hc, -22); ctx.fillRect(-6.4, -87.6, 14, 2);
+  } else if (look.hat === 'scarf'){
+    /* wrapped over the crown and back, leaving the whole face open */
+    ctx.fillStyle = hc;
+    ctx.beginPath();
+    ctx.moveTo(-7.6, -84);
+    ctx.quadraticCurveTo(-8.8, -94, 0.6, -95.2);
+    ctx.quadraticCurveTo(8.2, -94.4, 7.6, -87.6);
+    ctx.quadraticCurveTo(2, -89.8, -3, -88.8);
+    ctx.quadraticCurveTo(-6.2, -87.8, -7.6, -84);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = shade(hc, -18);
+    ctx.beginPath();
+    ctx.moveTo(-7.6, -86); ctx.quadraticCurveTo(-11.6, -78, -7.8, -70);
+    ctx.lineTo(-3.4, -72.4); ctx.quadraticCurveTo(-6.6, -78.6, -5, -86);
+    ctx.closePath(); ctx.fill();
+  } else if (look.hat === 'bucket'){
+    ctx.fillStyle = hc;
+    ctx.beginPath(); ctx.ellipse(0.8, -88.6, 10.6, 2.9, 0, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(0.8, -91.4, 6.6, 5.2, 0, Math.PI, 0); ctx.fill();
+    ctx.fillRect(-5.8, -91.6, 13.2, 3.2);
+    ctx.fillStyle = shade(hc, -20);
+    ctx.beginPath(); ctx.ellipse(0.8, -88.4, 10.6, 2.3, 0, 0, Math.PI); ctx.fill();
+  }
 
   /* front arm (+ whatever is in the hand) */
   ctx.strokeStyle = shirt; ctx.lineWidth = 6.8;
@@ -1519,6 +1698,285 @@ function drawTool(tool, hx, hy){
     ctx.fillStyle = '#71787f'; ctx.fillRect(-3.4,-5.6,7.4,3.6);
   }
   ctx.restore();
+}
+
+/* =======================================================================
+   14b. AVATARS — a head and shoulders, drawn in a 100-unit box
+   ======================================================================= */
+function drawPortrait(look, x, y, size){
+  const s = size / 100;
+  const skin = look.skin, skinD = shade(skin, -30), skinL = shade(skin, 18);
+  const hair = look.hair, hc = look.hatCol || '#d9b96a';
+  const age = look.age || 0.4;
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(s, s);
+
+  /* sky behind the shoulders */
+  const bgg = ctx.createLinearGradient(0, 0, 0, 100);
+  bgg.addColorStop(0, '#cfe0ea'); bgg.addColorStop(1, '#a9c3b0');
+  ctx.fillStyle = bgg; ctx.fillRect(0, 0, 100, 100);
+
+  /* shoulders and coat */
+  const coat = look.coat || look.shirt;
+  ctx.fillStyle = shade(coat, -18);
+  ctx.beginPath();
+  ctx.moveTo(4, 100); ctx.quadraticCurveTo(10, 76, 32, 70);
+  ctx.lineTo(68, 70); ctx.quadraticCurveTo(90, 76, 96, 100);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = coat;
+  ctx.beginPath();
+  ctx.moveTo(10, 100); ctx.quadraticCurveTo(16, 79, 34, 73);
+  ctx.lineTo(66, 73); ctx.quadraticCurveTo(84, 79, 90, 100);
+  ctx.closePath(); ctx.fill();
+  /* the shirt showing in the V of the coat */
+  ctx.fillStyle = look.shirt;
+  ctx.beginPath();
+  ctx.moveTo(41, 71); ctx.lineTo(59, 71); ctx.lineTo(54, 92); ctx.lineTo(46, 92);
+  ctx.closePath(); ctx.fill();
+  if (look.coat){
+    ctx.strokeStyle = shade(coat, -34); ctx.lineWidth = 1.4;
+    ctx.beginPath(); ctx.moveTo(41, 71); ctx.lineTo(47, 100); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(59, 71); ctx.lineTo(53, 100); ctx.stroke();
+  }
+
+  /* neck */
+  ctx.fillStyle = skinD;
+  ctx.beginPath(); ctx.moveTo(42, 58); ctx.lineTo(58, 58); ctx.lineTo(60, 74); ctx.lineTo(40, 74); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = shade(skin, -46);
+  ctx.beginPath(); ctx.ellipse(50, 58, 9.5, 4.6, 0, 0, Math.PI); ctx.fill();
+
+  /* ears */
+  ctx.fillStyle = skinD;
+  ctx.beginPath(); ctx.ellipse(27.5, 40, 3.6, 6, -0.1, 0, 7); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(72.5, 40, 3.6, 6, 0.1, 0, 7); ctx.fill();
+
+  /* the head: a real skull shape, not a circle */
+  const hg = ctx.createLinearGradient(30, 8, 74, 62);
+  hg.addColorStop(0, skinL); hg.addColorStop(0.45, skin); hg.addColorStop(1, skinD);
+  ctx.fillStyle = hg;
+  ctx.beginPath();
+  ctx.moveTo(50, 8);
+  ctx.bezierCurveTo(66, 8, 73, 20, 73, 33);      // cranium, right
+  ctx.bezierCurveTo(73, 43, 70, 48, 68, 52);     // temple to cheekbone
+  ctx.bezierCurveTo(65, 60, 58, 66, 50, 66);     // jaw to chin
+  ctx.bezierCurveTo(42, 66, 35, 60, 32, 52);
+  ctx.bezierCurveTo(30, 48, 27, 43, 27, 33);
+  ctx.bezierCurveTo(27, 20, 34, 8, 50, 8);
+  ctx.closePath(); ctx.fill();
+  /* cheekbone and jaw modelling */
+  ctx.fillStyle = 'rgba(0,0,0,.07)';
+  ctx.beginPath(); ctx.ellipse(34, 46, 6.4, 8.4, 0.3, 0, 7); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(66, 46, 6.4, 8.4, -0.3, 0, 7); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,.10)';
+  ctx.beginPath(); ctx.ellipse(43, 30, 9, 7, -0.2, 0, 7); ctx.fill();
+
+  /* brows */
+  ctx.strokeStyle = look.brow || shade(hair, 10);
+  ctx.lineWidth = 2.6; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(35, 33.5); ctx.quadraticCurveTo(41, 30.6, 46, 33); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(54, 33); ctx.quadraticCurveTo(59, 30.6, 65, 33.5); ctx.stroke();
+
+  /* eyes */
+  const blink = (tSec % 5.4) < 0.14 ? 0.1 : 1;
+  [[40.5, 39], [59.5, 39]].forEach((e, i)=>{
+    ctx.fillStyle = '#f4efe6';
+    ctx.beginPath(); ctx.ellipse(e[0], e[1], 5.2, 3.1*blink, 0, 0, 7); ctx.fill();
+    if (blink > 0.5){
+      ctx.fillStyle = look.eye || '#4a3320';
+      ctx.beginPath(); ctx.arc(e[0] + 0.5, e[1], 2.5, 0, 7); ctx.fill();
+      ctx.fillStyle = '#150f0a';
+      ctx.beginPath(); ctx.arc(e[0] + 0.5, e[1], 1.2, 0, 7); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,.85)';
+      ctx.beginPath(); ctx.arc(e[0] - 0.6, e[1] - 1.2, 0.85, 0, 7); ctx.fill();
+    }
+    /* lid line and lashes */
+    ctx.strokeStyle = 'rgba(40,26,16,.55)'; ctx.lineWidth = 1.1;
+    ctx.beginPath(); ctx.moveTo(e[0] - 5.2, e[1] - 0.6); ctx.quadraticCurveTo(e[0], e[1] - 4.2, e[0] + 5.2, e[1] - 0.6); ctx.stroke();
+    ctx.strokeStyle = 'rgba(0,0,0,.10)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(e[0] - 4, e[1] + 3.4); ctx.quadraticCurveTo(e[0], e[1] + 5, e[0] + 4, e[1] + 3.4); ctx.stroke();
+  });
+
+  /* nose */
+  ctx.strokeStyle = shade(skin, -40); ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(49.4, 38); ctx.quadraticCurveTo(46.6, 46, 48.4, 49.4); ctx.stroke();
+  ctx.fillStyle = shade(skin, -22);
+  ctx.beginPath(); ctx.ellipse(50, 50, 4.6, 2.8, 0, 0, Math.PI); ctx.fill();
+  ctx.fillStyle = 'rgba(40,24,14,.45)';
+  ctx.beginPath(); ctx.ellipse(47.4, 50.4, 1.05, 0.8, 0.2, 0, 7); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(52.6, 50.4, 1.05, 0.8, -0.2, 0, 7); ctx.fill();
+
+  /* mouth */
+  ctx.strokeStyle = shade(skin, -52); ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(43.4, 56.6); ctx.quadraticCurveTo(50, 59.4, 56.6, 56.6); ctx.stroke();
+  ctx.fillStyle = shade(skin, -14);
+  ctx.beginPath(); ctx.ellipse(50, 58.4, 5, 1.9, 0, 0, Math.PI); ctx.fill();
+
+  /* years on the face */
+  if (age > 0.5){
+    ctx.strokeStyle = 'rgba(70,44,26,' + (0.10 + age*0.16) + ')'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(38, 26.4); ctx.quadraticCurveTo(50, 24.4, 62, 26.4); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(41.6, 53.6); ctx.quadraticCurveTo(44, 51, 44.8, 47.6); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(58.4, 53.6); ctx.quadraticCurveTo(56, 51, 55.2, 47.6); ctx.stroke();
+    if (age > 0.68){
+      ctx.beginPath(); ctx.moveTo(66.4, 36.4); ctx.lineTo(70.4, 34); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(33.6, 36.4); ctx.lineTo(29.6, 34); ctx.stroke();
+    }
+  }
+
+  /* beard */
+  if (look.beard === 1){
+    ctx.globalAlpha = 0.42; ctx.fillStyle = shade(hair, 16);
+    ctx.beginPath();
+    ctx.moveTo(33, 48); ctx.bezierCurveTo(35, 62, 42, 68, 50, 68);
+    ctx.bezierCurveTo(58, 68, 65, 62, 67, 48);
+    ctx.bezierCurveTo(63, 60, 56, 62, 50, 62);
+    ctx.bezierCurveTo(44, 62, 37, 60, 33, 48);
+    ctx.closePath(); ctx.fill();
+    ctx.globalAlpha = 1;
+  } else if (look.beard > 1){
+    ctx.fillStyle = shade(hair, 8);
+    ctx.beginPath();
+    ctx.moveTo(32, 44); ctx.bezierCurveTo(33, 66, 42, 78, 50, 78);
+    ctx.bezierCurveTo(58, 78, 67, 66, 68, 44);
+    ctx.bezierCurveTo(66, 56, 60, 55, 56.6, 56.6);
+    ctx.quadraticCurveTo(50, 59.4, 43.4, 56.6);
+    ctx.bezierCurveTo(40, 55, 34, 56, 32, 44);
+    ctx.closePath(); ctx.fill();
+    /* moustache */
+    ctx.beginPath(); ctx.ellipse(50, 54.4, 8.4, 3.4, 0, Math.PI, 0); ctx.fill();
+  }
+
+  /* hair */
+  const st = look.style;
+  ctx.fillStyle = hair;
+  if (st !== 'bald'){
+    if (st === 'long'){
+      ctx.beginPath();
+      ctx.moveTo(26, 34); ctx.bezierCurveTo(22, 60, 24, 76, 27, 84);
+      ctx.lineTo(35, 82); ctx.bezierCurveTo(31, 68, 30, 50, 31, 38);
+      ctx.closePath(); ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(74, 34); ctx.bezierCurveTo(78, 60, 76, 76, 73, 84);
+      ctx.lineTo(65, 82); ctx.bezierCurveTo(69, 68, 70, 50, 69, 38);
+      ctx.closePath(); ctx.fill();
+    } else if (st === 'braids'){
+      ctx.lineCap = 'round'; ctx.strokeStyle = hair;
+      [[30, 1],[70, -1]].forEach(b=>{
+        ctx.lineWidth = 5;
+        ctx.beginPath();
+        ctx.moveTo(b[0], 34);
+        ctx.quadraticCurveTo(b[0] - b[1]*5, 58, b[0] - b[1]*2, 80);
+        ctx.stroke();
+        ctx.strokeStyle = shade(hair, 18); ctx.lineWidth = 1.1;
+        for (let i=0;i<5;i++){
+          const t = 0.15 + i*0.18;
+          const px = lerp(b[0], b[0] - b[1]*2, t), py = lerp(34, 80, t);
+          ctx.beginPath(); ctx.moveTo(px - 3, py - 1.4); ctx.lineTo(px + 3, py + 1.4); ctx.stroke();
+        }
+        ctx.strokeStyle = hair;
+      });
+    } else if (st === 'bun'){
+      ctx.beginPath(); ctx.arc(50, 10.5, 8.6, 0, 7); ctx.fill();
+      ctx.strokeStyle = shade(hair, 16); ctx.lineWidth = 1.1;
+      for (let i=0;i<4;i++){
+        ctx.beginPath(); ctx.arc(50, 10.5, 3 + i*1.8, 0.6, 3.4); ctx.stroke();
+      }
+    }
+    /* the cap of hair over the skull, drawn last so it sits on top */
+    if (st === 'curls'){
+      for (let i=0;i<15;i++){
+        const a = Math.PI * (0.02 + i/14 * 0.96);
+        ctx.beginPath();
+        ctx.arc(50 - Math.cos(a)*24, 30 - Math.sin(a)*22.5, 5.6, 0, 7); ctx.fill();
+      }
+      ctx.fillStyle = shade(hair, 20);
+      for (let i=0;i<9;i++){
+        const a = Math.PI * (0.1 + i/8 * 0.8);
+        ctx.beginPath();
+        ctx.arc(50 - Math.cos(a)*20, 27 - Math.sin(a)*18, 3, 0, 7); ctx.fill();
+      }
+    } else {
+      ctx.beginPath();
+      ctx.moveTo(26.5, 36);
+      ctx.bezierCurveTo(25, 16, 35, 6, 50, 6);
+      ctx.bezierCurveTo(65, 6, 75, 16, 73.5, 36);
+      ctx.bezierCurveTo(72, 27, 68, 22, 62, 21.5);   // the hairline
+      ctx.bezierCurveTo(54, 24, 44, 24, 37, 21);
+      ctx.bezierCurveTo(31, 22, 28, 27, 26.5, 36);
+      ctx.closePath(); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,.13)';
+      ctx.beginPath(); ctx.ellipse(41, 14.5, 10, 4.6, -0.3, 0, 7); ctx.fill();
+    }
+  }
+
+  /* hat, over everything */
+  if (look.hat === 'straw'){
+    ctx.fillStyle = shade(hc, -14);
+    ctx.beginPath(); ctx.ellipse(50, 22, 46, 8.6, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = hc;
+    ctx.beginPath(); ctx.ellipse(50, 20.4, 46, 8.2, 0, Math.PI, 0); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(50, 12, 23, 15, 0, Math.PI, 0); ctx.fill();
+    ctx.fillStyle = shade(hc, -26); ctx.fillRect(27, 14, 46, 5.4);
+  } else if (look.hat === 'flat'){
+    ctx.fillStyle = hc;
+    ctx.beginPath(); ctx.ellipse(50, 18, 26, 15, 0, Math.PI, 0); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(64, 19.6, 24, 4.4, -0.05, 0, 7); ctx.fill();
+    ctx.fillStyle = shade(hc, -20);
+    ctx.beginPath(); ctx.ellipse(50, 18.4, 26, 4, 0, 0, 7); ctx.fill();
+  } else if (look.hat === 'beanie'){
+    ctx.fillStyle = hc;
+    ctx.beginPath(); ctx.ellipse(50, 20, 26, 18, 0, Math.PI, 0); ctx.fill();
+    ctx.fillRect(24, 18, 52, 9);
+    ctx.fillStyle = shade(hc, -22); ctx.fillRect(24, 24, 52, 4.4);
+    ctx.strokeStyle = shade(hc, -12); ctx.lineWidth = 1.2;
+    for (let i=0;i<7;i++){ ctx.beginPath(); ctx.moveTo(27 + i*7.6, 5); ctx.lineTo(27 + i*7.6, 24); ctx.stroke(); }
+  } else if (look.hat === 'scarf'){
+    ctx.fillStyle = hc;
+    ctx.beginPath();
+    ctx.moveTo(24, 44);
+    ctx.bezierCurveTo(20, 14, 34, 2, 50, 2);
+    ctx.bezierCurveTo(66, 2, 80, 14, 76, 44);
+    ctx.bezierCurveTo(74, 34, 70, 26, 63, 24);
+    ctx.bezierCurveTo(54, 27, 45, 27, 37, 24);
+    ctx.bezierCurveTo(30, 26, 26, 34, 24, 44);
+    ctx.closePath(); ctx.fill();
+    /* the two falls of cloth beside the face */
+    ctx.fillStyle = shade(hc, -16);
+    ctx.beginPath();
+    ctx.moveTo(24, 36); ctx.bezierCurveTo(16, 56, 18, 76, 22, 92);
+    ctx.lineTo(34, 90); ctx.bezierCurveTo(29, 72, 28, 54, 30, 40);
+    ctx.closePath(); ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(76, 36); ctx.bezierCurveTo(84, 56, 82, 76, 78, 92);
+    ctx.lineTo(66, 90); ctx.bezierCurveTo(71, 72, 72, 54, 70, 40);
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = shade(hc, 22); ctx.lineWidth = 1.2;
+    for (let i=0;i<3;i++){
+      ctx.beginPath(); ctx.moveTo(21 + i*2, 50 + i*12); ctx.quadraticCurveTo(27, 52 + i*12, 31, 48 + i*12); ctx.stroke();
+    }
+  } else if (look.hat === 'bucket'){
+    ctx.fillStyle = shade(hc, -14);
+    ctx.beginPath(); ctx.ellipse(50, 24, 38, 8, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = hc;
+    ctx.beginPath(); ctx.ellipse(50, 22.5, 38, 7.6, 0, Math.PI, 0); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(50, 15, 25, 16, 0, Math.PI, 0); ctx.fill();
+    ctx.fillRect(25, 14, 50, 8);
+    ctx.strokeStyle = shade(hc, -22); ctx.lineWidth = 1.4;
+    ctx.beginPath(); ctx.moveTo(25, 18); ctx.lineTo(75, 18); ctx.stroke();
+  }
+  ctx.restore();
+}
+
+/* an avatar as an offscreen canvas, the way pigCard works */
+function faceCard(look, w, h){
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  const saved = ctx;
+  ctx = c.getContext('2d');
+  drawPortrait(look, 0, 0, Math.max(w, h));
+  ctx = saved;
+  return c;
 }
 
 /* =======================================================================
@@ -2010,6 +2468,242 @@ function updateChickens(dt){
 }
 
 /* =======================================================================
+   17b. THE OTHER HUNTERS IN THE FIELD
+   A rival is a person plus, usually, a pig. The pig runs the same AI yours
+   does — she just follows somebody else.
+   ======================================================================= */
+const rivals = [];
+
+function makeRival(f){
+  const a = rand(0, Math.PI*2);
+  const r = {
+    id: f.id, f: f, look: f.look,
+    x: clamp(3400 + Math.cos(a)*900, 400, FIELD_W-400),
+    y: clamp(2700 + Math.sin(a)*400, 2300, FIELD_H-260),
+    vx:0, vy:0, face:1, step:0, moving:false, wind:1,
+    pig: null, lift: 0, dig: 0, target: null, wander: null, wanderT: 0
+  };
+  if (f.pigBreed){
+    const p = makePig(f.pigBreed, f.pigName);
+    p.owner = r;
+    p.x = r.x + 120; p.y = r.y + 40;
+    p.hunting = true; p.state = 'hunt';
+    p.bond = 90; p.trust = 90; p.training = 12;   // a working pig, not a new one
+    r.pig = p;
+  }
+  return r;
+}
+
+function updateRival(r, dt){
+  const p = r.pig;
+
+  if (p){
+    updatePig(p, dt);
+    /* she must not stop working just because she is a long way from you */
+    if (!p.hunting && p.state !== 'wallow' && p.state !== 'towallow' && p.state !== 'eat' && p.heat < 70){
+      p.hunting = true; setPigState(p, 'hunt');
+    }
+    /* the hunter walks after his pig and keeps a hand near her shoulder */
+    const d = dist(r.x, r.y, p.x, p.y);
+    if (d > 140){
+      const sp = (d > 600 ? 210 : 118) * r.f.pace * dt;
+      r.x += (p.x - r.x)/d * sp;
+      r.y += (p.y - r.y)/d * sp;
+      r.face = p.x > r.x ? 1 : -1;
+      r.moving = true; r.step += dt * 8.6;
+    } else r.moving = false;
+
+    /* the moment the truffle shows, a professional lifts it. They do not
+       stand about giving the pig a chance to swallow it. */
+    const s = p.spot;
+    if (s && s.mark && !s.dug && p.state === 'root'){
+      r.lift += dt;
+      if (r.lift > Math.max(0.5, 1.9 - r.f.skill*0.16)) rivalLifts(r, s);
+    } else r.lift = 0;
+    return;
+  }
+
+  /* no pig: she reads the cracked ground herself, slowly, on foot */
+  if (!r.wander || dist(r.x,r.y,r.wander.x,r.wander.y) < 70 || (r.wanderT -= dt) < 0){
+    let best = null, bd = 520 + r.f.skill*40;
+    spots.forEach(s=>{
+      if (s.dug) return;
+      const d = dist(r.x,r.y,s.x,s.y);
+      if (d < bd){ bd = d; best = s; }
+    });
+    const o = pick(OAKS);
+    r.wander = best ? { x:best.x, y:best.y, s:best }
+      : { x: clamp(o.x + rand(-o.r,o.r), 300, FIELD_W-300),
+          y: clamp(o.y + rand(-o.r*0.7,o.r*0.7), 2200, FIELD_H-240) };
+    r.wanderT = 7;
+  }
+  const d = dist(r.x, r.y, r.wander.x, r.wander.y);
+  if (d > 20){
+    const sp = 96 * r.f.pace * dt;
+    r.x += (r.wander.x - r.x)/d * sp;
+    r.y += (r.wander.y - r.y)/d * sp;
+    r.face = r.wander.x > r.x ? 1 : -1;
+    r.moving = true; r.step += dt * 7.4;
+  } else {
+    r.moving = false;
+    const s = r.wander.s;
+    if (s && !s.dug){
+      r.dig += dt;
+      s.found = true; s.rooted = clamp(r.dig/2.4, 0, 1);
+      if (Math.random() < dt*14) puff(s.x + rand(-20,20), s.y, 1, 'rgba(126,104,74,.75)', 1, 0.5);
+      if (r.dig > 2.4){ s.mark = 1; rivalLifts(r, s); }
+    } else { r.dig = 0; r.wanderT = 0; }
+  }
+}
+
+function rivalLifts(r, s){
+  const t = TRUF_BY_ID[s.sp];
+  s.dug = true;
+  const i = spots.indexOf(s); if (i >= 0) spots.splice(i, 1);
+  refillSpots();
+  r.lift = 0; r.dig = 0; r.wander = null;
+  if (r.pig){ r.pig.spot = null; setPigState(r.pig, 'hunt'); }
+  scoreFor(r.id, s.g);
+  floatText(s.x, s.y, r.f.name.split(' ')[0] + ' +' + s.g + ' g', '#ffd0a0');
+  if (S.outing && S.outing.kind === 'match')
+    toast(r.f.name.split(' ')[0] + ' got there first — ' + t.name + ', ' + s.g + ' g', 'warn');
+  else
+    toast(r.f.name.split(' ')[0] + ' lifted ' + s.g + ' g of ' + t.name.toLowerCase() + ' for the basket', 'good');
+  paintOuting();
+}
+
+function drawRival(r){
+  drawFarmer(sx(r.x), sy(r.y), 175*PX, r.face,
+    { step: r.step, moving: r.moving, tool: null }, r.look);
+  const nm = r.f.name.split(' ')[0];
+  ctx.font = '600 12px "Segoe UI", system-ui, sans-serif';
+  ctx.textAlign = 'center';
+  const ty = sy(r.y) - 175*PX - 10;
+  const w = ctx.measureText(nm).width + 14;
+  ctx.fillStyle = S.outing && S.outing.kind === 'match' ? 'rgba(150,60,40,.82)' : 'rgba(60,100,50,.82)';
+  ctx.beginPath(); ctx.roundRect(sx(r.x)-w/2, ty-12, w, 17, 8); ctx.fill();
+  ctx.fillStyle = '#fff'; ctx.fillText(nm, sx(r.x), ty);
+  ctx.textAlign = 'left';
+}
+
+/* =======================================================================
+   17c. OUTINGS — a match against them, or a trail alongside them
+   ======================================================================= */
+const OUTING_MIN = 240;      // four hours of daylight
+const STAKE = 500;
+
+function scoreFor(id, g){
+  if (!S.outing) return;
+  const sc = S.outing.scores[id];
+  if (!sc) return;
+  sc.g += g; sc.n++;
+}
+
+function startOuting(kind, ids){
+  if (S.outing){ toast('You are already out with somebody.', 'warn'); return; }
+  if (kind === 'match' && !S.pigs.length){
+    toast('You cannot race anybody without a pig.', 'warn'); return;
+  }
+  const stake = kind === 'match' ? STAKE : 0;
+  if (stake && !spend(stake)){ toast('You cannot cover the ' + exactMoney(stake) + ' stake.', 'warn'); return; }
+
+  S.outing = {
+    kind: kind, ids: ids.slice(), startTod: S.tod,
+    endTod: Math.min(S.tod + OUTING_MIN, DAY_END - 5),
+    scores: { you: { g:0, n:0 } }, purse: stake * (ids.length + 1), pool: []
+  };
+  ids.forEach(id=>{
+    S.outing.scores[id] = { g:0, n:0 };
+    rivals.push(makeRival(FRIEND_BY_ID[id]));
+  });
+  /* your own pigs get put to work — that is what you came for */
+  S.pigs.forEach(p=>{ if (p.heat < 74 && p.energy > 18){ p.hunting = true; setPigState(p, 'hunt'); } });
+
+  const names = ids.map(i=> FRIEND_BY_ID[i].name.split(' ')[0]).join(', ');
+  toast(kind === 'match'
+    ? 'Match on: you against ' + names + '. Most grams by dusk.'
+    : 'Out on the trail with ' + names + '.', 'good');
+  sysLine(kind === 'match'
+    ? names + ' walk into the grove with their pigs and do not look at you. This is a match: four hours, ' +
+      'most grams lifted, ' + exactMoney(S.outing.purse) + ' on it.'
+    : 'You go down to the oaks with ' + names + '. Everything either of you turns up goes in the one basket, ' +
+      'and it gets split at the gate.');
+  showScreen('farm');
+  paintOuting(); paintBoard();
+}
+
+function endOuting(quiet){
+  const o = S.outing;
+  if (!o) return;
+  const rows = Object.keys(o.scores).map(id=> ({ id:id, g:o.scores[id].g, n:o.scores[id].n }));
+  rows.sort((a,b)=> b.g - a.g);
+  const mine = o.scores.you;
+
+  if (o.kind === 'match'){
+    const win = rows[0];
+    if (win.g === 0){
+      toast('Nobody found a thing. Stakes returned.', 'warn');
+      if (!S.rich) addMoney(STAKE);
+    } else if (win.id === 'you'){
+      addMoney(o.purse);
+      toast('You won it — ' + mine.g + ' g. Purse ' + exactMoney(o.purse) + '.', 'good');
+      o.ids.forEach(id=> bumpFriendship(id, 4));
+      sysLine('You take the purse. ' + FRIEND_BY_ID[o.ids[0]].name.split(' ')[0] +
+        ' shakes your hand for slightly too long and asks what you are feeding her.');
+    } else {
+      const w = FRIEND_BY_ID[win.id];
+      toast(w.name.split(' ')[0] + ' won with ' + win.g + ' g. You had ' + mine.g + ' g.', 'warn');
+      o.ids.forEach(id=> bumpFriendship(id, 3));
+      sysLine(w.name + ' wins it on ' + win.g + ' grams. She is decent about it, which is worse.');
+    }
+  } else {
+    let theirs = 0;
+    o.ids.forEach(id=> theirs += o.scores[id].g);
+    /* their half of the basket, handed over at the gate */
+    const val = theirs * 2.4 * S.priceMult * (1 + S.rep*0.03) * 0.5;
+    if (theirs > 0) addMoney(Math.round(val));
+    o.ids.forEach(id=> bumpFriendship(id, 6 + Math.min(14, Math.round((theirs + mine.g)/40))));
+    toast(theirs
+      ? 'Split at the gate: your share of their ' + theirs + ' g is ' + exactMoney(val)
+      : 'A quiet trail. Nothing much in the basket.', theirs ? 'good' : '');
+    sysLine('You walk back up with ' + o.ids.map(i=> FRIEND_BY_ID[i].name.split(' ')[0]).join(' and ') +
+      '. Between you the basket holds ' + (theirs + mine.g) + ' grams. Somebody says the thing everybody ' +
+      'says at the end of a good day, which is that the ground will still be there tomorrow.');
+  }
+
+  rivals.forEach(r=>{ if (r.pig) r.pig.gone = true; });
+  rivals.length = 0;
+  S.outing = null;
+  paintOuting(); paintBoard(); paintFriends(); paintChips();
+}
+
+function bumpFriendship(id, n){
+  S.friendship[id] = clamp((S.friendship[id]||0) + n, 0, 100);
+}
+function friendLevel(id){
+  const v = S.friendship[id] || 0;
+  return v < 1 ? 'not met properly' : v < 20 ? 'an acquaintance' : v < 45 ? 'a walking companion'
+    : v < 70 ? 'a friend' : v < 92 ? 'a close friend' : 'family, more or less';
+}
+
+function paintBoard(){
+  const el = $('board');
+  const o = S.outing;
+  if (!o){ el.classList.remove('on'); return; }
+  el.classList.add('on');
+  const rows = Object.keys(o.scores).map(id=> ({
+    id: id, nm: id === 'you' ? 'You' : FRIEND_BY_ID[id].name.split(' ')[0],
+    g: o.scores[id].g, n: o.scores[id].n
+  }));
+  rows.sort((a,b)=> b.g - a.g);
+  const left = Math.max(0, Math.round(o.endTod - S.tod));
+  el.innerHTML = '<h4>' + (o.kind === 'match' ? 'Match · ' + exactMoney(o.purse) : 'On the trail') + '</h4>' +
+    rows.map(r=> '<div class="r' + (r.id==='you'?' me':'') + '"><b>' + escapeHtml(r.nm) + '</b>' +
+      '<span>' + r.g + ' g</span></div>').join('') +
+    '<div class="clk">' + Math.floor(left/60) + 'h ' + (left%60) + 'm of light left</div>';
+}
+
+/* =======================================================================
    18. TIME OF DAY
    ======================================================================= */
 let tSec = 0;
@@ -2037,13 +2731,14 @@ function rollDay(){
   if (S.day % 3 === 1) S.season = SEASONS[(Math.floor((S.day-1)/3)) % 4];
   JOBS.forEach(j=>{ j.ready = true; j.timer = 0; j.prog = 0; });
   spots.length = 0; refillSpots();
+  if (S.outing) endOuting();
   /* feed, bedding and straw for the night — a pig eats every day whether or
      not she found you anything */
   let keep = 0;
   S.pigs.forEach(p=> keep += keepCost(p));
-  const fed = keep <= S.money;
+  const fed = canAfford(keep);
   if (keep){
-    if (fed) S.money -= keep;
+    if (fed) spend(keep);
     else toast('You could not cover ' + exactMoney(keep) + ' of feed. They went to bed hungry.', 'warn');
   }
   S.pigs.forEach(p=>{
@@ -2064,7 +2759,7 @@ function rollDay(){
 /* =======================================================================
    19. UPDATE
    ======================================================================= */
-let workingJob = null, workTool = null;
+let workingJob = null, workTool = null, boardTick = -1;
 
 function update(dt){
   tSec += dt;
@@ -2118,6 +2813,9 @@ function update(dt){
 
   /* ---------------- the pig ---------------- */
   for (let i=0;i<S.pigs.length;i++) updatePig(S.pigs[i], dt);
+  for (let i=0;i<rivals.length;i++) updateRival(rivals[i], dt);
+  if (S.outing && S.tod >= S.outing.endTod) endOuting();
+  if (S.outing && (tSec|0) !== boardTick){ boardTick = tSec|0; paintBoard(); }
 
   updateChickens(dt);
   updateParts(dt);
@@ -2219,9 +2917,11 @@ function updatePig(p, dt){
   let tx = null, ty = null, sp = 0;
   p.headDown = lerp(p.headDown || 0, 0.15, clamp(dt*3,0,1));
   /* each pig keeps her own bit of ground beside you rather than stacking up */
-  const slot = S.pigs.indexOf(p);
+  const boss = p.owner || you;
+  const mine = !p.owner;
+  const slot = mine ? Math.max(0, S.pigs.indexOf(p)) : 0;
   const offA = slot * 2.4, offR = 150 + slot * 62;
-  const hx = you.x + Math.cos(offA) * offR, hy = you.y + Math.sin(offA) * offR * 0.6;
+  const hx = boss.x + Math.cos(offA) * offR, hy = boss.y + Math.sin(offA) * offR * 0.6;
 
   switch (p.state){
     case 'idle':
@@ -2238,8 +2938,8 @@ function updatePig(p, dt){
     }
 
     case 'come': {
-      const d = dist(p.x,p.y,you.x,you.y);
-      if (d > 130){ tx = you.x; ty = you.y; sp = 250; }
+      const d = dist(p.x,p.y,boss.x,boss.y);
+      if (d > 130){ tx = boss.x; ty = boss.y; sp = 250; }
       else { setPigState(p, 'idle'); p.earFlick = 1; }
       if (p.stateT > 12) setPigState(p, 'follow');
       break;
@@ -2252,12 +2952,12 @@ function updatePig(p, dt){
       spots.forEach(s=>{
         if (s.dug) return;
         /* leave alone anything another pig already has her nose in */
-        if (s.claim && s.claim !== p && S.pigs.indexOf(s.claim) >= 0 && s.claim.spot === s) return;
+        if (s.claim && s.claim !== p && !s.claim.gone && s.claim.spot === s) return;
         const d = dist(p.x,p.y,s.x,s.y);
         if (d < detect && d < bd){ bd = d; best = s; }
       });
       if (best){
-        if (!best.found){ best.found = true; p.earFlick = 1; toast(p.name + ' has caught something.', 'good'); }
+        if (!best.found){ best.found = true; p.earFlick = 1; if (mine) toast(p.name + ' has caught something.', 'good'); }
         tx = best.x; ty = best.y; sp = 150;
         p.spot = best; best.claim = p;
         if (bd < 34){ setPigState(p, 'root'); p.rootT = 0; }
@@ -2288,10 +2988,12 @@ function updatePig(p, dt){
       if (p.rootT > 2.0 && !s.mark){
         s.mark = 1;
         const t = TRUF_BY_ID[s.sp];
-        toast(t.name + ', ' + s.g + ' g — trade her for it (F) or take it (E)', 'good');
-        if (!S.askedFirstHunt){
-          S.askedFirstHunt = true;
-          setTimeout(()=> toast('A pig eats truffles. That is the whole problem with pigs.', 'warn'), 1400);
+        if (mine){
+          toast(t.name + ', ' + s.g + ' g — trade her for it (F) or take it (E)', 'good');
+          if (!S.askedFirstHunt){
+            S.askedFirstHunt = true;
+            setTimeout(()=> toast('A pig eats truffles. That is the whole problem with pigs.', 'warn'), 1400);
+          }
         }
       }
       const patience = clamp(6.4 - p.hunger/16 - (100-p.trust)/40, 2.2, 7);
@@ -2383,7 +3085,7 @@ function pigEatsTruffle(p, s){
   setPigState(p, 'eat');
   p.mouth = { col: '#2e211a' };
   spots.splice(spots.indexOf(s), 1); refillSpots();
-  toast(p.name + ' ate the ' + t.name.toLowerCase() + '. ' + exactMoney(t.perLb*s.g/G_PER_LB) + ' gone.', 'warn');
+  if (!p.owner) toast(p.name + ' ate the ' + t.name.toLowerCase() + '. ' + exactMoney(t.perLb*s.g/G_PER_LB) + ' gone.', 'warn');
   floatText(p.x, p.y, 'gulp', '#e8c2a0');
 }
 
@@ -2585,6 +3287,8 @@ function takeTruffle(s, traded, who){
   s.dug = true;
   spots.splice(spots.indexOf(s), 1); refillSpots();
   const val = t.perLb * s.g / G_PER_LB;
+  scoreFor('you', s.g);
+  paintBoard();
   floatText(you.x, you.y, t.name + ' · ' + s.g + ' g', '#f0e0b0');
   toast('Lifted: ' + t.name + ', ' + s.g + ' g — worth about ' + exactMoney(val), 'good');
   puff(s.x, s.y, 12, 'rgba(126,104,74,.85)', 1.6, 0.8);
@@ -2723,6 +3427,10 @@ function draw(){
   chickens.forEach(c=>{ if (onScreen(c.x,c.y,120)) add(c.y, ()=> drawChicken(c)); });
 
   S.pigs.forEach(p=>{ if (onScreen(p.x,p.y,200)) add(p.y, ()=> drawPigInWorld(p)); });
+  rivals.forEach(r=>{
+    if (r.pig && onScreen(r.pig.x, r.pig.y, 200)) add(r.pig.y, ()=> drawPigInWorld(r.pig));
+    if (onScreen(r.x, r.y, 200)) add(r.y, ()=> drawRival(r));
+  });
   add(you.y, ()=> drawFarmer(sx(you.x), sy(you.y), 175*PX, you.face,
       { step: you.step, moving: you.moving, tool: workTool }));
 
@@ -2811,6 +3519,7 @@ function showScreen(name){
   if (name === 'market') paintMarket();
   if (name === 'shop')   paintShop();
   if (name === 'pig')    { paintPig(); paintBag(); }
+  if (name === 'friends'){ paintOuting(); paintFriends(); }
   if (name === 'talk')   { paintTalk(); setTimeout(()=> $('sayInput').focus(), 60); }
   window.scrollTo(0,0);
 }
@@ -2873,8 +3582,8 @@ function paintMarket(){
         '</span> &nbsp; Stamina <span class="stars">' + stars(Math.min(5,b.stam)) + '</span></div>' +
       '<div class="note">' + b.note + '</div>' +
       '<div class="buyrow"><span class="price">' + exactMoney(b.price) + '</span>' +
-      '<button class="btn small ' + (S.money >= b.price ? 'green' : 'ghost') + '"' +
-      (S.money >= b.price ? '' : ' disabled') + '>Buy' + (owned ? ' another' : '') + '</button>' +
+      '<button class="btn small ' + (canAfford(b.price) ? 'green' : 'ghost') + '"' +
+      (canAfford(b.price) ? '' : ' disabled') + '>Buy' + (owned ? ' another' : '') + '</button>' +
       '<span class="tag">' + exactMoney(keepCost({breed:b.id})) + '/day to keep</span>' +
       (owned ? '<span class="tag">' + owned + ' in your paddock</span>' : '') +
       (b.tier === 'absurd' ? '<span class="tag rare">absurd</span>' : '') + '</div>';
@@ -2886,7 +3595,7 @@ function paintMarket(){
 }
 
 function buyPig(b){
-  if (S.money < b.price) return;
+  if (!canAfford(b.price)) return;
   openModal(
     '<h2>' + b.name + '</h2>' +
     '<p class="sub">' + b.origin + '</p>' +
@@ -2906,7 +3615,7 @@ function buyPig(b){
   $('confirmBuy').onclick = ()=>{
     let nm = ($('nameIn').value || '').trim().slice(0,18) || suggestName();
     while (S.pigs.some(p=> p.name.toLowerCase() === nm.toLowerCase())) nm = suggestName();
-    S.money -= b.price;
+    if (!spend(b.price)) return;
     const p = makePig(b.id, nm);
     p.x = clamp(you.x + rand(-220, 220), 200, FIELD_W-200);
     p.y = clamp(you.y + rand(60, 200), 260, FIELD_H-200);
@@ -2982,8 +3691,8 @@ function paintShop(){
         '<div class="meta">Spirit +' + t.joy + ' &middot; fills ' + t.fill + ' &middot; bond ' + stars(t.bond,6) + '</div>' +
         '<div class="note">' + t.note + '</div>' +
         '<div class="buyrow"><span class="price">' + exactMoney(t.price) + '</span>' +
-        '<button class="btn small ' + (S.money>=t.price?'gold':'ghost') + '"' + (S.money>=t.price?'':' disabled') + '>Buy 1</button>' +
-        '<button class="btn small ' + (S.money>=t.price*5?'gold':'ghost') + '"' + (S.money>=t.price*5?'':' disabled') + '>Buy 5</button>' +
+        '<button class="btn small ' + (canAfford(t.price)?'gold':'ghost') + '"' + (canAfford(t.price)?'':' disabled') + '>Buy 1</button>' +
+        '<button class="btn small ' + (canAfford(t.price*5)?'gold':'ghost') + '"' + (canAfford(t.price*5)?'':' disabled') + '>Buy 5</button>' +
         (have ? '<button class="btn small ghost">Carry this one</button>' : '') + '</div></div>';
       const bs = el.querySelectorAll('button');
       if (bs[0]) bs[0].onclick = ()=> buyTreat(t, 1);
@@ -3006,7 +3715,7 @@ function paintShop(){
       '<div class="buyrow"><span class="price">' + exactMoney(t.price) + '</span>' +
       (owned
         ? '<span class="tag">owned</span><button class="btn small ghost">Carry this one</button>'
-        : '<button class="btn small ' + (S.money>=t.price?'green':'ghost') + '"' + (S.money>=t.price?'':' disabled') + '>Buy</button>') +
+        : '<button class="btn small ' + (canAfford(t.price)?'green':'ghost') + '"' + (canAfford(t.price)?'':' disabled') + '>Buy</button>') +
       '</div></div>';
     const btn = el.querySelector('.buyrow button');
     if (btn) btn.onclick = owned
@@ -3017,16 +3726,14 @@ function paintShop(){
 }
 function buyTreat(t, n){
   const cost = t.price * n;
-  if (S.money < cost) return;
-  S.money -= cost;
+  if (!spend(cost)) return;
   S.inv.treats[t.id] = (S.inv.treats[t.id]||0) + n;
   if (!S.selTreat) S.selTreat = t.id;
   paintChips(); paintShop(); paintHotbar();
   toast(n + ' × ' + t.name + ' — ' + exactMoney(cost));
 }
 function buyToy(t){
-  if (S.money < t.price || S.inv.toys[t.id]) return;
-  S.money -= t.price;
+  if (S.inv.toys[t.id] || !spend(t.price)) return;
   S.inv.toys[t.id] = true;
   if (!S.selToy) S.selToy = t.id;
   if (t.id === 'wallow' || t.id === 'pool') S.pigs.forEach(q=> q.heat = Math.min(q.heat, 44));
@@ -3167,6 +3874,75 @@ function sellAll(){
   addMoney(Math.round(total));
   toast('Sold ' + n + ' truffle' + (n===1?'':'s') + ' for ' + exactMoney(total), 'good');
   paintBag(); paintMarket();
+}
+
+/* ---------------- the other hunters ---------------- */
+function paintOuting(){
+  const wrap = $('outingPanel');
+  const o = S.outing;
+  if (!o){
+    wrap.innerHTML = '<h2>Truffle hunters</h2>' +
+      '<div class="sub">Eight people who do this for a living, in eight places that genuinely dig truffles. ' +
+      'Walk a <b>trail</b> with one and everything either of you turns up goes in one basket, split at the gate. ' +
+      '<b>Challenge</b> one and it is four hours of daylight, most grams lifted, ' + exactMoney(STAKE) +
+      ' a head on it. Either way your pigs go straight to work when you set off.</div>' +
+      '<div class="hr"></div>' +
+      '<div class="buyrow">' +
+        '<button class="btn small" id="allIn">Challenge all eight at once</button>' +
+        '<span class="sub">which is a terrible idea</span></div>';
+    const ai = $('allIn');
+    if (ai) ai.onclick = ()=> startOuting('match', FRIENDS.map(f=> f.id));
+    return;
+  }
+  const rows = Object.keys(o.scores).map(id=> ({
+    id: id, nm: id === 'you' ? 'You' : FRIEND_BY_ID[id].name,
+    g: o.scores[id].g, n: o.scores[id].n }));
+  rows.sort((a,b)=> b.g - a.g);
+  const left = Math.max(0, Math.round(o.endTod - S.tod));
+  wrap.innerHTML =
+    '<h2>' + (o.kind === 'match' ? 'Match in progress' : 'Out on the trail') + '</h2>' +
+    '<div class="sub">' + Math.floor(left/60) + 'h ' + (left%60) + 'm of light left' +
+      (o.kind === 'match' ? ' &middot; ' + exactMoney(o.purse) + ' on it' : ' &middot; one basket, split at the gate') +
+    '</div><div class="hr"></div>' +
+    '<div class="baglist">' + rows.map(r=>
+      '<div class="bagrow"><span>' + escapeHtml(r.nm) + '</span>' +
+      '<span class="g">' + r.n + ' lifted</span><span class="v">' + r.g + ' g</span></div>').join('') +
+    '</div><div class="hr"></div>' +
+    '<div class="buyrow"><button class="btn small ghost" id="endOut">Call it a day now</button></div>';
+  $('endOut').onclick = ()=> endOuting();
+}
+
+function paintFriends(){
+  const wrap = $('friendsPanel');
+  wrap.innerHTML = '<div class="cards"></div>';
+  const cards = wrap.firstChild;
+  FRIENDS.forEach(f=>{
+    const out = rivals.some(r=> r.id === f.id);
+    const el = document.createElement('div');
+    el.className = 'friend' + (out ? ' out' : '');
+    el.appendChild(faceCard(f.look, 92, 92));
+    const body = document.createElement('div');
+    body.className = 'body';
+    const fv = S.friendship[f.id] || 0;
+    body.innerHTML =
+      '<div class="nm">' + f.name + '</div>' +
+      '<div class="rg">' + f.from + ' &middot; ' +
+        (f.pigBreed ? BREED_BY_ID[f.pigBreed].name.split(' (')[0].split(',')[0] + ' called ' + f.pigName
+                    : 'works no pig at all') + '</div>' +
+      '<div class="bl">' + f.blurb + '</div>' +
+      '<div class="bondbar"><span>' + friendLevel(f.id) + '</span><span class="m"><i style="width:' + fv + '%"></i></span></div>' +
+      '<div class="acts">' +
+        (out ? '<span class="tag">out in the grove with you</span>' :
+          '<button class="btn small green" data-a="trail">Walk the trail together</button>' +
+          '<button class="btn small" data-a="match">Challenge &middot; ' + exactMoney(STAKE) + '</button>') +
+        '<span class="stars">' + stars(Math.min(5, f.skill)) + (f.skill > 5 ? ' +' + (f.skill-5) : '') + '</span>' +
+      '</div>';
+    el.appendChild(body);
+    body.querySelectorAll('button[data-a]').forEach(b=>{
+      b.onclick = ()=> startOuting(b.dataset.a, [f.id]);
+    });
+    cards.appendChild(el);
+  });
 }
 
 /* ---------------- farm note ---------------- */
@@ -3515,6 +4291,34 @@ $('modal').addEventListener('click', e=>{ if (e.target === $('modal')) closeModa
 /* =======================================================================
    27. GO
    ======================================================================= */
+/* =======================================================================
+   26b. THE KEEPER'S OWN COPY
+   ?empress puts Empress Zhū in the paddock at full bond with a bottomless
+   purse. It is a query string, not a secret: anybody reading this file can
+   find it. What it does mean is that nobody reaches it by playing, so the
+   arcade link stays the honest game.
+   ======================================================================= */
+(function keeper(){
+  const q = (location.search || '').toLowerCase();
+  if (q.indexOf('empress') < 0) return;
+  S.rich = true;
+  const p = makePig('empress', 'Empress Zhū');
+  p.bond = 100; p.trust = 100; p.training = 20;
+  p.joy = 100; p.energy = 100; p.hunger = 6; p.heat = 34;
+  p.weightLb = BREED_BY_ID.empress.matureLb;
+  p.ageDays = 400;
+  p.x = you.x + 170; p.y = you.y + 70;
+  S.pigs.push(p);
+  S.hearts = 250;
+  FRIENDS.forEach(f=> S.friendship[f.id] = 60);
+  TREATS.forEach(t=> S.inv.treats[t.id] = 20);
+  TOYS.forEach(t=> S.inv.toys[t.id] = true);
+  S.selTreat = 'chestnut'; S.selToy = 'oakbox';
+  sysLine('Empress Zhū has been yours for a year and two months. She knows the gate, she knows your boots, ' +
+    'and she comes when you say her name from the far side of the paddock. The account has no bottom to it. ' +
+    'None of that is why she leans on you.');
+})();
+
 paintChips();
 paintHotbar();
 paintFarmNote();
@@ -3523,6 +4327,8 @@ paintMarket();
 paintShop();
 paintPig();
 paintBag();
+paintOuting();
+paintFriends();
 sysLine('Bellhollow, half past six. Forty-eight metres of paddock, a barn that needs mucking out, ' +
   'nine oaks with bare ground under them that nobody has been able to work since the last pig died, ' +
   'and fifty million dollars sitting in the account, which buys every pig in the county and not one ' +
