@@ -55,6 +55,21 @@
   }
   .goal .tag { font-size:10px; letter-spacing:1.4px; color:var(--accent); display:block; font-family:"Segoe UI",system-ui,sans-serif; }
   .goal.hide { display:none; }
+
+  /* ---------------- on-screen key legend (desktop only) ---------------- */
+  .keycard {
+    position:fixed; left:10px; top:62px; z-index:5; display:none;
+    background:rgba(255,253,247,.93); border-radius:14px; padding:9px 11px;
+    box-shadow:0 4px 14px rgba(0,0,0,.24); font-family:"Segoe UI",system-ui,sans-serif;
+  }
+  body.no-touch .keycard { display:block; }
+  body.no-touch .keycard.off { display:none; }
+  .keycard .ttl { font-size:9.5px; letter-spacing:1.4px; color:var(--accent); font-weight:800; margin-bottom:6px; }
+  .krow { display:flex; align-items:center; gap:6px; margin-bottom:4px; font-size:11.5px; color:var(--muted); font-weight:600; }
+  .krow:last-child { margin-bottom:0; }
+  .krow .kk { display:flex; gap:3px; flex:0 0 auto; }
+  #keysB { display:none; }
+  body.no-touch #keysB { display:flex; }
   .log { position:fixed; left:50%; bottom:158px; transform:translateX(-50%); width:min(430px,90vw); z-index:6; pointer-events:none; display:flex; flex-direction:column; gap:5px; align-items:center; }
   .toast {
     background:rgba(44,42,58,.9); color:#fff; padding:7px 15px; border-radius:999px;
@@ -227,7 +242,10 @@
   <button class="iconbtn" id="zIn" title="Zoom in">＋</button>
   <button class="iconbtn" id="zOut" title="Zoom out">－</button>
   <button class="iconbtn" id="muteB" title="Sound">🔊</button>
+  <button class="iconbtn" id="keysB" title="Show or hide the key list">⌨</button>
 </div>
+
+<div class="keycard" id="keyCard"><div class="ttl">KEYS</div><div id="keyRows"></div></div>
 
 <div class="goal hide" id="goalBox"><span class="tag">YOUR QUEST</span><span id="goalTxt"></span></div>
 <div class="log" id="log"></div>
@@ -306,7 +324,8 @@
       <div class="faces" id="faceRow"></div>
     </div>
     <button class="go" id="goB">Start building ▶</button>
-    <div class="mini">Move with the arrow keys, WASD, or the stick on the left. Spin the camera with Q and E.</div>
+    <div class="keys" id="keyStart" style="margin-top:12px"></div>
+    <div class="mini">On a phone or tablet, use the stick on the left and the big round buttons on the right.</div>
   </div>
 </div>
 
@@ -494,7 +513,9 @@ function islandAt(x,y){
   return box * 0.62 + rad * 0.46;        // < 1 means "on the island"
 }
 
-function genTerrain(){
+/* `bare` skips the random scenery: a save already carries its own copy of it,
+   so re-scattering on load would pile new bushes on top every single time. */
+function genTerrain(bare){
   world.fill(0);
   propMap.clear();
   for (let y = 0; y < GRID; y++){
@@ -505,7 +526,7 @@ function genTerrain(){
     }
   }
   // scenery on the wild ring: tufts of leaves and a few boulders
-  for (let i = 0; i < 90; i++){
+  for (let i = 0; !bare && i < 90; i++){
     const x = randi(0, GRID-1), y = randi(0, GRID-1);
     if (!getB(x,y,0) || inPlotMax(x,y) || nearStation(x,y,2.5)) continue;
     if (Math.random() < 0.45) setB(x, y, 1, 7);
@@ -1910,10 +1931,35 @@ document.getElementById('shopB').onclick = () => { renderShop(); openSheet('shop
 document.getElementById('jobsB').onclick = () => { fillJobs(); renderJobs(); openSheet('jobSheet'); };
 document.getElementById('helpB').onclick = () => openSheet('helpSheet');
 
-document.getElementById('keyHelp').innerHTML =
-  '<b>Keys:</b> <kbd>W A S D</kbd> or arrows to walk · <kbd>Space</kbd> jump · ' +
-  '<kbd>Q</kbd> <kbd>E</kbd> spin the camera · <kbd>B</kbd> build mode · <kbd>F</kbd> mine · ' +
-  'mouse wheel zooms · click to place a block.';
+/* ==========================================================================
+   Key legend — one table, shown on the start screen, in Help, and on screen
+   ========================================================================== */
+const KEYMAP = [
+  { k:['W','A','S','D'], d:'Walk around (or the arrow keys)' },
+  { k:['Space'],         d:'Jump' },
+  { k:['B'],             d:'Open and close Build mode' },
+  { k:['Click'],         d:'Place a block while building' },
+  { k:['F'],             d:'Smash a rock at the quarry' },
+  { k:['Q','E'],         d:'Spin the camera around' },
+  { k:['Wheel'],         d:'Zoom in and out' }
+];
+const keyRowsHtml = () => KEYMAP.map(r =>
+  '<div class="krow"><span class="kk">' +
+  r.k.map(k => '<kbd>' + k + '</kbd>').join('') +
+  '</span><span>' + r.d + '</span></div>'
+).join('');
+
+document.getElementById('keyRows').innerHTML  = keyRowsHtml();
+document.getElementById('keyHelp').innerHTML  = keyRowsHtml();
+document.getElementById('keyStart').innerHTML = keyRowsHtml();
+
+const keyCard = document.getElementById('keyCard');
+document.getElementById('keysB').onclick = function(){
+  keyCard.classList.toggle('off');
+  this.textContent = keyCard.classList.contains('off') ? '⌨' : '⌨';
+  this.title = keyCard.classList.contains('off') ? 'Show the key list' : 'Hide the key list';
+  save();
+};
 
 /* ==========================================================================
    Build mode + palette
@@ -2028,6 +2074,7 @@ function save(){
       owned:S.owned, ups:S.ups, plot:S.plot, maxZ:S.maxZ,
       placed:S.placed, propsPlaced:S.propsPlaced, mined:S.mined,
       jobsDone:S.jobsDone, coinsPicked:S.coinsPicked, quest:quest,
+      keys: !keyCard.classList.contains('off'),
       blocks:blocks, props:props
     }));
   } catch(e){ /* a full or blocked store just means no saving */ }
@@ -2046,9 +2093,8 @@ function applySave(d){
   S.placed = d.placed || 0; S.propsPlaced = d.propsPlaced || 0;
   S.mined = d.mined || 0; S.jobsDone = d.jobsDone || 0; S.coinsPicked = d.coinsPicked || 0;
   quest = d.quest || 0;
-  genTerrain();
-  const m = Math.floor(GRID/2);
-  setB(m, m, 1, 0);                             // clear the starter block first
+  if (d.keys === false) keyCard.classList.add('off');   // older saves simply keep it on
+  genTerrain(true);                             // ground and quarry only; the save has the rest
   const bl = d.blocks || [];
   for (let i = 0; i < bl.length; i += 4) setB(bl[i], bl[i+1], bl[i+2], bl[i+3]);
   propMap.clear();
@@ -2143,6 +2189,10 @@ if (saved){
 }
 
 document.getElementById('goB').onclick = () => {
+  // a saved town is easy to lose by hitting the wrong button, so ask first
+  if (saved && !window.confirm(
+        'This starts a brand new town and knocks ' + saved.town + ' down.\n\n' +
+        'To keep it, press Cancel and use "Carry on with ' + saved.town + '" instead.')) return;
   const n = document.getElementById('nameIn').value.trim();
   S.town = n || 'Cubeville';
   genTerrain();
