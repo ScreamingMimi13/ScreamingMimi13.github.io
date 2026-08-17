@@ -56,6 +56,20 @@
   .goal .tag { font-size:10px; letter-spacing:1.4px; color:var(--accent); display:block; font-family:"Segoe UI",system-ui,sans-serif; }
   .goal.hide { display:none; }
 
+  /* ---------------- signposts pointing at the three stations ---------------- */
+  .markers { position:fixed; inset:0; pointer-events:none; z-index:4; display:none; }
+  body.playing .markers { display:block; }
+  .mk {
+    position:absolute; left:0; top:0; display:flex; align-items:center; gap:5px;
+    background:rgba(44,42,58,.8); color:#fff; border-radius:999px; padding:4px 10px;
+    font-family:"Segoe UI",system-ui,sans-serif; font-size:11.5px; font-weight:800;
+    white-space:nowrap; box-shadow:0 3px 10px rgba(0,0,0,.32);
+  }
+  .mk .ic { font-size:13px; }
+  .mk .ar { font-size:14px; }
+  .mk.edge { background:linear-gradient(180deg,#8571dd,#6b53c9); }
+  .mk.near { background:rgba(79,168,63,.92); }
+
   /* ---------------- on-screen key legend (desktop only) ---------------- */
   .keycard {
     position:fixed; left:10px; top:62px; z-index:5; display:none;
@@ -251,6 +265,12 @@
   <button class="iconbtn" id="zOut" title="Zoom out">－</button>
   <button class="iconbtn" id="muteB" title="Sound">🔊</button>
   <button class="iconbtn" id="keysB" title="Show or hide the key list">⌨</button>
+</div>
+
+<div class="markers" id="markers">
+  <div class="mk" id="mkQuarry"><span class="ic">⛏</span><span>Quarry</span><span class="ar"></span></div>
+  <div class="mk" id="mkShop"><span class="ic">🛒</span><span>Shop</span><span class="ar"></span></div>
+  <div class="mk" id="mkBoard"><span class="ic">📋</span><span>Jobs</span><span class="ar"></span></div>
 </div>
 
 <div class="keycard" id="keyCard"><div class="ttl">KEYS</div><div id="keyRows"></div></div>
@@ -2025,11 +2045,51 @@ function useAction(){
 }
 
 /* ==========================================================================
+   Signposts — "find the Quarry" is useless advice without one of these.
+   A station on screen gets a label floating over it; a station off screen
+   gets pinned to the nearest edge with an arrow, so it always reads as
+   "it is that way". Rendered as DOM, not canvas, because canvas text cannot
+   be trusted with emoji across devices.
+   ========================================================================== */
+const MARKERS = [
+  { id:'mkQuarry', st:QUARRY },
+  { id:'mkShop',   st:SHOP   },
+  { id:'mkBoard',  st:BOARD  }
+];
+const ARROWS = ['→','↘','↓','↙','←','↖','↑','↗'];
+
+function updateMarkers(){
+  for (const m of MARKERS){
+    const el = m.el || (m.el = document.getElementById(m.id));
+    const ar = m.ar || (m.ar = el.querySelector('.ar'));
+    const p  = worldScreen(m.st.x + 0.5, m.st.y + 0.5, topZ(m.st.x, m.st.y) + 2);
+    const vx = (p.x - camX) * zoom + W/2;
+    const vy = (p.y - camY) * zoom + H/2;
+
+    const padX = 62, padTop = 104, padBot = H - (building ? 250 : 150);
+    const off = vx < padX || vx > W - padX || vy < padTop || vy > padBot;
+    const near = Math.hypot(player.x - m.st.x - 0.5, player.y - m.st.y - 0.5) < 3;
+
+    if (off){
+      const a = Math.atan2(vy - H/2, vx - W/2);
+      ar.textContent = ARROWS[((Math.round(a / (Math.PI/4)) % 8) + 8) % 8];
+    } else if (ar.textContent){
+      ar.textContent = '';
+    }
+    el.classList.toggle('edge', off);
+    el.classList.toggle('near', !off && near);
+    el.style.transform = 'translate(' + Math.round(clamp(vx, padX, W - padX)) + 'px,' +
+                                        Math.round(clamp(vy, padTop, Math.max(padTop, padBot))) + 'px)' +
+                         ' translate(-50%,-100%)';
+  }
+}
+
+/* ==========================================================================
    Quests — a gentle nudge through the first few minutes
    ========================================================================== */
 const QUESTS = [
   { t:'Walk around and grab 3 spinning coins.',      done: () => S.coinsPicked >= 3 },
-  { t:'Find the Quarry, then hold the orange ⛏ USE button to smash a rock.', done: () => S.mined >= 1 },
+  { t:'Follow the ⛏ Quarry sign, then hold the orange ⛏ USE button to smash a rock.', done: () => S.mined >= 1 },
   { t:'Tap Build and place your first block.',        done: () => S.placed >= 1 },
   { t:'Take a job from the Job Board and finish it.', done: () => S.jobsDone >= 1 },
   { t:'Buy a new kind of block in the Shop.',         done: () => Object.keys(S.owned).length >= 3 },
@@ -2211,10 +2271,12 @@ document.getElementById('goB').onclick = () => {
 
 function begin(){
   document.getElementById('startScreen').classList.add('off');
+  document.body.classList.add('playing');
   S.started = true;
   player.x = GRID/2 + 1.5; player.y = GRID/2 + 1.5;
   player.z = groundZ(player.x, player.y);
   updateCam(true);
+  updateMarkers();          // place them before the first frame, not during it
   fillJobs();
   buildPalette();
   hudDirty = true;
@@ -2242,6 +2304,7 @@ function frame(now){
     updateFx(dt);
     updateQuest();
     updateHud();
+    updateMarkers();
 
     updateCam(false);
     camX += (camTX - camX) * Math.min(1, dt * 7);
