@@ -1,0 +1,2210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Cubeville — Start With One Block</title>
+<style>
+  :root {
+    --panel:#fffdf7; --panel2:#f4efe3; --ink:#2c2a3a; --muted:#726d87;
+    --line:#e3dbc9; --accent:#6b53c9; --accent-d:#4b399a;
+    --gold:#e8b52c; --gold-d:#b8891a;
+    --green:#4fa83f; --green-d:#367a2a;
+    --pink:#d9558c; --pink-d:#a63a68;
+    --blue:#3d8fd6; --blue-d:#2a6aa6;
+  }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html, body { margin:0; padding:0; height:100%; overflow:hidden; }
+  body {
+    font-family:"Comic Sans MS","Chalkboard SE","Segoe UI",system-ui,sans-serif;
+    color:var(--ink); background:#8fd8f2;
+    user-select:none; -webkit-user-select:none; touch-action:none;
+  }
+  canvas#world { position:fixed; inset:0; width:100%; height:100%; display:block; touch-action:none; }
+
+  /* ---------------- top HUD ---------------- */
+  .hud { position:fixed; top:0; left:0; right:0; padding:8px 10px; display:flex; gap:8px; align-items:flex-start; pointer-events:none; z-index:5; }
+  .hud > * { pointer-events:auto; }
+  .town { color:#fff; text-shadow:0 2px 0 rgba(20,40,60,.45); line-height:1.05; margin-right:auto; }
+  .town b { display:block; font-size:19px; letter-spacing:.3px; }
+  .town small { font-size:10px; letter-spacing:1.3px; opacity:.95; font-family:"Segoe UI",system-ui,sans-serif; }
+  .chips { display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end; max-width:62vw; }
+  .chip {
+    font-family:"Segoe UI",system-ui,sans-serif; font-weight:800; font-size:13px;
+    padding:5px 11px; border-radius:999px; display:flex; align-items:center; gap:5px;
+    white-space:nowrap; transition:transform .15s ease;
+  }
+  .chip.bump { transform:scale(1.22); }
+  .chip.coin { background:linear-gradient(180deg,#f7dd8e,var(--gold)); color:#4a3606; box-shadow:0 3px 0 var(--gold-d); }
+  .chip.wow  { background:linear-gradient(180deg,#f0a7c8,var(--pink)); color:#4d1023; box-shadow:0 3px 0 var(--pink-d); }
+  .chip.vis  { background:linear-gradient(180deg,#a9d8f5,var(--blue)); color:#0d2b45; box-shadow:0 3px 0 var(--blue-d); }
+  .iconbtn {
+    width:38px; height:38px; border-radius:12px; border:none; font-size:17px;
+    background:rgba(255,255,255,.9); color:var(--ink); box-shadow:0 3px 0 rgba(0,0,0,.22);
+    display:flex; align-items:center; justify-content:center; cursor:pointer; font-family:inherit;
+  }
+  .iconbtn:active { transform:translateY(2px); box-shadow:0 1px 0 rgba(0,0,0,.22); }
+  .toolcol { position:fixed; right:10px; top:98px; display:flex; flex-direction:column; gap:6px; z-index:5; }
+
+  /* ---------------- goal + log ---------------- */
+  .goal {
+    position:fixed; top:58px; left:50%; transform:translateX(-50%);
+    background:rgba(255,253,247,.94); border-radius:14px; padding:7px 14px;
+    font-size:13px; font-weight:bold; box-shadow:0 4px 14px rgba(0,0,0,.25);
+    max-width:70vw; text-align:center; z-index:5; line-height:1.35;
+  }
+  .goal .tag { font-size:10px; letter-spacing:1.4px; color:var(--accent); display:block; font-family:"Segoe UI",system-ui,sans-serif; }
+  .goal.hide { display:none; }
+  .log { position:fixed; left:50%; bottom:158px; transform:translateX(-50%); width:min(430px,90vw); z-index:6; pointer-events:none; display:flex; flex-direction:column; gap:5px; align-items:center; }
+  .toast {
+    background:rgba(44,42,58,.9); color:#fff; padding:7px 15px; border-radius:999px;
+    font-size:13px; font-family:"Segoe UI",system-ui,sans-serif; font-weight:700;
+    animation:pop .25s ease; box-shadow:0 4px 12px rgba(0,0,0,.3); text-align:center;
+  }
+  .toast.good { background:rgba(56,130,50,.94); }
+  .toast.gold { background:rgba(184,137,26,.95); }
+  .toast.bad  { background:rgba(180,60,45,.94); }
+  @keyframes pop { from { transform:translateY(10px) scale(.9); opacity:0; } }
+
+  /* ---------------- bottom bar ---------------- */
+  .bar {
+    position:fixed; left:0; right:0; bottom:0; padding:8px 10px calc(8px + env(safe-area-inset-bottom));
+    display:flex; gap:8px; justify-content:center; z-index:7;
+    background:linear-gradient(0deg,rgba(20,30,45,.42),rgba(20,30,45,0));
+  }
+  .bbtn {
+    font:inherit; border:none; cursor:pointer; border-radius:14px; padding:8px 14px;
+    font-size:14px; font-weight:bold; color:#fff; text-align:center;
+    background:linear-gradient(180deg,#8571dd,var(--accent)); box-shadow:0 4px 0 var(--accent-d);
+  }
+  .bbtn.g { background:linear-gradient(180deg,#6cc45c,var(--green)); box-shadow:0 4px 0 var(--green-d); }
+  .bbtn.y { background:linear-gradient(180deg,#f6d269,var(--gold)); box-shadow:0 4px 0 var(--gold-d); color:#4a3606; }
+  .bbtn.b { background:linear-gradient(180deg,#63aee6,var(--blue)); box-shadow:0 4px 0 var(--blue-d); }
+  .bbtn:active { transform:translateY(3px); box-shadow:0 1px 0 rgba(0,0,0,.3); }
+  .bbtn small { display:block; font-size:9px; opacity:.85; font-family:"Segoe UI",system-ui,sans-serif; letter-spacing:.6px; }
+
+  /* ---------------- touch controls ---------------- */
+  .stick {
+    position:fixed; left:14px; bottom:80px; width:118px; height:118px; border-radius:50%;
+    background:rgba(255,255,255,.24); border:3px solid rgba(255,255,255,.5); z-index:5; touch-action:none;
+  }
+  .stick i { position:absolute; left:50%; top:50%; width:52px; height:52px; margin:-26px 0 0 -26px; border-radius:50%; background:rgba(255,255,255,.82); box-shadow:0 3px 8px rgba(0,0,0,.25); }
+  .acts { position:fixed; right:14px; bottom:80px; display:flex; flex-direction:column; gap:8px; z-index:5; align-items:center; }
+  .abtn {
+    font-family:"Segoe UI",system-ui,sans-serif;
+    width:74px; height:74px; border-radius:50%; border:none; cursor:pointer;
+    font-size:11px; font-weight:bold; color:#fff;
+    background:linear-gradient(180deg,#f0a24e,#d97a22); box-shadow:0 5px 0 #a85a13;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; line-height:1.1;
+  }
+  .abtn span { font-size:21px; }
+  .abtn.jump { width:58px; height:58px; background:linear-gradient(180deg,#7fd0f5,#3d8fd6); box-shadow:0 5px 0 #2a6aa6; font-size:10px; }
+  .abtn.jump span { font-size:17px; }
+  .abtn:active { transform:translateY(3px); box-shadow:0 2px 0 #a85a13; }
+  body.no-touch .stick, body.no-touch .acts { display:none; }
+
+  /* ---------------- build bar ---------------- */
+  .buildbar {
+    position:fixed; left:0; right:0; bottom:64px; z-index:6; display:none;
+    padding:8px 10px; gap:8px; flex-direction:column; align-items:center;
+  }
+  body.building .buildbar { display:flex; }
+  body.building .stick { bottom:186px; }
+  body.building .acts  { bottom:186px; }
+  body.building .log   { bottom:250px; }
+  .palette {
+    display:flex; gap:6px; overflow-x:auto; max-width:min(760px,96vw); padding:8px 8px 10px;
+    background:rgba(255,253,247,.94); border-radius:16px; box-shadow:0 5px 18px rgba(0,0,0,.28);
+  }
+  .swatch {
+    flex:0 0 auto; width:54px; border:none; background:none; cursor:pointer; padding:2px;
+    display:flex; flex-direction:column; align-items:center; gap:2px; font:inherit;
+  }
+  .swatch .sw { width:40px; height:40px; border-radius:9px; box-shadow:inset 0 -8px 0 rgba(0,0,0,.22), 0 2px 0 rgba(0,0,0,.18); border:3px solid transparent; display:flex; align-items:center; justify-content:center; font-size:19px; }
+  .swatch.on .sw { border-color:var(--accent); transform:scale(1.06); }
+  .swatch b { font-size:9px; font-family:"Segoe UI",system-ui,sans-serif; color:var(--muted); font-weight:700; }
+  .swatch.on b { color:var(--accent); }
+  .swatch .pz { font-size:9px; color:var(--gold-d); font-weight:800; font-family:"Segoe UI",system-ui,sans-serif; }
+  .modes { display:flex; gap:6px; }
+  .mbtn {
+    font:inherit; border:none; cursor:pointer; border-radius:12px; padding:7px 13px; font-size:13px; font-weight:bold;
+    background:rgba(255,255,255,.92); color:var(--muted); box-shadow:0 3px 0 rgba(0,0,0,.2);
+  }
+  .mbtn.on { background:linear-gradient(180deg,#8571dd,var(--accent)); color:#fff; box-shadow:0 3px 0 var(--accent-d); }
+
+  /* ---------------- sheets ---------------- */
+  .scrim { position:fixed; inset:0; background:rgba(20,24,40,.55); z-index:20; display:none; }
+  .scrim.on { display:block; }
+  .sheet {
+    position:fixed; left:50%; bottom:0; transform:translateX(-50%);
+    width:min(720px,100%); max-height:88vh; overflow-y:auto; z-index:21;
+    background:var(--panel); border-radius:22px 22px 0 0; padding:16px 16px calc(20px + env(safe-area-inset-bottom));
+    box-shadow:0 -10px 30px rgba(0,0,0,.35); display:none; animation:up .22s ease;
+  }
+  .sheet.on { display:block; }
+  @keyframes up { from { transform:translate(-50%,40px); opacity:.4; } }
+  .sheet h2 { margin:0 0 2px; font-size:21px; }
+  .sheet .sub { color:var(--muted); font-size:12.5px; line-height:1.5; margin-bottom:10px; font-family:"Segoe UI",system-ui,sans-serif; }
+  .closex { position:absolute; right:12px; top:12px; }
+  .tabs { display:flex; gap:6px; margin-bottom:12px; flex-wrap:wrap; }
+  .tab { font:inherit; border:none; cursor:pointer; border-radius:999px; padding:6px 14px; font-size:13px; font-weight:bold; background:var(--panel2); color:var(--muted); }
+  .tab.on { background:var(--accent); color:#fff; }
+  .items { display:grid; gap:9px; grid-template-columns:repeat(auto-fill,minmax(158px,1fr)); }
+  .item { background:var(--panel2); border-radius:14px; padding:10px; display:flex; gap:9px; align-items:center; border:2px solid transparent; }
+  .item.owned { border-color:var(--green); background:#eef7ea; }
+  .item .cube { width:38px; height:38px; border-radius:8px; flex:0 0 auto; box-shadow:inset 0 -9px 0 rgba(0,0,0,.24); display:flex; align-items:center; justify-content:center; font-size:19px; }
+  .item .txt { flex:1; min-width:0; }
+  .item .nm { font-size:13.5px; font-weight:bold; line-height:1.2; }
+  .item .wo { font-size:10.5px; color:var(--muted); font-family:"Segoe UI",system-ui,sans-serif; line-height:1.35; }
+  .buy {
+    font:inherit; border:none; cursor:pointer; border-radius:11px; padding:6px 11px; font-size:12px; font-weight:bold;
+    background:linear-gradient(180deg,#f6d269,var(--gold)); color:#4a3606; box-shadow:0 3px 0 var(--gold-d); white-space:nowrap;
+  }
+  .buy:disabled { background:#ddd6c6; color:#9b937f; box-shadow:0 3px 0 #c2baa8; cursor:default; }
+  .buy.done { background:linear-gradient(180deg,#7fd06d,var(--green)); color:#fff; box-shadow:0 3px 0 var(--green-d); }
+  .job { background:var(--panel2); border-radius:14px; padding:12px; margin-bottom:9px; display:flex; gap:10px; align-items:center; border:2px solid transparent; }
+  .job.ready { border-color:var(--green); background:#eef7ea; }
+  .job .jt { flex:1; }
+  .job .jn { font-size:14px; font-weight:bold; line-height:1.25; }
+  .job .jp { font-size:11.5px; color:var(--muted); font-family:"Segoe UI",system-ui,sans-serif; margin-top:2px; }
+  .prog { height:7px; border-radius:99px; background:#ded6c4; overflow:hidden; margin-top:6px; }
+  .prog i { display:block; height:100%; background:linear-gradient(90deg,#8fd07f,var(--green)); border-radius:99px; transition:width .3s ease; }
+  .help p { font-size:13.5px; line-height:1.6; margin:0 0 9px; }
+  .help b { color:var(--accent); }
+  .keys { font-family:"Segoe UI",system-ui,sans-serif; font-size:12.5px; color:var(--muted); line-height:1.9; }
+  kbd { background:var(--panel2); border-radius:6px; padding:1px 7px; font-size:11.5px; font-weight:bold; color:var(--ink); box-shadow:0 2px 0 var(--line); }
+  .danger { font:inherit; border:none; cursor:pointer; margin-top:10px; border-radius:11px; padding:8px 14px; font-size:12.5px; font-weight:bold; background:#f0d9d4; color:#8f3627; }
+
+  /* ---------------- start screen ---------------- */
+  .start {
+    position:fixed; inset:0; z-index:40; overflow-y:auto;
+    background:linear-gradient(170deg,#6fc9ee,#a8e2f2 45%,#ddf1cf);
+    display:flex; align-items:center; justify-content:center; padding:20px 14px;
+  }
+  .start.off { display:none; }
+  .card { background:var(--panel); border-radius:24px; padding:20px; width:min(520px,100%); box-shadow:0 16px 40px rgba(0,0,0,.3); }
+  .card h1 { margin:0; font-size:30px; color:var(--accent); line-height:1.1; }
+  .card .tag2 { color:var(--muted); font-size:13px; margin:4px 0 10px; font-family:"Segoe UI",system-ui,sans-serif; line-height:1.5; }
+  .field { margin-bottom:13px; }
+  .field label { display:block; font-size:12px; font-weight:bold; color:var(--muted); margin-bottom:5px; letter-spacing:.6px; font-family:"Segoe UI",system-ui,sans-serif; }
+  .field input {
+    font:inherit; width:100%; padding:10px 13px; border-radius:12px; border:2px solid var(--line);
+    background:var(--panel2); color:var(--ink); font-size:15px;
+  }
+  .field input:focus { outline:none; border-color:var(--accent); }
+  .swatches { display:flex; gap:8px; flex-wrap:wrap; }
+  .cs { width:42px; height:42px; border-radius:11px; border:3px solid transparent; cursor:pointer; box-shadow:inset 0 -9px 0 rgba(0,0,0,.22); }
+  .cs.on { border-color:var(--ink); transform:scale(1.08); }
+  .faces { display:flex; gap:7px; flex-wrap:wrap; }
+  .fs { width:46px; height:42px; border-radius:11px; border:3px solid var(--line); background:var(--panel2); cursor:pointer; font-size:18px; display:flex; align-items:center; justify-content:center; }
+  .fs.on { border-color:var(--accent); background:#efeaff; }
+  .prevwrap { display:flex; justify-content:center; margin:2px 0 10px; }
+  canvas#prev { width:160px; height:140px; }
+  .go {
+    font:inherit; width:100%; border:none; cursor:pointer; border-radius:16px; padding:14px; font-size:19px; font-weight:bold; color:#fff;
+    background:linear-gradient(180deg,#6cc45c,var(--green)); box-shadow:0 5px 0 var(--green-d);
+  }
+  .go:active { transform:translateY(3px); box-shadow:0 2px 0 var(--green-d); }
+  .go.resume { background:linear-gradient(180deg,#8571dd,var(--accent)); box-shadow:0 5px 0 var(--accent-d); margin-bottom:9px; font-size:16px; padding:11px; }
+  .mini { font-size:11px; color:var(--muted); text-align:center; margin-top:9px; font-family:"Segoe UI",system-ui,sans-serif; line-height:1.5; }
+</style>
+</head>
+<body>
+<canvas id="world"></canvas>
+
+<div class="hud">
+  <div class="town"><b id="townName">Cubeville</b><small id="townSub">POPULATION: YOU</small></div>
+  <div class="chips">
+    <div class="chip coin" id="chipCoin">🪙 <span id="coinN">0</span></div>
+    <div class="chip wow" id="chipWow">✨ <span id="wowN">0</span></div>
+    <div class="chip vis" id="chipVis">🚌 <span id="visN">0</span></div>
+  </div>
+</div>
+
+<div class="toolcol">
+  <button class="iconbtn" id="rotL" title="Spin left">↺</button>
+  <button class="iconbtn" id="rotR" title="Spin right">↻</button>
+  <button class="iconbtn" id="zIn" title="Zoom in">＋</button>
+  <button class="iconbtn" id="zOut" title="Zoom out">－</button>
+  <button class="iconbtn" id="muteB" title="Sound">🔊</button>
+</div>
+
+<div class="goal hide" id="goalBox"><span class="tag">YOUR QUEST</span><span id="goalTxt"></span></div>
+<div class="log" id="log"></div>
+
+<div class="stick" id="stick"><i id="knob"></i></div>
+<div class="acts">
+  <button class="abtn jump" id="jumpB"><span>⤴</span>JUMP</button>
+  <button class="abtn" id="useB"><span>⛏</span>USE</button>
+</div>
+
+<div class="buildbar">
+  <div class="modes">
+    <button class="mbtn on" id="mPlace">🧱 Place</button>
+    <button class="mbtn" id="mErase">🧹 Erase</button>
+    <button class="mbtn" id="mDone">✔ Done</button>
+  </div>
+  <div class="palette" id="palette"></div>
+</div>
+
+<div class="bar">
+  <button class="bbtn" id="buildB">🔨 Build<small>MAKE STUFF</small></button>
+  <button class="bbtn y" id="shopB">🛒 Shop<small>SPEND COINS</small></button>
+  <button class="bbtn g" id="jobsB">📋 Jobs<small>EARN COINS</small></button>
+  <button class="bbtn b" id="helpB">❓<small>HELP</small></button>
+</div>
+
+<div class="scrim" id="scrim"></div>
+
+<div class="sheet" id="shopSheet">
+  <button class="iconbtn closex" data-close="1">✕</button>
+  <h2>🛒 The Block Shop</h2>
+  <div class="sub">Unlock a block once and you can build with it forever. Props cost coins each time you plant one.</div>
+  <div class="tabs">
+    <button class="tab on" data-shop="blocks">🧱 Blocks</button>
+    <button class="tab" data-shop="props">🌳 Props</button>
+    <button class="tab" data-shop="up">⭐ Upgrades</button>
+  </div>
+  <div class="items" id="shopItems"></div>
+</div>
+
+<div class="sheet" id="jobSheet">
+  <button class="iconbtn closex" data-close="1">✕</button>
+  <h2>📋 The Job Board</h2>
+  <div class="sub">Finish a job, then tap <b>Get paid</b>. A fresh job appears whenever you finish one.</div>
+  <div id="jobList"></div>
+</div>
+
+<div class="sheet help" id="helpSheet">
+  <button class="iconbtn closex" data-close="1">✕</button>
+  <h2>❓ How to play</h2>
+  <p>You are a little cube standing in an empty field with <b>one block</b>. That is the whole start.</p>
+  <p><b>1. Get coins.</b> Grab the spinning coins in the grass, walk to the <b>Quarry</b> and hold USE to smash rocks, and finish jobs from the <b>Job Board</b>.</p>
+  <p><b>2. Spend coins.</b> The <b>Shop</b> unlocks new kinds of block (buy once, build forever), sells props like trees and fountains, and has upgrades like a bigger plot of land.</p>
+  <p><b>3. Build.</b> Tap <b>Build</b>, pick a block, then tap the ground to stack it up. Tap a block again in Erase mode to take it back.</p>
+  <p><b>4. Get visitors.</b> The cooler your town looks, the higher your <b>✨ Wow</b>. Wow brings <b>🚌 visitors</b>, and every visitor tips you coins forever — so a good-looking town pays you while you play.</p>
+  <div class="keys" id="keyHelp"></div>
+  <button class="danger" id="wipeB">Start a brand new town</button>
+</div>
+
+<div class="start" id="startScreen">
+  <div class="card">
+    <h1>🧱 Cubeville</h1>
+    <div class="tag2">Start with one block. Do jobs, earn coins, buy blocks, and build a whole town out of them.</div>
+    <div class="prevwrap"><canvas id="prev" width="320" height="280"></canvas></div>
+    <button class="go resume" id="resumeB" style="display:none">↩ Carry on with my town</button>
+    <div class="field">
+      <label>NAME YOUR TOWN</label>
+      <input id="nameIn" maxlength="18" placeholder="Cubeville" value="Cubeville">
+    </div>
+    <div class="field">
+      <label>YOUR CUBE'S COLOUR</label>
+      <div class="swatches" id="colorRow"></div>
+    </div>
+    <div class="field">
+      <label>YOUR CUBE'S FACE</label>
+      <div class="faces" id="faceRow"></div>
+    </div>
+    <button class="go" id="goB">Start building ▶</button>
+    <div class="mini">Move with the arrow keys, WASD, or the stick on the left. Spin the camera with Q and E.</div>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ==========================================================================
+   Cubeville — a single-file 3D block builder.
+
+   The renderer is an isometric voxel painter: every solid thing in the world
+   is an axis-aligned box drawn as three shaded quads (top / u-face / v-face)
+   and sorted back-to-front. The camera snaps to four 90-degree rotations,
+   which keeps the depth sort exact and cheap.
+   ========================================================================== */
+
+/* ---------------- world constants ---------------- */
+const GRID   = 26;                 // island is GRID x GRID tiles
+const HEIGHT = 14;                 // hard ceiling on stack height
+const HW = 30, HH = 15, ZH = 26;   // iso half-width, half-height, block height (px)
+const PLOT_SIZES = [6, 9, 12, 16];
+
+/* ---------------- tiny utils ---------------- */
+const clamp = (v,a,b) => v < a ? a : v > b ? b : v;
+const rand  = (a,b) => a + Math.random() * (b - a);
+const randi = (a,b) => Math.floor(rand(a, b + 1));
+const pick  = arr => arr[Math.floor(Math.random() * arr.length)];
+
+function hexRgb(h){
+  h = h.replace('#','');
+  if (h.length === 3) h = h[0]+h[0]+h[1]+h[1]+h[2]+h[2];
+  const n = parseInt(h,16);
+  return [ (n>>16)&255, (n>>8)&255, n&255 ];
+}
+function shade(hex, mul, add){
+  const c = hexRgb(hex), a = add || 0;
+  const f = v => clamp(Math.round(v * mul + a), 0, 255);
+  return 'rgb(' + f(c[0]) + ',' + f(c[1]) + ',' + f(c[2]) + ')';
+}
+function shadeA(hex, mul, alpha){
+  const c = hexRgb(hex);
+  const f = v => clamp(Math.round(v * mul), 0, 255);
+  return 'rgba(' + f(c[0]) + ',' + f(c[1]) + ',' + f(c[2]) + ',' + alpha + ')';
+}
+
+/* ---------------- sound (tiny WebAudio blips, no files) ---------------- */
+let audioCtx = null, muted = false;
+function beep(freq, dur, type, vol){
+  if (muted) return;
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.type = type || 'sine';
+    o.frequency.value = freq;
+    g.gain.value = (vol == null ? 0.06 : vol);
+    g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + dur);
+    o.connect(g); g.connect(audioCtx.destination);
+    o.start(); o.stop(audioCtx.currentTime + dur);
+  } catch(e){ /* audio is a nicety, never a requirement */ }
+}
+const SFX = {
+  coin:  () => { beep(880,.09,'square',.05); setTimeout(()=>beep(1320,.12,'square',.05),60); },
+  place: () => beep(300 + Math.random()*60, .09, 'triangle', .07),
+  erase: () => beep(180, .1, 'sawtooth', .05),
+  mine:  () => beep(110 + Math.random()*40, .05, 'sawtooth', .04),
+  smash: () => { beep(200,.1,'square',.06); setTimeout(()=>beep(140,.16,'square',.05),70); },
+  buy:   () => { beep(660,.09,'sine',.06); setTimeout(()=>beep(990,.14,'sine',.06),80); },
+  job:   () => { [523,659,784,1046].forEach((f,i)=>setTimeout(()=>beep(f,.16,'triangle',.06), i*90)); },
+  nope:  () => beep(150,.14,'square',.05),
+  jump:  () => beep(430,.07,'sine',.04)
+};
+
+/* ==========================================================================
+   Block / prop / upgrade tables
+   ========================================================================== */
+
+// price = one-time unlock cost. wow = how impressive one block looks.
+const BLOCKS = [
+  null,
+  { n:'Grass',  c:'#63c14a', price:0,    wow:1,  detail:'grass' },
+  { n:'Dirt',   c:'#8a6242', price:8,    wow:1,  detail:'speck' },
+  { n:'Stone',  c:'#98a1ab', price:0,    wow:2,  detail:'speck' },
+  { n:'Sand',   c:'#e4cf8c', price:14,   wow:2,  detail:'speck' },
+  { n:'Wood',   c:'#c08a4a', price:30,   wow:3,  detail:'plank' },
+  { n:'Log',    c:'#7a5330', price:40,   wow:3,  detail:'plank' },
+  { n:'Leaves', c:'#3f9d4a', price:45,   wow:4,  detail:'grass' },
+  { n:'Cobble', c:'#7e8894', price:60,   wow:4,  detail:'speck' },
+  { n:'Brick',  c:'#c05a44', price:80,   wow:5,  detail:'brick' },
+  { n:'Roof',   c:'#a33b5a', price:110,  wow:6,  detail:'brick' },
+  { n:'Snow',   c:'#eef4fb', price:130,  wow:6,  detail:'grass' },
+  { n:'Water',  c:'#3aa0d8', price:150,  wow:7,  alpha:.72 },
+  { n:'Glass',  c:'#a8e0f0', price:180,  wow:8,  alpha:.42, detail:'shine' },
+  { n:'Marble', c:'#f2eee4', price:260,  wow:10, detail:'vein' },
+  { n:'Ice',    c:'#9fd8f5', price:300,  wow:11, alpha:.6, detail:'shine' },
+  { n:'Candy',  c:'#ff8fb8', price:420,  wow:16, detail:'speck' },
+  { n:'Neon',   c:'#ff4fd8', price:600,  wow:22, glow:true },
+  { n:'Gold',   c:'#f2c33c', price:900,  wow:30, glow:true, detail:'shine' },
+  { n:'Lava',   c:'#f0641c', price:1200, wow:36, glow:true, detail:'speck' },
+  { n:'Rock',   c:'#6f7a86', price:-1,   wow:0,  detail:'speck' }   // quarry only, never for sale
+];
+const ROCK = 20;
+
+// props sit on top of a block and cost coins every time you plant one
+const PROPS = [
+  null,
+  { n:'Flower',   e:'🌸', price:6,   wow:5   },
+  { n:'Bush',     e:'🌿', price:12,  wow:8   },
+  { n:'Sign',     e:'🪧', price:20,  wow:12  },
+  { n:'Bench',    e:'🪑', price:35,  wow:20  },
+  { n:'Tree',     e:'🌳', price:55,  wow:34  },
+  { n:'Lamp',     e:'💡', price:90,  wow:55  },
+  { n:'Flag',     e:'🚩', price:140, wow:80  },
+  { n:'Fountain', e:'⛲', price:320, wow:190 },
+  { n:'Statue',   e:'🗿', price:520, wow:300 },
+  { n:'Rocket',   e:'🚀', price:900, wow:520 }
+];
+
+const UPGRADES = [
+  { id:'boots', n:'Speedy Boots',     d:'Your cube walks a whole lot faster.',   price:150,  need:null    },
+  { id:'pick',  n:'Power Pick',       d:'Smash quarry rocks twice as fast.',     price:200,  need:null    },
+  { id:'plot1', n:'Bigger Plot',      d:'Your land grows from 6x6 to 9x9.',      price:260,  need:null    },
+  { id:'magnet',n:'Coin Magnet',      d:'Loose coins fly to you from far away.', price:340,  need:null    },
+  { id:'crane', n:'Sky Crane',        d:'Build 5 blocks higher into the sky.',   price:600,  need:null    },
+  { id:'plot2', n:'Even Bigger Plot', d:'Your land grows from 9x9 to 12x12.',    price:850,  need:'plot1' },
+  { id:'bus',   n:'Tour Bus',         d:'Every visitor tips you double coins.',  price:1200, need:null    },
+  { id:'plot3', n:'The Whole Field',  d:'Your land grows from 12x12 to 16x16.',  price:2600, need:'plot2' }
+];
+
+const CUBE_COLORS = ['#ff6f61','#ffb63d','#ffe14d','#7bd44f','#3fc9b0','#48a9f0','#8b6ef0','#f06ac4','#fdfdfd','#4a4a5a'];
+const FACES = [
+  { id:'happy',  e:'😀' }, { id:'cool',  e:'😎' }, { id:'robot', e:'🤖' }, { id:'cat',  e:'🐱' },
+  { id:'star',   e:'⭐' }, { id:'sleepy',e:'😴' }, { id:'wink',  e:'😉' }, { id:'fang', e:'😈' }
+];
+
+/* ==========================================================================
+   Game state
+   ========================================================================== */
+const world = new Uint8Array(GRID * GRID * HEIGHT);
+const propMap = new Map();                       // "x,y" -> { p, z }
+const idx = (x,y,z) => (z * GRID + y) * GRID + x;
+const inBounds = (x,y,z) => x >= 0 && y >= 0 && z >= 0 && x < GRID && y < GRID && z < HEIGHT;
+function getB(x,y,z){ return inBounds(x,y,z) ? world[idx(x,y,z)] : 0; }
+function setB(x,y,z,v){ if (inBounds(x,y,z)) { world[idx(x,y,z)] = v; dirty = true; } }
+
+const S = {
+  town:'Cubeville', color:'#ff6f61', face:'happy',
+  coins:0, wow:0, visitors:0,
+  owned:{ 1:true, 3:true },        // grass + stone from the start
+  ups:{},
+  plot:0,
+  maxZ:6,
+  placed:0, propsPlaced:0, mined:0, jobsDone:0, coinsPicked:0,
+  started:false
+};
+
+let dirty = true;          // static geometry needs rebuilding
+let rot = 0;               // camera rotation, 0..3
+let zoom = 1;
+let time = 0;
+
+const player = { x:GRID/2, y:GRID/2, z:1, vz:0, walk:0, onGround:true };
+const loose = [];          // loose coins on the ground
+const visitors = [];
+const fx = [];             // little cube particles
+
+function plotSize(){ return PLOT_SIZES[S.plot]; }
+function plotMin(){ return Math.floor((GRID - plotSize()) / 2); }
+function plotMax(){ return plotMin() + plotSize() - 1; }
+function inPlot(x,y){ const a = plotMin(), b = plotMax(); return x >= a && x <= b && y >= a && y <= b; }
+
+/* stations live on the wild ring outside even the biggest plot */
+const QUARRY = { x:3,  y:7  };
+const SHOP   = { x:4,  y:20 };
+const BOARD  = { x:22, y:13 };
+
+/* ==========================================================================
+   Terrain
+   ========================================================================== */
+function islandAt(x,y){
+  const c = (GRID - 1) / 2;
+  const dx = (x - c) / (GRID / 2), dy = (y - c) / (GRID / 2);
+  const box = Math.max(Math.abs(dx), Math.abs(dy));
+  const rad = Math.sqrt(dx*dx + dy*dy);
+  return box * 0.62 + rad * 0.46;        // < 1 means "on the island"
+}
+
+function genTerrain(){
+  world.fill(0);
+  propMap.clear();
+  for (let y = 0; y < GRID; y++){
+    for (let x = 0; x < GRID; x++){
+      const d = islandAt(x, y);
+      if (d > 1) continue;
+      setB(x, y, 0, d > 0.86 ? 4 : 1);   // sandy rim, grass inside
+    }
+  }
+  // scenery on the wild ring: tufts of leaves and a few boulders
+  for (let i = 0; i < 90; i++){
+    const x = randi(0, GRID-1), y = randi(0, GRID-1);
+    if (!getB(x,y,0) || inPlotMax(x,y) || nearStation(x,y,2.5)) continue;
+    if (Math.random() < 0.45) setB(x, y, 1, 7);
+    else propMap.set(x + ',' + y, { p: Math.random() < 0.55 ? 1 : 2, z:1 });
+  }
+  growQuarry(true);
+  // your very first block, dead centre of the plot
+  const m = Math.floor(GRID/2);
+  setB(m, m, 1, 3);
+}
+
+function inPlotMax(x,y){
+  const size = PLOT_SIZES[PLOT_SIZES.length-1];
+  const a = Math.floor((GRID - size)/2), b = a + size - 1;
+  return x >= a && x <= b && y >= a && y <= b;
+}
+function nearStation(x,y,r){
+  return Math.hypot(x-QUARRY.x, y-QUARRY.y) < r
+      || Math.hypot(x-SHOP.x,   y-SHOP.y)   < r
+      || Math.hypot(x-BOARD.x,  y-BOARD.y)  < r;
+}
+
+/* the quarry keeps growing new rocks so it never runs dry */
+function countRocks(){
+  let n = 0;
+  for (let y = 0; y < GRID; y++) for (let x = 0; x < GRID; x++)
+    for (let z = 1; z < 4; z++) if (getB(x,y,z) === ROCK) n++;
+  return n;
+}
+function growQuarry(fill){
+  let tries = fill ? 400 : 30;
+  let want = fill ? 26 : 1;
+  while (tries-- > 0 && want > 0){
+    const x = QUARRY.x + randi(-3,3), y = QUARRY.y + randi(-3,4);
+    if (!inBounds(x,y,1) || !getB(x,y,0) || inPlotMax(x,y)) continue;
+    if (x === QUARRY.x && y === QUARRY.y) continue;      // leave room for the sign
+    if (getB(x,y,1)) {                      // stack a second rock sometimes
+      if (getB(x,y,1) === ROCK && !getB(x,y,2) && Math.random() < 0.4){ setB(x,y,2,ROCK); want--; }
+      continue;
+    }
+    setB(x,y,1,ROCK); want--;
+  }
+}
+
+/* ==========================================================================
+   Isometric maths
+   ========================================================================== */
+// world (x,y) -> rotated (u,v). Rotation is always a multiple of 90 degrees.
+function rotU(x,y){ return rot === 0 ? x : rot === 1 ? y : rot === 2 ? GRID - x : GRID - y; }
+function rotV(x,y){ return rot === 0 ? y : rot === 1 ? GRID - x : rot === 2 ? GRID - y : x; }
+
+// neighbour steps that point towards the camera, per rotation
+const RU = [[1,0],[0,1],[-1,0],[0,-1]];
+const RV = [[0,1],[-1,0],[0,-1],[1,0]];
+
+const SX = (u,v)   => (u - v) * HW;
+const SY = (u,v,z) => (u + v) * HH - z * ZH;
+
+/* ==========================================================================
+   Canvas
+   ========================================================================== */
+const cv = document.getElementById('world');
+const g  = cv.getContext('2d');
+let W = 0, H = 0, DPR = 1;
+
+function resize(){
+  DPR = Math.min(window.devicePixelRatio || 1, 2);
+  W = window.innerWidth; H = window.innerHeight;
+  cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
+  g.setTransform(DPR, 0, 0, DPR, 0, 0);
+}
+window.addEventListener('resize', resize);
+resize();
+
+/* camera: screen-space point the view is centred on */
+let camX = 0, camY = 0, camTX = 0, camTY = 0;
+const CAM_LIFT = 46;
+
+function worldScreen(x, y, z){
+  const u = rotU(x,y), v = rotV(x,y);
+  return { x: SX(u,v), y: SY(u,v,z) };
+}
+function updateCam(instant){
+  const p = worldScreen(player.x, player.y, player.z);
+  camTX = p.x; camTY = p.y - CAM_LIFT;
+  if (instant){ camX = camTX; camY = camTY; }
+}
+
+/* ==========================================================================
+   Box drawing — the one primitive everything is made of
+   ========================================================================== */
+function boxUV(x, y, sx, sy){
+  const u1 = rotU(x, y),      v1 = rotV(x, y);
+  const u2 = rotU(x+sx, y+sy), v2 = rotV(x+sx, y+sy);
+  return {
+    ua: Math.min(u1,u2), ub: Math.max(u1,u2),
+    va: Math.min(v1,v2), vb: Math.max(v1,v2)
+  };
+}
+
+// faces bitmask: 1 = top, 2 = u-face (screen right), 4 = v-face (screen left)
+function drawBox(x, y, z, sx, sy, sz, color, opt){
+  opt = opt || {};
+  const r = boxUV(x, y, sx, sy);
+  const ua = r.ua, ub = r.ub, va = r.va, vb = r.vb;
+  const za = z, zb = z + sz;
+  const faces = opt.faces == null ? 7 : opt.faces;
+  const alpha = opt.alpha == null ? 1 : opt.alpha;
+
+  if (alpha < 1) g.globalAlpha = alpha;
+
+  // top
+  if (faces & 1){
+    g.fillStyle = opt.topC || shade(color, 1.14, 16);
+    g.beginPath();
+    g.moveTo(SX(ua,va), SY(ua,va,zb));
+    g.lineTo(SX(ub,va), SY(ub,va,zb));
+    g.lineTo(SX(ub,vb), SY(ub,vb,zb));
+    g.lineTo(SX(ua,vb), SY(ua,vb,zb));
+    g.closePath(); g.fill();
+  }
+  // u-face (towards screen right)
+  if (faces & 2){
+    g.fillStyle = opt.rightC || shade(color, 0.8);
+    g.beginPath();
+    g.moveTo(SX(ub,va), SY(ub,va,zb));
+    g.lineTo(SX(ub,vb), SY(ub,vb,zb));
+    g.lineTo(SX(ub,vb), SY(ub,vb,za));
+    g.lineTo(SX(ub,va), SY(ub,va,za));
+    g.closePath(); g.fill();
+  }
+  // v-face (towards screen left)
+  if (faces & 4){
+    g.fillStyle = opt.leftC || shade(color, 0.56);
+    g.beginPath();
+    g.moveTo(SX(ua,vb), SY(ua,vb,zb));
+    g.lineTo(SX(ub,vb), SY(ub,vb,zb));
+    g.lineTo(SX(ub,vb), SY(ub,vb,za));
+    g.lineTo(SX(ua,vb), SY(ua,vb,za));
+    g.closePath(); g.fill();
+  }
+  if (alpha < 1) g.globalAlpha = 1;
+  return r;
+}
+
+/* cheap surface decoration so blocks do not read as flat paint */
+function detailBlock(x, y, z, t, faces){
+  const b = BLOCKS[t];
+  if (!b || !b.detail || zoom < 0.62) return;
+  const r = boxUV(x, y, 1, 1);
+  const ua = r.ua, ub = r.ub, va = r.va, vb = r.vb, zb = z + 1;
+  const cx = (SX(ua,va) + SX(ub,vb)) / 2;
+  const cy = (SY(ua,va,zb) + SY(ub,vb,zb)) / 2;
+
+  if (b.detail === 'grass' && (faces & 1)){
+    g.strokeStyle = shadeA(b.c, 0.66, .9); g.lineWidth = 1.6;
+    g.beginPath();
+    for (let i = 0; i < 3; i++){
+      const ox = (i - 1) * 9, oy = ((i * 7) % 5) - 2;
+      g.moveTo(cx + ox, cy + oy + 3); g.lineTo(cx + ox + 1, cy + oy - 3);
+    }
+    g.stroke();
+  } else if (b.detail === 'speck' && (faces & 1)){
+    g.fillStyle = shadeA(b.c, 0.7, .85);
+    g.fillRect(cx - 8, cy - 2, 5, 3);
+    g.fillRect(cx + 3, cy + 3, 4, 3);
+  } else if (b.detail === 'brick'){
+    g.strokeStyle = shadeA(b.c, 1.35, .55); g.lineWidth = 1.4;
+    if (faces & 2){
+      g.beginPath();
+      g.moveTo(SX(ub,va), SY(ub,va,zb) + ZH/2); g.lineTo(SX(ub,vb), SY(ub,vb,zb) + ZH/2);
+      g.stroke();
+    }
+    if (faces & 4){
+      g.beginPath();
+      g.moveTo(SX(ua,vb), SY(ua,vb,zb) + ZH/2); g.lineTo(SX(ub,vb), SY(ub,vb,zb) + ZH/2);
+      g.stroke();
+    }
+  } else if (b.detail === 'plank'){
+    g.strokeStyle = shadeA(b.c, 0.6, .5); g.lineWidth = 1.3;
+    if (faces & 2){
+      g.beginPath();
+      g.moveTo(SX(ub,va), SY(ub,va,zb) + ZH*0.62); g.lineTo(SX(ub,vb), SY(ub,vb,zb) + ZH*0.62);
+      g.stroke();
+    }
+  } else if (b.detail === 'shine' && (faces & 1)){
+    g.fillStyle = 'rgba(255,255,255,.5)';
+    g.beginPath();
+    g.moveTo(cx - 10, cy); g.lineTo(cx - 2, cy - 5); g.lineTo(cx + 4, cy - 1); g.lineTo(cx - 4, cy + 4);
+    g.closePath(); g.fill();
+  } else if (b.detail === 'vein' && (faces & 1)){
+    g.strokeStyle = 'rgba(150,150,175,.5)'; g.lineWidth = 1.5;
+    g.beginPath();
+    g.moveTo(cx - 11, cy + 2); g.quadraticCurveTo(cx - 2, cy - 6, cx + 5, cy + 1); g.lineTo(cx + 11, cy - 2);
+    g.stroke();
+  }
+}
+
+/* glow blocks get a soft pulse on the top face */
+function glowBlock(x, y, z, t){
+  const b = BLOCKS[t];
+  const r = boxUV(x, y, 1, 1), zb = z + 1;
+  const p = 0.18 + 0.14 * Math.sin(time * 2.2 + (x + y) * 0.6);
+  g.globalAlpha = p;
+  g.fillStyle = '#fff';
+  g.beginPath();
+  g.moveTo(SX(r.ua,r.va), SY(r.ua,r.va,zb));
+  g.lineTo(SX(r.ub,r.va), SY(r.ub,r.va,zb));
+  g.lineTo(SX(r.ub,r.vb), SY(r.ub,r.vb,zb));
+  g.lineTo(SX(r.ua,r.vb), SY(r.ua,r.vb,zb));
+  g.closePath(); g.fill();
+  g.globalAlpha = 1;
+}
+
+/* ==========================================================================
+   Static scene: blocks + props + stations, rebuilt only when something moves
+   ========================================================================== */
+let statics = [];
+
+function opaqueAt(x,y,z,self){
+  const b = getB(x,y,z);
+  if (!b) return false;
+  if (BLOCKS[b].alpha) return b === self;   // glass hides glass, nothing else
+  return true;
+}
+
+function rebuild(){
+  statics.length = 0;
+  const du = RU[rot], dv = RV[rot];
+
+  for (let z = 0; z < HEIGHT; z++){
+    for (let y = 0; y < GRID; y++){
+      for (let x = 0; x < GRID; x++){
+        const t = world[idx(x,y,z)];
+        if (!t) continue;
+        let f = 0;
+        if (!opaqueAt(x, y, z+1, t))                 f |= 1;
+        if (!opaqueAt(x+du[0], y+du[1], z, t))       f |= 2;
+        if (!opaqueAt(x+dv[0], y+dv[1], z, t))       f |= 4;
+        if (!f) continue;
+        // depth uses the cell centre so that it stays consistent with the
+        // fractional coordinates of moving things at every rotation
+        const u = rotU(x+0.5, y+0.5), v = rotV(x+0.5, y+0.5);
+        statics.push({ k:0, x, y, z, t, f, d:u + v + z, sx:SX(u,v), sy:SY(u,v,z) });
+      }
+    }
+  }
+  propMap.forEach((pr, key) => {
+    const parts = key.split(',');
+    const x = +parts[0], y = +parts[1];
+    const z = topZ(x,y);
+    if (z <= 0) return;
+    pr.z = z;
+    const u = rotU(x+0.5, y+0.5), v = rotV(x+0.5, y+0.5);
+    statics.push({ k:1, x, y, z, p:pr.p, d:u + v + z + 0.4, sx:SX(u,v), sy:SY(u,v,z) });
+  });
+  [ ['quarry',QUARRY], ['shop',SHOP], ['board',BOARD] ].forEach(pair => {
+    const st = pair[1], x = st.x, y = st.y, z = topZ(x,y);
+    const u = rotU(x+0.5, y+0.5), v = rotV(x+0.5, y+0.5);
+    statics.push({ k:2, kind:pair[0], x, y, z, d:u + v + z + 0.4, sx:SX(u,v), sy:SY(u,v,z) });
+  });
+
+  statics.sort((a,b) => a.d - b.d);
+  dirty = false;
+}
+
+function topZ(x,y){
+  for (let z = HEIGHT - 1; z >= 0; z--) if (getB(x,y,z)) return z + 1;
+  return 0;
+}
+
+/* ==========================================================================
+   Props
+   ========================================================================== */
+function drawProp(x, y, z, p){
+  const c = 0.5;
+  switch (p){
+    case 1: // flower
+      drawBox(x+.45, y+.45, z, .1, .1, .28, '#3d8f3a');
+      drawBox(x+.34, y+.34, z+.28, .32, .32, .16, '#ff6f9c');
+      drawBox(x+.42, y+.42, z+.36, .16, .16, .1, '#ffe14d');
+      break;
+    case 2: // bush
+      drawBox(x+.14, y+.14, z, .72, .72, .42, '#3d8f3a');
+      drawBox(x+.28, y+.28, z+.42, .44, .44, .22, '#4fa83f');
+      break;
+    case 3: // sign
+      drawBox(x+.45, y+.45, z, .1, .1, .5, '#7a5330');
+      drawBox(x+.2, y+.42, z+.42, .6, .16, .34, '#b98a4e');
+      break;
+    case 4: // bench
+      drawBox(x+.15, y+.3, z, .12, .4, .26, '#8a6242');
+      drawBox(x+.73, y+.3, z, .12, .4, .26, '#8a6242');
+      drawBox(x+.1,  y+.26, z+.26, .8, .48, .12, '#c08a4a');
+      drawBox(x+.1,  y+.62, z+.38, .8, .12, .34, '#c08a4a');
+      break;
+    case 5: // tree
+      drawBox(x+.38, y+.38, z, .24, .24, .72, '#7a5330');
+      drawBox(x+.06, y+.06, z+.6, .88, .88, .5, '#3f9d4a');
+      drawBox(x+.2,  y+.2,  z+1.1, .6, .6, .34, '#4fb857');
+      break;
+    case 6: { // lamp
+      drawBox(x+.42, y+.42, z, .16, .16, 1.15, '#59606b');
+      const on = 0.72 + 0.28 * Math.sin(time * 1.6 + x);
+      drawBox(x+.3, y+.3, z+1.15, .4, .4, .3, '#ffd75e');
+      g.globalAlpha = 0.25 * on;
+      drawBox(x+.16, y+.16, z+1.05, .68, .68, .5, '#fff59a');
+      g.globalAlpha = 1;
+      break;
+    }
+    case 7: { // flag
+      drawBox(x+.44, y+.44, z, .12, .12, 1.5, '#d8d2c4');
+      const w = 0.5 + 0.06 * Math.sin(time * 3 + y);
+      drawBox(x+.52, y+.44, z+1.0, w, .1, .38, '#e0453f');
+      break;
+    }
+    case 8: { // fountain
+      drawBox(x+.04, y+.04, z, .92, .92, .28, '#cfc9b8');
+      drawBox(x+.16, y+.16, z+.2, .68, .68, .16, '#4fb4e0');
+      drawBox(x+.4,  y+.4,  z+.28, .2, .2, .5, '#e6e0d0');
+      const s = 0.5 + 0.12 * Math.sin(time * 4);
+      g.globalAlpha = .75;
+      drawBox(x+.34, y+.34, z+.72, .32, .32, s * .4, '#9adcf5');
+      g.globalAlpha = 1;
+      break;
+    }
+    case 9: // statue
+      drawBox(x+.14, y+.14, z, .72, .72, .24, '#b9b3a3');
+      drawBox(x+.3,  y+.3,  z+.24, .4, .4, .74, '#e8e2d2');
+      drawBox(x+.24, y+.24, z+.98, .52, .52, .44, '#f2eee4');
+      break;
+    case 10: { // rocket
+      drawBox(x+.3, y+.3, z, .4, .4, 1.5, '#dde3ea');
+      drawBox(x+.38, y+.38, z+1.5, .24, .24, .34, '#e0453f');
+      drawBox(x+.12, y+.38, z, .18, .24, .4, '#e0453f');
+      drawBox(x+.7,  y+.38, z, .18, .24, .4, '#e0453f');
+      const f = 0.2 + 0.14 * Math.sin(time * 12);
+      g.globalAlpha = .8;
+      drawBox(x+.36, y+.36, z - f, .28, .28, f, '#ffb63d');
+      g.globalAlpha = 1;
+      break;
+    }
+  }
+}
+
+/* ==========================================================================
+   Stations
+   ========================================================================== */
+function drawStation(kind, x, y, z){
+  if (kind === 'quarry'){
+    drawBox(x+.05, y+.05, z, .9, .9, .3, '#8d949c');
+    drawBox(x+.2,  y+.2,  z+.3, .6, .6, .55, '#6f7a86');
+    drawBox(x+.42, y+.1,  z+.85, .16, .5, .5, '#c08a4a');       // pick handle
+    drawBox(x+.24, y+.02, z+1.3, .52, .2, .16, '#b9c0c8');      // pick head
+  } else if (kind === 'shop'){
+    drawBox(x+.02, y+.02, z, .96, .5, .55, '#c08a4a');          // counter
+    drawBox(x+.06, y+.06, z+.55, .88, .5, .1, '#e4cf8c');
+    drawBox(x+.06, y+.72, z, .12, .12, 1.3, '#8a6242');         // posts
+    drawBox(x+.82, y+.72, z, .12, .12, 1.3, '#8a6242');
+    for (let i = 0; i < 4; i++)                                  // stripy awning
+      drawBox(x+.02 + i*.24, y+.02, z+1.3, .24, .96, .16, i % 2 ? '#e8564f' : '#fdfdfd');
+  } else if (kind === 'board'){
+    drawBox(x+.18, y+.46, z, .12, .12, .7, '#7a5330');
+    drawBox(x+.7,  y+.46, z, .12, .12, .7, '#7a5330');
+    drawBox(x+.08, y+.42, z+.7, .84, .2, .7, '#c9a06a');
+    drawBox(x+.14, y+.4,  z+.78, .3, .06, .5, '#fdfdfd');       // pinned papers
+    drawBox(x+.54, y+.4,  z+.86, .3, .06, .42, '#fdf6d8');
+    drawBox(x+.02, y+.4,  z+1.4, .96, .24, .16, '#4fa83f');     // little roof
+  }
+}
+
+/* ==========================================================================
+   The player cube
+   ========================================================================== */
+/* Faces are drawn flat onto the u-face, which always points at the camera.
+   Takes a context so the start-screen preview can reuse the exact routine. */
+function drawFace(ctx, cxp, cyp, s, style){
+  ctx.save();
+  ctx.translate(cxp, cyp);
+  const ink = '#2c2a3a';
+  ctx.fillStyle = ink; ctx.strokeStyle = ink;
+  ctx.lineWidth = Math.max(1.4, s * 0.09); ctx.lineCap = 'round';
+  const ex = s * 0.26, ey = -s * 0.1, er = s * 0.11;
+  const eye = sx => { ctx.beginPath(); ctx.arc(sx, ey, er, 0, 7); ctx.fill(); };
+  switch (style){
+    case 'cool':
+      ctx.fillRect(-s*0.42, ey - s*0.14, s*0.84, s*0.24);
+      ctx.beginPath(); ctx.arc(0, s*0.2, s*0.22, 0.15, Math.PI - 0.15); ctx.stroke();
+      break;
+    case 'robot':
+      ctx.fillRect(-ex - er, ey - er, er*2, er*2);
+      ctx.fillRect(ex - er, ey - er, er*2, er*2);
+      ctx.beginPath(); ctx.moveTo(-s*0.24, s*0.24); ctx.lineTo(s*0.24, s*0.24); ctx.stroke();
+      break;
+    case 'cat':
+      eye(-ex); eye(ex);
+      ctx.beginPath();
+      ctx.moveTo(-s*0.22, s*0.16); ctx.quadraticCurveTo(-s*0.11, s*0.3, 0, s*0.16);
+      ctx.quadraticCurveTo(s*0.11, s*0.3, s*0.22, s*0.16); ctx.stroke();
+      break;
+    case 'star':
+      ctx.save(); ctx.fillStyle = '#ffe14d';
+      [[-ex,ey],[ex,ey]].forEach(p => {
+        ctx.beginPath();
+        for (let i = 0; i < 10; i++){
+          const a = -Math.PI/2 + i * Math.PI/5, rr = i % 2 ? er*0.45 : er*1.35;
+          ctx.lineTo(p[0] + Math.cos(a)*rr, p[1] + Math.sin(a)*rr);
+        }
+        ctx.closePath(); ctx.fill();
+      });
+      ctx.restore();
+      ctx.beginPath(); ctx.arc(0, s*0.18, s*0.2, 0.2, Math.PI - 0.2); ctx.stroke();
+      break;
+    case 'sleepy':
+      ctx.beginPath(); ctx.arc(-ex, ey + er, er, Math.PI, 0); ctx.stroke();
+      ctx.beginPath(); ctx.arc(ex,  ey + er, er, Math.PI, 0); ctx.stroke();
+      ctx.beginPath(); ctx.arc(0, s*0.22, s*0.1, 0, 7); ctx.stroke();
+      break;
+    case 'wink':
+      eye(-ex);
+      ctx.beginPath(); ctx.moveTo(ex - er, ey); ctx.lineTo(ex + er, ey); ctx.stroke();
+      ctx.beginPath(); ctx.arc(0, s*0.16, s*0.2, 0.2, Math.PI - 0.2); ctx.stroke();
+      break;
+    case 'fang':
+      ctx.beginPath(); ctx.moveTo(-ex - er, ey - er*0.6); ctx.lineTo(-ex + er, ey + er*0.5); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(ex + er, ey - er*0.6);  ctx.lineTo(ex - er, ey + er*0.5);  ctx.stroke();
+      ctx.beginPath(); ctx.arc(0, s*0.16, s*0.2, 0.15, Math.PI - 0.15); ctx.stroke();
+      ctx.fillStyle = '#fff';
+      ctx.beginPath(); ctx.moveTo(-s*0.1, s*0.26); ctx.lineTo(-s*0.02, s*0.26); ctx.lineTo(-s*0.06, s*0.36); ctx.fill();
+      break;
+    default: // happy
+      eye(-ex); eye(ex);
+      ctx.beginPath(); ctx.arc(0, s*0.14, s*0.22, 0.2, Math.PI - 0.2); ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawPlayer(){
+  const sq = player.onGround ? 1 : 1.08;
+  const bob = player.onGround ? Math.abs(Math.sin(player.walk * 6)) * 0.06 : 0;
+  const s = 0.62, h = 0.66 * sq;
+  const x = player.x - s/2, y = player.y - s/2, z = player.z + bob;
+
+  // shadow on the ground below
+  const gz = groundZ(player.x, player.y);
+  const sc = worldScreen(player.x, player.y, gz);
+  g.globalAlpha = clamp(0.34 - (player.z - gz) * 0.06, 0.06, 0.34);
+  g.fillStyle = '#000';
+  g.beginPath(); g.ellipse(sc.x, sc.y, HW * 0.42, HH * 0.42, 0, 0, 7); g.fill();
+  g.globalAlpha = 1;
+
+  const r = drawBox(x, y, z, s, s, h, S.color);
+
+  // the face goes on the u-face, which is always turned towards us
+  const fx1 = SX(r.ub, r.va), fy1 = SY(r.ub, r.va, z + h);
+  const fx2 = SX(r.ub, r.vb), fy2 = SY(r.ub, r.vb, z);
+  drawFace(g, (fx1 + fx2)/2, (fy1 + fy2)/2, Math.abs(fx2 - fx1) * 0.9 + 10, S.face);
+}
+
+function groundZ(x, y){
+  const cx = Math.floor(x), cy = Math.floor(y);
+  for (let z = HEIGHT - 1; z >= 0; z--) if (getB(cx,cy,z)) return z + 1;
+  return 0;
+}
+
+/* ==========================================================================
+   Loose coins, visitors, particles
+   ========================================================================== */
+function spawnCoin(){
+  for (let i = 0; i < 40; i++){
+    const x = randi(1, GRID-2), y = randi(1, GRID-2);
+    const z = topZ(x,y);
+    if (z <= 0 || z > 6) continue;
+    if (propMap.has(x + ',' + y)) continue;
+    loose.push({ x: x + 0.5, y: y + 0.5, z, v: randi(1,3), t: rand(0,6) });
+    return;
+  }
+}
+function drawCoin(c){
+  const bob = Math.sin(time * 3 + c.t) * 0.08;
+  const spin = Math.abs(Math.sin(time * 2.4 + c.t));
+  const w = 0.1 + 0.26 * spin;
+  drawBox(c.x - w/2, c.y - 0.06, c.z + 0.24 + bob, w, 0.12, 0.3, '#f2c33c');
+}
+
+function spawnVisitor(){
+  const m = plotMin(), M = plotMax();
+  const x = rand(m, M + 1), y = rand(m, M + 1);
+  visitors.push({
+    x, y, tx:x, ty:y, c: pick(CUBE_COLORS), pay: rand(0,6), wob: rand(0,7), face: pick(FACES).id
+  });
+}
+function drawVisitor(vi){
+  const s = 0.46, h = 0.5;
+  const bob = Math.abs(Math.sin(vi.wob * 5)) * 0.05;
+  const gz = groundZ(vi.x, vi.y);
+  const sc = worldScreen(vi.x, vi.y, gz);
+  g.globalAlpha = 0.24; g.fillStyle = '#000';
+  g.beginPath(); g.ellipse(sc.x, sc.y, HW*0.3, HH*0.3, 0, 0, 7); g.fill();
+  g.globalAlpha = 1;
+  const r = drawBox(vi.x - s/2, vi.y - s/2, gz + bob, s, s, h, vi.c);
+  const fx1 = SX(r.ub, r.va), fy1 = SY(r.ub, r.va, gz + bob + h);
+  const fx2 = SX(r.ub, r.vb), fy2 = SY(r.ub, r.vb, gz + bob);
+  drawFace(g, (fx1+fx2)/2, (fy1+fy2)/2, Math.abs(fx2-fx1) * 0.8 + 6, vi.face);
+}
+
+function burst(x, y, z, color, n){
+  for (let i = 0; i < n; i++){
+    fx.push({
+      x, y, z, c:color, life:1,
+      vx: rand(-1.6,1.6), vy: rand(-1.6,1.6), vz: rand(1.5,4.4),
+      s: rand(0.08, 0.2)
+    });
+  }
+}
+
+/* ==========================================================================
+   Scene draw
+   ========================================================================== */
+function drawSky(){
+  const grd = g.createLinearGradient(0, 0, 0, H);
+  grd.addColorStop(0, '#5fc0ea');
+  grd.addColorStop(0.55, '#a5e2f4');
+  grd.addColorStop(1, '#d9f0dd');
+  g.fillStyle = grd; g.fillRect(0, 0, W, H);
+
+  // sun + drifting clouds, all in screen space
+  g.fillStyle = 'rgba(255,246,190,.85)';
+  g.beginPath(); g.arc(W * 0.82, H * 0.14, 42, 0, 7); g.fill();
+  g.fillStyle = 'rgba(255,255,255,.55)';
+  for (let i = 0; i < 5; i++){
+    const cw = 90 + i * 26;
+    const cx = ((time * (5 + i * 2) + i * 340) % (W + 400)) - 200;
+    const cy = 50 + ((i * 47) % Math.max(1, H * 0.32));
+    g.beginPath();
+    g.ellipse(cx, cy, cw, 22 + i * 3, 0, 0, 7);
+    g.ellipse(cx + cw * 0.4, cy - 12, cw * 0.5, 20, 0, 0, 7);
+    g.fill();
+  }
+}
+
+function drawSea(){
+  // one big translucent plane so the island reads as an island
+  const pts = [[0,0],[GRID,0],[GRID,GRID],[0,GRID]].map(p => {
+    const u = rotU(p[0], p[1]), v = rotV(p[0], p[1]);
+    return [ SX(u,v), SY(u,v,0.42) ];
+  });
+  g.save();
+  g.beginPath();
+  g.moveTo(pts[0][0], pts[0][1]);
+  for (let i = 1; i < 4; i++) g.lineTo(pts[i][0], pts[i][1]);
+  g.closePath();
+  g.fillStyle = 'rgba(46,140,196,.92)';
+  g.fill();
+  g.clip();                                    // ripples stay inside the sea
+
+  const midY = SY(GRID/2, GRID/2, 0.42);
+  g.strokeStyle = 'rgba(255,255,255,.22)'; g.lineWidth = 2;
+  for (let i = 0; i < 6; i++){
+    const t = (time * 0.12 + i / 6) % 1;
+    g.beginPath();
+    g.ellipse(0, midY, GRID * HW * 0.52 * (0.35 + t * 0.7), GRID * HH * 0.52 * (0.35 + t * 0.7), 0, 0, 7);
+    g.stroke();
+  }
+  g.restore();
+}
+
+function drawPlotEdge(){
+  const a = plotMin(), b = plotMax() + 1;
+  const cor = [[a,a],[b,a],[b,b],[a,b]].map(p => {
+    const u = rotU(p[0], p[1]), v = rotV(p[0], p[1]);
+    return [ SX(u,v), SY(u,v,1) ];
+  });
+  g.strokeStyle = 'rgba(255,255,255,.75)';
+  g.lineWidth = 2.5; g.setLineDash([9, 7]);
+  g.beginPath();
+  g.moveTo(cor[0][0], cor[0][1]);
+  for (let i = 1; i < 4; i++) g.lineTo(cor[i][0], cor[i][1]);
+  g.closePath(); g.stroke();
+  g.setLineDash([]);
+}
+
+function drawGhost(){
+  if (!building || !hover) return;
+  const ok = hover.ok;
+  const col = eraseMode ? '#ff6f61' : (sel.type === 'prop' ? '#ffe14d' : BLOCKS[sel.id].c);
+  const z = eraseMode ? hover.z - 1 : hover.z;
+  if (z < 0) return;
+  g.globalAlpha = ok ? 0.55 : 0.22;
+  drawBox(hover.x + 0.03, hover.y + 0.03, z + 0.02, 0.94, 0.94, 0.94, col);
+  g.globalAlpha = 1;
+  const r = boxUV(hover.x, hover.y, 1, 1);
+  g.strokeStyle = ok ? '#ffffff' : '#ff4d3d'; g.lineWidth = 2.4;
+  g.beginPath();
+  g.moveTo(SX(r.ua,r.va), SY(r.ua,r.va,z));
+  g.lineTo(SX(r.ub,r.va), SY(r.ub,r.va,z));
+  g.lineTo(SX(r.ub,r.vb), SY(r.ub,r.vb,z));
+  g.lineTo(SX(r.ua,r.vb), SY(r.ua,r.vb,z));
+  g.closePath(); g.stroke();
+}
+
+function draw(){
+  drawSky();
+
+  g.save();
+  g.translate(W/2, H/2);
+  g.scale(zoom, zoom);
+  g.translate(-camX, -camY);
+
+  drawSea();
+
+  if (dirty) rebuild();
+
+  // dynamic things get sorted into the same depth order as the static ones
+  const dyn = [];
+  const pu = rotU(player.x, player.y), pv = rotV(player.x, player.y);
+  dyn.push({ d: pu + pv + player.z, f: drawPlayer });
+  loose.forEach(c => {
+    const u = rotU(c.x,c.y), v = rotV(c.x,c.y);
+    dyn.push({ d: u + v + c.z + 0.3, f: () => drawCoin(c) });
+  });
+  visitors.forEach(vi => {
+    const u = rotU(vi.x,vi.y), v = rotV(vi.x,vi.y);
+    dyn.push({ d: u + v + groundZ(vi.x,vi.y), f: () => drawVisitor(vi) });
+  });
+  fx.forEach(p => {
+    const u = rotU(p.x,p.y), v = rotV(p.x,p.y);
+    dyn.push({ d: u + v + p.z + 0.5, f: () => {
+      g.globalAlpha = clamp(p.life, 0, 1);
+      drawBox(p.x, p.y, p.z, p.s, p.s, p.s, p.c);
+      g.globalAlpha = 1;
+    }});
+  });
+  dyn.sort((a,b) => a.d - b.d);
+
+  // view bounds for culling, in the same space the boxes are drawn in
+  const mx = W / (2 * zoom) + 120, my = H / (2 * zoom) + 200;
+  const x0 = camX - mx, x1 = camX + mx, y0 = camY - my, y1 = camY + my;
+
+  let i = 0, j = 0;
+  const flush = (upTo) => {
+    while (i < statics.length && statics[i].d <= upTo){
+      const it = statics[i++];
+      if (it.sx < x0 || it.sx > x1 || it.sy < y0 || it.sy > y1) continue;
+      if (it.k === 0){
+        const b = BLOCKS[it.t];
+        drawBox(it.x, it.y, it.z, 1, 1, 1, b.c, { faces: it.f, alpha: b.alpha });
+        detailBlock(it.x, it.y, it.z, it.t, it.f);
+        if (b.glow) glowBlock(it.x, it.y, it.z, it.t);
+      } else if (it.k === 1){
+        drawProp(it.x, it.y, it.z, it.p);
+      } else {
+        drawStation(it.kind, it.x, it.y, it.z);
+      }
+    }
+  };
+  while (j < dyn.length){ flush(dyn[j].d); dyn[j++].f(); }
+  flush(Infinity);
+
+  drawPlotEdge();
+  drawGhost();
+  g.restore();
+}
+
+/* ==========================================================================
+   Input
+   ========================================================================== */
+const keys = {};
+let stickX = 0, stickY = 0, stickOn = false;
+let useHeld = false;
+
+window.addEventListener('keydown', e => {
+  const k = e.key.toLowerCase();
+  if (['arrowup','arrowdown','arrowleft','arrowright',' '].indexOf(k) >= 0) e.preventDefault();
+  if (keys[k]) return;
+  keys[k] = true;
+  if (!S.started) return;
+  if (k === 'q') spin(-1);
+  if (k === 'e') spin(1);
+  if (k === 'b') toggleBuild();
+  if (k === ' ') jump();
+  if (k === 'f'){ useHeld = true; useAction(); }
+});
+window.addEventListener('keyup', e => {
+  const k = e.key.toLowerCase();
+  keys[k] = false;
+  if (k === 'f') useHeld = false;
+});
+
+/* touch stick */
+(function(){
+  const el = document.getElementById('stick'), knob = document.getElementById('knob');
+  let id = null;
+  const R = 46;
+  function set(e){
+    const t = [].slice.call(e.touches).filter(t => t.identifier === id)[0];
+    if (!t) return;
+    const r = el.getBoundingClientRect();
+    let dx = t.clientX - (r.left + r.width/2), dy = t.clientY - (r.top + r.height/2);
+    const len = Math.hypot(dx, dy);
+    if (len > R){ dx = dx / len * R; dy = dy / len * R; }
+    stickX = clamp(dx / R, -1, 1); stickY = clamp(dy / R, -1, 1);
+    knob.style.transform = 'translate(' + dx + 'px,' + dy + 'px)';
+  }
+  el.addEventListener('touchstart', e => { id = e.changedTouches[0].identifier; stickOn = true; set(e); e.preventDefault(); }, {passive:false});
+  window.addEventListener('touchmove', e => { if (stickOn) { set(e); e.preventDefault(); } }, {passive:false});
+  const end = () => { stickOn = false; id = null; stickX = stickY = 0; knob.style.transform = ''; };
+  window.addEventListener('touchend', end);
+  window.addEventListener('touchcancel', end);
+})();
+
+function holdButton(el, on, off){
+  el.addEventListener('touchstart', e => { on(); e.preventDefault(); }, {passive:false});
+  el.addEventListener('touchend', e => { if (off) off(); e.preventDefault(); }, {passive:false});
+  el.addEventListener('mousedown', on);
+  window.addEventListener('mouseup', () => { if (off) off(); });
+}
+holdButton(document.getElementById('useB'), () => { useHeld = true; useAction(); }, () => { useHeld = false; });
+document.getElementById('jumpB').addEventListener('click', jump);
+
+if (!('ontouchstart' in window)) document.body.classList.add('no-touch');
+
+/* camera controls */
+function spin(dir){
+  rot = (rot + dir + 4) % 4;
+  dirty = true;
+  updateCam(true);
+  beep(520, .07, 'sine', .04);
+}
+document.getElementById('rotL').onclick = () => spin(-1);
+document.getElementById('rotR').onclick = () => spin(1);
+document.getElementById('zIn').onclick  = () => { zoom = clamp(zoom * 1.22, 0.45, 2.2); };
+document.getElementById('zOut').onclick = () => { zoom = clamp(zoom / 1.22, 0.45, 2.2); };
+document.getElementById('muteB').onclick = function(){
+  muted = !muted;
+  this.textContent = muted ? '🔇' : '🔊';
+};
+window.addEventListener('wheel', e => {
+  if (!S.started) return;
+  zoom = clamp(zoom * (e.deltaY > 0 ? 0.92 : 1.08), 0.45, 2.2);
+}, {passive:true});
+
+/* ==========================================================================
+   Picking — screen point to grid cell
+   ========================================================================== */
+function screenToCell(px, py){
+  const wx = (px - W/2) / zoom + camX;
+  const wy = (py - H/2) / zoom + camY;
+  for (let h = HEIGHT; h >= 1; h--){
+    const sum = (wy + h * ZH) / HH;
+    const dif = wx / HW;
+    const u = Math.floor((sum + dif) / 2);
+    const v = Math.floor((sum - dif) / 2);
+    let x, y;
+    if (rot === 0)      { x = u;            y = v;            }
+    else if (rot === 1) { x = GRID - 1 - v; y = u;            }
+    else if (rot === 2) { x = GRID - 1 - u; y = GRID - 1 - v; }
+    else                { x = v;            y = GRID - 1 - u; }
+    if (!inBounds(x, y, 0)) continue;
+    if (getB(x, y, h - 1)) return { x, y, z:h };
+  }
+  return null;
+}
+
+let hover = null;
+let building = false, eraseMode = false;
+let sel = { type:'block', id:3 };
+
+function refreshHover(px, py){
+  const c = screenToCell(px, py);
+  if (!c){ hover = null; return; }
+  hover = c;
+  hover.ok = eraseMode ? canErase(c.x, c.y, c.z) : canPlace(c.x, c.y, c.z);
+}
+
+function canPlace(x, y, z){
+  if (!inPlot(x,y)) return false;
+  if (z >= S.maxZ + 1 || z >= HEIGHT) return false;
+  if (sel.type === 'prop') return !propMap.has(x + ',' + y) && z === topZ(x,y) && S.coins >= PROPS[sel.id].price;
+  return getB(x,y,z) === 0 && !propMap.has(x + ',' + y);
+}
+function canErase(x, y, z){
+  if (!inPlot(x,y)) return false;
+  if (propMap.has(x + ',' + y) && z === topZ(x,y)) return true;
+  return z - 1 >= 1 && getB(x,y,z-1) !== 0;
+}
+
+function doPlace(){
+  if (!hover) return;
+  const x = hover.x, y = hover.y, z = hover.z;
+  if (eraseMode){
+    if (!canErase(x,y,z)){ SFX.nope(); return; }
+    const key = x + ',' + y;
+    if (propMap.has(key) && z === topZ(x,y)){
+      const pr = propMap.get(key);
+      const back = Math.floor(PROPS[pr.p].price / 2);
+      propMap.delete(key);
+      addCoins(back, 'refund');
+      burst(x + .5, y + .5, z, '#ffe14d', 7);
+      toast('Took the ' + PROPS[pr.p].n.toLowerCase() + ' back (+' + back + ')');
+    } else {
+      const t = getB(x,y,z-1);
+      setB(x,y,z-1,0);
+      burst(x + .5, y + .5, z - 1, BLOCKS[t].c, 8);
+    }
+    SFX.erase();
+  } else {
+    if (!canPlace(x,y,z)){ SFX.nope(); return; }
+    if (sel.type === 'prop'){
+      const pr = PROPS[sel.id];
+      if (S.coins < pr.price){ SFX.nope(); toast('Not enough coins for a ' + pr.n.toLowerCase(), 'bad'); return; }
+      S.coins -= pr.price;
+      propMap.set(x + ',' + y, { p: sel.id, z });
+      S.propsPlaced++;
+      burst(x + .5, y + .5, z, '#9adcf5', 6);
+    } else {
+      setB(x, y, z, sel.id);
+      S.placed++;
+      burst(x + .5, y + .5, z, BLOCKS[sel.id].c, 4);
+    }
+    SFX.place();
+  }
+  dirty = true;
+  recomputeWow();
+  refreshHover(lastPX, lastPY);
+  hudDirty = true;
+  save();
+}
+
+let lastPX = 0, lastPY = 0;
+cv.addEventListener('mousemove', e => {
+  lastPX = e.clientX; lastPY = e.clientY;
+  if (building) refreshHover(e.clientX, e.clientY);
+});
+cv.addEventListener('mousedown', e => {
+  if (!S.started || !building) return;
+  lastPX = e.clientX; lastPY = e.clientY;
+  refreshHover(e.clientX, e.clientY);
+  doPlace();
+});
+cv.addEventListener('touchstart', e => {
+  if (!S.started || !building) return;
+  const t = e.changedTouches[0];
+  lastPX = t.clientX; lastPY = t.clientY;
+  refreshHover(t.clientX, t.clientY);
+  doPlace();
+  e.preventDefault();
+}, {passive:false});
+cv.addEventListener('contextmenu', e => e.preventDefault());
+
+/* ==========================================================================
+   Player physics
+   ========================================================================== */
+function jump(){
+  if (!player.onGround) return;
+  player.vz = 6.6;
+  player.onGround = false;
+  SFX.jump();
+}
+
+function canStand(x, y, fromZ){
+  const cx = Math.floor(x), cy = Math.floor(y);
+  if (!inBounds(cx, cy, 0)) return false;
+  const gz = groundZ(x, y);
+  if (gz === 0) return false;                 // the sea
+  if (fromZ >= gz - 0.001) return true;       // walking on or above it
+  return gz <= fromZ + 1.001;                 // a single step up
+}
+
+function movePlayer(dt){
+  let ix = 0, iy = 0;
+  if (keys['arrowleft'] || keys['a']) ix -= 1;
+  if (keys['arrowright']|| keys['d']) ix += 1;
+  if (keys['arrowup']   || keys['w']) iy -= 1;
+  if (keys['arrowdown'] || keys['s']) iy += 1;
+  if (stickOn){ ix += stickX; iy += stickY; }
+  const len = Math.hypot(ix, iy);
+  if (len > 1){ ix /= len; iy /= len; }
+
+  // screen-relative controls: up on screen means away from the camera
+  const du = ix + iy, dv = -ix + iy;
+  let dx, dy;
+  if (rot === 0)      { dx = du;  dy = dv;  }
+  else if (rot === 1) { dx = -dv; dy = du;  }
+  else if (rot === 2) { dx = -du; dy = -dv; }
+  else                { dx = dv;  dy = -du; }
+
+  const sp = (S.ups.boots ? 5.6 : 3.7) * dt;
+  const moving = Math.hypot(dx, dy) > 0.05;
+  if (moving) player.walk += dt * Math.hypot(dx, dy);
+
+  const nx = player.x + dx * sp;
+  if (canStand(nx, player.y, player.z)){
+    player.x = clamp(nx, 0.3, GRID - 0.3);
+    if (player.onGround) player.z = Math.max(player.z, groundZ(player.x, player.y));
+  }
+  const ny = player.y + dy * sp;
+  if (canStand(player.x, ny, player.z)){
+    player.y = clamp(ny, 0.3, GRID - 0.3);
+    if (player.onGround) player.z = Math.max(player.z, groundZ(player.x, player.y));
+  }
+
+  // gravity
+  const gz = groundZ(player.x, player.y);
+  player.vz -= 22 * dt;
+  player.z += player.vz * dt;
+  if (player.z <= gz){
+    player.z = gz; player.vz = 0; player.onGround = true;
+  } else {
+    player.onGround = false;
+  }
+}
+
+/* ==========================================================================
+   Coins, mining, visitors
+   ========================================================================== */
+function addCoins(n, why){
+  S.coins += n;
+  hudDirty = true;
+  bump('chipCoin');
+  if (why === 'pick') S.coinsPicked++;
+}
+function bump(id){
+  const el = document.getElementById(id);
+  el.classList.add('bump');
+  setTimeout(() => el.classList.remove('bump'), 160);
+}
+
+let coinTimer = 0, quarryTimer = 0, tipTimer = 0, saveTimer = 0;
+let mineTarget = null, mineProg = 0;
+
+function updateCoins(dt){
+  coinTimer -= dt;
+  if (coinTimer <= 0){
+    coinTimer = rand(2.2, 4.2);
+    if (loose.length < 9) spawnCoin();
+  }
+  const reach = S.ups.magnet ? 3.4 : 0.85;
+  for (let i = loose.length - 1; i >= 0; i--){
+    const c = loose[i];
+    const d = Math.hypot(c.x - player.x, c.y - player.y);
+    if (d < reach && S.ups.magnet && d > 0.5){
+      c.x += (player.x - c.x) * dt * 6;
+      c.y += (player.y - c.y) * dt * 6;
+      c.z += (player.z + 0.3 - c.z) * dt * 6;
+    }
+    if (d < 0.75 && Math.abs(c.z - player.z) < 1.6){
+      addCoins(c.v, 'pick');
+      burst(c.x, c.y, c.z + 0.3, '#f2c33c', 6);
+      SFX.coin();
+      toast('+' + c.v + ' coin' + (c.v > 1 ? 's' : ''), 'gold');
+      loose.splice(i, 1);
+    }
+  }
+}
+
+function nearestRock(){
+  let best = null, bd = 2.4;
+  const px = Math.floor(player.x), py = Math.floor(player.y);
+  for (let y = py - 2; y <= py + 2; y++){
+    for (let x = px - 2; x <= px + 2; x++){
+      for (let z = 3; z >= 1; z--){
+        if (getB(x,y,z) !== ROCK) continue;
+        if (getB(x,y,z+1)) continue;                 // dig the top one first
+        const d = Math.hypot(x + .5 - player.x, y + .5 - player.y);
+        if (d < bd){ bd = d; best = { x, y, z }; }
+        break;
+      }
+    }
+  }
+  return best;
+}
+
+function updateMining(dt){
+  const t = nearestRock();
+  if (!useHeld || !t){
+    mineTarget = null; mineProg = 0;
+    return;
+  }
+  if (!mineTarget || mineTarget.x !== t.x || mineTarget.y !== t.y || mineTarget.z !== t.z){
+    mineTarget = t; mineProg = 0;
+  }
+  mineProg += dt * (S.ups.pick ? 1.9 : 0.95);
+  if (Math.random() < dt * 14){
+    burst(t.x + .5, t.y + .5, t.z + 0.6, '#8d949c', 1);
+    SFX.mine();
+  }
+  if (mineProg >= 1){
+    setB(t.x, t.y, t.z, 0);
+    burst(t.x + .5, t.y + .5, t.z + .4, '#8d949c', 12);
+    const pay = randi(4, 9) + Math.floor(S.mined / 12);
+    addCoins(pay, 'mine');
+    S.mined++;
+    SFX.smash();
+    const gem = Math.random() < 0.09;
+    if (gem){ addCoins(45, 'gem'); toast('A gem! +45 coins', 'gold'); burst(t.x+.5, t.y+.5, t.z+.6, '#3fc9b0', 14); }
+    else toast('Smashed a rock  +' + pay, 'gold');
+    mineTarget = null; mineProg = 0;
+    dirty = true; hudDirty = true;
+    save();
+  }
+}
+
+function updateVisitors(dt){
+  const want = clamp(Math.floor(S.wow / 55), 0, 12);
+  S.visitors = want;
+  while (visitors.length < want) spawnVisitor();
+  while (visitors.length > want) visitors.pop();
+
+  const m = plotMin(), M = plotMax();
+  visitors.forEach(vi => {
+    vi.wob += dt;
+    const dx = vi.tx - vi.x, dy = vi.ty - vi.y;
+    const d = Math.hypot(dx, dy);
+    if (d < 0.2){
+      vi.tx = rand(m, M + 1); vi.ty = rand(m, M + 1);
+    } else {
+      const sp = 1.3 * dt;
+      const nx = vi.x + dx / d * sp, ny = vi.y + dy / d * sp;
+      if (groundZ(nx, ny) > 0){ vi.x = nx; vi.y = ny; }
+      else { vi.tx = rand(m, M + 1); vi.ty = rand(m, M + 1); }
+    }
+  });
+
+  if (visitors.length){
+    tipTimer -= dt;
+    if (tipTimer <= 0){
+      tipTimer = 6;
+      const tip = visitors.length * (S.ups.bus ? 2 : 1);
+      addCoins(tip, 'tip');
+      toast('Visitors tipped you ' + tip + ' coins', 'good');
+      SFX.coin();
+    }
+  }
+}
+
+function updateFx(dt){
+  for (let i = fx.length - 1; i >= 0; i--){
+    const p = fx[i];
+    p.vz -= 16 * dt;
+    p.x += p.vx * dt; p.y += p.vy * dt; p.z += p.vz * dt;
+    p.life -= dt * 1.4;
+    if (p.z < 0 || p.life <= 0) fx.splice(i, 1);
+  }
+}
+
+/* ==========================================================================
+   Wow score
+   ========================================================================== */
+function recomputeWow(){
+  let total = 0;
+  const kinds = {};
+  const a = plotMin(), b = plotMax();
+  for (let z = 1; z < HEIGHT; z++){
+    for (let y = a; y <= b; y++){
+      for (let x = a; x <= b; x++){
+        const t = world[idx(x,y,z)];
+        if (!t || t === ROCK) continue;
+        total += BLOCKS[t].wow;
+        kinds[t] = true;
+      }
+    }
+  }
+  propMap.forEach((pr, key) => {
+    const parts = key.split(',');
+    if (inPlot(+parts[0], +parts[1])) total += PROPS[pr.p].wow;
+  });
+  total += Object.keys(kinds).length * 12;      // a bonus for mixing materials
+  S.wow = Math.round(total);
+  hudDirty = true;
+}
+
+/* ==========================================================================
+   Toasts + HUD
+   ========================================================================== */
+const logEl = document.getElementById('log');
+function toast(txt, kind){
+  const d = document.createElement('div');
+  d.className = 'toast' + (kind ? ' ' + kind : '');
+  d.textContent = txt;
+  logEl.appendChild(d);
+  while (logEl.children.length > 4) logEl.removeChild(logEl.firstChild);
+  setTimeout(() => { if (d.parentNode) d.parentNode.removeChild(d); }, 2600);
+}
+
+let hudDirty = true;
+function updateHud(){
+  if (!hudDirty) return;
+  hudDirty = false;
+  document.getElementById('coinN').textContent = S.coins;
+  document.getElementById('wowN').textContent = S.wow;
+  document.getElementById('visN').textContent = S.visitors;
+  document.getElementById('townName').textContent = S.town;
+  document.getElementById('townSub').textContent =
+    'PLOT ' + plotSize() + 'x' + plotSize() + ' · ' + S.placed + ' BLOCKS PLACED';
+}
+
+/* ==========================================================================
+   Jobs
+   ========================================================================== */
+let jobs = [];
+
+function countBlocks(type){
+  let n = 0;
+  const a = plotMin(), b = plotMax();
+  for (let z = 1; z < HEIGHT; z++)
+    for (let y = a; y <= b; y++)
+      for (let x = a; x <= b; x++){
+        const t = world[idx(x,y,z)];
+        if (t && (type == null ? t !== ROCK : t === type)) n++;
+      }
+  return n;
+}
+function tallestTower(){
+  let best = 0;
+  const a = plotMin(), b = plotMax();
+  for (let y = a; y <= b; y++)
+    for (let x = a; x <= b; x++){
+      let h = 0;
+      for (let z = 1; z < HEIGHT; z++){ if (world[idx(x,y,z)]) h++; else break; }
+      if (h > best) best = h;
+    }
+  return best;
+}
+function biggestFlat(){
+  // largest square of solid blocks sharing one height, anywhere above ground
+  let best = 0;
+  const a = plotMin(), b = plotMax();
+  for (let z = 1; z < HEIGHT; z++){
+    for (let y = a; y <= b; y++){
+      for (let x = a; x <= b; x++){
+        if (!world[idx(x,y,z)]) continue;
+        let s = 1;
+        while (x + s <= b && y + s <= b){
+          let ok = true;
+          for (let k = 0; k <= s && ok; k++){
+            if (!world[idx(x+s, y+k, z)]) ok = false;
+            if (!world[idx(x+k, y+s, z)]) ok = false;
+          }
+          if (!ok) break;
+          s++;
+        }
+        if (s > best) best = s;
+      }
+    }
+  }
+  return best;
+}
+function countProps(id){
+  let n = 0;
+  propMap.forEach((pr, key) => {
+    const parts = key.split(',');
+    if (!inPlot(+parts[0], +parts[1])) return;
+    if (id == null || pr.p === id) n++;
+  });
+  return n;
+}
+
+function ownedBlockIds(){
+  const out = [];
+  for (let i = 1; i < BLOCKS.length; i++) if (S.owned[i]) out.push(i);
+  return out;
+}
+
+function makeJob(){
+  const lvl = S.jobsDone;
+  const kinds = ['tower','count','flat','prop','wow','mine','coins'];
+  const kind = pick(kinds);
+  const scale = 1 + lvl * 0.28;
+
+  if (kind === 'tower'){
+    const n = clamp(3 + Math.floor(lvl * 0.7), 3, S.maxZ);
+    return {
+      n:'Build a tower ' + n + ' blocks tall',
+      d:'Stack any blocks straight up on one square.',
+      pay: Math.round(28 * scale) + n * 6,
+      prog: () => clamp(tallestTower() / n, 0, 1)
+    };
+  }
+  if (kind === 'count'){
+    const t = pick(ownedBlockIds());
+    const n = Math.round(6 + lvl * 3);
+    const base = countBlocks(t);
+    return {
+      n:'Place ' + n + ' ' + BLOCKS[t].n + ' blocks',
+      d:'Any shape you like — they just have to be on your plot.',
+      pay: Math.round(30 * scale) + n * 3,
+      prog: () => clamp((countBlocks(t) - base) / n, 0, 1)
+    };
+  }
+  if (kind === 'flat'){
+    const n = clamp(2 + Math.floor(lvl * 0.5), 2, Math.min(6, plotSize()));
+    return {
+      n:'Lay a flat ' + n + 'x' + n + ' floor',
+      d:'A solid square of blocks, all at the same height.',
+      pay: Math.round(35 * scale) + n * n * 4,
+      prog: () => clamp(biggestFlat() / n, 0, 1)
+    };
+  }
+  if (kind === 'prop'){
+    const affordable = [];
+    for (let i = 1; i < PROPS.length; i++) if (PROPS[i].price <= 60 + lvl * 40) affordable.push(i);
+    const id = pick(affordable.length ? affordable : [1]);
+    const n = clamp(1 + Math.floor(lvl * 0.4), 1, 5);
+    const base = countProps(id);
+    return {
+      n:'Plant ' + n + ' ' + PROPS[id].n + (n > 1 ? 's' : ''),
+      d:'Buy them in the Shop under Props, then place them.',
+      pay: Math.round(PROPS[id].price * n * 1.5) + 20,
+      prog: () => clamp((countProps(id) - base) / n, 0, 1)
+    };
+  }
+  if (kind === 'wow'){
+    const target = Math.round((S.wow + 60) * (1 + lvl * 0.05));
+    return {
+      n:'Get your Wow up to ' + target,
+      d:'Build prettier things. Mixing materials helps a lot.',
+      pay: Math.round(50 * scale),
+      prog: () => clamp(S.wow / target, 0, 1)
+    };
+  }
+  if (kind === 'mine'){
+    const n = 3 + Math.floor(lvl * 0.8);
+    const base = S.mined;
+    return {
+      n:'Smash ' + n + ' rocks at the Quarry',
+      d:'Stand next to a rock and hold USE (or the F key).',
+      pay: Math.round(26 * scale) + n * 4,
+      prog: () => clamp((S.mined - base) / n, 0, 1)
+    };
+  }
+  const n = 4 + Math.floor(lvl * 0.9);
+  const base = S.coinsPicked;
+  return {
+    n:'Collect ' + n + ' loose coins',
+    d:'The spinning ones in the grass. Go get them.',
+    pay: Math.round(22 * scale) + n * 3,
+    prog: () => clamp((S.coinsPicked - base) / n, 0, 1)
+  };
+}
+
+function fillJobs(){
+  while (jobs.length < 3) jobs.push(makeJob());
+}
+
+function renderJobs(){
+  const el = document.getElementById('jobList');
+  el.innerHTML = '';
+  jobs.forEach((j, i) => {
+    const p = j.prog();
+    const row = document.createElement('div');
+    row.className = 'job' + (p >= 1 ? ' ready' : '');
+    row.innerHTML =
+      '<div class="jt"><div class="jn">' + j.n + '</div>' +
+      '<div class="jp">' + j.d + ' · pays 🪙 ' + j.pay + '</div>' +
+      '<div class="prog"><i style="width:' + Math.round(p * 100) + '%"></i></div></div>';
+    const b = document.createElement('button');
+    b.className = 'buy' + (p >= 1 ? ' done' : '');
+    b.textContent = p >= 1 ? 'Get paid' : Math.round(p * 100) + '%';
+    b.disabled = p < 1;
+    b.onclick = () => {
+      addCoins(j.pay, 'job');
+      S.jobsDone++;
+      SFX.job();
+      toast('Job done! +' + j.pay + ' coins', 'good');
+      jobs[i] = makeJob();
+      renderJobs();
+      save();
+    };
+    row.appendChild(b);
+    el.appendChild(row);
+  });
+}
+
+/* ==========================================================================
+   Shop
+   ========================================================================== */
+let shopTab = 'blocks';
+
+function buyBlock(i){
+  const b = BLOCKS[i];
+  if (S.owned[i] || S.coins < b.price) { SFX.nope(); return; }
+  S.coins -= b.price;
+  S.owned[i] = true;
+  SFX.buy();
+  toast('Unlocked ' + b.n + '! Build with it forever.', 'good');
+  hudDirty = true;
+  buildPalette();
+  renderShop();
+  save();
+}
+function buyUpgrade(u){
+  if (S.ups[u.id] || S.coins < u.price) { SFX.nope(); return; }
+  if (u.need && !S.ups[u.need]) { SFX.nope(); return; }
+  S.coins -= u.price;
+  S.ups[u.id] = true;
+  SFX.buy();
+  if (u.id === 'plot1' || u.id === 'plot2' || u.id === 'plot3'){
+    S.plot = Math.min(S.plot + 1, PLOT_SIZES.length - 1);
+    toast('Your land is now ' + plotSize() + 'x' + plotSize() + '!', 'good');
+    recomputeWow();
+  } else if (u.id === 'crane'){
+    S.maxZ = Math.min(S.maxZ + 5, HEIGHT - 1);
+    toast('You can build ' + S.maxZ + ' blocks high now!', 'good');
+  } else {
+    toast(u.n + ' bought!', 'good');
+  }
+  hudDirty = true;
+  renderShop();
+  save();
+}
+
+function renderShop(){
+  const el = document.getElementById('shopItems');
+  el.innerHTML = '';
+  if (shopTab === 'blocks'){
+    for (let i = 1; i < BLOCKS.length; i++){
+      const b = BLOCKS[i];
+      if (b.price < 0) continue;
+      const owned = !!S.owned[i];
+      const row = document.createElement('div');
+      row.className = 'item' + (owned ? ' owned' : '');
+      row.innerHTML =
+        '<div class="cube" style="background:' + b.c + '"></div>' +
+        '<div class="txt"><div class="nm">' + b.n + '</div><div class="wo">✨ ' + b.wow + ' wow each</div></div>';
+      const btn = document.createElement('button');
+      btn.className = 'buy' + (owned ? ' done' : '');
+      btn.textContent = owned ? 'Owned' : '🪙 ' + b.price;
+      btn.disabled = owned || S.coins < b.price;
+      btn.onclick = () => buyBlock(i);
+      row.appendChild(btn);
+      el.appendChild(row);
+    }
+  } else if (shopTab === 'props'){
+    for (let i = 1; i < PROPS.length; i++){
+      const p = PROPS[i];
+      const row = document.createElement('div');
+      row.className = 'item';
+      row.innerHTML =
+        '<div class="cube" style="background:#efe8d8">' + p.e + '</div>' +
+        '<div class="txt"><div class="nm">' + p.n + '</div><div class="wo">✨ ' + p.wow + ' wow · costs coins each time</div></div>';
+      const btn = document.createElement('button');
+      btn.className = 'buy';
+      btn.textContent = '🪙 ' + p.price;
+      btn.disabled = S.coins < p.price;
+      btn.onclick = () => {
+        sel = { type:'prop', id:i };
+        buildPalette();
+        closeSheets();
+        if (!building) toggleBuild();
+        eraseMode = false; setMode();
+        toast('Now tap your plot to place the ' + p.n.toLowerCase());
+      };
+      row.appendChild(btn);
+      el.appendChild(row);
+    }
+  } else {
+    UPGRADES.forEach(u => {
+      const owned = !!S.ups[u.id];
+      const locked = u.need && !S.ups[u.need];
+      const row = document.createElement('div');
+      row.className = 'item' + (owned ? ' owned' : '');
+      row.innerHTML =
+        '<div class="cube" style="background:#efe8d8">⭐</div>' +
+        '<div class="txt"><div class="nm">' + u.n + '</div><div class="wo">' +
+        (locked ? 'Buy the one before this first.' : u.d) + '</div></div>';
+      const btn = document.createElement('button');
+      btn.className = 'buy' + (owned ? ' done' : '');
+      btn.textContent = owned ? 'Owned' : '🪙 ' + u.price;
+      btn.disabled = owned || locked || S.coins < u.price;
+      btn.onclick = () => buyUpgrade(u);
+      row.appendChild(btn);
+      el.appendChild(row);
+    });
+  }
+}
+
+/* ==========================================================================
+   Sheets
+   ========================================================================== */
+const scrim = document.getElementById('scrim');
+function closeSheets(){
+  document.querySelectorAll('.sheet').forEach(s => s.classList.remove('on'));
+  scrim.classList.remove('on');
+}
+function openSheet(id){
+  closeSheets();
+  document.getElementById(id).classList.add('on');
+  scrim.classList.add('on');
+}
+scrim.onclick = closeSheets;
+document.querySelectorAll('[data-close]').forEach(b => b.onclick = closeSheets);
+document.querySelectorAll('[data-shop]').forEach(t => {
+  t.onclick = () => {
+    document.querySelectorAll('[data-shop]').forEach(o => o.classList.remove('on'));
+    t.classList.add('on');
+    shopTab = t.getAttribute('data-shop');
+    renderShop();
+  };
+});
+document.getElementById('shopB').onclick = () => { renderShop(); openSheet('shopSheet'); };
+document.getElementById('jobsB').onclick = () => { fillJobs(); renderJobs(); openSheet('jobSheet'); };
+document.getElementById('helpB').onclick = () => openSheet('helpSheet');
+
+document.getElementById('keyHelp').innerHTML =
+  '<b>Keys:</b> <kbd>W A S D</kbd> or arrows to walk · <kbd>Space</kbd> jump · ' +
+  '<kbd>Q</kbd> <kbd>E</kbd> spin the camera · <kbd>B</kbd> build mode · <kbd>F</kbd> mine · ' +
+  'mouse wheel zooms · click to place a block.';
+
+/* ==========================================================================
+   Build mode + palette
+   ========================================================================== */
+function toggleBuild(){
+  building = !building;
+  document.body.classList.toggle('building', building);
+  if (building){ buildPalette(); refreshHover(W/2, H/2); }
+  else hover = null;
+}
+document.getElementById('buildB').onclick = toggleBuild;
+document.getElementById('mDone').onclick = () => { if (building) toggleBuild(); };
+document.getElementById('mPlace').onclick = () => { eraseMode = false; setMode(); };
+document.getElementById('mErase').onclick = () => { eraseMode = true;  setMode(); };
+function setMode(){
+  document.getElementById('mPlace').classList.toggle('on', !eraseMode);
+  document.getElementById('mErase').classList.toggle('on', eraseMode);
+  if (hover) refreshHover(lastPX, lastPY);
+}
+
+function buildPalette(){
+  const el = document.getElementById('palette');
+  el.innerHTML = '';
+  for (let i = 1; i < BLOCKS.length; i++){
+    if (!S.owned[i]) continue;
+    const b = BLOCKS[i];
+    const btn = document.createElement('button');
+    btn.className = 'swatch' + (sel.type === 'block' && sel.id === i ? ' on' : '');
+    btn.innerHTML = '<div class="sw" style="background:' + b.c + '"></div><b>' + b.n + '</b>';
+    btn.onclick = () => { sel = { type:'block', id:i }; eraseMode = false; setMode(); buildPalette(); };
+    el.appendChild(btn);
+  }
+  for (let i = 1; i < PROPS.length; i++){
+    const p = PROPS[i];
+    const btn = document.createElement('button');
+    btn.className = 'swatch' + (sel.type === 'prop' && sel.id === i ? ' on' : '');
+    btn.innerHTML = '<div class="sw" style="background:#efe8d8">' + p.e + '</div>' +
+                    '<b>' + p.n + '</b><span class="pz">🪙' + p.price + '</span>';
+    btn.onclick = () => { sel = { type:'prop', id:i }; eraseMode = false; setMode(); buildPalette(); };
+    el.appendChild(btn);
+  }
+}
+
+/* ==========================================================================
+   USE button — mines rocks, or opens whatever you are standing next to
+   ========================================================================== */
+function useAction(){
+  if (Math.hypot(player.x - SHOP.x - .5, player.y - SHOP.y - .5) < 2.2){
+    renderShop(); openSheet('shopSheet'); return;
+  }
+  if (Math.hypot(player.x - BOARD.x - .5, player.y - BOARD.y - .5) < 2.2){
+    fillJobs(); renderJobs(); openSheet('jobSheet'); return;
+  }
+}
+
+/* ==========================================================================
+   Quests — a gentle nudge through the first few minutes
+   ========================================================================== */
+const QUESTS = [
+  { t:'Walk around and grab 3 spinning coins.',      done: () => S.coinsPicked >= 3 },
+  { t:'Find the Quarry and smash a rock (hold USE).', done: () => S.mined >= 1 },
+  { t:'Tap Build and place your first block.',        done: () => S.placed >= 1 },
+  { t:'Take a job from the Job Board and finish it.', done: () => S.jobsDone >= 1 },
+  { t:'Buy a new kind of block in the Shop.',         done: () => Object.keys(S.owned).length >= 3 },
+  { t:'Plant something pretty — a flower or a tree.', done: () => S.propsPlaced >= 1 },
+  { t:'Get 1 visitor by making your town look good.', done: () => S.visitors >= 1 },
+  { t:'Build a tower 4 blocks tall.',                 done: () => tallestTower() >= 4 }
+];
+let quest = 0;
+function updateQuest(){
+  const box = document.getElementById('goalBox');
+  if (quest >= QUESTS.length){ box.classList.add('hide'); return; }
+  if (QUESTS[quest].done()){
+    quest++;
+    SFX.job();
+    if (quest < QUESTS.length) toast('Quest done! Next: ' + QUESTS[quest].t, 'good');
+    else { toast('All quests done — the town is yours now.', 'good'); box.classList.add('hide'); return; }
+    save();
+  }
+  box.classList.remove('hide');
+  document.getElementById('goalTxt').textContent = QUESTS[quest].t;
+}
+
+/* ==========================================================================
+   Saving — guarded, so it simply does nothing where storage is unavailable
+   ========================================================================== */
+const KEY = 'cubeville-v1';
+let canStore = false;
+try {
+  window.localStorage.setItem(KEY + '-t', '1');
+  window.localStorage.removeItem(KEY + '-t');
+  canStore = true;
+} catch(e){ canStore = false; }
+
+function save(){
+  if (!canStore || !S.started) return;
+  try {
+    const blocks = [];
+    for (let z = 1; z < HEIGHT; z++)
+      for (let y = 0; y < GRID; y++)
+        for (let x = 0; x < GRID; x++){
+          const t = world[idx(x,y,z)];
+          if (t && t !== ROCK) blocks.push(x, y, z, t);
+        }
+    const props = [];
+    propMap.forEach((pr, key) => {
+      const p = key.split(',');
+      props.push(+p[0], +p[1], pr.p);
+    });
+    window.localStorage.setItem(KEY, JSON.stringify({
+      v:1, town:S.town, color:S.color, face:S.face, coins:S.coins,
+      owned:S.owned, ups:S.ups, plot:S.plot, maxZ:S.maxZ,
+      placed:S.placed, propsPlaced:S.propsPlaced, mined:S.mined,
+      jobsDone:S.jobsDone, coinsPicked:S.coinsPicked, quest:quest,
+      blocks:blocks, props:props
+    }));
+  } catch(e){ /* a full or blocked store just means no saving */ }
+}
+function loadSave(){
+  if (!canStore) return null;
+  try {
+    const raw = window.localStorage.getItem(KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch(e){ return null; }
+}
+function applySave(d){
+  S.town = d.town; S.color = d.color; S.face = d.face;
+  S.coins = d.coins || 0; S.owned = d.owned || {1:true,3:true}; S.ups = d.ups || {};
+  S.plot = d.plot || 0; S.maxZ = d.maxZ || 6;
+  S.placed = d.placed || 0; S.propsPlaced = d.propsPlaced || 0;
+  S.mined = d.mined || 0; S.jobsDone = d.jobsDone || 0; S.coinsPicked = d.coinsPicked || 0;
+  quest = d.quest || 0;
+  genTerrain();
+  const m = Math.floor(GRID/2);
+  setB(m, m, 1, 0);                             // clear the starter block first
+  const bl = d.blocks || [];
+  for (let i = 0; i < bl.length; i += 4) setB(bl[i], bl[i+1], bl[i+2], bl[i+3]);
+  propMap.clear();
+  const pr = d.props || [];
+  for (let i = 0; i < pr.length; i += 3) propMap.set(pr[i] + ',' + pr[i+1], { p:pr[i+2], z:1 });
+  dirty = true;
+  recomputeWow();
+}
+
+document.getElementById('wipeB').onclick = () => {
+  if (!window.confirm('Knock the whole town down and start again?')) return;
+  try { if (canStore) window.localStorage.removeItem(KEY); } catch(e){}
+  window.location.reload();
+};
+
+/* ==========================================================================
+   Start screen
+   ========================================================================== */
+const prev = document.getElementById('prev');
+const pg = prev.getContext('2d');
+let prevT = 0;
+
+function drawPreviewCube(){
+  pg.clearRect(0, 0, prev.width, prev.height);
+  const cx = prev.width/2, cy = prev.height/2 + 30;
+  const s = 62;
+  const bob = Math.sin(prevT * 2) * 5;
+  pg.save();
+  pg.translate(cx, cy + bob);
+
+  // shadow
+  pg.globalAlpha = .2; pg.fillStyle = '#000';
+  pg.beginPath(); pg.ellipse(0, 26 - bob, s * 0.9, s * 0.34, 0, 0, 7); pg.fill();
+  pg.globalAlpha = 1;
+
+  const hw = s, hh = s * 0.5, zh = s * 0.95;
+  const top = [[0,-hh-zh],[hw,-zh],[0,hh-zh],[-hw,0-zh]];
+  pg.fillStyle = shade(S.color, 1.14, 16);
+  pg.beginPath(); pg.moveTo(top[0][0], top[0][1]);
+  for (let i = 1; i < 4; i++) pg.lineTo(top[i][0], top[i][1]);
+  pg.closePath(); pg.fill();
+
+  pg.fillStyle = shade(S.color, 0.8);       // right face
+  pg.beginPath();
+  pg.moveTo(hw, -zh); pg.lineTo(0, hh - zh); pg.lineTo(0, hh); pg.lineTo(hw, 0);
+  pg.closePath(); pg.fill();
+
+  pg.fillStyle = shade(S.color, 0.56);      // left face
+  pg.beginPath();
+  pg.moveTo(-hw, -zh); pg.lineTo(0, hh - zh); pg.lineTo(0, hh); pg.lineTo(-hw, 0);
+  pg.closePath(); pg.fill();
+
+  // face on the right cheek, using the very same routine the world uses
+  drawFace(pg, hw * 0.5, (hh - zh) * 0.5, s * 0.78, S.face);
+  pg.restore();
+}
+
+// build the colour + face pickers
+(function(){
+  const cr = document.getElementById('colorRow');
+  CUBE_COLORS.forEach((c, i) => {
+    const b = document.createElement('button');
+    b.className = 'cs' + (i === 0 ? ' on' : '');
+    b.style.background = c;
+    b.onclick = () => {
+      S.color = c;
+      cr.querySelectorAll('.cs').forEach(o => o.classList.remove('on'));
+      b.classList.add('on');
+    };
+    cr.appendChild(b);
+  });
+  const fr = document.getElementById('faceRow');
+  FACES.forEach((f, i) => {
+    const b = document.createElement('button');
+    b.className = 'fs' + (i === 0 ? ' on' : '');
+    b.textContent = f.e;
+    b.onclick = () => {
+      S.face = f.id;
+      fr.querySelectorAll('.fs').forEach(o => o.classList.remove('on'));
+      b.classList.add('on');
+    };
+    fr.appendChild(b);
+  });
+})();
+
+const saved = loadSave();
+if (saved){
+  const rb = document.getElementById('resumeB');
+  rb.style.display = 'block';
+  rb.textContent = '↩ Carry on with ' + saved.town;
+  rb.onclick = () => { applySave(saved); begin(); };
+}
+
+document.getElementById('goB').onclick = () => {
+  const n = document.getElementById('nameIn').value.trim();
+  S.town = n || 'Cubeville';
+  genTerrain();
+  recomputeWow();
+  begin();
+};
+
+function begin(){
+  document.getElementById('startScreen').classList.add('off');
+  S.started = true;
+  player.x = GRID/2 + 1.5; player.y = GRID/2 + 1.5;
+  player.z = groundZ(player.x, player.y);
+  updateCam(true);
+  fillJobs();
+  buildPalette();
+  hudDirty = true;
+  recomputeWow();
+  toast('Welcome to ' + S.town + '!', 'good');
+  setTimeout(() => toast('Grab the spinning coins in the grass.'), 1400);
+  save();
+}
+
+/* ==========================================================================
+   Main loop
+   ========================================================================== */
+let last = performance.now();
+function frame(now){
+  const dt = Math.min((now - last) / 1000, 0.05);
+  last = now;
+  time += dt;
+  prevT += dt;
+
+  if (S.started){
+    movePlayer(dt);
+    updateCoins(dt);
+    updateMining(dt);
+    updateVisitors(dt);
+    updateFx(dt);
+    updateQuest();
+    updateHud();
+
+    updateCam(false);
+    camX += (camTX - camX) * Math.min(1, dt * 7);
+    camY += (camTY - camY) * Math.min(1, dt * 7);
+
+    quarryTimer -= dt;
+    if (quarryTimer <= 0){
+      quarryTimer = 5;
+      if (countRocks() < 26) growQuarry(false);
+    }
+    saveTimer -= dt;
+    if (saveTimer <= 0){ saveTimer = 12; save(); }
+
+    draw();
+  } else {
+    drawPreviewCube();
+  }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+})();
+</script>
+</body>
+</html>
