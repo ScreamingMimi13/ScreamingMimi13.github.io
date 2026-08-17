@@ -401,78 +401,50 @@
     <div style="font-size:3rem">🌊</div>
     <h1>ChatWave</h1>
     <div class="tag">Pick a username. Search your friends.<br>Send a request, start the chat.</div>
-    <button class="bigbtn" id="goReal">Chat with real friends<small>Your own account, real messages</small></button>
+    <button class="bigbtn" id="goReal">Chat with real friends<small>Everybody on your home Wi-Fi</small></button>
     <button class="bigbtn glass" id="goPractice">Practice mode<small>Made-up people, nothing leaves this page</small></button>
     <div class="foot">
-      Practice mode is a safe sandbox — the people in it are characters and nothing you type
-      is ever sent anywhere. Real mode needs a one-time Firebase setup.
+      No cloud, no accounts, no sign-ups. Real chat runs on one computer in your house
+      and nothing ever leaves it.
     </div>
   </div>
 
-  <!-- ================= NOT CONFIGURED ================= -->
+  <!-- ================= RELAY NOT RUNNING ================= -->
   <div class="front" id="f-config">
     <button class="back" data-home="1">←</button>
-    <h1 style="font-size:1.7rem">Almost there</h1>
-    <div class="tag">Real chat needs a database of its own. It's free and takes about 15 minutes — once.</div>
+    <div style="font-size:2.4rem">🏠</div>
+    <h1 style="font-size:1.7rem">Nobody's home</h1>
+    <div class="tag">Real chat needs the ChatWave relay running on one computer in the house.
+      It carries messages between phones. That's the whole thing — no cloud, no accounts.</div>
     <div class="card">
-      <h3>What a grown-up does once</h3>
+      <h3>Starting it</h3>
       <ol>
-        <li>Create a free project at <b>console.firebase.google.com</b></li>
-        <li>Authentication → <b>Email/Password</b> → Enable</li>
-        <li>Firestore Database → Create, in <b>production mode</b></li>
-        <li>Firestore → <b>Rules</b> → paste everything from <code>chatwave.rules</code> → Publish</li>
-        <li>Project settings → <b>Your apps</b> → Web → copy the <code>firebaseConfig</code></li>
-        <li>Paste it into the top of <code>chatwave.html</code>, where it says PASTE</li>
+        <li>On the computer with the games on it, open the folder</li>
+        <li>Right-click <code>wavserve.ps1</code> → <b>Run with PowerShell</b><br>
+          (or in PowerShell: <code>.\wavserve.ps1 -Lan</code>)</li>
+        <li>For the rest of the house, use <b>-Lan</b> and say <b>yes</b> to the firewall
+          box — Private networks only</li>
+        <li>It prints an address like <code>http://192.168.1.12:8020/chatwave.html</code></li>
+        <li>Type that into Safari or Chrome on the phones and iPads</li>
       </ol>
-      <p style="margin-top:10px">The full walkthrough is in <code>CHATWAVE-SETUP.md</code>.</p>
+      <p style="margin-top:10px">Close that window and the whole conversation is gone.
+        Nothing is written to disk. The walkthrough is in <code>CHATWAVE-SETUP.md</code>.</p>
     </div>
+    <button class="bigbtn" id="cfgRetry">Try again</button>
     <button class="bigbtn glass" id="cfgPractice">Use practice mode instead</button>
   </div>
 
-  <!-- ================= SIGN IN OR CREATE ================= -->
-  <div class="front" id="f-gate">
-    <button class="back" data-home="1">←</button>
-    <div style="font-size:2.6rem">🌊</div>
-    <h1>ChatWave</h1>
-    <div class="tag">Real messages, real friends.</div>
-    <button class="bigbtn" id="gateCreate">Create an account</button>
-    <button class="bigbtn glass" id="gateSignin">I already have one</button>
-    <div class="foot">
-      Anybody with an account on this ChatWave can search your username and send you a
-      chat request. You choose who to accept.
-    </div>
-  </div>
-
-  <!-- ================= SIGN IN ================= -->
-  <div class="front" id="f-signin">
-    <button class="back" data-gate="1">←</button>
-    <h1 style="font-size:1.8rem">Sign in</h1>
-    <div class="tag">Your username and your secret code.</div>
-    <div class="card">
-      <div class="field"><span class="at">@</span><input id="siUser" maxlength="18" placeholder="username" autocomplete="off" spellcheck="false"></div>
-      <div class="field"><span class="at">🔑</span><input id="siCode" type="password" maxlength="40" placeholder="secret code" autocomplete="off"></div>
-      <div class="hint" id="siHint">Forgot your code? A grown-up can reset it in Firebase.</div>
-    </div>
-    <button class="bigbtn" id="siGo">Sign in →</button>
-  </div>
-
-  <!-- ================= PROFILE / CREATE ================= -->
+  <!-- ================= PROFILE ================= -->
   <div class="front" id="f-profile">
     <button class="back" data-home="1">←</button>
     <div style="font-size:2.4rem" id="pfIcon">🌊</div>
-    <h1 style="font-size:1.8rem" id="pfTitle">Create your account</h1>
+    <h1 style="font-size:1.8rem" id="pfTitle">Your profile</h1>
     <div class="tag" id="pfTag">Your username is how friends find you.</div>
 
     <div class="card">
       <h3>Username</h3>
       <div class="field"><span class="at">@</span><input id="unameIn" maxlength="18" placeholder="yourname13" autocomplete="off" spellcheck="false"></div>
       <div class="hint" id="unameHint">Letters, numbers and _ — this is how friends find you.</div>
-    </div>
-
-    <div class="card" id="codeCard">
-      <h3>Secret code</h3>
-      <div class="field"><span class="at">🔑</span><input id="codeIn" type="password" maxlength="40" placeholder="at least 6 characters" autocomplete="off"></div>
-      <div class="hint">This is your password. Write it down somewhere safe — nobody can look it up for you.</div>
     </div>
 
     <div class="card">
@@ -610,30 +582,22 @@
   "use strict";
 
   /* =========================================================================
-     PASTE YOUR FIREBASE CONFIG HERE to switch on real chat.
-     Project settings -> Your apps -> Web app -> firebaseConfig.
-     These values are public identifiers, not secrets. The security comes from
-     chatwave.rules, so publish those before anybody signs up.
-     Leave this untouched and ChatWave still runs in practice mode.
+     ChatWave has two modes and no cloud anywhere.
+
+     HOME  — real people, over your own Wi-Fi. Run wavserve.ps1 on one computer
+             and everybody in the house opens the address it prints. Messages
+             live in that window's memory. No accounts, no keys, no database,
+             nothing on disk.
+     PRACTICE — the same app, populated by made-up people, entirely in this tab.
+
+     The relay is found by asking /api/hello. If nothing answers, the app says
+     so and offers practice mode. It never breaks.
      ========================================================================= */
-  var FIREBASE_CONFIG = {
-    apiKey: "PASTE_API_KEY",
-    authDomain: "PASTE.firebaseapp.com",
-    projectId: "PASTE_PROJECT_ID",
-    storageBucket: "PASTE.appspot.com",
-    messagingSenderId: "PASTE",
-    appId: "PASTE"
-  };
 
-  // Usernames become <username>@USER_DOMAIN internally, purely because Firebase
-  // Auth wants an email-shaped string. Nothing is ever sent to this domain.
-  var USER_DOMAIN = "chatwave.app";
-  var FBV = "https://www.gstatic.com/firebasejs/10.12.2/";
-
-  var CONFIGURED = FIREBASE_CONFIG.apiKey !== "PASTE_API_KEY";
+  var POLL_MS = 1500;
 
   /* =========================================================================
-     1. PRACTICE-MODE CAST
+     1. PRACTICE CAST
      ========================================================================= */
 
   var AV_EMOJI = ['🎧','🎮','🛹','🏀','🎨','📚','🐈','🐕','🍕','🧋','⚽','🎸','🌙','⚡','🔥','🌊','🦈','🐙','🦋','👽','🍄','🧊','🎬','🪐'];
@@ -644,197 +608,308 @@
     '🐶 🐱 🦊 🐢 🦋 🐙 🦈 🍕 🍟 🍦 🍪 🧋 🍓 🍉 🥤 🍫 ⚽ 🏀 🏐 🛹 ' +
     '🎮 🎧 🎨 🎸 📚 🚀 🪐 🧩 📸 🎬 🧊 🌙 ⚡ 🌊 🍄 👽').split(' ');
 
+  // busy: what they say when they are mid-something. news: what they bring up
+  // unprompted, because real people do not only answer questions.
   var PEOPLE = [
     { u:'pixel_fenn', n:'Fenn', e:'🎮', c:'#8fd0f5', bio:'building a whole city in survival mode', style:'hype', grade:'7th',
-      likes:['minecraft','gaming','games','building','roblox','redstone','survival'] },
+      likes:['minecraft','gaming','games','building','roblox','redstone','survival'],
+      busy:['im mid game gimme a sec','ok one more round then im free'],
+      news:['ok my world just corrupted and i lost everything','built a bridge for 2 hours and it looked terrible',
+            'my little brother deleted my save. we are not speaking.'] },
     { u:'hoop_marcus', n:'Marcus', e:'🏀', c:'#ffc08a', bio:'gym before school, gym after school', style:'blunt', grade:'8th',
-      likes:['basketball','hoops','sports','nba','training','dunking'] },
+      likes:['basketball','hoops','sports','nba','training','dunking'],
+      busy:['at the gym','practice rn'],
+      news:['we won by 2. i had 11.','coach made us run suicides for 20 min','my shot is not falling this week and its killing me'] },
     { u:'luna_draws', n:'Luna', e:'🖊️', c:'#c9b6f7', bio:'sketchbook is 90% full, help', style:'sweet', grade:'7th',
-      likes:['drawing','art','digital art','sketching','characters','comics','painting'] },
+      likes:['drawing','art','digital art','sketching','characters','comics','painting'],
+      busy:['drawing rn, one sec','in the middle of a piece'],
+      news:['i drew for 3 hours and hated all of it','finally got hands to look right. once.',
+            'my tablet pen died mid line and i almost cried'] },
     { u:'bassdrop_bex', n:'Bex', e:'🎧', c:'#7ee0c0', bio:'making beats in my closet', style:'chaotic', grade:'8th',
-      likes:['music','beats','producing','headphones','playlists','songs','concerts'] },
+      likes:['music','beats','producing','headphones','playlists','songs','concerts'],
+      busy:['recording, hold on','headphones are on i cant hear anything'],
+      news:['made a beat at 1am and it is either genius or terrible','my sister keeps banging on the wall while i record',
+            'ok i need new headphones mine crackle now'] },
     { u:'skate_or_dae', n:'Dae', e:'🛹', c:'#ffb3c6', bio:'landed it. eventually.', style:'chill', grade:'8th',
-      likes:['skateboarding','skating','tricks','skate park','bmx','longboard'] },
+      likes:['skateboarding','skating','tricks','skate park','bmx','longboard'],
+      busy:['at the park','one sec im filming a run'],
+      news:['ate it so hard today. my elbow is purple.','landed it FINALLY. took like 60 tries.',
+            'park was packed with little kids today'] },
     { u:'anime_amara', n:'Amara', e:'🌸', c:'#f5b8e0', bio:'watchlist is out of control', style:'hype', grade:'7th',
-      likes:['anime','manga','episodes','drawing','cosplay','shows','japan'] },
+      likes:['anime','manga','episodes','drawing','cosplay','shows','japan'],
+      busy:['im in the middle of an episode dont talk to me','2 min, big fight scene'],
+      news:['stayed up til 2 finishing a season. worth it. probably.',
+            'the new episode ruined me','my mom saw my watch history and asked questions'] },
     { u:'code_kiran', n:'Kiran', e:'💻', c:'#9fb8ff', bio:'robotics club, mostly the code part', style:'nerdy', grade:'8th',
-      likes:['coding','robotics','python','computers','engineering','building','ai'] },
+      likes:['coding','robotics','python','computers','engineering','building','ai'],
+      busy:['debugging, one sec','robotics meeting rn'],
+      news:['spent an hour on a bug. it was a missing semicolon.','our robot drove into a wall at full speed today',
+            'i wrote something that works and i am afraid to touch it'] },
     { u:'volley_vee', n:'Vee', e:'🏐', c:'#ffd45e', bio:'outside hitter, loud on the court', style:'hype', grade:'7th',
-      likes:['volleyball','sports','practice','team','serving','tournaments'] },
+      likes:['volleyball','sports','practice','team','serving','tournaments'],
+      busy:['at practice','warming up rn'],
+      news:['i served 8 in a row today','we lost in 3 and im still annoyed','my knees hate me'] },
     { u:'boba_bennett', n:'Bennett', e:'🧋', c:'#ffc08a', bio:'rating every boba place in town', style:'dry', grade:'8th',
-      likes:['boba','food','snacks','pizza','ramen','tea','eating'] },
+      likes:['boba','food','snacks','pizza','ramen','tea','eating'],
+      busy:['eating','in line rn'],
+      news:['found a new boba place. 8.5/10. lost points on ice.','my order was wrong and i said nothing like a coward',
+            'i have eaten cereal three times today'] },
     { u:'track_tati', n:'Tati', e:'🏃', c:'#a8e6a3', bio:'400m and complaining about the 400m', style:'blunt', grade:'8th',
-      likes:['track','running','sports','races','sprinting','cross country'] },
+      likes:['track','running','sports','races','sprinting','cross country'],
+      busy:['at track','running rn obviously'],
+      news:['pr by half a second today','the 400 is a scam and i keep signing up for it',
+            'coach added hills. hills!'] },
     { u:'lore_liam', n:'Liam', e:'📚', c:'#b8d97a', bio:'three books going at once', style:'nerdy', grade:'7th',
-      likes:['reading','books','fantasy','writing','stories','series','library'] },
+      likes:['reading','books','fantasy','writing','stories','series','library'],
+      busy:['one sec, end of a chapter','reading, hold on'],
+      news:['finished a 600 page book and immediately started another','my library holds all came in at once. all six.',
+            'a character died and i am not okay'] },
     { u:'drum_dez', n:'Dez', e:'🥁', c:'#f7a8a8', bio:'band kid and proud of it', style:'chaotic', grade:'8th',
-      likes:['drums','band','music','marching band','percussion','rhythm'] },
+      likes:['drums','band','music','marching band','percussion','rhythm'],
+      busy:['at band','practicing, cant hear my phone'],
+      news:['i broke a stick mid song and just kept going','marching in the rain today. cold. loud. great.',
+            'my neighbors have opinions about my practice schedule'] },
     { u:'sneaker_sy', n:'Sy', e:'👟', c:'#8fe3e3', bio:'thrift finds only', style:'dry', grade:'8th',
-      likes:['sneakers','shoes','thrifting','clothes','style','fashion'] },
+      likes:['sneakers','shoes','thrifting','clothes','style','fashion'],
+      busy:['out rn','at the thrift store, this is important'],
+      news:['found something great for 4 dollars','someone took the jacket i was circling. i saw them do it.',
+            'my shoes finally died. rip.'] },
     { u:'cam_captures', n:'Cam', e:'📸', c:'#9fb8ff', bio:'everything is content', style:'chill', grade:'7th',
-      likes:['photos','photography','editing','videos','filming','cameras'] },
+      likes:['photos','photography','editing','videos','filming','cameras'],
+      busy:['editing','out shooting rn'],
+      news:['took 200 photos and kept 3','the light was unreal today','my sd card filled up mid shoot'] },
     { u:'chess_wren', n:'Wren', e:'♟️', c:'#c9b6f7', bio:'four moves ahead, allegedly', style:'nerdy', grade:'7th',
-      likes:['chess','puzzles','strategy','math','board games','riddles'] },
+      likes:['chess','puzzles','strategy','math','board games','riddles'],
+      busy:['mid game','one sec, thinking'],
+      news:['blundered my queen in 6 moves today. no notes.','won a game i had no business winning',
+            'club got a new board and everyone is weird about it'] },
     { u:'plant_priya', n:'Priya', e:'🪴', c:'#a8e6a3', bio:'11 plants, 2 are thriving', style:'sweet', grade:'8th',
-      likes:['plants','gardening','nature','flowers','succulents','hiking'] },
+      likes:['plants','gardening','nature','flowers','succulents','hiking'],
+      busy:['repotting rn','outside, one sec'],
+      news:['one of them is dying and i dont know why','new leaf!! this is a big deal to me',
+            'i bought another one. i have a problem.'] },
     { u:'meme_milo', n:'Milo', e:'😹', c:'#ffd45e', bio:'professional group chat menace', style:'chaotic', grade:'7th',
-      likes:['memes','jokes','funny videos','pranks','comedy','videos'] },
+      likes:['memes','jokes','funny videos','pranks','comedy','videos'],
+      busy:['brb doing something stupid','one sec'],
+      news:['i said something in class and nobody laughed. brutal.','sent a meme to the wrong chat. to my aunt.',
+            'my phone is at 3% and i refuse to charge it'] },
     { u:'swim_soren', n:'Soren', e:'🌊', c:'#8fd0f5', bio:'5am practice is a personality', style:'chill', grade:'8th',
-      likes:['swimming','swim team','ocean','water','surfing','diving'] },
+      likes:['swimming','swim team','ocean','water','surfing','diving'],
+      busy:['in the pool','practice, cant text'],
+      news:['5am again tomorrow. pray for me.','my hair is permanently chlorine now','dropped 2 seconds off my 100'] },
     { u:'bake_bri', n:'Bri', e:'🧁', c:'#ffb3c6', bio:'cupcakes > homework', style:'sweet', grade:'7th',
-      likes:['baking','cupcakes','cooking','desserts','cookies','recipes','food'] },
+      likes:['baking','cupcakes','cooking','desserts','cookies','recipes','food'],
+      busy:['things are in the oven','hands covered in flour rn'],
+      news:['they came out flat and i am upset','made brownies at 10pm for no reason','i forgot the sugar. THE SUGAR.'] },
     { u:'rocket_rae', n:'Rae', e:'🚀', c:'#c9b6f7', bio:'science fair champion, 2 years running', style:'nerdy', grade:'8th',
-      likes:['space','science','rockets','experiments','physics','stars','mars'] },
+      likes:['space','science','rockets','experiments','physics','stars','mars'],
+      busy:['mid experiment','one sec this is timed'],
+      news:['my project exploded. slightly. on purpose. mostly.','saw jupiter through a telescope and got emotional',
+            'science fair is in 3 weeks and i have nothing'] },
     { u:'goalie_gabi', n:'Gabi', e:'🥅', c:'#7ee0c0', bio:'nothing gets past me. mostly.', style:'hype', grade:'7th',
-      likes:['soccer','goalkeeping','sports','football','practice','team'] },
+      likes:['soccer','goalkeeping','sports','football','practice','team'],
+      busy:['at soccer','game rn'],
+      news:['clean sheet today 🧤','let one in from HALFWAY. i will never recover.','my gloves smell criminal'] },
     { u:'stage_stell', n:'Stella', e:'🎭', c:'#f5b8e0', bio:'drama club, lead role energy', style:'chaotic', grade:'8th',
-      likes:['theater','drama','acting','musicals','singing','plays','stage'] },
+      likes:['theater','drama','acting','musicals','singing','plays','stage'],
+      busy:['at rehearsal','onstage in 5, cant talk'],
+      news:['i forgot a line and improvised. badly.','callbacks are friday and i cannot breathe',
+            'the set fell over during rehearsal. nobody died.'] },
     { u:'dog_dax', n:'Dax', e:'🐕', c:'#ffc08a', bio:'my dog runs this account', style:'sweet', grade:'7th',
-      likes:['dogs','puppies','pets','animals','walks','training'] },
+      likes:['dogs','puppies','pets','animals','walks','training'],
+      busy:['walking the dog','she is chewing something she should not be, one sec'],
+      news:['she ate a whole sock. a WHOLE sock.','taught her to shake. took 40 treats.',
+            'she rolled in something and i am the one paying for it'] },
     { u:'cardgame_cass', n:'Cass', e:'🃏', c:'#b8d97a', bio:'deck is undefeated at lunch', style:'dry', grade:'8th',
-      likes:['card games','trading cards','pokemon','collecting','strategy','tournaments'] },
+      likes:['card games','trading cards','pokemon','collecting','strategy','tournaments'],
+      busy:['mid match','one sec, trading'],
+      news:['pulled something good and immediately traded it badly','lost to a deck i built. for them.',
+            'lunch tournament got shut down by a teacher'] },
     { u:'mtn_micah', n:'Micah', e:'🚵', c:'#a8e6a3', bio:'trails every weekend', style:'chill', grade:'8th',
-      likes:['biking','mountain biking','trails','outdoors','camping','hiking'] },
+      likes:['biking','mountain biking','trails','outdoors','camping','hiking'],
+      busy:['on a ride','out on the trail'],
+      news:['went over the bars. im fine. mostly.','trail was mud the whole way and it ruled',
+            'my chain snapped 4 miles out. long walk.'] },
     { u:'paintbox_poppy', n:'Poppy', e:'🎨', c:'#ffb3c6', bio:'my hands are always some color', style:'sweet', grade:'7th',
-      likes:['painting','art','colors','crafts','murals','drawing'] },
+      likes:['painting','art','colors','crafts','murals','drawing'],
+      busy:['painting rn','waiting for a layer to dry'],
+      news:['i mixed the perfect green and will never find it again','got paint on the carpet. we do not speak of it.',
+            'started something huge and now im scared of it'] },
     { u:'quiz_quincy', n:'Quincy', e:'🧠', c:'#9fb8ff', bio:'quiz bowl captain, sorry about it', style:'nerdy', grade:'8th',
-      likes:['trivia','facts','history','quizzes','geography','learning'] },
+      likes:['trivia','facts','history','quizzes','geography','learning'],
+      busy:['at quiz bowl','mid round'],
+      news:['buzzed in early and got it wrong in front of everyone','we won by one point. ONE.',
+            'i know every capital and zero useful things'] },
     { u:'guitar_gus', n:'Gus', e:'🎸', c:'#ffd45e', bio:'know 4 chords, use all 4', style:'dry', grade:'7th',
-      likes:['guitar','music','songs','bands','playing','practice'] },
+      likes:['guitar','music','songs','bands','playing','practice'],
+      busy:['practicing','restringing, one sec'],
+      news:['my fingers hurt and i have learned nothing new','learned a 5th chord. big week.',
+            'string snapped and hit me in the face'] },
     { u:'cat_kiki', n:'Kiki', e:'🐈', c:'#c9b6f7', bio:'two cats, zero regrets', style:'sweet', grade:'7th',
-      likes:['cats','kittens','animals','pets','naps'] },
+      likes:['cats','kittens','animals','pets','naps'],
+      busy:['cat is on my arms','one sec, cat situation'],
+      news:['she knocked a glass off the counter while looking at me','both of them are asleep on my homework',
+            'vet visit tomorrow. she does not know yet.'] },
     { u:'moto_mo', n:'Mo', e:'🏁', c:'#f7a8a8', bio:'go-kart lap record holder, local', style:'hype', grade:'8th',
-      likes:['racing','go karts','cars','speed','f1','motorsport'] },
+      likes:['racing','go karts','cars','speed','f1','motorsport'],
+      busy:['at the track','one sec, race starting'],
+      news:['beat my best lap by 0.4','spun out on the last corner while leading','the kart smelled like burning. normal?'] },
     { u:'speedcube_sena', n:'Sena', e:'🧊', c:'#8fe3e3', bio:'PB is 14 seconds', style:'nerdy', grade:'7th',
-      likes:['rubiks cube','cubing','puzzles','speed','math','patterns'] },
+      likes:['rubiks cube','cubing','puzzles','speed','math','patterns'],
+      busy:['mid solve','one sec, timing myself'],
+      news:['13.8. NEW PB.','my cube is lockingup and i am blaming that for everything',
+            'solved it under the desk in class. teacher saw. worth it.'] },
     { u:'lunchtable_lex', n:'Lex', e:'🥪', c:'#b8d97a', bio:'runs six group chats. sends the plans.', style:'hype', grade:'8th',
-      likes:['friends','plans','hanging out','group chats','weekends','parties'] },
+      likes:['friends','plans','hanging out','group chats','weekends','parties'],
+      busy:['organizing something','on the phone with like 3 people'],
+      news:['nobody replied to the plan i made. as usual.','we are going saturday. i decided. you are invited.',
+            'my group chats have group chats now'] },
     { u:'ghost_gio', n:'Gio', e:'👽', c:'#8fd0f5', bio:'up too late every night', style:'dry', grade:'8th',
-      likes:['horror','mysteries','conspiracies','games','stories','space'] },
+      likes:['horror','mysteries','conspiracies','games','stories','space'],
+      busy:['watching something','one sec'],
+      news:['fell asleep at 4am and woke up at 6','watched something scary alone. bad idea. did it again.',
+            'i have a theory about that and nobody wants to hear it'] },
     { u:'flip_farrah', n:'Farrah', e:'🤸', c:'#ffd45e', bio:'gym 4 nights a week', style:'hype', grade:'7th',
-      likes:['gymnastics','tumbling','flips','cheer','dance','competitions'] }
+      likes:['gymnastics','tumbling','flips','cheer','dance','competitions'],
+      busy:['at the gym','conditioning rn, send help'],
+      news:['landed my back tuck!! finally!!','my coach added conditioning and i am dead','meet is in 2 weeks 😰'] }
   ];
 
+  // How each person types. lower = they mostly do not capitalise.
   var STYLE = {
-    hype:    { tails:['LETS GOOO','🔥🔥','no bc same','fr fr','i cant'], chance:.5, lower:false },
-    chill:   { tails:['👌','its whatever','pretty solid','yeah fair'], chance:.4, lower:true },
-    dry:     { tails:['sure.','anyway','ok','...allegedly'], chance:.35, lower:true },
-    sweet:   { tails:['💛','aw yay','thats so cute','🥹'], chance:.5, lower:false },
-    nerdy:   { tails:['(technically)','fun fact','🤓','actually wait'], chance:.45, lower:false },
-    chaotic: { tails:['💀💀','IM CRYING','ok unrelated but','wait what'], chance:.55, lower:true },
-    blunt:   { tails:['thats it','period','no notes','yeah'], chance:.35, lower:true }
+    hype:    { tails:['LETS GO','🔥','fr fr','no bc same'], chance:.28, lower:false, brief:.30 },
+    chill:   { tails:['👌','its whatever','yeah fair'],      chance:.20, lower:true,  brief:.45 },
+    dry:     { tails:['sure','anyway','ok'],                 chance:.16, lower:true,  brief:.55 },
+    sweet:   { tails:['💛','aw','🥹'],                       chance:.30, lower:false, brief:.30 },
+    nerdy:   { tails:['(technically)','🤓'],                 chance:.22, lower:false, brief:.28 },
+    chaotic: { tails:['💀','IM CRYING','wait'],              chance:.32, lower:true,  brief:.38 },
+    blunt:   { tails:['yeah','thats it'],                    chance:.14, lower:true,  brief:.60 }
   };
 
+  // A real friend answers a paragraph with "lol yeah" more often than not.
+  var SHORT = ['lol','lmao','fr','no way','😭','ok','wait what','yeah','same','bruh','stop 😭',
+    'thats crazy','hahaha','noooo','ayy','fair','tru','ong','💀','oh word','yesss','hm','wdym',
+    'ohh ok','bet','i know right','exactly','right??','okay but same','oh fr?','huh','wait fr',
+    'ha','yep','mm','oh dang','nah','ok that got me','LOL','😭😭','why is that so true'];
+
+  var AGREE = ['ok yeah agreed','literally','see thats what im saying','exactly this','ok true tho'];
+  var DISAGREE = ['eh','hmm not for me','i dont know about that one','ok but hear me out, no',
+    'thats mid honestly','ok i disagree but respectfully'];
+
+  var LATE = ['sorry was eating','sorry my phone was in my bag','sorry dinner','ok im back',
+    'sorry was at practice','my mom took my phone for like an hour','sorry i fell asleep',
+    'ok back. what did i miss','sorry i left my phone in the kitchen'];
+
+  var BAIL = ['ok gtg dinner','brb my mom is yelling','one sec','gtg, homework','brb',
+    'ok i have to go do something, back in a bit','my sister needs the room, brb'];
+
   var JOKES = [
-    ["why did the scarecrow get promoted", "he was outstanding in his field 🌾"],
-    ["what do you call cheese that isnt yours", "nacho cheese 🧀"],
-    ["why dont skeletons fight each other", "no guts 💀"],
+    ["why did the scarecrow get promoted", "he was outstanding in his field"],
+    ["what do you call cheese that isnt yours", "nacho cheese"],
+    ["why dont skeletons fight each other", "no guts"],
     ["whats the best thing about switzerland", "idk but the flag is a big plus"],
     ["why did the math book look stressed", "too many problems"],
-    ["what do you call a sleeping dinosaur", "a dino-snore 🦕"],
-    ["how do you organize a space party", "you planet 🪐"],
-    ["whats orange and sounds like a parrot", "a carrot 🥕"],
-    ["why cant your nose be 12 inches long", "then it would be a foot 👃"],
+    ["what do you call a sleeping dinosaur", "a dino-snore"],
+    ["how do you organize a space party", "you planet"],
+    ["whats orange and sounds like a parrot", "a carrot"],
+    ["why cant your nose be 12 inches long", "then it would be a foot"],
     ["what did one wall say to the other", "meet you at the corner"],
-    ["why did the bike fall over", "it was two tired 🚲"],
-    ["whats a computers favorite snack", "microchips 💻"]
+    ["why did the bike fall over", "it was two tired"],
+    ["whats a computers favorite snack", "microchips"]
   ];
 
   var FACTS = [
-    'octopuses have three hearts 🐙',
+    'octopuses have three hearts',
     'a group of flamingos is a flamboyance',
     'honey literally never spoils',
     'bananas are berries and strawberries arent',
-    'sea otters hold hands while they sleep 🦦',
+    'sea otters hold hands while they sleep',
     'a day on venus is longer than its year',
     'sharks are older than trees',
     'cows have best friends',
     'your bones are 4x stronger than concrete',
-    'wombat poop is cube shaped (sorry)',
-    'there are more possible chess games than atoms in the observable universe',
+    'wombat poop is cube shaped',
+    'there are more possible chess games than atoms in the universe',
     'the loudest animal is a shrimp'
   ];
 
   var TOPICS = [
-    { k:['minecraft','roblox','fortnite','video game','videogame','games','gaming','xbox','playstation','switch','nintendo','valorant','among us','geometry dash','ps5'],
-      s:['ok whats your first move on a new world','i played way too much of that this weekend ngl',
-         'my best build is a floating base and i will not be humble about it','are you a builder or a fighter',
-         'wait add me next time'] },
+    { k:['minecraft','roblox','fortnite','video game','videogame','games','gaming','xbox','playstation','switch','nintendo','valorant','among us','ps5'],
+      s:['what do you build first on a new world','i played way too much of that this weekend',
+         'my base is a mess but its MY mess','builder or fighter','wait add me next time',
+         'i lost 4 hours to that yesterday'] },
     { k:['anime','manga','episode','episodes','season','arc'],
-      s:['ok which one, this is important','i binged like 6 episodes last night 💀','no spoilers PLEASE',
-         'the animation in that one goes so hard'] },
-    { k:['dog','dogs','puppy','puppies'], s:['dogs. correct answer 🐕','my dog eats socks. actual socks.',
-        'big dog or small dog','i want to meet every dog alive'] },
-    { k:['cat','cats','kitten','kitty'], s:['cats are tiny landlords 🐈','mine sits on my homework every single time',
-        'do you have one or do you just want one'] },
+      s:['which one','no spoilers PLEASE','i binged like 6 last night','the animation goes so hard in that one',
+         'ok i need to catch up'] },
+    { k:['dog','dogs','puppy','puppies'], s:['dogs. correct.','my dog eats socks. actual socks.',
+        'big dog or small dog','i want to meet every dog alive','post a pic i need to see'] },
+    { k:['cat','cats','kitten','kitty'], s:['cats are tiny landlords','mine sits on my homework every time',
+        'do you have one or do you just want one','cat people rise up'] },
     { k:['pizza','burger','taco','ramen','noodle','sandwich','food','hungry','snack','lunch','dinner','boba','fries'],
-      s:['now im hungry, thanks','ok but which topping. this decides everything','i could eat that daily',
-         'best cafeteria day is pizza day and thats just facts'] },
+      s:['now im hungry thanks','ok but which topping','i could eat that daily','pizza day is the best day and thats objective',
+         'im eating literally right now'] },
     { k:['ice cream','candy','cookie','cake','chocolate','dessert','donut','cupcake'],
-      s:['ok big yes 🍦','what flavor, be honest','i would trade homework for that right now'] },
+      s:['ok yes','what flavor. be honest.','i would trade homework for that'] },
     { k:['school','homework','teacher','class','test','quiz','math','science','english','history','project','locker','bus','grades','study','exam'],
-      s:['whats your best class though','group projects are a scam and i said what i said',
-         'i studied for like 6 minutes and hoped','tests are fine. its the waiting for grades that gets me.',
-         'my teacher assigned that on a friday. rude.'] },
+      s:['whats your best class','group projects are a scam','i studied for 6 minutes and hoped',
+         'my teacher assigned that on a friday. rude.','i have so much of that tonight',
+         'the waiting for grades part is worse than the test'] },
     { k:['soccer','football','basketball','baseball','softball','volleyball','hockey','tennis','swim','swimming','sport','sports','running','track','gymnastics','wrestling','cheer','practice'],
-      s:['do you play on a team','practice like 4x a week over here 😮‍💨','what position',
-         'im not the fastest but im the loudest'] },
+      s:['do you play on a team','practice like 4x a week over here','what position',
+         'im not fast but im loud','we lost last week and im still thinking about it'] },
     { k:['music','song','singing','guitar','piano','drums','band','concert','playlist','album','headphones','beats'],
-      s:['whats on repeat for you right now','send the playlist i need new stuff','i play badly but LOUD 🎸',
-         'music makes everything 40% better'] },
+      s:['whats on repeat','send the playlist','i play badly but LOUD','ive had one song stuck for three days'] },
     { k:['book','books','reading','story','comic','library','series','novel'],
-      s:['ooh what are you reading','i stayed up way too late finishing a chapter','comics count, i will defend this'] },
+      s:['what are you reading','stayed up too late finishing a chapter again','comics count. im right.'] },
     { k:['draw','drawing','art','paint','painting','craft','crafts','doodle','sketch','digital art'],
-      s:['what do you like drawing most','i draw the same character over and over 💀','hands are impossible. hands.'] },
+      s:['what do you like drawing','i draw the same character over and over','hands. hands are impossible.',
+         'post it i want to see'] },
     { k:['space','planet','planets','star','stars','moon','mars','rocket','astronaut','galaxy','nasa'],
-      s:['space is the best subject and im not taking questions 🚀','would you actually go to mars though',
-         'jupiter has like 95 moons, thats unreasonable'] },
+      s:['space is the best one','would you actually go to mars though','jupiter has like 95 moons which is greedy'] },
     { k:['code','coding','python','program','programming','robot','robotics','computer','javascript','ai'],
-      s:['ok what are you making','my code works and i genuinely dont know why','robotics club is chaos but good chaos'] },
+      s:['what are you making','my code works and i dont know why','robotics is chaos but good chaos'] },
     { k:['skate','skateboard','skateboarding','bike','biking','scooter','trick','ramp'],
-      s:['did you land it or eat it 💀','the skate park was PACKED last weekend','ok teach me that one'] },
+      s:['did you land it or eat it','park was packed last weekend','teach me that one'] },
     { k:['birthday','party','cake','present','presents','sleepover','dance','hangout','hang out'],
-      s:['ok wait thats exciting 🎉','who all is going','birthdays are elite, no notes'] },
+      s:['ok thats exciting','who all is going','birthdays are elite'] },
     { k:['summer','vacation','holiday','beach','camp','trip','pool','weekend','break'],
-      s:['ok that sounds unreal ☀️','i need summer to come back immediately','beach or pool, pick'] },
+      s:['ok that sounds unreal','i need summer back immediately','beach or pool. pick.'] },
     { k:['snow','winter','ski','sled','cold','christmas','holidays'],
-      s:['snow days are undefeated ❄️','i can sled. i cannot ski.','hot chocolate is mandatory here'] },
+      s:['snow days are undefeated','i can sled. i cannot ski.','hot chocolate is mandatory'] },
     { k:['meme','memes','funny','video','videos','tiktok','youtube','show','movie','watch','streaming','edit'],
-      s:['send it send it send it','i rewatch the same 3 things forever','no spoilers though!!','ok that one is actually funny'] },
-    { k:['bored','boring','nothing to do'], s:['same honestly 😩','emergency plan: pick a color, find 5 things that color',
-        'want a joke, i have a concerning supply'] },
-    { k:['tired','sleepy','sleep','nap','exhausted'], s:['same, i stayed up too late again','naps are so underrated 😴','go to sleep!! (says the person still awake)'] },
+      s:['send it','i rewatch the same 3 things forever','no spoilers','ok that one actually got me'] },
+    { k:['bored','boring','nothing to do'], s:['same','pick a color and find 5 things that color. go.',
+        'want a joke, i have a concerning amount'] },
+    { k:['tired','sleepy','sleep','nap','exhausted'], s:['same i stayed up too late again','naps are underrated',
+        'go to sleep!! (says me, awake)'] },
     { k:['pet','pets','hamster','fish','bird','bunny','rabbit','turtle','lizard','snake','horse'],
-      s:['pets make a house 10x better 🐾','whats their name','i want one so badly'] },
+      s:['pets make a house 10x better','whats their name','i want one so badly'] },
     { k:['friend','friends','bff','new kid','group chat','drama'],
-      s:['friends make everything easier honestly','thats actually really nice of you','do they go to your school'] },
+      s:['friends make everything easier','thats actually really nice of you','do they go to your school'] },
     { k:['nervous','worried','scared','anxious','stressed','stress','shy','overwhelmed'],
       s:['thats such a normal way to feel','you dont have to do it perfectly, you just have to do it',
-         'i get like that before big stuff too 💛'] },
+         'i get like that before big stuff too'] },
     { k:['weather','rain','rainy','sunny','storm','hot','windy','humid'],
-      s:['its doing the exact same thing here','rainy days = blanket days','perfect weather for doing nothing'] },
+      s:['its doing the same thing here','rainy days = blanket days','perfect weather for doing nothing'] },
     { k:['phone','charger','battery','wifi','screen','app','signal'],
-      s:['my battery is at 4% permanently','the wifi at my house is a rumor at this point','ok this app is actually kind of clean'] },
+      s:['my battery is at 4% permanently','the wifi here is a rumor','ok this app is actually clean'] },
     { k:['sneaker','sneakers','shoes','clothes','outfit','thrift','style','fashion','hoodie'],
-      s:['ok drop the fit pic (kidding)','thrifting is the only way','i wear the same hoodie 5 days a week, its a look'] },
+      s:['thrifting is the only way','i wear the same hoodie 5 days a week. its a look.'] },
     { k:['chess','puzzle','puzzles','cube','rubiks','strategy','riddle'],
-      s:['ok what is your best time','i lose but i lose with STYLE','give me a riddle, right now'] }
+      s:['whats your best time','i lose but i lose with style','give me a riddle right now'] }
   ];
 
-  var FOLLOWUPS = [
-    'what about you', 'ok what do you think', 'have you tried it', 'is that your favorite',
-    'what else did you do today', 'ok tell me the best part', 'hows your day going tho',
-    'do you like that kind of stuff', 'would you do it again', 'ok explain'
-  ];
+  var FOLLOWUPS = ['what about you', 'have you tried it', 'is that your favorite',
+    'what else did you do today', 'hows your day going', 'do you like that kind of stuff', 'wait explain'];
 
   var REQ_OPENERS = [
-    'hey! you\'re in the same group chat as my friend, wanna chat?',
-    'saw your username, we have like 4 mutuals 😅',
-    'hey! Lex said i should add you',
-    'hi!! adding people from the club list',
+    'hey! youre in the same group chat as my friend',
+    'saw your username, we have like 4 mutuals',
+    'hey! lex said i should add you',
+    'adding people from the club list',
     'yo. adding everyone from my class group.',
-    'hey, you like the same stuff i do apparently. add?',
-    'hi! new here, collecting friends',
+    'hey, we like the same stuff apparently',
+    'hi! new here',
     'heyyy add me back?'
   ];
 
@@ -843,32 +918,26 @@
      ========================================================================= */
 
   var S = {
-    mode: null,               // 'practice' | 'live'
+    mode: null,               // 'practice' | 'home'
     me: { id:'me', u:'', n:'', e:'🎧', c:'#7ee0c0', about:'' },
-    chats: [],                // { id, kind, members[], title, msgs[], unread, muted, pinned, lastQ, typing, lastAt }
-    incoming: [],             // { id, u, text, at }
-    outgoing: [],             // { id, u, at }
-    declined: [],
-    open: null,
-    reply: null,
-    sent: 0,
-    view: 'chats',
+    chats: [], incoming: [], outgoing: [], declined: [],
+    open: null, reply: null, sent: 0, view: 'chats',
     opts: { dark:false, notif:true, read:true }
   };
 
-  var DIR = {};               // member id -> { u, n, e, c, bio, ... }
-  var FB = null;              // live handles once Firebase is loaded
-  var unsub = { chats:null, msgs:null, inc:null, out:null, users:{} };
+  var DIR = {};
+  var HOME = { uid:null, since:0, timer:null, fails:0 };
 
   var idSeq = 1;
   function uid() { return 'x' + (idSeq++); }
   function $(id) { return document.getElementById(id); }
   function pick(a) { return a[Math.floor(Math.random() * a.length)]; }
+  function chance(p) { return Math.random() < p; }
   function esc(s) {
     return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
   function personOf(id) { return DIR[id] || null; }
-  function live() { return S.mode === 'live'; }
+  function homeMode() { return S.mode === 'home'; }
   function isMine(id) { return id === S.me.id; }
 
   function clockOf(d) {
@@ -893,11 +962,6 @@
     if (s < 86400) return Math.floor(s / 3600) + 'h ago';
     return Math.floor(s / 86400) + 'd ago';
   }
-  function toDate(ts) {
-    if (!ts) return null;
-    if (ts.toDate) return ts.toDate();
-    return ts instanceof Date ? ts : new Date(ts);
-  }
   function avHTML(emoji, color, cls) {
     return '<div class="av ' + (cls || '') + '" style="background:' + color + '">' + esc(emoji) + '</div>';
   }
@@ -909,7 +973,6 @@
     clearTimeout(toastT);
     toastT = setTimeout(function () { el.classList.remove('on'); }, 2800);
   }
-
   var notifT, notifGo = null;
   function notify(tag, avEmoji, avColor, title, text, action) {
     if (!S.opts.notif) { toast(title); return; }
@@ -943,46 +1006,43 @@
   document.querySelectorAll('[data-home]').forEach(function (b) {
     b.addEventListener('click', function () { front('f-welcome'); });
   });
-  document.querySelectorAll('[data-gate]').forEach(function (b) {
-    b.addEventListener('click', function () { front('f-gate'); });
-  });
 
-  $('goReal').addEventListener('click', function () {
-    if (!CONFIGURED) { front('f-config'); return; }
-    front('f-gate');
-  });
+  $('goReal').addEventListener('click', probeRelay);
+  $('cfgRetry').addEventListener('click', probeRelay);
   $('goPractice').addEventListener('click', startPracticeSetup);
   $('cfgPractice').addEventListener('click', startPracticeSetup);
+
+  function probeRelay() {
+    showBoot(true);
+    fetch('/api/hello', { cache:'no-store' })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        showBoot(false);
+        if (!d || d.app !== 'chatwave') { front('f-config'); return; }
+        S.mode = 'home';
+        $('pfIcon').textContent = '🏠';
+        $('pfTitle').textContent = 'Join the chat';
+        $('pfTag').textContent = d.house ? 'On ' + d.house + '. Pick the username your friends will search.'
+                                         : 'Pick the username your friends will search.';
+        $('startBtn').textContent = 'Join →';
+        $('pfFoot').textContent = 'Everything you send goes to the computer running the relay and nowhere else. ' +
+          'Close that window and it is all gone.';
+        front('f-profile');
+        setTimeout(function () { $('unameIn').focus(); }, 80);
+      })
+      .catch(function () { showBoot(false); front('f-config'); });
+  }
 
   function startPracticeSetup() {
     S.mode = 'practice';
     $('pfIcon').textContent = '🤖';
     $('pfTitle').textContent = 'Practice mode';
-    $('pfTag').textContent = 'Make a profile. The people you meet are characters.';
-    $('codeCard').style.display = 'none';
+    $('pfTag').textContent = 'Make a profile. The people you meet are made up.';
     $('startBtn').textContent = 'Start practising →';
-    $('pfFoot').textContent = 'Nothing you type in practice mode ever leaves this page. ' +
-      'There is no server and nothing is saved — reload and it is gone.';
+    $('pfFoot').textContent = 'Nothing you type here leaves this page. There is no server and nothing is saved.';
     front('f-profile');
     setTimeout(function () { $('unameIn').focus(); }, 80);
   }
-  $('gateCreate').addEventListener('click', function () {
-    S.mode = 'live';
-    $('pfIcon').textContent = '🌊';
-    $('pfTitle').textContent = 'Create your account';
-    $('pfTag').textContent = 'Your username is how friends find you.';
-    $('codeCard').style.display = '';
-    $('startBtn').textContent = 'Create my account →';
-    $('pfFoot').textContent = 'Real messages. Anybody on this ChatWave can search your username ' +
-      'and send you a chat request — you decide who to accept.';
-    front('f-profile');
-    setTimeout(function () { $('unameIn').focus(); }, 80);
-  });
-  $('gateSignin').addEventListener('click', function () {
-    S.mode = 'live';
-    front('f-signin');
-    setTimeout(function () { $('siUser').focus(); }, 80);
-  });
 
   /* ---- profile form ---- */
   var chosenE = AV_EMOJI[0], chosenC = AV_COLOR[0];
@@ -1022,6 +1082,11 @@
     $('prevAbout').textContent = $('aboutIn').value.trim() || 'hey there! i\'m on ChatWave';
   }
 
+  function practicePerson(u) {
+    for (var i = 0; i < PEOPLE.length; i++) if (PEOPLE[i].u === u) return PEOPLE[i];
+    return null;
+  }
+
   $('unameIn').addEventListener('input', function () {
     var c = cleanUser(this.value);
     if (c !== this.value) this.value = c;
@@ -1029,577 +1094,363 @@
     hint.className = 'hint';
     if (!c) hint.textContent = 'Letters, numbers and _ — this is how friends find you.';
     else if (c.length < 3) hint.textContent = 'A bit longer — at least 3 characters.';
-    else if (!live() && practicePerson(c)) { hint.textContent = '@' + c + ' is taken by a character. Try another.'; hint.className = 'hint bad'; }
-    else { hint.textContent = live() ? 'Looks good — we check it when you tap create.' : '@' + c + ' is available ✓'; hint.className = 'hint ok'; }
+    else if (!homeMode() && practicePerson(c)) { hint.textContent = '@' + c + ' is taken by a character.'; hint.className = 'hint bad'; }
+    else { hint.textContent = '@' + c + ' ✓'; hint.className = 'hint ok'; }
     paintPreview();
   });
   $('aboutIn').addEventListener('input', paintPreview);
-
-  function practicePerson(u) {
-    for (var i = 0; i < PEOPLE.length; i++) if (PEOPLE[i].u === u) return PEOPLE[i];
-    return null;
-  }
 
   $('startBtn').addEventListener('click', function () {
     var u = cleanUser($('unameIn').value);
     if (u.length < 3) { toast('Username needs at least 3 characters'); $('unameIn').focus(); return; }
     var profile = {
-      u: u,
-      n: $('dnameIn').value.trim().slice(0, 20) || u,
-      e: chosenE, c: chosenC,
-      about: $('aboutIn').value.trim().slice(0, 42) || 'hey there! i\'m on ChatWave'
+      u:u, n:$('dnameIn').value.trim().slice(0, 20) || u, e:chosenE, c:chosenC,
+      about:$('aboutIn').value.trim().slice(0, 42) || 'hey there! i\'m on ChatWave'
     };
-    if (live()) {
-      var code = $('codeIn').value;
-      if (code.length < 6) { toast('Secret code needs at least 6 characters'); $('codeIn').focus(); return; }
-      createAccount(profile, code);
-    } else {
+    if (homeMode()) joinRelay(profile);
+    else {
       if (practicePerson(u)) { toast('That username belongs to a character — try another'); return; }
       startPractice(profile);
     }
   });
-  $('unameIn').addEventListener('keydown', function (e) { if (e.key === 'Enter') $('startBtn').click(); });
-  $('aboutIn').addEventListener('keydown', function (e) { if (e.key === 'Enter') $('startBtn').click(); });
-  $('codeIn').addEventListener('keydown', function (e) { if (e.key === 'Enter') $('startBtn').click(); });
-  $('siCode').addEventListener('keydown', function (e) { if (e.key === 'Enter') $('siGo').click(); });
-
-  /* =========================================================================
-     4. LIVE BACKEND
-     ========================================================================= */
-
-  function emailFor(u) { return u + '@' + USER_DOMAIN; }
-
-  function authError(e) {
-    var c = (e && e.code) || '';
-    if (c.indexOf('email-already-in-use') > -1) return 'That username is already taken.';
-    if (c.indexOf('invalid-credential') > -1 || c.indexOf('wrong-password') > -1 || c.indexOf('user-not-found') > -1)
-      return 'That username and code do not match.';
-    if (c.indexOf('weak-password') > -1) return 'Your secret code needs at least 6 characters.';
-    if (c.indexOf('too-many-requests') > -1) return 'Too many tries. Wait a minute.';
-    if (c.indexOf('network') > -1) return 'No internet connection.';
-    if (c.indexOf('operation-not-allowed') > -1) return 'Email/Password sign-in is not switched on in Firebase yet.';
-    if (c.indexOf('permission-denied') > -1) return 'The server said no — check chatwave.rules are published.';
-    return (e && e.message) || 'Something went wrong.';
-  }
-
-  var fbLoading = null;
-  function loadFirebase() {
-    if (fbLoading) return fbLoading;
-    fbLoading = Promise.all([
-      import(FBV + 'firebase-app.js'),
-      import(FBV + 'firebase-auth.js'),
-      import(FBV + 'firebase-firestore.js')
-    ]).then(function (mods) {
-      var A = mods[0], U = mods[1], D = mods[2];
-      var app = A.initializeApp(FIREBASE_CONFIG);
-      FB = {
-        U: U, D: D,
-        auth: U.getAuth(app),
-        db: D.getFirestore(app)
-      };
-      return FB;
-    });
-    return fbLoading;
-  }
-
-  // Creating an account signs you in the instant the auth user exists, which is
-  // before the profile document is written. This flag tells onAuth to sit still
-  // until the profile is actually there.
-  var creating = false;
-
-  async function createAccount(profile, code) {
-    showBoot(true);
-    creating = true;
-    try {
-      var fb = await loadFirebase();
-      var D = fb.D;
-      // claim the username first — the rules make this a one-shot
-      var unameRef = D.doc(fb.db, 'usernames', profile.u);
-      var existing = await D.getDoc(unameRef);
-      if (existing.exists()) { showBoot(false); toast('@' + profile.u + ' is already taken'); return; }
-
-      var cred = await fb.U.createUserWithEmailAndPassword(fb.auth, emailFor(profile.u), code);
-      var me = cred.user.uid;
-      await D.setDoc(unameRef, { uid: me });
-      await D.setDoc(D.doc(fb.db, 'users', me), {
-        username: profile.u, name: profile.n, about: profile.about,
-        avatar: profile.e, color: profile.c,
-        createdAt: D.serverTimestamp(), lastSeen: D.serverTimestamp()
-      });
-      creating = false;
-      onAuth(cred.user);
-    } catch (e) {
-      creating = false;
-      showBoot(false);
-      toast(authError(e));
-    }
-  }
-
-  $('siGo').addEventListener('click', async function () {
-    var u = cleanUser($('siUser').value), code = $('siCode').value;
-    if (!u || !code) { $('siHint').textContent = 'Type your username and your secret code.'; return; }
-    $('siGo').disabled = true;
-    showBoot(true);
-    try {
-      var fb = await loadFirebase();
-      await fb.U.signInWithEmailAndPassword(fb.auth, emailFor(u), code);
-    } catch (e) {
-      showBoot(false);
-      $('siHint').textContent = authError(e);
-      $('siHint').className = 'hint bad';
-    }
-    $('siGo').disabled = false;
+  ['unameIn','dnameIn','aboutIn'].forEach(function (id) {
+    $(id).addEventListener('keydown', function (e) { if (e.key === 'Enter') $('startBtn').click(); });
   });
 
-  // Boot: if Firebase is configured, see whether we are already signed in.
-  if (CONFIGURED) {
-    loadFirebase().then(function (fb) {
-      return fb.U.setPersistence(fb.auth, fb.U.browserLocalPersistence).then(function () {
-        fb.U.onAuthStateChanged(fb.auth, onAuth);
-      });
-    }).catch(function (e) {
-      showBoot(false);
-      front('f-welcome');
-      toast('Could not reach Firebase — practice mode still works');
-    });
-  } else {
-    showBoot(false);
-    front('f-welcome');
-  }
+  /* =========================================================================
+     4. HOME RELAY CLIENT
+     ========================================================================= */
 
-  async function onAuth(user) {
-    if (creating) return;          // the profile document is still being written
-    stopFeeds();
-    if (!user) { showBoot(false); front('f-welcome'); return; }
-    S.mode = 'live';
-    showBoot(true);
-    var fb = FB, D = fb.D;
-    var snap = await D.getDoc(D.doc(fb.db, 'users', user.uid));
-    if (!snap.exists()) {
-      await fb.U.signOut(fb.auth);
-      front('f-welcome');
-      toast('That account has no profile yet — create one again.');
-      return;
+  function api(path, body) {
+    var opts = { cache:'no-store' };
+    if (body) {
+      opts.method = 'POST';
+      opts.headers = { 'Content-Type':'application/json' };
+      body.uid = HOME.uid;
+      opts.body = JSON.stringify(body);
     }
-    var d = snap.data();
-    S.me = { id: user.uid, u: d.username, n: d.name || d.username, e: d.avatar, c: d.color, about: d.about || '' };
-    DIR[user.uid] = { u: S.me.u, n: S.me.n, e: S.me.e, c: S.me.c, bio: S.me.about };
-    S.chats = []; S.incoming = []; S.outgoing = [];
-    enterApp();
-    watchChats();
-    watchRequests();
-    D.updateDoc(D.doc(fb.db, 'users', user.uid), { lastSeen: D.serverTimestamp() }).catch(function () {});
+    return fetch(path, opts).then(function (r) { return r.json(); });
   }
 
-  function stopFeeds() {
-    ['chats','msgs','inc','out'].forEach(function (k) {
-      if (unsub[k]) { unsub[k](); unsub[k] = null; }
+  function joinRelay(profile) {
+    showBoot(true);
+    fetch('/api/join', {
+      method:'POST', headers:{ 'Content-Type':'application/json' },
+      body: JSON.stringify({ name:profile.u, display:profile.n, about:profile.about,
+                             avatar:profile.e, color:profile.c })
+    }).then(function (r) { return r.json(); }).then(function (d) {
+      showBoot(false);
+      if (!d.ok) { toast(d.why === 'short' ? 'Username needs 3+ characters' : 'The relay said no'); return; }
+      HOME.uid = d.uid;
+      S.me = { id:d.uid, u:profile.u, n:profile.n, e:profile.e, c:profile.c, about:profile.about };
+      DIR[d.uid] = { u:S.me.u, n:S.me.n, e:S.me.e, c:S.me.c, bio:S.me.about };
+      enterApp();
+      syncNow();
+    }).catch(function () {
+      showBoot(false);
+      toast('Lost the relay — is that window still open?');
+      front('f-config');
     });
-    Object.keys(unsub.users).forEach(function (k) { unsub.users[k](); });
-    unsub.users = {};
   }
 
-  // Pull a user profile into DIR, once, and keep it fresh.
-  function watchUser(id) {
-    if (!live() || DIR[id] || unsub.users[id]) return;
-    var D = FB.D;
-    unsub.users[id] = D.onSnapshot(D.doc(FB.db, 'users', id), function (s) {
-      if (!s.exists()) return;
-      var d = s.data();
-      DIR[id] = { u: d.username, n: d.name || d.username, e: d.avatar || '🙂', c: d.color || '#ccc',
-                  bio: d.about || '', lastSeen: toDate(d.lastSeen) };
-      if (S.view === 'chats') renderChats();
-      if (S.view === 'requests') renderRequests();
-      if (S.open) { $('chatTitle').textContent = chatName(chatById(S.open) || {}); drawMsgs(); }
-    }, function () {});
+  function syncLoop() {
+    clearTimeout(HOME.timer);
+    HOME.timer = setTimeout(syncNow, POLL_MS);
   }
 
-  var chatsPrimed = false;
-
-  function watchChats() {
-    var D = FB.D;
-    var q = D.query(D.collection(FB.db, 'chats'), D.where('members', 'array-contains', S.me.id));
-    unsub.chats = D.onSnapshot(q, function (snap) {
-      snap.docChanges().forEach(function (ch) {
-        var id = ch.doc.id, d = ch.doc.data();
-        if (ch.type === 'removed') {
-          S.chats = S.chats.filter(function (c) { return c.id !== id; });
-          if (S.open === id) { S.open = null; go('chats'); toast('That chat was removed'); }
-          return;
-        }
-        var c = chatById(id);
-        var fresh = !c;
-        if (!c) { c = { id:id, msgs:[], lastQ:null, typing:null }; S.chats.push(c); }
-        c.kind = d.kind || 'dm';
-        c.members = d.members || [];
-        c.title = (d.kind === 'group' ? d.title : (d.titles || {})[S.me.id]) || '';
-        c.groupTitle = d.title || '';
-        c.lastText = d.lastText || '';
-        c.lastFrom = d.lastFrom || '';
-        c.lastAt = toDate(d.lastAt);
-        c.unread = (d.unread || {})[S.me.id] || 0;
-        c.reads = d.reads || {};
-        c.pinned = ((d.pins || {})[S.me.id]) || false;
-        c.muted = ((d.mutes || {})[S.me.id]) || false;
-        c.typing = typingIn(d);
-        c.members.forEach(watchUser);
-        // a chat appearing out of nowhere means somebody accepted you, or added
-        // you to a group — that deserves the same pop-up a message gets
-        if (fresh && chatsPrimed && ch.type === 'added') {
-          (function (cid, chat) {
-            setTimeout(function () {
-              var o = others(chat)[0], p = personOf(o);
-              notify('NEW CHAT', (p && p.e) || '💬', (p && p.c) || '#ccc',
-                chat.kind === 'group' ? 'Added to ' + chatName(chat) : ((p && p.n) || 'Someone') + ' accepted',
-                chat.kind === 'group' ? 'A group chat is waiting' : '@' + ((p && p.u) || '') + ' is now in your chats',
-                function () { openChat(cid); });
-            }, 600);
-          })(id, c);
-        }
-        if (!fresh && ch.type === 'modified' && c.lastFrom && !isMine(c.lastFrom) &&
-            S.open !== id && !c.muted && c.unread) {
-          var p = personOf(c.lastFrom);
-          if (p) notify('MESSAGE', p.e, p.c, chatName(c),
-            (c.kind === 'group' ? p.n + ': ' : '') + c.lastText, (function (cid) {
-              return function () { openChat(cid); };
-            })(id));
-        }
-        if (S.open === id) { setStatusLine(c); }
+  function syncNow() {
+    if (!homeMode() || !HOME.uid) return;
+    fetch('/api/sync?uid=' + HOME.uid + '&since=' + HOME.since, { cache:'no-store' })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        HOME.fails = 0;
+        if (!d.ok) { toast('The relay forgot you — rejoin'); front('f-welcome'); return; }
+        applySync(d);
+        syncLoop();
+      })
+      .catch(function () {
+        HOME.fails++;
+        if (HOME.fails === 3) toast('Cannot reach the relay');
+        syncLoop();
       });
-      chatsPrimed = true;
-      renderChats(); updateBadges(); renderMe();
-    }, function (e) { toast('Chats: ' + authError(e)); });
   }
 
-  function typingIn(d) {
-    var t = d.typing || {}, now = Date.now();
-    var who = null;
-    Object.keys(t).forEach(function (k) {
-      if (isMine(k)) return;
-      var ts = toDate(t[k]);
-      if (ts && now - ts.getTime() < 7000) who = k;
+  function applySync(d) {
+    var i, changed = false;
+
+    (d.people || []).forEach(function (p) {
+      DIR[p.uid] = { u:p.name, n:p.display || p.name, e:p.avatar || '🙂', c:p.color || '#ccc',
+                     bio:p.about || '', seen:new Date(p.seen), typing:p.typing, typingAt:p.typingAt };
+    });
+
+    // chats
+    var keep = {};
+    (d.chats || []).forEach(function (raw) {
+      keep[raw.id] = true;
+      var c = chatById(raw.id), fresh = !c;
+      if (!c) { c = { id:raw.id, msgs:[], readTo:0 }; S.chats.push(c); }
+      c.kind = raw.kind;
+      c.members = raw.members || [];
+      c.title = raw.kind === 'group' ? (raw.title || '') : ((raw.titles || {})[S.me.id] || '');
+      c.groupTitle = raw.title || '';
+      c.reads = raw.reads || {};
+      c.lastAt = raw.lastAt ? new Date(raw.lastAt) : null;
+      c.typing = whoIsTyping(c);
+      if (fresh && HOME.since > 0) {
+        var o = others(c)[0], p = personOf(o);
+        notify('NEW CHAT', (p && p.e) || '💬', (p && p.c) || '#ccc',
+          c.kind === 'group' ? 'Added to a group' : ((p && p.n) || 'Someone') + ' accepted',
+          c.kind === 'group' ? chatName(c) : '@' + ((p && p.u) || ''),
+          (function (id) { return function () { openChat(id); }; })(raw.id));
+      }
+    });
+    S.chats = S.chats.filter(function (c) { return keep[c.id]; });
+
+    // messages
+    (d.msgs || []).forEach(function (raw) {
+      if (raw.id > HOME.since) HOME.since = raw.id;
+      var c = chatById(raw.chat);
+      if (!c) return;
+      var m = null;
+      for (i = 0; i < c.msgs.length; i++) if (c.msgs[i].id === raw.id) m = c.msgs[i];
+      var isNew = !m;
+      if (!m) { m = { id:raw.id }; c.msgs.push(m); }
+      m.from = raw.from;
+      m.text = raw.text || '';
+      m.at = new Date(raw.at);
+      m.re = raw.re || null;
+      m.reacts = raw.reacts || null;
+      m.removed = !!raw.removed;
+      if (isNew) {
+        changed = true;
+        if (!isMine(m.from) && m.from !== 'sys' && S.open !== c.id) {
+          c.unread = (c.unread || 0) + 1;
+          if (!c.muted) {
+            var pp = personOf(m.from) || { e:'💬', c:'#ccc', n:'Someone' };
+            notify('MESSAGE', pp.e, pp.c, chatName(c),
+              (c.kind === 'group' ? pp.n + ': ' : '') + m.text,
+              (function (id) { return function () { openChat(id); }; })(c.id));
+          }
+        }
+      }
+    });
+    S.chats.forEach(function (c) {
+      c.msgs.sort(function (a, b) { return a.id - b.id; });
+      c.lastMsg = lastMsg(c);
+    });
+
+    // requests
+    S.incoming = []; S.outgoing = [];
+    (d.reqs || []).forEach(function (r) {
+      var rec = { id:r.id, u:r.from === S.me.id ? r.to : r.from, at:new Date(r.at) };
+      if (r.to === S.me.id) {
+        if (!seenReq[r.id] && HOME.since > 0) {
+          seenReq[r.id] = true;
+          var p = personOf(r.from) || { e:'🙂', c:'#ccc', n:'Someone', u:'' };
+          notify('CHAT REQUEST', p.e, p.c, p.n + ' wants to chat', '@' + p.u,
+            function () { go('requests'); });
+        }
+        seenReq[r.id] = true;
+        S.incoming.push(rec);
+      } else S.outgoing.push(rec);
+    });
+
+    if (S.open) { var oc = chatById(S.open); if (oc) { markRead(oc); drawMsgs(); } }
+    renderChats(); updateBadges();
+    if (S.view === 'requests') renderRequests();
+    if (S.view === 'me') renderMe();
+  }
+  var seenReq = {};
+
+  function whoIsTyping(c) {
+    var who = null, now = Date.now();
+    others(c).forEach(function (u) {
+      var p = DIR[u];
+      if (p && p.typing === c.id && p.typingAt && now - p.typingAt < 6000) who = u;
     });
     return who;
   }
 
-  function watchRequests() {
-    var D = FB.D;
-    unsub.inc = D.onSnapshot(
-      D.query(D.collection(FB.db, 'requests'), D.where('to', '==', S.me.id)),
-      function (snap) {
-        snap.docChanges().forEach(function (ch) {
-          if (ch.type === 'removed') {
-            S.incoming = S.incoming.filter(function (r) { return r.id !== ch.doc.id; });
-            return;
-          }
-          var d = ch.doc.data();
-          watchUser(d.from);
-          if (!S.incoming.some(function (r) { return r.id === ch.doc.id; })) {
-            S.incoming.push({ id: ch.doc.id, u: d.from, text: d.text || '', at: toDate(d.at) || new Date() });
-            if (ch.type === 'added' && S.view !== 'requests') {
-              var p = personOf(d.from);
-              setTimeout(function () {
-                var pp = personOf(d.from) || { e:'🙂', c:'#ccc', n:'Someone', u:'' };
-                notify('CHAT REQUEST', pp.e, pp.c, pp.n + ' wants to chat',
-                  '@' + pp.u + ' · ' + (d.text || ''), function () { go('requests'); });
-              }, p ? 0 : 700);
-            }
-          }
-        });
-        if (S.view === 'requests') renderRequests();
-        updateBadges(); renderMe();
-      }, function () {});
-
-    unsub.out = D.onSnapshot(
-      D.query(D.collection(FB.db, 'requests'), D.where('from', '==', S.me.id)),
-      function (snap) {
-        snap.docChanges().forEach(function (ch) {
-          if (ch.type === 'removed') {
-            S.outgoing = S.outgoing.filter(function (r) { return r.id !== ch.doc.id; });
-            return;
-          }
-          var d = ch.doc.data();
-          watchUser(d.to);
-          if (!S.outgoing.some(function (r) { return r.id === ch.doc.id; })) {
-            S.outgoing.push({ id: ch.doc.id, u: d.to, at: toDate(d.at) || new Date() });
-          }
-        });
-        if (S.view === 'requests') renderRequests();
-        if (S.view === 'find') renderFind();
-      }, function () {});
+  function markRead(c) {
+    c.unread = 0;
+    if (!homeMode()) return;
+    var m = lastMsg(c);
+    if (!m || c.readTo === m.id) return;
+    c.readTo = m.id;
+    api('/api/read', { chat:c.id, id:m.id }).catch(function () {});
   }
 
-  function dmIdFor(a, b) { return [a, b].sort().join('__'); }
-
   /* =========================================================================
-     5. NET — the two backends behind one UI
+     5. NET — one UI, two backends
      ========================================================================= */
 
   var NET = {};
 
   NET.sendMessage = function (c, text, re) {
-    if (!live()) {
-      var m = push(c, { from:S.me.id, text:text, status:'sent' });
-      if (re) m.re = re;
-      S.sent++;
-      drawMsgs(); renderChats();
-      setTimeout(function () { m.status = 'delivered'; if (S.open === c.id) drawMsgs(); renderChats(); }, 500);
-      setTimeout(function () { m.status = 'read'; if (S.open === c.id) drawMsgs(); renderChats(); }, 1500);
-      scheduleReplies(c, text);
+    if (homeMode()) {
+      api('/api/say', { chat:c.id, text:text, re: re ? { from:re.from, text:re.text.slice(0, 120) } : null })
+        .then(function (d) { if (!d.ok) toast('Not sent'); syncNow(); })
+        .catch(function () { toast('Not sent — relay unreachable'); });
+      S.sent++; renderMe();
       return;
     }
-    var D = FB.D;
-    var body = { from:S.me.id, text:text, at:D.serverTimestamp() };
-    if (re) body.re = { from:re.from, text:re.text.slice(0, 120) };
-    S.sent++; renderMe();
-    D.addDoc(D.collection(FB.db, 'chats', c.id, 'messages'), body).catch(function (e) {
-      toast('Not sent: ' + authError(e));
-    });
-    var patch = { lastText:text, lastAt:D.serverTimestamp(), lastFrom:S.me.id };
-    patch['typing.' + S.me.id] = D.deleteField();
-    c.members.forEach(function (u) {
-      if (!isMine(u)) patch['unread.' + u] = D.increment(1);
-    });
-    patch['unread.' + S.me.id] = 0;
-    D.updateDoc(D.doc(FB.db, 'chats', c.id), patch).catch(function () {});
+    var m = push(c, { from:S.me.id, text:text, status:'sent' });
+    if (re) m.re = re;
+    S.sent++;
+    drawMsgs(); renderChats();
+    setTimeout(function () { m.status = 'delivered'; refresh(c); }, 500 + Math.random() * 1500);
+    scheduleRead(c, m);
+    scheduleReplies(c, text);
   };
 
   NET.setChatName = function (c, name) {
-    if (!live()) {
-      c.title = name;
-      push(c, { from:'sys', text: name ? 'You named this chat "' + name + '"'
-        : 'Chat name removed — back to ' + defaultName(c) });
-      afterRename(c, name);
+    if (homeMode()) {
+      api('/api/name', { chat:c.id, name:name }).then(function () {
+        c.title = name; afterRename(c, name); syncNow();
+      });
       return;
     }
-    var D = FB.D, patch = {};
-    if (c.kind === 'group') patch.title = name;
-    else patch['titles.' + S.me.id] = name;
-    D.updateDoc(D.doc(FB.db, 'chats', c.id), patch).then(function () {
-      c.title = name;
-      if (c.kind === 'group') {
-        NET.sysMessage(c, (S.me.n || '@' + S.me.u) + (name ? ' named this chat "' + name + '"' : ' removed the chat name'));
-      }
-      afterRename(c, name);
-    }).catch(function (e) { toast(authError(e)); });
-  };
-
-  NET.sysMessage = function (c, text) {
-    if (!live()) { push(c, { from:'sys', text:text }); return; }
-    var D = FB.D;
-    D.addDoc(D.collection(FB.db, 'chats', c.id, 'messages'),
-      { from:S.me.id, kind:'sys', text:text, at:D.serverTimestamp() }).catch(function () {});
+    c.title = name;
+    push(c, { from:'sys', text: name ? 'You named this chat "' + name + '"'
+      : 'Chat name removed — back to ' + defaultName(c) });
+    afterRename(c, name);
   };
 
   NET.react = function (c, m, emoji) {
-    if (!live()) { m.react = m.react === emoji ? null : emoji; drawMsgs(); return; }
-    var D = FB.D, patch = {};
-    var had = (m.reacts || {})[S.me.id] === emoji;
-    patch['reacts.' + S.me.id] = had ? D.deleteField() : emoji;
-    D.updateDoc(D.doc(FB.db, 'chats', c.id, 'messages', m.id), patch).catch(function (e) { toast(authError(e)); });
+    if (homeMode()) { api('/api/react', { id:m.id, emoji:emoji }).then(syncNow); return; }
+    m.react = m.react === emoji ? null : emoji;
+    drawMsgs();
   };
 
   NET.deleteMsg = function (c, m) {
-    if (!live()) { m.removed = true; drawMsgs(); renderChats(); return; }
-    var D = FB.D;
-    D.updateDoc(D.doc(FB.db, 'chats', c.id, 'messages', m.id), { removed:true })
-      .catch(function (e) { toast(authError(e)); });
+    if (homeMode()) { api('/api/unsay', { id:m.id }).then(syncNow); return; }
+    m.removed = true; drawMsgs(); renderChats();
   };
 
   NET.search = function (q) {
-    if (!live()) {
+    if (!homeMode()) {
       return Promise.resolve(PEOPLE.filter(function (p) {
         return p.u.indexOf(q) > -1 || p.n.toLowerCase().indexOf(q) > -1 || p.likes.join(' ').indexOf(q) > -1;
       }));
     }
-    var D = FB.D;
-    return D.getDocs(D.query(
-      D.collection(FB.db, 'users'),
-      D.orderBy('username'),
-      D.startAt(q), D.endAt(q + '\uf8ff'),
-      D.limit(20)
-    )).then(function (snap) {
-      var out = [];
-      snap.forEach(function (s) {
-        if (s.id === S.me.id) return;
-        var d = s.data();
-        var rec = { id:s.id, u:d.username, n:d.name || d.username, e:d.avatar || '🙂',
-                    c:d.color || '#ccc', bio:d.about || '' };
-        DIR[s.id] = rec;
-        out.push(rec);
-      });
-      return out;
+    var out = [];
+    Object.keys(DIR).forEach(function (k) {
+      if (k === S.me.id) return;
+      var p = DIR[k];
+      if (p.u.indexOf(q) > -1 || (p.n || '').toLowerCase().indexOf(q) > -1) {
+        out.push({ id:k, u:p.u, n:p.n, e:p.e, c:p.c, bio:p.bio });
+      }
     });
+    return Promise.resolve(out);
   };
 
   NET.sendRequest = function (p) {
-    if (!live()) {
-      S.outgoing.push({ id:uid(), u:p.u, at:new Date() });
-      toast('Chat request sent to @' + p.u);
-      renderFind(); updateBadges();
-      setTimeout(function () { practiceResolve(p.u); }, 5000 + Math.random() * 15000);
-      return;
-    }
-    var D = FB.D;
-    D.addDoc(D.collection(FB.db, 'requests'), {
-      from:S.me.id, to:p.id, fromName:S.me.u, text:'wants to chat', at:D.serverTimestamp()
-    }).then(function () {
-      toast('Chat request sent to @' + p.u);
-      renderFind();
-    }).catch(function (e) { toast(authError(e)); });
-  };
-
-  NET.acceptRequest = function (r) {
-    if (!live()) { practiceAccept(r); return; }
-    var D = FB.D;
-    var other = r.u;
-    var cid = dmIdFor(S.me.id, other);
-    var members = [S.me.id, other];
-    var unread = {}; unread[S.me.id] = 0; unread[other] = 0;
-    D.setDoc(D.doc(FB.db, 'chats', cid), {
-      kind:'dm', members:members, title:'', titles:{}, unread:unread,
-      createdAt:D.serverTimestamp(), lastAt:D.serverTimestamp(),
-      lastText:'You are now connected', lastFrom:''
-    }, { merge:true }).then(function () {
-      return D.deleteDoc(D.doc(FB.db, 'requests', r.id));
-    }).then(function () {
-      var p = personOf(other);
-      toast('You and @' + ((p && p.u) || 'them') + ' are connected');
-      setTimeout(function () { openChat(cid); }, 250);
-    }).catch(function (e) { toast(authError(e)); });
-  };
-
-  NET.declineRequest = function (r) {
-    if (!live()) {
-      S.incoming = S.incoming.filter(function (x) { return x.id !== r.id; });
-      S.declined.push(r.u);
-      toast('Request declined — they are not told');
-      renderRequests(); updateBadges();
-      return;
-    }
-    FB.D.deleteDoc(FB.D.doc(FB.db, 'requests', r.id)).then(function () {
-      toast('Request declined — they are not told');
-    }).catch(function (e) { toast(authError(e)); });
-  };
-
-  NET.cancelRequest = function (r) {
-    if (!live()) {
-      S.outgoing = S.outgoing.filter(function (x) { return x.id !== r.id; });
-      toast('Request cancelled');
-      renderRequests(); updateBadges();
-      return;
-    }
-    FB.D.deleteDoc(FB.D.doc(FB.db, 'requests', r.id)).then(function () {
-      toast('Request cancelled');
-    }).catch(function (e) { toast(authError(e)); });
-  };
-
-  NET.createGroup = function (members, name) {
-    if (!live()) {
-      var c = newChat('group', members.slice(), name);
-      push(c, { from:'sys', text: name ? 'You created "' + name + '"'
-        : 'You created this group. Tap the name up top to name it.' });
-      openChat(c.id);
-      members.forEach(function (u, i) {
-        setTimeout(function () {
-          say(c, personOf(u), pick(['hi everyone 👋', 'ooh group chat, my favorite', 'hey hey', 'ok whats the plan',
-            'yesss what are we doing', 'hi @' + S.me.u + '!']));
-        }, 800 * (i + 1) + Math.random() * 500);
+    if (homeMode()) {
+      api('/api/request', { to:p.id }).then(function (d) {
+        toast(d.already ? 'You already have a chat with @' + p.u : 'Chat request sent to @' + p.u);
+        syncNow();
       });
       return;
     }
-    var D = FB.D;
-    var all = [S.me.id].concat(members);
-    var unread = {}; all.forEach(function (u) { unread[u] = 0; });
-    D.addDoc(D.collection(FB.db, 'chats'), {
-      kind:'group', members:all, title:name || '', titles:{}, unread:unread,
-      createdAt:D.serverTimestamp(), lastAt:D.serverTimestamp(),
-      lastText:(S.me.n || S.me.u) + ' started the group', lastFrom:''
-    }).then(function (ref) {
-      NET.sysMessage({ id:ref.id }, (S.me.n || '@' + S.me.u) + ' created this group' + (name ? ' "' + name + '"' : ''));
-      setTimeout(function () { openChat(ref.id); }, 300);
-    }).catch(function (e) { toast(authError(e)); });
+    S.outgoing.push({ id:uid(), u:p.u, at:new Date() });
+    toast('Chat request sent to @' + p.u);
+    renderFind(); updateBadges();
+    // people take a while to notice a request. sometimes a long while.
+    setTimeout(function () { practiceResolve(p.u); }, 8000 + Math.random() * 40000);
   };
 
-  NET.markRead = function (c) {
-    if (!live()) { c.unread = 0; return; }
-    var D = FB.D, patch = {};
-    patch['unread.' + S.me.id] = 0;
-    patch['reads.' + S.me.id] = D.serverTimestamp();
-    c.unread = 0;
-    D.updateDoc(D.doc(FB.db, 'chats', c.id), patch).catch(function () {});
+  NET.acceptRequest = function (r) {
+    if (homeMode()) {
+      api('/api/respond', { id:r.id, accept:true }).then(function (d) {
+        toast('Connected');
+        syncNow();
+        if (d.chat) setTimeout(function () { openChat(d.chat); }, 400);
+      });
+      return;
+    }
+    practiceAccept(r);
+  };
+
+  NET.declineRequest = function (r) {
+    if (homeMode()) {
+      api('/api/respond', { id:r.id, accept:false }).then(function () {
+        toast('Declined — they are not told'); syncNow();
+      });
+      return;
+    }
+    S.incoming = S.incoming.filter(function (x) { return x.id !== r.id; });
+    S.declined.push(r.u);
+    toast('Declined — they are not told');
+    renderRequests(); updateBadges();
+  };
+
+  NET.cancelRequest = function (r) {
+    if (homeMode()) {
+      api('/api/respond', { id:r.id, accept:false }).then(function () { toast('Cancelled'); syncNow(); });
+      return;
+    }
+    S.outgoing = S.outgoing.filter(function (x) { return x.id !== r.id; });
+    toast('Cancelled');
+    renderRequests(); updateBadges();
+  };
+
+  NET.createGroup = function (members, name) {
+    if (homeMode()) {
+      api('/api/group', { members:members, name:name }).then(function (d) {
+        if (!d.ok) { toast('Need at least 2 other people'); return; }
+        syncNow();
+        setTimeout(function () { openChat(d.chat); }, 500);
+      });
+      return;
+    }
+    var c = newChat('group', members.slice(), name);
+    push(c, { from:'sys', text: name ? 'You created "' + name + '"'
+      : 'You created this group. Tap the name up top to name it.' });
+    openChat(c.id);
+    // they do not all arrive at once, and they talk to each other
+    members.forEach(function (u, i) {
+      var p = personOf(u);
+      setTimeout(function () {
+        say(c, p, pick(['hi everyone', 'ooh group chat', 'hey hey', 'whats the plan', 'yo',
+          'hi @' + S.me.u]));
+      }, 2500 * (i + 1) + Math.random() * 6000);
+    });
   };
 
   NET.setFlag = function (c, key, val) {
-    if (!live()) { c[key === 'pins' ? 'pinned' : 'muted'] = val; return Promise.resolve(); }
-    var patch = {};
-    patch[key + '.' + S.me.id] = val;
-    return FB.D.updateDoc(FB.D.doc(FB.db, 'chats', c.id), patch);
+    c[key === 'pins' ? 'pinned' : 'muted'] = val;
+    return Promise.resolve();
   };
 
   NET.leaveChat = function (c) {
-    if (!live()) {
-      S.chats = S.chats.filter(function (x) { return x.id !== c.id; });
-      return Promise.resolve();
-    }
-    var D = FB.D;
-    return D.updateDoc(D.doc(FB.db, 'chats', c.id), {
-      members: D.arrayRemove(S.me.id)
-    });
+    if (homeMode()) return api('/api/leave', { chat:c.id }).then(syncNow);
+    S.chats = S.chats.filter(function (x) { return x.id !== c.id; });
+    return Promise.resolve();
   };
 
   var typedAt = 0;
   NET.typing = function (c) {
-    if (!live()) return;
+    if (!homeMode()) return;
     var now = Date.now();
-    if (now - typedAt < 4000) return;
+    if (now - typedAt < 3500) return;
     typedAt = now;
-    var patch = {};
-    patch['typing.' + S.me.id] = FB.D.serverTimestamp();
-    FB.D.updateDoc(FB.D.doc(FB.db, 'chats', c.id), patch).catch(function () {});
-  };
-
-  NET.watchMessages = function (c) {
-    if (!live()) { drawMsgs(); return; }
-    if (unsub.msgs) { unsub.msgs(); unsub.msgs = null; }
-    var D = FB.D;
-    var q = D.query(D.collection(FB.db, 'chats', c.id, 'messages'), D.orderBy('at'), D.limit(300));
-    unsub.msgs = D.onSnapshot(q, function (snap) {
-      var list = [];
-      snap.forEach(function (s) {
-        var d = s.data();
-        list.push({
-          id:s.id, from:d.kind === 'sys' ? 'sys' : d.from, text:d.text || '',
-          at: toDate(d.at) || new Date(), re:d.re || null, reacts:d.reacts || null,
-          removed:!!d.removed
-        });
-      });
-      c.msgs = list;
-      if (S.open === c.id) { drawMsgs(); NET.markRead(c); }
-    }, function (e) { toast('Messages: ' + authError(e)); });
-  };
-
-  NET.signOut = function () {
-    if (!live()) { location.reload(); return; }
-    stopFeeds();
-    FB.U.signOut(FB.auth).then(function () { location.reload(); });
+    api('/api/typing', { chat:c.id }).catch(function () {});
   };
 
   NET.saveProfile = function () {
     DIR[S.me.id] = { u:S.me.u, n:S.me.n, e:S.me.e, c:S.me.c, bio:S.me.about };
-    if (!live()) return;
-    FB.D.updateDoc(FB.D.doc(FB.db, 'users', S.me.id), {
-      name:S.me.n, about:S.me.about, avatar:S.me.e, color:S.me.c
-    }).catch(function (e) { toast(authError(e)); });
+    if (homeMode()) api('/api/me', { display:S.me.n, about:S.me.about, avatar:S.me.e, color:S.me.c });
   };
 
+  NET.signOut = function () { location.reload(); };
+
   /* =========================================================================
-     6. CHAT DATA HELPERS
+     6. CHAT DATA
      ========================================================================= */
 
   function newChat(kind, members, title) {
     var c = { id:uid(), kind:kind, members:members, title:title || '', msgs:[], unread:0,
-              muted:false, pinned:false, lastQ:null, typing:null };
+              muted:false, pinned:false, lastQ:null, typing:null, knows:[], pending:null };
     S.chats.push(c);
     return c;
   }
@@ -1614,9 +1465,7 @@
     }
     return null;
   }
-  function others(c) {
-    return (c.members || []).filter(function (u) { return !isMine(u); });
-  }
+  function others(c) { return (c.members || []).filter(function (u) { return !isMine(u); }); }
   function defaultName(c) {
     var o = others(c);
     if (c.kind === 'group') {
@@ -1634,7 +1483,6 @@
     return p ? { e:p.e, c:p.c } : { e:'🙂', c:'#ccc' };
   }
   function lastMsg(c) { return c.msgs.length ? c.msgs[c.msgs.length - 1] : null; }
-
   function push(c, m) {
     m.id = uid();
     m.at = new Date();
@@ -1642,7 +1490,7 @@
     if (!isMine(m.from) && m.from !== 'sys' && S.open !== c.id) c.unread = (c.unread || 0) + 1;
     return m;
   }
-
+  function refresh(c) { if (S.open === c.id) drawMsgs(); renderChats(); }
   function afterRename(c, name) {
     if (S.open === c.id) $('chatTitle').textContent = chatName(c);
     drawMsgs(); renderChats();
@@ -1650,8 +1498,474 @@
   }
 
   /* =========================================================================
-     7. PRACTICE MODE START
+     7. PRACTICE — people who behave like people
      ========================================================================= */
+
+  var PS = {};   // per-person runtime: are they around, when do they come back
+
+  function ps(u) {
+    if (!PS[u]) PS[u] = { around:true, backAt:0, seen:new Date(), lastNews:Date.now() };
+    var s = PS[u];
+    if (!s.around && Date.now() >= s.backAt) {
+      s.around = true;
+      s.seen = new Date();
+      comeBack(u);
+    }
+    return s;
+  }
+  function around(u) { return ps(u).around; }
+  function goAway(u, ms) {
+    var s = ps(u);
+    s.around = false;
+    s.backAt = Date.now() + ms;
+    s.seen = new Date();
+  }
+
+  // Coming back from wherever they went: apologise, then answer whatever you
+  // said while they were gone.
+  function comeBack(u) {
+    var c = dmWith(u), p = personOf(u);
+    if (!c || !p) return;
+    var owed = c.pending;
+    c.pending = null;
+    setTimeout(function () {
+      say(c, p, pick(LATE));
+      // your messages only go blue once they are actually looking
+      c.msgs.forEach(function (m) { if (isMine(m.from)) m.status = 'read'; });
+      refresh(c);
+      if (owed) setTimeout(function () { emit(c, p, think(p, owed, c)); }, 1800 + Math.random() * 3000);
+    }, 400 + Math.random() * 2500);
+  }
+
+  // Blue ticks arrive when they look at their phone, not on a timer.
+  function scheduleRead(c, m) {
+    var u = others(c)[0];
+    if (!u) return;
+    var wait = around(u) ? 2000 + Math.random() * 16000 : 30000;
+    setTimeout(function () {
+      if (around(u)) { m.status = 'read'; refresh(c); }
+      else scheduleRead(c, m);
+    }, wait);
+  }
+
+  // How long before the first bubble lands. Mostly quick, sometimes not.
+  function openingDelay() {
+    var r = Math.random();
+    if (r < .50) return 1400 + Math.random() * 4500;
+    if (r < .82) return 6000 + Math.random() * 11000;
+    return 17000 + Math.random() * 22000;
+  }
+
+  // Fingers slip. Sometimes they fix it, sometimes they let it stand.
+  function maybeTypo(text) {
+    if (text.length < 9 || !chance(.10)) return null;
+    var words = text.split(' ');
+    var ix = -1;
+    for (var i = 0; i < words.length; i++) if (words[i].length > 3 && /^[a-z]+$/i.test(words[i])) ix = i;
+    if (ix < 0) return null;
+    var w = words[ix], at = Math.floor(Math.random() * (w.length - 2));
+    var bad = w.slice(0, at) + w[at + 1] + w[at] + w.slice(at + 2);
+    words[ix] = bad;
+    return { text: words.join(' '), fix: chance(.6) ? '*' + w : null };
+  }
+
+  function flair(p, text) {
+    var st = STYLE[p.style] || STYLE.chill;
+    if (!/\?$/.test(text) && chance(st.chance)) text += ' ' + pick(st.tails);
+    if (st.lower && chance(.85)) text = text.charAt(0).toLowerCase() + text.slice(1);
+    if (p.style === 'hype' && chance(.10)) text = text.toUpperCase();
+    return text;
+  }
+
+  // One bubble. Types for a bit first — and sometimes types, thinks better of
+  // it, and sends nothing until later.
+  function say(c, p, text, noFizzle) {
+    if (!p || !text || homeMode()) return;
+    var typo = maybeTypo(text);
+    var shown = typo ? typo.text : text;
+    var thinkFor = Math.min(3800, 500 + shown.length * 32);
+
+    if (!noFizzle && chance(.12)) {
+      c.typing = p.u;
+      if (S.open === c.id) drawMsgs();
+      setTimeout(function () {
+        c.typing = null;
+        if (S.open === c.id) drawMsgs();
+        setTimeout(function () { say(c, p, text, true); }, 5000 + Math.random() * 14000);
+      }, 1600 + Math.random() * 2400);
+      return;
+    }
+
+    c.typing = p.u;
+    if (S.open === c.id) drawMsgs();
+    setTimeout(function () {
+      c.typing = null;
+      var prev = lastMsg(c);
+      if (prev && prev.text === shown) { if (S.open === c.id) drawMsgs(); return; }
+      push(c, { from:p.u, text:shown });
+      ps(p.u).seen = new Date();
+      refresh(c); updateBadges();
+      if (S.open !== c.id && !c.muted) {
+        notify('MESSAGE', p.e, p.c, chatName(c), (c.kind === 'group' ? p.n + ': ' : '') + shown,
+          function () { openChat(c.id); });
+      }
+      if (typo && typo.fix) {
+        setTimeout(function () { say(c, p, typo.fix, true); }, 1200 + Math.random() * 2600);
+      }
+    }, thinkFor);
+  }
+
+  // Send a planned burst, spaced out the way somebody typing on a phone is.
+  function emit(c, p, lines) {
+    if (!lines || !lines.length) return;
+    var t = openingDelay();
+    lines.forEach(function (line) {
+      setTimeout(function () { say(c, p, line); }, t);
+      t += 1100 + Math.random() * 2800;
+    });
+    // and every so often they wander off right after
+    if (chance(.07)) {
+      setTimeout(function () {
+        say(c, p, pick(BAIL), true);
+        goAway(p.u, 45000 + Math.random() * 120000);
+      }, t + 1500);
+    }
+  }
+
+  function remember(c, text) {
+    var n = norm(text);
+    for (var t = 0; t < TOPICS.length; t++) {
+      for (var k = 0; k < TOPICS[t].k.length; k++) {
+        var key = TOPICS[t].k[k];
+        if (n.indexOf(' ' + key + ' ') > -1 && c.knows.indexOf(key) < 0 && key.length > 3) {
+          c.knows.push(key);
+          if (c.knows.length > 6) c.knows.shift();
+        }
+      }
+    }
+  }
+
+  function scheduleReplies(c, text) {
+    if (!c.knows) c.knows = [];
+    remember(c, text);
+
+    if (c.kind === 'dm') {
+      var u = others(c)[0], p = personOf(u);
+      if (!p) return;
+      if (!around(u)) { c.pending = text; return; }   // left on read, genuinely
+
+      // sometimes they just react to it and say nothing at all
+      if (chance(.07)) {
+        setTimeout(function () {
+          var m = lastMsg(c);
+          if (m && isMine(m.from)) { m.react = pick(['❤️','😂','👍','😭']); refresh(c); }
+        }, 2500 + Math.random() * 6000);
+        if (chance(.55)) return;
+      }
+      emit(c, p, think(p, text, c));
+      return;
+    }
+
+    // groups: not everybody answers, and they answer each other
+    var pool = others(c).filter(function (u) { return around(u); });
+    if (!pool.length) return;
+    var who = pool.slice().sort(function () { return Math.random() - .5; })
+      .slice(0, chance(.35) ? 2 : 1);
+    who.forEach(function (u, ix) {
+      var pp = personOf(u);
+      if (!pp) return;
+      setTimeout(function () {
+        var lines = think(pp, text, c);
+        if (ix === 1 && chance(.45)) {
+          var first = personOf(who[0]);
+          lines = [pick(['@' + (first ? first.n : 'you') + ' exactly', 'ok what ' + (first ? first.n : 'they') + ' said',
+            'no ' + (first ? first.n : 'they') + ' is wrong', 'seconded'])];
+        }
+        emit(c, pp, lines);
+      }, ix * (2000 + Math.random() * 5000));
+    });
+  }
+
+  function norm(t) {
+    var s = String(t).toLowerCase().replace(/[^a-z0-9\s']/g, ' ');
+    return ' ' + s.replace(/\s+/g, ' ').trim() + ' ';
+  }
+  function topicFor(word) {
+    for (var t = 0; t < TOPICS.length; t++) if (TOPICS[t].k.indexOf(word) > -1) return TOPICS[t].s;
+    return null;
+  }
+
+  // Returns the lines this person actually sends. Usually one. Often very
+  // short. Only sometimes a question — that was the tell.
+  function think(p, raw, c) {
+    var n = norm(raw);
+    var out = [];
+    var st = STYLE[p.style] || STYLE.chill;
+    var q = c.lastQ;
+    c.lastQ = null;
+
+    function ask(line) { if (chance(.30)) out.push(line); }
+
+    // --- answering something they asked ---
+    if (q && /^\s*(yes|yeah|yea|yep|ya|sure|yup|bet|same|me too|i do|no|nope|nah|not really|i dont|i do not)\s*$/.test(n)) {
+      var yes = /yes|yeah|yea|yep|ya|sure|yup|bet|same|me too|i do/.test(n);
+      out.push(flair(p, yes ? pick(['same', 'knew it', 'ok good', 'yesss'])
+                            : pick(['fair', 'ok noted', 'huh ok', 'no worries'])));
+      if (chance(.4)) out.push(yes ? pick(['how long have you been into it', 'ok tell me everything'])
+                                   : pick(['ok so whats your thing then', 'what do you like then']));
+      if (out.length > 1) c.lastQ = 'likes';
+      return out;
+    }
+
+    // --- greeting on its own ---
+    var words = n.trim().split(' ').filter(Boolean);
+    var isGreet = /^(h+i+|h+e+y+|h+e+l+o+|yo+|hiya|howdy|hola|sup|heyy+|wsp)$/;
+    var filler = ['there','everyone','all','guys','yall','again','you','u','man','dude'];
+    var myWords = S.me.u.split('_');
+    var extras = words.filter(function (w) {
+      return !isGreet.test(w) && filler.indexOf(w) === -1 && myWords.indexOf(w) === -1;
+    });
+    if (words.some(function (w) { return isGreet.test(w); }) && extras.length <= 1) {
+      out.push(flair(p, pick(['hey', 'yo', 'heyy', 'oh hey', 'hi hi'])));
+      ask(pick(['whats up', 'what are you doing', 'hows your day going']));
+      if (out.length > 1) c.lastQ = 'day';
+      return out;
+    }
+
+    // --- how are you ---
+    if (/how (are|r) (you|u)|how (are|r) (ya|things)|hows it going|how is it going|you good|how you doing|wyd|what are you doing|whats up|what is up|whatcha doing|hbu/.test(n)) {
+      out.push(flair(p, pick(['pretty good', 'honestly kinda tired', 'good! bored tho',
+        'eh. fine.', 'better now', 'just ' + p.likes[0] + ' stuff', 'avoiding homework'])));
+      ask(pick(['hbu', 'you?', 'what about you']));
+      if (out.length > 1) c.lastQ = 'day';
+      return out;
+    }
+
+    // --- who / how old ---
+    if (/what is your name|whats your name|who are you|your name|your username/.test(n)) {
+      out.push(flair(p, 'im ' + p.n + ', @' + p.u));
+      if (chance(.6)) out.push(p.bio.replace(/\.+$/, ''));
+      return out;
+    }
+    if (/how old|your age|what grade|what school|where do you go/.test(n)) {
+      out.push(flair(p, pick([p.grade + '. you?', 'im in ' + p.grade, p.grade + ' 😩'])));
+      c.lastQ = 'grade';
+      return out;
+    }
+
+    if (/joke|make me laugh|something funny|riddle/.test(n)) {
+      var j = pick(JOKES);
+      out.push(j[0]);
+      out.push(j[1]);
+      return out;
+    }
+    if (/fact|did you know|tell me something/.test(n)) {
+      out.push(flair(p, pick(['ok ', 'wait ', '']) + pick(FACTS)));
+      if (chance(.35)) out.push('do you have a weird one');
+      return out;
+    }
+
+    if (/\b(sad|lonely|upset|crying|bad day|worst day|left out|no friends|mad at me|annoyed|angry)\b/.test(n)) {
+      out.push(flair(p, pick(['oh no', 'ugh im sorry', 'that sucks honestly', 'wait what happened'])));
+      out.push(pick(['do you want to talk about it or do you want a distraction',
+        'im here for the venting and also the dumb jokes',
+        'thats a normal way to feel fwiw']));
+      c.lastQ = 'feelings';
+      return out;
+    }
+
+    if (/thank|thanks|thx|\bty\b|appreciate/.test(n)) {
+      out.push(flair(p, pick(['np', 'anytime', 'ofc', 'yeah ofc'])));
+      return out;
+    }
+    if (/you are (cool|nice|funny|awesome|great|kind|the best)|youre (cool|nice|funny|awesome|great|kind)|ur (cool|funny|nice)|i like you|best friend|goat/.test(n)) {
+      out.push(flair(p, pick(['aww', 'ok stop', 'YOU are', 'that made my day ngl'])));
+      return out;
+    }
+    if (/\b(bye|gtg|got to go|see ya|see you|later|good night|goodnight|night|cya)\b/.test(n)) {
+      out.push(flair(p, pick(['byee', 'ok see you later', 'night!', 'later'])));
+      goAway(p.u, 60000 + Math.random() * 180000);
+      return out;
+    }
+
+    // --- callback to something you said earlier ---
+    if (c.knows.length && chance(.10)) {
+      out.push(flair(p, pick(['wait you do ' + pick(c.knows) + ' right', 'going back to the ' + pick(c.knows) + ' thing',
+        'ok unrelated but you said ' + pick(c.knows) + ' earlier'])));
+      return out;
+    }
+
+    // --- a short reaction, which is what a friend usually sends ---
+    if (chance(st.brief)) {
+      out.push(pick(SHORT));
+      if (chance(.22)) out.push(pick(SHORT));
+      return out;
+    }
+
+    // --- something they personally care about ---
+    for (var i = 0; i < p.likes.length; i++) {
+      var like = p.likes[i];
+      if (n.indexOf(' ' + like + ' ') > -1 || n.indexOf(like) > -1) {
+        out.push(flair(p, pick(['wait you like ' + like + ' too', like + ' is my whole personality',
+          'ok ' + like + ' is my thing', 'oh we are going to get along'])));
+        if (chance(.5)) out.push(pick(topicFor(like) || FOLLOWUPS));
+        return out;
+      }
+    }
+
+    // --- general topics ---
+    for (var t = 0; t < TOPICS.length; t++) {
+      for (var k = 0; k < TOPICS[t].k.length; k++) {
+        var key = TOPICS[t].k[k];
+        if (n.indexOf(' ' + key + ' ') > -1 || n.indexOf(' ' + key + 's ') > -1) {
+          if (chance(.14)) { out.push(flair(p, pick(DISAGREE))); return out; }
+          out.push(flair(p, pick(TOPICS[t].s)));
+          if (chance(.22)) out.push(pick(AGREE));
+          c.lastQ = key;
+          return out;
+        }
+      }
+    }
+
+    if (/^[\s\p{Emoji}️‍]+$/u.test(raw.trim())) {
+      out.push(pick(['😭', '💀', 'same energy', raw.trim(), 'lol']));
+      return out;
+    }
+
+    if (/\?|what is|whats|how much|solve|equals|answer/.test(n)) {
+      var mm = raw.match(/(\d{1,6})\s*([x*+−\-\/])\s*(\d{1,6})/);
+      if (mm) {
+        var a = +mm[1], b = +mm[3], op = mm[2], ans = null;
+        if (op === '+') ans = a + b;
+        else if (op === '/') ans = b ? Math.round((a / b) * 100) / 100 : null;
+        else if (op === '-' || op === '−') ans = a - b;
+        else ans = a * b;
+        if (ans !== null) {
+          out.push(flair(p, pick([String(ans), 'thats ' + ans, 'i got ' + ans])));
+          return out;
+        }
+      }
+    }
+
+    if (raw.indexOf('?') > -1) {
+      out.push(flair(p, pick(['hmm', 'idk honestly', 'ooh good question', 'probably ' + pick(['yes', 'no', 'both'])])));
+      if (chance(.35)) out.push(pick(['what do you think', 'ask me an easier one']));
+      return out;
+    }
+
+    // --- nothing matched: react, or change the subject to their own life ---
+    if (chance(.35)) {
+      out.push(flair(p, pick(p.news)));
+      return out;
+    }
+    out.push(pick(SHORT.concat(['huh', 'ok go on', 'wait really', 'thats wild'])));
+    if (chance(.28)) out.push(pick(FOLLOWUPS));
+    return out;
+  }
+
+  /* ---- request handling in practice ---- */
+
+  function practiceAccept(r) {
+    S.incoming = S.incoming.filter(function (x) { return x.id !== r.id; });
+    var p = personOf(r.u);
+    var c = dmWith(p.u) || newChat('dm', [p.u]);
+    push(c, { from:'sys', text:'You and ' + p.n + ' can chat now' });
+    renderRequests(); updateBadges(); renderChats();
+    setTimeout(function () {
+      say(c, p, pick(['hey!', 'yooo thanks for adding me', 'ayy', 'hi!!']));
+    }, 2000 + Math.random() * 9000);
+    if (chance(.6)) {
+      setTimeout(function () {
+        say(c, p, pick(['so what do you do for fun', 'im ' + p.n + ' btw', 'ok quick, whats your thing']));
+        c.lastQ = 'fun';
+      }, 8000 + Math.random() * 14000);
+    }
+  }
+
+  function practiceResolve(u) {
+    if (!S.outgoing.some(function (o) { return o.u === u; })) return;
+    // some people just never get round to it
+    if (chance(.15)) { setTimeout(function () { practiceResolve(u); }, 60000 + Math.random() * 90000); return; }
+    S.outgoing = S.outgoing.filter(function (o) { return o.u !== u; });
+    var p = personOf(u);
+    var c = dmWith(u) || newChat('dm', [u]);
+    push(c, { from:'sys', text:p.n + ' accepted your chat request' });
+    renderChats(); renderFind(); renderRequests(); updateBadges();
+    notify('REQUEST ACCEPTED', p.e, p.c, p.n + ' accepted', '@' + p.u + ' is in your chats now',
+      function () { openChat(c.id); });
+    setTimeout(function () {
+      say(c, p, pick(['hey!', 'yo', 'hi! do i know you from somewhere', 'heyy whats up']));
+    }, 4000 + Math.random() * 12000);
+  }
+
+  /* ---- ambient: their lives carry on without you ---- */
+
+  function ambientLoop() {
+    setTimeout(function () {
+      try { ambientTick(); } catch (e) {}
+      ambientLoop();
+    }, 25000 + Math.random() * 40000);
+  }
+
+  function ambientTick() {
+    if (homeMode()) return;
+    var pool = S.chats.filter(function (c) {
+      if (!c.msgs.length) return false;
+      var m = lastMsg(c);
+      return (Date.now() - m.at.getTime()) > 45000;
+    });
+    if (!pool.length || !chance(.65)) return;
+    var c = pick(pool);
+    var candidates = others(c).filter(around);
+    if (!candidates.length) return;
+    var p = personOf(pick(candidates));
+    if (!p) return;
+    var line;
+    var r = Math.random();
+    if (r < .45) line = pick(p.news);
+    else if (r < .60) line = pick(['you still there', 'yo', 'hellooo']);
+    else if (r < .72 && c.knows && c.knows.length) line = 'wait how was the ' + pick(c.knows) + ' thing';
+    else if (r < .84) line = pick(FACTS);
+    else line = pick(['im so bored', 'guess what i did today', 'ok random question. would you rather be invisible or fly']);
+    say(c, p, line);
+  }
+
+  // people wander off on their own, not only after talking to you
+  function lifeLoop() {
+    setTimeout(function () {
+      if (!homeMode()) {
+        S.chats.forEach(function (c) {
+          others(c).forEach(function (u) {
+            if (around(u) && chance(.10)) goAway(u, 60000 + Math.random() * 240000);
+          });
+        });
+        if (S.open) { var c = chatById(S.open); if (c) setStatusLine(c); }
+        renderChats();
+      }
+      lifeLoop();
+    }, 45000);
+  }
+
+  function requestLoop() {
+    setTimeout(function () {
+      try { requestTick(); } catch (e) {}
+      requestLoop();
+    }, 50000 + Math.random() * 70000);
+  }
+
+  function requestTick() {
+    if (homeMode() || S.incoming.length >= 3) return;
+    var pool = PEOPLE.filter(function (p) {
+      return !dmWith(p.u) && !pendingTo(p.u) && !incomingFrom(p.u) && S.declined.indexOf(p.u) === -1;
+    });
+    if (!pool.length) return;
+    var p = pick(pool);
+    S.incoming.push({ id:uid(), u:p.u, text:pick(REQ_OPENERS), at:new Date() });
+    updateBadges();
+    if (S.view === 'requests') renderRequests();
+    if (S.view === 'find') renderFind();
+    notify('CHAT REQUEST', p.e, p.c, p.n + ' wants to chat', '@' + p.u, function () { go('requests'); });
+  }
 
   function startPractice(profile) {
     S.mode = 'practice';
@@ -1659,30 +1973,34 @@
     DIR = {};
     PEOPLE.forEach(function (p) { DIR[p.u] = p; });
     DIR['me'] = { u:S.me.u, n:S.me.n, e:S.me.e, c:S.me.c, bio:S.me.about };
-    $('practiceTag').classList.add('on');
+    PS = {};
 
     var lex = personOf('lunchtable_lex');
     var c = newChat('dm', [lex.u]);
-    var t = new Date(Date.now() - 6 * 60000);
-    var a = push(c, { from:lex.u, text:'@' + S.me.u + ' welcome to ChatWave 🌊' });
-    var b = push(c, { from:lex.u, text:'im the one who adds everybody. what do you actually like doing?' });
-    a.at = t; b.at = new Date(t.getTime() + 25000);
+    var t = new Date(Date.now() - 9 * 60000);
+    var a = push(c, { from:lex.u, text:'@' + S.me.u + ' hey! youre on here now' });
+    var b = push(c, { from:lex.u, text:'im the one who adds everybody. what do you actually do for fun' });
+    a.at = t; b.at = new Date(t.getTime() + 40000);
     c.lastQ = 'fun';
     c.unread = 2;
 
     var first = pick(PEOPLE.filter(function (p) { return p.u !== lex.u; }));
-    S.incoming.push({ id:uid(), u:first.u, text:pick(REQ_OPENERS), at:new Date(Date.now() - 90000) });
+    S.incoming.push({ id:uid(), u:first.u, text:pick(REQ_OPENERS), at:new Date(Date.now() - 240000) });
+
+    // a couple of them are already off doing something else
+    PEOPLE.forEach(function (p) { if (chance(.3)) goAway(p.u, Math.random() * 200000); });
 
     enterApp();
     ambientLoop();
     requestLoop();
+    lifeLoop();
   }
 
   function enterApp() {
     document.querySelectorAll('.front').forEach(function (f) { f.classList.remove('on'); });
     showBoot(false);
     $('app').classList.add('on');
-    $('practiceTag').classList.toggle('on', !live());
+    $('practiceTag').classList.toggle('on', !homeMode());
     go('chats');
     renderMe();
   }
@@ -1700,7 +2018,6 @@
     document.querySelectorAll('#nav button').forEach(function (b) {
       b.classList.toggle('on', b.dataset.go === view);
     });
-    if (view !== 'chat' && unsub.msgs) { unsub.msgs(); unsub.msgs = null; }
     if (view === 'chats') { S.open = null; renderChats(); }
     if (view === 'requests') renderRequests();
     if (view === 'find') { renderFind(); setTimeout(function () { $('userSearch').focus(); }, 60); }
@@ -1734,11 +2051,10 @@
      ========================================================================= */
 
   function chatTime(c) {
-    if (live()) return c.lastAt;
     var m = lastMsg(c);
-    return m ? m.at : null;
+    if (m) return m.at;
+    return c.lastAt || null;
   }
-
   function sortedChats() {
     return S.chats.slice().sort(function (a, b) {
       if (!!a.pinned !== !!b.pinned) return a.pinned ? -1 : 1;
@@ -1746,20 +2062,24 @@
       return (tb ? tb.getTime() : 0) - (ta ? ta.getTime() : 0);
     });
   }
-
   function previewText(c) {
-    if (live()) {
-      if (!c.lastText) return 'Tap to start chatting';
-      var who = isMine(c.lastFrom) ? 'You: '
-        : (c.kind === 'group' && c.lastFrom ? ((personOf(c.lastFrom) || {}).n || '') + ': ' : '');
-      return who + c.lastText;
-    }
     var m = lastMsg(c);
     if (!m) return 'Tap to start chatting';
     if (m.from === 'sys') return m.text;
     if (m.removed) return '🚫 message deleted';
     var w = isMine(m.from) ? 'You: ' : (c.kind === 'group' ? ((personOf(m.from) || {}).n || '') + ': ' : '');
     return w + m.text;
+  }
+
+  function tickFor(c, m) {
+    if (!m || !isMine(m.from) || m.removed) return '';
+    if (homeMode()) {
+      var o = others(c), seen = o.length > 0;
+      o.forEach(function (u) { if (!(c.reads && c.reads[u] >= m.id)) seen = false; });
+      return '<span class="tick' + (seen && S.opts.read ? ' read' : '') + '">✓✓</span>';
+    }
+    return '<span class="tick' + (m.status === 'read' && S.opts.read ? ' read' : '') + '">' +
+           (m.status === 'sent' ? '✓' : '✓✓') + '</span>';
   }
 
   function renderChats() {
@@ -1779,27 +2099,14 @@
     var html = '';
     for (var i = 0; i < list.length; i++) {
       var c = list[i], a = chatAv(c), t = chatTime(c);
-      var tick = '';
-      if (!live()) {
-        var m = lastMsg(c);
-        if (m && isMine(m.from) && !m.removed) {
-          tick = '<span class="tick' + (m.status === 'read' && S.opts.read ? ' read' : '') + '">' +
-                 (m.status === 'sent' ? '✓' : '✓✓') + '</span>';
-        }
-      } else if (isMine(c.lastFrom)) {
-        tick = '<span class="tick">✓✓</span>';
-      }
-      html += '<div class="row" data-chat="' + c.id + '">' +
-        avHTML(a.e, a.c) +
+      html += '<div class="row" data-chat="' + c.id + '">' + avHTML(a.e, a.c) +
         '<div class="mid"><div class="top"><b>' + esc(chatName(c)) +
         (c.pinned ? ' <span class="mini">📌</span>' : '') + '</b>' +
         '<span class="when' + (c.unread ? ' new' : '') + '">' + shortWhen(t) + '</span></div>' +
-        '<div class="prev">' + tick + '<span style="overflow:hidden;text-overflow:ellipsis">' +
-        esc(previewText(c)) + '</span></div></div>' +
-        '<div class="rt">' +
-        (c.unread ? '<span class="badge">' + c.unread + '</span>' : '') +
-        (c.muted ? '<span class="mini">🔕</span>' : '') +
-        '</div></div>';
+        '<div class="prev">' + tickFor(c, lastMsg(c)) +
+        '<span style="overflow:hidden;text-overflow:ellipsis">' + esc(previewText(c)) + '</span></div></div>' +
+        '<div class="rt">' + (c.unread ? '<span class="badge">' + c.unread + '</span>' : '') +
+        (c.muted ? '<span class="mini">🔕</span>' : '') + '</div></div>';
     }
     box.innerHTML = html;
   }
@@ -1816,17 +2123,15 @@
 
   function renderRequests() {
     var box = $('reqList'), html = '', i;
-
     if (!S.incoming.length && !S.outgoing.length) {
       box.innerHTML = '<div class="empty"><span class="em">🔔</span>Nothing waiting.<br>' +
         'When somebody wants to chat with you, their request lands here.</div>';
       return;
     }
-
     if (S.incoming.length) {
       html += '<div class="sectionlbl">' + S.incoming.length + ' chat request' + (S.incoming.length > 1 ? 's' : '') + '</div>';
       for (i = 0; i < S.incoming.length; i++) {
-        var q = S.incoming[i], p = personOf(q.u) || { e:'🙂', c:'#ccc', n:'Loading…', u:'…' };
+        var q = S.incoming[i], p = personOf(q.u) || { e:'🙂', c:'#ccc', n:'Someone', u:'…' };
         html += '<div class="row" style="align-items:flex-start">' + avHTML(p.e, p.c) +
           '<div class="mid"><div class="top"><b>' + esc(p.n) + '</b>' +
           '<span class="when">' + agoOf(q.at) + '</span></div>' +
@@ -1840,11 +2145,10 @@
           '</div></div></div>';
       }
     }
-
     if (S.outgoing.length) {
       html += '<div class="sectionlbl">Sent by you — waiting</div>';
       for (i = 0; i < S.outgoing.length; i++) {
-        var o = S.outgoing[i], pp = personOf(o.u) || { e:'🙂', c:'#ccc', n:'Loading…', u:'…' };
+        var o = S.outgoing[i], pp = personOf(o.u) || { e:'🙂', c:'#ccc', n:'Someone', u:'…' };
         html += '<div class="row">' + avHTML(pp.e, pp.c) +
           '<div class="mid"><b>' + esc(pp.n) + '</b>' +
           '<div class="prev">@' + esc(pp.u) + ' · sent ' + agoOf(o.at) + '</div></div>' +
@@ -1872,15 +2176,15 @@
      11. FIND
      ========================================================================= */
 
-  function pendingTo(memberId) {
-    for (var i = 0; i < S.outgoing.length; i++) if (S.outgoing[i].u === memberId) return true;
+  function pendingTo(k) {
+    for (var i = 0; i < S.outgoing.length; i++) if (S.outgoing[i].u === k) return true;
     return false;
   }
-  function incomingFrom(memberId) {
-    for (var i = 0; i < S.incoming.length; i++) if (S.incoming[i].u === memberId) return true;
+  function incomingFrom(k) {
+    for (var i = 0; i < S.incoming.length; i++) if (S.incoming[i].u === k) return true;
     return false;
   }
-  function keyOf(p) { return live() ? p.id : p.u; }
+  function keyOf(p) { return homeMode() ? p.id : p.u; }
 
   function findRow(p) {
     var k = keyOf(p), btn;
@@ -1906,32 +2210,35 @@
         '<span class="pill line">Create</span></div>';
       var mates = [];
       S.chats.forEach(function (c) {
-        others(c).forEach(function (u) {
-          var p = personOf(u);
-          if (p && mates.indexOf(u) < 0) mates.push(u);
-        });
+        others(c).forEach(function (u) { if (personOf(u) && mates.indexOf(u) < 0) mates.push(u); });
       });
       if (mates.length) {
         html += '<div class="sectionlbl">People you chat with</div>';
         mates.forEach(function (u) {
           var p = personOf(u);
-          html += findRow(live() ? { id:u, u:p.u, n:p.n, e:p.e, c:p.c, bio:p.bio } : p);
+          html += findRow(homeMode() ? { id:u, u:p.u, n:p.n, e:p.e, c:p.c, bio:p.bio } : p);
         });
       }
-      if (!live()) {
+      if (homeMode()) {
+        var everyone = [];
+        Object.keys(DIR).forEach(function (k) {
+          if (k !== S.me.id && mates.indexOf(k) < 0 && DIR[k].u) {
+            everyone.push({ id:k, u:DIR[k].u, n:DIR[k].n, e:DIR[k].e, c:DIR[k].c, bio:DIR[k].bio });
+          }
+        });
+        if (everyone.length) {
+          html += '<div class="sectionlbl">Also on this ChatWave</div>';
+          everyone.forEach(function (p) { html += findRow(p); });
+        } else {
+          html += '<div class="empty" style="padding:26px 30px">Nobody else has joined yet.<br>' +
+            'Give them the address from the relay window.</div>';
+        }
+      } else {
         html += '<div class="sectionlbl">People you might know</div>';
         PEOPLE.filter(function (p) { return !dmWith(p.u); }).slice(0, 8)
           .forEach(function (p) { html += findRow(p); });
-      } else {
-        html += '<div class="empty" style="padding:30px 30px">Type a username above to find somebody.<br>' +
-          'You need their exact username — ChatWave does not suggest strangers.</div>';
       }
       box.innerHTML = html;
-      return;
-    }
-
-    if (live() && q.length < 3) {
-      box.innerHTML = '<div class="empty"><span class="em">🔎</span>Keep typing — at least 3 characters.</div>';
       return;
     }
 
@@ -1939,23 +2246,21 @@
       if (seq !== findSeq) return;
       var html = '';
       if (!hits.length) {
-        html = '<div class="empty"><span class="em">🔎</span>Nobody found for <b>@' + esc(q) + '</b>.<br>' +
-          (live() ? 'Usernames have to match exactly from the start.'
-                  : 'Try part of a name, or something they are into — like <b>anime</b> or <b>soccer</b>.') + '</div>';
+        html = '<div class="empty"><span class="em">🔎</span>Nobody found for <b>@' + esc(q) + '</b>.' +
+          (homeMode() ? '<br>They have to have joined already.'
+                      : '<br>Try part of a name, or something they are into.') + '</div>';
       } else {
         html = '<div class="sectionlbl">' + hits.length + ' result' + (hits.length > 1 ? 's' : '') + '</div>';
         hits.forEach(function (p) { html += findRow(p); });
       }
       box.innerHTML = html;
-    }).catch(function (e) {
-      box.innerHTML = '<div class="empty"><span class="em">⚠️</span>' + esc(authError(e)) + '</div>';
     });
   }
 
   var findT;
   $('userSearch').addEventListener('input', function () {
     clearTimeout(findT);
-    findT = setTimeout(renderFind, live() ? 260 : 0);
+    findT = setTimeout(renderFind, 120);
   });
 
   $('findResults').addEventListener('click', function (ev) {
@@ -1965,7 +2270,7 @@
       if (b.dataset.add) { var p = personOf(b.dataset.add); if (p) NET.sendRequest(withKey(p, b.dataset.add)); return; }
       if (b.dataset.open) { var c = dmWith(b.dataset.open); if (c) openChat(c.id); return; }
       if (b.dataset.goreq) { go('requests'); return; }
-      if (b.dataset.nope) { toast('Already waiting on them to accept'); return; }
+      if (b.dataset.nope) { toast('Still waiting on them'); return; }
     }
     var r = ev.target.closest('[data-user]');
     if (r) showProfile(r.dataset.user);
@@ -1999,7 +2304,6 @@
     };
   }
 
-  /* ---- group creation ---- */
   var groupPicked = [];
   function groupPicker() {
     var pool = [];
@@ -2011,7 +2315,7 @@
     groupPicked = [];
     var body = '<h4>New group</h4>' +
       '<div class="body"><div class="field"><input id="gpName" maxlength="24" placeholder="Name this group" autocomplete="off"></div>' +
-      '<div class="hint">Everybody in the group sees this name. Emoji allowed 🎉</div></div>' +
+      '<div class="hint">Everybody in the group sees this name.</div></div>' +
       '<div class="sectionlbl" style="background:none">Pick people</div>' +
       '<div id="gpList" style="max-height:36vh;overflow-y:auto">';
     pool.forEach(function (u) {
@@ -2049,14 +2353,14 @@
     $('myAv').style.background = S.me.c;
     $('myName').textContent = '@' + S.me.u;
     $('myAbout').textContent = S.me.about;
-    $('myDisplay').textContent = S.me.n + (live() ? '' : ' · practice mode');
+    $('myDisplay').textContent = S.me.n + (homeMode() ? '' : ' · practice mode');
     $('stFriends').textContent = S.chats.length;
     $('stReq').textContent = S.incoming.length;
     $('stSent').textContent = S.sent;
     $('edAboutVal').textContent = S.me.about.slice(0, 18) + (S.me.about.length > 18 ? '…' : '');
     $('edNameVal').textContent = S.me.n;
     $('edAvVal').textContent = S.me.e;
-    $('resetBtn').textContent = live() ? 'Sign out' : 'Leave practice mode';
+    $('resetBtn').textContent = homeMode() ? 'Leave the chat' : 'Leave practice mode';
   }
 
   function toggleOpt(swId, key, after) {
@@ -2104,8 +2408,8 @@
   });
 
   $('resetBtn').addEventListener('click', function () {
-    sheet(live() ? 'Sign out?' : 'Leave practice mode?', [
-      { i:'🚪', t:live() ? 'Yes, sign out' : 'Yes, back to the start', danger:true, go:function () { NET.signOut(); } }
+    sheet('Leave?', [
+      { i:'🚪', t:'Yes, back to the start', danger:true, go:function () { NET.signOut(); } }
     ]);
   });
 
@@ -2118,10 +2422,7 @@
     if (!c) return;
     S.open = id;
     S.reply = null;
-    NET.markRead(c);
-    if (!live()) {
-      for (var i = 0; i < c.msgs.length; i++) if (isMine(c.msgs[i].from)) c.msgs[i].status = 'read';
-    }
+    markRead(c);
     var a = chatAv(c);
     $('chatAv').textContent = a.e;
     $('chatAv').style.background = a.c;
@@ -2130,7 +2431,6 @@
     $('emojiBar').classList.remove('on');
     paintReply();
     go('chat');
-    NET.watchMessages(c);
     drawMsgs();
     setTimeout(function () { $('msgIn').focus(); }, 80);
   }
@@ -2147,19 +2447,21 @@
       el.textContent = others(c).map(function (u) { return (personOf(u) || {}).n || '…'; }).join(', ') + ', You';
       return;
     }
-    var p = personOf(others(c)[0]);
+    var u = others(c)[0], p = personOf(u);
     if (!p) { el.textContent = ''; return; }
-    if (!live()) { el.textContent = 'online'; return; }
-    if (p.lastSeen && Date.now() - p.lastSeen.getTime() < 90000) el.textContent = 'online';
-    else if (p.lastSeen) el.textContent = 'last seen ' + agoOf(p.lastSeen);
-    else el.textContent = '@' + p.u;
+    if (homeMode()) {
+      el.textContent = (p.seen && Date.now() - p.seen.getTime() < 20000)
+        ? 'online' : (p.seen ? 'last seen ' + agoOf(p.seen) : '@' + p.u);
+      return;
+    }
+    var s = ps(u);
+    el.textContent = s.around ? 'online' : 'last seen ' + agoOf(s.seen);
   }
 
   function quoteHTML(re) {
     var who = isMine(re.from) ? 'You' : ((personOf(re.from) || {}).n || '…');
     return '<div class="quote"><b>' + esc(who) + '</b><span>' + esc(re.text) + '</span></div>';
   }
-
   function reactHTML(m) {
     if (m.reacts) {
       var seen = [], out = '';
@@ -2175,13 +2477,14 @@
     var c = chatById(S.open);
     if (!c) return;
     var box = $('chatScroll'), html = '', lastDay = '';
+    var stick = box.scrollTop + box.clientHeight > box.scrollHeight - 90;
     for (var i = 0; i < c.msgs.length; i++) {
       var m = c.msgs[i];
       var day = m.at.toDateString();
       if (day !== lastDay) {
         lastDay = day;
-        var lbl = day === new Date().toDateString() ? 'TODAY' : day.toUpperCase();
-        html += '<div class="daysplit"><span>' + lbl + '</span></div>';
+        html += '<div class="daysplit"><span>' +
+          (day === new Date().toDateString() ? 'TODAY' : day.toUpperCase()) + '</span></div>';
       }
       if (m.from === 'sys') {
         html += '<div class="sysmsg"><span>' + esc(m.text) + '</span></div>';
@@ -2190,15 +2493,6 @@
       var mine = isMine(m.from);
       var p = mine ? null : personOf(m.from);
       var jumbo = /^[\p{Emoji}️‍\s]+$/u.test(m.text) && m.text.replace(/\s/g, '').length <= 6;
-      var tick = '';
-      if (mine && !m.removed) {
-        if (!live()) {
-          tick = '<span class="tick' + (m.status === 'read' && S.opts.read ? ' read' : '') + '">' +
-                 (m.status === 'sent' ? '✓' : '✓✓') + '</span>';
-        } else {
-          tick = '<span class="tick' + (S.opts.read && seenByAll(c, m) ? ' read' : '') + '">✓✓</span>';
-        }
-      }
       html += '<div class="msg ' + (mine ? 'out' : 'in') + '" data-msg="' + esc(m.id) + '">' +
         '<div class="bub' + (m.removed ? ' gone' : '') + '">' +
         (!mine && c.kind === 'group'
@@ -2207,7 +2501,7 @@
         (m.removed
           ? '<div class="tx">🚫 ' + (mine ? 'You deleted this message' : 'This message was deleted') + '</div>'
           : '<div class="tx' + (jumbo ? ' jumbo' : '') + '">' + esc(m.text) + '</div>') +
-        '<span class="meta">' + clockOf(m.at) + tick + '</span>' + reactHTML(m) +
+        '<span class="meta">' + clockOf(m.at) + tickFor(c, m) + '</span>' + reactHTML(m) +
         '</div></div>';
     }
     if (c.typing) {
@@ -2215,16 +2509,7 @@
     }
     setStatusLine(c);
     box.innerHTML = html;
-    box.scrollTop = box.scrollHeight;
-  }
-
-  function seenByAll(c, m) {
-    if (!c.reads) return false;
-    var t = m.at.getTime();
-    return others(c).every(function (u) {
-      var r = c.reads[u];
-      return r && toDate(r).getTime() >= t;
-    });
+    if (stick) box.scrollTop = box.scrollHeight;
   }
 
   $('chatScroll').addEventListener('click', function (ev) {
@@ -2232,7 +2517,7 @@
     if (!el) return;
     var c = chatById(S.open); if (!c) return;
     var m = null;
-    for (var i = 0; i < c.msgs.length; i++) if (c.msgs[i].id === el.dataset.msg) m = c.msgs[i];
+    for (var i = 0; i < c.msgs.length; i++) if (String(c.msgs[i].id) === el.dataset.msg) m = c.msgs[i];
     if (!m || m.removed) return;
     var opts = [
       { i:'↩️', t:'Reply', go:function () {
@@ -2261,7 +2546,6 @@
   }
   $('rqX').addEventListener('click', function () { S.reply = null; paintReply(); });
 
-  /* ---- naming ---- */
   function nameChat(c) {
     var isG = c.kind === 'group';
     askText(isG ? 'Group name' : 'Name this chat', c.title, defaultName(c), 24,
@@ -2293,21 +2577,19 @@
     }
     opts.push({ i:c.pinned ? '📌' : '📍', t:c.pinned ? 'Unpin from top' : 'Pin to top', go:function () {
       NET.setFlag(c, 'pins', !c.pinned);
-      c.pinned = !c.pinned;
       toast(c.pinned ? 'Pinned to the top' : 'Unpinned'); renderChats();
     } });
     opts.push({ i:c.muted ? '🔔' : '🔕', t:c.muted ? 'Unmute notifications' : 'Mute notifications', go:function () {
       NET.setFlag(c, 'mutes', !c.muted);
-      c.muted = !c.muted;
-      toast(c.muted ? 'Muted — no pop-ups from this chat' : 'Notifications back on'); renderChats();
+      toast(c.muted ? 'Muted' : 'Notifications back on'); renderChats();
     } });
     opts.push({ i:'🚪', t:c.kind === 'group' ? 'Leave this group' : 'Delete this chat', danger:true, go:function () {
       sheet('Are you sure?', [{ i:'🚪', t:'Yes, leave', danger:true, go:function () {
         NET.leaveChat(c).then(function () {
           S.chats = S.chats.filter(function (x) { return x.id !== c.id; });
           go('chats');
-          toast(c.kind === 'group' ? 'You left the group' : 'Chat removed');
-        }).catch(function (e) { toast(authError(e)); });
+          toast('Gone');
+        });
       } }]);
     } });
     sheet(chatName(c), opts);
@@ -2393,326 +2675,18 @@
   }
 
   /* =========================================================================
-     16. PRACTICE BRAINS
-     ========================================================================= */
-
-  function practiceAccept(r) {
-    S.incoming = S.incoming.filter(function (x) { return x.id !== r.id; });
-    var p = personOf(r.u);
-    var c = dmWith(p.u) || newChat('dm', [p.u]);
-    push(c, { from:'sys', text:'You and ' + p.n + ' are now connected. Say something 👋' });
-    renderRequests(); updateBadges(); renderChats();
-    toast('You and @' + p.u + ' are connected');
-    setTimeout(function () {
-      say(c, p, pick(['yooo thanks for adding me', 'okay hi!! 👋', 'ayy accepted, lets go', 'hey!! finally']));
-    }, 800);
-    setTimeout(function () {
-      say(c, p, pick(['so whats your deal, what do you do for fun', 'ok quick, favorite thing to do after school',
-        'im ' + p.n + ' btw — ' + p.bio]));
-      c.lastQ = 'fun';
-    }, 2600);
-  }
-
-  function practiceResolve(u) {
-    var still = S.outgoing.filter(function (o) { return o.u === u; });
-    if (!still.length) return;
-    S.outgoing = S.outgoing.filter(function (o) { return o.u !== u; });
-    var p = personOf(u);
-    var c = dmWith(u) || newChat('dm', [u]);
-    push(c, { from:'sys', text:p.n + ' accepted your chat request 🎉' });
-    renderChats(); renderFind(); renderRequests(); updateBadges();
-    notify('REQUEST ACCEPTED', p.e, p.c, p.n + ' accepted', '@' + p.u + ' is now in your chats',
-      function () { openChat(c.id); });
-    setTimeout(function () {
-      say(c, p, pick(['hey!! thanks for the add 🎉', 'ok hi, i accept all requests, no regrets so far',
-        'yooo hi @' + S.me.u, 'accepted!! whats up']));
-    }, 1200);
-    setTimeout(function () {
-      say(c, p, pick(['im ' + p.n + ' — ' + p.bio, 'fair warning i talk about ' + p.likes[0] + ' constantly',
-        'so what are you into']));
-      c.lastQ = 'fun';
-    }, 3200);
-  }
-
-  function flair(p, text) {
-    var st = STYLE[p.style] || STYLE.chill;
-    if (!/\?$/.test(text) && Math.random() < st.chance) text += ' ' + pick(st.tails);
-    if (st.lower && Math.random() < .8) text = text.charAt(0).toLowerCase() + text.slice(1);
-    if (p.style === 'hype' && Math.random() < .18) text = text.toUpperCase();
-    return text;
-  }
-
-  function say(c, p, text) {
-    if (!p || !text || live()) return;
-    var think = Math.min(2600, 400 + text.length * 25);
-    c.typing = p.u;
-    if (S.open === c.id) drawMsgs();
-    setTimeout(function () {
-      c.typing = null;
-      var prev = lastMsg(c);
-      if (prev && prev.text === text) { if (S.open === c.id) drawMsgs(); return; }
-      push(c, { from:p.u, text:text });
-      if (S.open === c.id) drawMsgs();
-      renderChats(); updateBadges();
-      if (S.open !== c.id && !c.muted) {
-        notify('MESSAGE', p.e, p.c, chatName(c), (c.kind === 'group' ? p.n + ': ' : '') + text,
-          function () { openChat(c.id); });
-      }
-    }, think);
-  }
-
-  function scheduleReplies(c, text) {
-    if (c.kind === 'dm') {
-      var p = personOf(others(c)[0]);
-      if (!p) return;
-      think(p, text, c).forEach(function (line, ix) {
-        setTimeout(function () { say(c, p, line); }, 300 + ix * 950);
-      });
-    } else {
-      others(c).slice().sort(function () { return Math.random() - .5; })
-        .slice(0, Math.random() < .45 ? 2 : 1)
-        .forEach(function (u, ix) {
-          setTimeout(function () {
-            var pp = personOf(u);
-            if (pp) say(c, pp, think(pp, text, c)[0]);
-          }, 500 + ix * 2200);
-        });
-    }
-  }
-
-  function norm(t) {
-    var s = String(t).toLowerCase().replace(/[^a-z0-9\s']/g, ' ');
-    return ' ' + s.replace(/\s+/g, ' ').trim() + ' ';
-  }
-  function topicFor(word) {
-    for (var t = 0; t < TOPICS.length; t++) if (TOPICS[t].k.indexOf(word) > -1) return TOPICS[t].s;
-    return null;
-  }
-
-  function think(p, raw, c) {
-    var n = norm(raw);
-    var out = [];
-    var q = c.lastQ;
-    c.lastQ = null;
-
-    if (q && /^\s*(yes|yeah|yea|yep|ya|sure|yup|bet|same|me too|i do|no|nope|nah|not really|i dont|i do not)\s*$/.test(n)) {
-      var yes = /yes|yeah|yea|yep|ya|sure|yup|bet|same|me too|i do/.test(n);
-      out.push(flair(p, yes
-        ? pick(['SAME', 'ok we are friends now officially', 'knew it 😌', 'yesss'])
-        : pick(['fair enough', 'ok ok so what DO you like', 'no worries, different taste', 'hmm noted'])));
-      if (!yes) { out.push('ok so whats your thing then'); c.lastQ = 'likes'; }
-      else out.push(pick(['how long have you been into it', 'ok tell me everything', 'what got you into it']));
-      return out;
-    }
-
-    var words = n.trim().split(' ').filter(Boolean);
-    var isGreet = /^(h+i+|h+e+y+|h+e+l+o+|yo+|hiya|howdy|hola|sup|heyy+|wsp)$/;
-    var filler = ['there','everyone','all','guys','yall','again','you','u','man','dude'];
-    var myWords = S.me.u.split('_');
-    var extras = words.filter(function (w) {
-      return !isGreet.test(w) && filler.indexOf(w) === -1 && myWords.indexOf(w) === -1;
-    });
-    if (words.some(function (w) { return isGreet.test(w); }) && extras.length <= 1) {
-      out.push(flair(p, pick(['heyy @' + S.me.u, 'yo 👋', 'hi hi hi', 'oh hey, good timing'])));
-      out.push(pick(['hows your day going', 'what are you up to', 'whats new with you']));
-      c.lastQ = 'day';
-      return out;
-    }
-
-    if (/how (are|r) (you|u)|how (are|r) (ya|things)|hows it going|how is it going|you good|how you doing|wyd|what are you doing|whats up|what is up|whatcha doing|hbu/.test(n)) {
-      out.push(flair(p, pick(['pretty good! just ' + p.likes[0] + ' stuff', 'honestly great',
-        'good, kind of tired', 'so so. better now that you messaged tbh', 'avoiding homework, the usual'])));
-      out.push(pick(['hbu', 'what about your day', 'you good?']));
-      c.lastQ = 'day';
-      return out;
-    }
-
-    if (/what is your name|whats your name|who are you|your name|your username/.test(n)) {
-      out.push(flair(p, 'im ' + p.n + '! @' + p.u + ' if you ever lose the chat'));
-      out.push(flair(p, p.bio.replace(/\.+$/, '') + '. you?'));
-      return out;
-    }
-    if (/how old|your age|what grade|what school|where do you go/.test(n)) {
-      out.push(flair(p, pick([p.grade + ' grade! you?', 'im in ' + p.grade + '. you?',
-        p.grade + ' — the year of way too much homework'])));
-      c.lastQ = 'grade';
-      return out;
-    }
-
-    if (/joke|make me laugh|something funny|riddle/.test(n)) {
-      var j = pick(JOKES);
-      out.push(j[0]); out.push(j[1]);
-      return out;
-    }
-    if (/fact|did you know|tell me something/.test(n)) {
-      out.push(flair(p, 'ok did you know ' + pick(FACTS)));
-      out.push('do you have a weird one, i collect them');
-      c.lastQ = 'fact';
-      return out;
-    }
-
-    if (/\b(sad|lonely|upset|crying|bad day|worst day|left out|no friends|mad at me|annoyed|angry)\b/.test(n)) {
-      out.push(flair(p, pick(['oh no 💛 im sorry', 'that sounds genuinely hard', 'ugh that stinks'])));
-      out.push(pick(['do you want to talk about it or do you want a distraction',
-        'im here for the venting AND the dumb jokes, your pick',
-        'youre allowed to feel like that. glad you said something.']));
-      c.lastQ = 'feelings';
-      return out;
-    }
-
-    if (/thank|thanks|thx|\bty\b|appreciate/.test(n)) {
-      out.push(flair(p, pick(['anytime 😄', 'no problem!!', 'of course 💛'])));
-      return out;
-    }
-    if (/you are (cool|nice|funny|awesome|great|kind|the best)|youre (cool|nice|funny|awesome|great|kind)|ur (cool|funny|nice)|i like you|best friend|goat/.test(n)) {
-      out.push(flair(p, pick(['aww YOU are', 'ok now im blushing', 'that genuinely made my day'])));
-      out.push(pick(['friends? friends. ✅', 'ok what are we talking about next']));
-      return out;
-    }
-    if (/\b(bye|gtg|got to go|see ya|see you|later|good night|goodnight|night|cya)\b/.test(n)) {
-      out.push(flair(p, pick(['byeee 👋', 'ok see you later', 'night!! message me tomorrow'])));
-      out.push(pick(['this was fun', 'come back soon 💛']));
-      return out;
-    }
-
-    for (var i = 0; i < p.likes.length; i++) {
-      var like = p.likes[i];
-      if (n.indexOf(' ' + like + ' ') > -1 || n.indexOf(like) > -1) {
-        out.push(flair(p, pick(['WAIT you like ' + like + ' too??', 'ok ' + like + ' is literally my entire personality',
-          'you just said the magic word (' + like + ')', 'oh we are going to get along, ' + like + ' is my thing'])));
-        out.push(pick(topicFor(like) || FOLLOWUPS));
-        c.lastQ = like;
-        return out;
-      }
-    }
-
-    for (var t = 0; t < TOPICS.length; t++) {
-      for (var k = 0; k < TOPICS[t].k.length; k++) {
-        var key = TOPICS[t].k[k];
-        if (n.indexOf(' ' + key + ' ') > -1 || n.indexOf(' ' + key + 's ') > -1) {
-          out.push(flair(p, pick(TOPICS[t].s)));
-          if (Math.random() < .5) out.push(pick(FOLLOWUPS));
-          c.lastQ = key;
-          return out;
-        }
-      }
-    }
-
-    if (/^[\s\p{Emoji}️‍]+$/u.test(raw.trim())) {
-      out.push(pick(['😂😂', '💀', 'same energy', raw.trim() + ' back at you', 'ok that emoji is perfect']));
-      return out;
-    }
-
-    if (/\?|what is|whats|how much|solve|equals|answer/.test(n)) {
-      var mm = raw.match(/(\d{1,6})\s*([x*+−\-\/])\s*(\d{1,6})/);
-      if (mm) {
-        var a = +mm[1], b = +mm[3], op = mm[2], ans = null;
-        if (op === '+') ans = a + b;
-        else if (op === '/') ans = b ? Math.round((a / b) * 100) / 100 : null;
-        else if (op === '-' || op === '−') ans = a - b;
-        else ans = a * b;
-        if (ans !== null) {
-          out.push(flair(p, pick(['easy, ' + ans, 'thats ' + ans, 'i got ' + ans + ' 🧮'])));
-          out.push(pick(['did i get it', 'quiz me again, harder', 'ok my turn to ask you one']));
-          return out;
-        }
-      }
-    }
-
-    if (raw.indexOf('?') > -1) {
-      out.push(flair(p, pick(['hmm good question', 'ooh let me think', 'honestly? no idea 😅'])));
-      out.push(pick(['id say yes. what do YOU think', 'my answer is probably ' + pick(['yes', 'no', 'maybe', 'both']),
-        'ask me an easier one 😂', 'i think it depends on the day']));
-      return out;
-    }
-
-    var snip = raw.trim().replace(/[.!?]+$/, '');
-    if (snip.length > 40) snip = snip.slice(0, 40) + '...';
-    out.push(flair(p, pick([
-      'ok "' + snip + '" — tell me more', 'no way, really', 'thats actually interesting',
-      'ok i need details 👀', 'wait keep going'
-    ])));
-    if (Math.random() < .7) {
-      out.push(pick(['do you like ' + pick(p.likes) + ', thats my thing', pick(FOLLOWUPS), 'what else happened today']));
-      c.lastQ = 'likes';
-    }
-    return out;
-  }
-
-  /* =========================================================================
-     17. PRACTICE AMBIENT
-     ========================================================================= */
-
-  function ambientLoop() {
-    setTimeout(function () {
-      try { ambientTick(); } catch (e) {}
-      ambientLoop();
-    }, 17000 + Math.random() * 20000);
-  }
-
-  function ambientTick() {
-    if (live()) return;
-    var pool = S.chats.filter(function (c) {
-      if (!c.msgs.length) return false;
-      var m = lastMsg(c);
-      return (Date.now() - m.at.getTime()) > 24000;
-    });
-    if (!pool.length) return;
-    var c = pick(pool);
-    var p = personOf(pick(others(c)));
-    if (!p) return;
-    say(c, p, pick([
-      'random thought: ' + pick(FACTS),
-      'you still there 👀',
-      'ok i just remembered — do you like ' + pick(p.likes) + '?',
-      'what are you doing rn',
-      pick(JOKES)[0] + ' (ask me for the answer)',
-      'guess what i did today',
-      'this is my favorite chat ngl 💛',
-      'sorry my phone died'
-    ]));
-  }
-
-  function requestLoop() {
-    setTimeout(function () {
-      try { requestTick(); } catch (e) {}
-      requestLoop();
-    }, 30000 + Math.random() * 35000);
-  }
-
-  function requestTick() {
-    if (live() || S.incoming.length >= 4) return;
-    var pool = PEOPLE.filter(function (p) {
-      return !dmWith(p.u) && !pendingTo(p.u) && !incomingFrom(p.u) && S.declined.indexOf(p.u) === -1;
-    });
-    if (!pool.length) return;
-    var p = pick(pool);
-    S.incoming.push({ id:uid(), u:p.u, text:pick(REQ_OPENERS), at:new Date() });
-    updateBadges();
-    if (S.view === 'requests') renderRequests();
-    if (S.view === 'find') renderFind();
-    notify('CHAT REQUEST', p.e, p.c, p.n + ' wants to chat', '@' + p.u + ' · ' + pick(REQ_OPENERS),
-      function () { go('requests'); });
-  }
-
-  /* =========================================================================
-     18. BOOT
+     16. BOOT
      ========================================================================= */
 
   paintPreview();
+  showBoot(false);
+  front('f-welcome');
 
-  // keep "5m ago" style stamps honest without a full re-render storm
   setInterval(function () {
     if (S.view === 'requests') renderRequests();
     if (S.view === 'chats') renderChats();
-  }, 60000);
-
-  // let a real account know you are around
-  setInterval(function () {
-    if (live() && FB && S.me.id !== 'me') {
-      FB.D.updateDoc(FB.D.doc(FB.db, 'users', S.me.id), { lastSeen: FB.D.serverTimestamp() }).catch(function () {});
-    }
-  }, 60000);
+    if (S.open) { var c = chatById(S.open); if (c) setStatusLine(c); }
+  }, 30000);
 })();
 </script>
 </body>
