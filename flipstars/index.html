@@ -231,6 +231,7 @@
   .char-btn small { font-weight: normal; font-size: 0.72rem; opacity: 0.9; }
   .char-btn.sel { background: var(--gold); color: #5b3b00; border-color: white; }
   .loaderr { margin-top: 16px; font-size: .9rem; opacity: .9; }
+  .resume-note { margin-top: 12px; font-size: .95rem; opacity: .95; font-weight: bold; }
 </style>
 <script type="importmap">
 { "imports": {
@@ -252,6 +253,7 @@
     <button class="char-btn" data-char="him" id="charHimBtn">🛡️ Max<br><small>Knight Athlete</small></button>
   </div>
   <button class="big-go" id="startBtn">Let's Tumble!</button>
+  <div class="resume-note" id="resumeNote"></div>
   <div class="loaderr" id="loadErr"></div>
 </div>
 
@@ -361,6 +363,7 @@ function persist() {
       owned: [...shop.owned],
       equipped: shop.equipped,
       unlocked: game.unlocked,
+      level: game.level,          // resume on the level you were last playing
       stars: game.stars,
       character: game.character,
       stock: game.stock
@@ -477,6 +480,7 @@ if (saved) {
     if (eq.acc && (!acc || !acc.data.acc)) eq.acc = null;
   }
   game.unlocked = Math.max(1, saved.unlocked || 1);   // clamped to LEVELS.length at boot
+  game.level = Math.max(0, saved.level | 0);          // clamped to what's unlocked at boot
   game.stars = saved.stars || {};
   game.character = saved.character === 'him' ? 'him' : 'her';
   if (saved.stock) for (const k of ['turbo', 'spring', 'shield'])
@@ -1267,6 +1271,7 @@ function loadLevel(idx) {
   idx = clamp(idx, 0, LEVELS.length - 1);
   if (idx !== game.level) clearAll();   // a different course starts with fresh ramps
   game.level = idx;
+  persist();                            // remember where we are for next time
   buildLevel(game.level);
   if (shop.equipped.background === 'bg-auto') applyWorldBackground(LEVELS[game.level].world);
   resetRun();
@@ -2119,11 +2124,14 @@ el('coinPill').textContent = '⭐ ' + game.coins;
 applyBackground(shop.equipped.background);
 applyOutfit();
 renderToolbar();
-// levels: clamp saved progress and build the starting level
-game.unlocked = clamp(game.unlocked, 1, LEVELS.length);
-game.level = clamp(game.level, 0, game.unlocked - 1);
+// Every level is open, and the game starts you on the final one.
+game.unlocked = LEVELS.length;
+game.level = LEVELS.length - 1;
 buildLevel(game.level);
 updateLevelHud();
+el('resumeNote').innerHTML =
+  `Starting on the final level: <b>Lv ${game.level + 1} · ${LEVELS[game.level].name}</b>` +
+  `<br><small>All ${LEVELS.length} levels unlocked — tap 🗺️ Levels to pick any other one.</small>`;
 loadCharacter(game.character);   // load the saved character (async)
 fetchCharacter(game.character === 'her' ? 'him' : 'her');   // prefetch the other (also donates run clips)
 setCharChoiceUI();
