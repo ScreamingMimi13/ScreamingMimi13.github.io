@@ -5,12 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PawCare: Cat Care & Breeding Sim</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #fff9e6 0%, #ffe8cc 100%);
@@ -20,14 +15,12 @@
             min-height: 100vh;
             padding: 10px;
         }
-
         #gameContainer {
             position: relative;
             width: 100%;
             max-width: 960px;
             aspect-ratio: 3 / 2;
         }
-
         canvas {
             display: block;
             width: 100%;
@@ -36,61 +29,50 @@
             border: 3px solid #8b7355;
             border-radius: 10px;
             image-rendering: crisp-edges;
+            cursor: pointer;
         }
-
         #hud {
             position: absolute;
             top: 10px;
             left: 10px;
             right: 10px;
-            font-size: 14px;
+            font-size: 13px;
             color: #333;
             z-index: 10;
         }
-
         .hud-row {
             display: flex;
-            gap: 20px;
-            margin-bottom: 8px;
+            gap: 15px;
+            margin-bottom: 6px;
             font-weight: bold;
         }
-
         .hud-item {
-            background: rgba(255, 255, 255, 0.9);
-            padding: 6px 12px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 5px 10px;
             border-radius: 6px;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
-
         #msgLog {
             position: absolute;
             bottom: 10px;
             left: 10px;
             right: 10px;
-            max-height: 80px;
+            max-height: 70px;
             overflow-y: auto;
-            font-size: 12px;
+            font-size: 11px;
             color: #333;
             z-index: 10;
         }
-
         .msg {
             background: rgba(255, 255, 255, 0.95);
-            padding: 6px 10px;
-            margin-bottom: 4px;
+            padding: 4px 8px;
+            margin-bottom: 3px;
             border-radius: 4px;
-            border-left: 4px solid #8bc34a;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            border-left: 3px solid #8bc34a;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         }
-
-        .msg.warn {
-            border-left-color: #ff9800;
-        }
-
-        .msg.bad {
-            border-left-color: #f44336;
-        }
-
+        .msg.warn { border-left-color: #ff9800; }
+        .msg.bad { border-left-color: #f44336; }
         #customizer {
             position: fixed;
             top: 50%;
@@ -98,146 +80,96 @@
             transform: translate(-50%, -50%);
             background: white;
             border-radius: 12px;
-            padding: 30px;
+            padding: 25px;
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
             z-index: 100;
-            max-height: 90vh;
+            max-height: 85vh;
             overflow-y: auto;
-            max-width: 500px;
+            max-width: 450px;
             width: 90%;
             display: none;
         }
-
-        #customizer.show {
-            display: block;
-        }
-
-        #customizer h2 {
-            margin-bottom: 20px;
-            color: #333;
-        }
-
+        #customizer.show { display: block; }
+        #customizer h2 { margin-bottom: 15px; color: #333; font-size: 1.3rem; }
         .form-group {
-            margin-bottom: 20px;
+            margin-bottom: 15px;
         }
-
         .form-group label {
             display: block;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
             font-weight: bold;
             color: #555;
+            font-size: 0.9rem;
         }
-
-        .form-group input,
-        .form-group select {
+        .form-group input, .form-group select {
             width: 100%;
-            padding: 10px;
+            padding: 8px;
             border: 2px solid #ddd;
             border-radius: 6px;
-            font-size: 14px;
+            font-size: 13px;
         }
-
-        .form-group input:focus,
-        .form-group select:focus {
+        .form-group input:focus, .form-group select:focus {
             outline: none;
             border-color: #8bc34a;
             box-shadow: 0 0 0 3px rgba(139, 195, 74, 0.1);
         }
-
-        .button-group {
-            display: flex;
-            gap: 10px;
-            margin-top: 20px;
-        }
-
         button {
-            flex: 1;
-            padding: 12px 20px;
+            padding: 10px 16px;
             border: none;
             border-radius: 6px;
             font-weight: bold;
             cursor: pointer;
             transition: 0.2s;
-            font-size: 14px;
+            font-size: 13px;
         }
-
         .btn-primary {
             background: #8bc34a;
             color: white;
+            width: 100%;
+            margin-top: 10px;
         }
-
-        .btn-primary:hover {
-            background: #7cb342;
-        }
-
-        .btn-secondary {
-            background: #ddd;
-            color: #333;
-        }
-
-        .btn-secondary:hover {
-            background: #ccc;
-        }
-
+        .btn-primary:hover { background: #7cb342; }
         .color-grid {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
-            margin-bottom: 15px;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            margin-bottom: 12px;
         }
-
         .color-option {
-            padding: 12px;
+            padding: 8px;
             border: 3px solid #ddd;
-            border-radius: 8px;
+            border-radius: 6px;
             cursor: pointer;
             text-align: center;
-            font-size: 12px;
+            font-size: 11px;
             transition: 0.2s;
             background: white;
         }
-
-        .color-option:hover {
-            border-color: #8bc34a;
-        }
-
+        .color-option:hover { border-color: #8bc34a; }
         .color-option.selected {
             border-color: #8bc34a;
             background: #f0f7e8;
         }
-
         .color-swatch {
-            width: 60px;
-            height: 60px;
-            border-radius: 6px;
-            margin: 0 auto 8px;
+            width: 40px;
+            height: 40px;
+            border-radius: 4px;
+            margin: 0 auto 4px;
             border: 2px solid #ccc;
         }
-
         .preview-canvas {
             width: 100%;
-            max-width: 200px;
+            max-width: 180px;
             height: auto;
             border: 2px solid #ddd;
-            border-radius: 8px;
-            margin: 15px auto;
+            border-radius: 6px;
+            margin: 10px auto;
             background: linear-gradient(to bottom, #87ceeb 0%, #e0f6ff 100%);
+            display: block;
         }
-
         @media (max-width: 768px) {
-            #customizer {
-                max-width: 90vw;
-                padding: 20px;
-            }
-
-            .hud-row {
-                font-size: 12px;
-                gap: 10px;
-            }
-
-            .hud-item {
-                padding: 4px 8px;
-            }
+            #customizer { max-width: 90vw; padding: 15px; }
+            .hud-row { font-size: 11px; gap: 8px; }
         }
     </style>
 </head>
@@ -246,14 +178,14 @@
         <canvas id="gameCanvas"></canvas>
         <div id="hud">
             <div class="hud-row">
-                <div class="hud-item">💰 Money: $<span id="moneyDisplay">100</span></div>
-                <div class="hud-item">🐱 Cats: <span id="catsDisplay">0</span>/5</div>
-                <div class="hud-item">📍 Zone: <span id="zoneDisplay">Market</span></div>
+                <div class="hud-item">💰 $<span id="moneyDisplay">500</span></div>
+                <div class="hud-item">🐱 <span id="catsDisplay">0</span>/100</div>
+                <div class="hud-item">📍 <span id="zoneDisplay">Market</span></div>
             </div>
             <div class="hud-row">
-                <div class="hud-item">Active Cat: <span id="activeCatDisplay">None</span></div>
-                <div class="hud-item">Health: <span id="healthDisplay">—</span></div>
-                <div class="hud-item">Happiness: <span id="happinessDisplay">—</span></div>
+                <div class="hud-item">Active: <span id="activeCatDisplay">None</span></div>
+                <div class="hud-item">❤️ <span id="healthDisplay">—</span></div>
+                <div class="hud-item">😊 <span id="happinessDisplay">—</span></div>
             </div>
         </div>
         <div id="msgLog"></div>
@@ -265,144 +197,188 @@
             <label>Your Name:</label>
             <input type="text" id="playerName" placeholder="Enter your name" value="Player">
         </div>
-
         <div class="form-group">
-            <label>Choose Your First Cat Breed:</label>
+            <label>Choose Your First Cat:</label>
             <select id="firstCatBreed">
-                <option value="ragdoll">Ragdoll - Gentle & calm ($150)</option>
-                <option value="persian">Persian - High maintenance ($200)</option>
-                <option value="siamese">Siamese - Vocal & smart ($120)</option>
-                <option value="mainecoon">Maine Coon - Gentle giant ($180)</option>
-                <option value="sphynx">Sphynx - Hairless & unique ($250)</option>
-                <option value="british">British Shorthair - Sturdy ($100)</option>
+                <option value="british">British Shorthair - Sturdy ($80)</option>
+                <option value="ragdoll">Ragdoll - Calm & gentle ($120)</option>
+                <option value="siamese">Siamese - Vocal & smart ($100)</option>
+                <option value="maine">Maine Coon - Gentle giant ($140)</option>
+                <option value="persian">Persian - High maintenance ($150)</option>
+                <option value="bengal">Bengal - Active & spotted ($160)</option>
             </select>
         </div>
-
         <div class="form-group">
             <label>Your Cat's Name:</label>
             <input type="text" id="catName" placeholder="Name your cat" value="Whiskers">
         </div>
-
         <div class="form-group">
-            <label>Choose Cat Color:</label>
+            <label>Choose Color:</label>
             <div id="colorGrid" class="color-grid"></div>
         </div>
-
-        <canvas id="previewCanvas" class="preview-canvas" width="200" height="160"></canvas>
-
-        <div class="button-group">
-            <button class="btn-primary" onclick="startGame()">Start Game</button>
-        </div>
+        <canvas id="previewCanvas" class="preview-canvas" width="180" height="140"></canvas>
+        <button class="btn-primary" onclick="startGame()">Start Game</button>
     </div>
 
     <script>
-        // Single IIFE for all game logic
         (function() {
             'use strict';
 
-            // ===== CANVAS & RENDERING =====
             const canvas = document.getElementById('gameCanvas');
             const ctx = canvas.getContext('2d');
             const previewCanvas = document.getElementById('previewCanvas');
             const previewCtx = previewCanvas.getContext('2d');
 
             function resizeCanvas() {
-                const container = document.getElementById('gameContainer');
                 canvas.width = 960;
                 canvas.height = 640;
             }
             resizeCanvas();
             window.addEventListener('resize', resizeCanvas);
 
-            // ===== CONSTANTS =====
-            const GRAVITY = 0.5;
-            const WATER_DRAG = 0.92;
-            const TANK_PAD = 20;
             const GROUND_Y = 500;
-            const MARKET_ZONE_X = 300;
-            const SHELTER_ZONE_X = 700;
 
-            // ===== REAL CAT BREEDS DATABASE =====
+            // COMPREHENSIVE REAL CAT BREEDS WITH COLORS
             const CAT_BREEDS = {
+                british: {
+                    name: 'British Shorthair',
+                    cost: 80,
+                    colors: [
+                        { name: 'Blue Gray', body: '#a8b0c0', points: '#8a9aaa' },
+                        { name: 'Black', body: '#1a1a1a', points: '#0d0d0d' },
+                        { name: 'White', body: '#f5f5f5', points: '#e8e8e8' },
+                        { name: 'Orange', body: '#ff9933', points: '#ff6600' },
+                        { name: 'Cream', body: '#f5e6d3', points: '#e8d4c0' },
+                        { name: 'Chocolate', body: '#8b6f47', points: '#6b5437' }
+                    ]
+                },
                 ragdoll: {
                     name: 'Ragdoll',
-                    cost: 150,
-                    care: { feedHours: 12, playHours: 8, grooming: 6 },
-                    description: 'Gentle, large, blue-eyed cats that are very affectionate.',
+                    cost: 120,
                     colors: [
                         { name: 'Seal Point', body: '#d4a5a5', points: '#4a2f2f' },
                         { name: 'Chocolate Point', body: '#e8d7d1', points: '#6b4423' },
-                        { name: 'Blue Point', body: '#d8d8e8', points: '#6b7a8f' }
-                    ]
-                },
-                persian: {
-                    name: 'Persian',
-                    cost: 200,
-                    care: { feedHours: 12, playHours: 6, grooming: 2 },
-                    description: 'Flat-faced beauty that needs daily grooming. High maintenance!',
-                    colors: [
-                        { name: 'White', body: '#ffffff', points: '#f5f5f5' },
-                        { name: 'Black', body: '#1a1a1a', points: '#0d0d0d' },
-                        { name: 'Orange', body: '#ff9933', points: '#ff6600' }
+                        { name: 'Blue Point', body: '#d8d8e8', points: '#6b7a8f' },
+                        { name: 'Lilac Point', body: '#e8d8e8', points: '#8a7a9a' },
+                        { name: 'Cream Point', body: '#f0e8d8', points: '#cc9966' }
                     ]
                 },
                 siamese: {
                     name: 'Siamese',
-                    cost: 120,
-                    care: { feedHours: 10, playHours: 10, grooming: 4 },
-                    description: 'Vocal, intelligent, and very social. Loves attention.',
+                    cost: 100,
                     colors: [
                         { name: 'Seal Point', body: '#e8d4c8', points: '#4a2f2f' },
                         { name: 'Chocolate Point', body: '#f0ddd4', points: '#6b4423' },
-                        { name: 'Blue Point', body: '#dcdce8', points: '#6b7a8f' }
+                        { name: 'Blue Point', body: '#dcdce8', points: '#6b7a8f' },
+                        { name: 'Cream Point', body: '#f5e8d8', points: '#cc9966' },
+                        { name: 'Red Point', body: '#f5dcd4', points: '#cc6633' }
                     ]
                 },
-                mainecoon: {
+                maine: {
                     name: 'Maine Coon',
-                    cost: 180,
-                    care: { feedHours: 14, playHours: 8, grooming: 5 },
-                    description: 'Gentle giant with a fluffy coat. Excellent hunters.',
+                    cost: 140,
                     colors: [
                         { name: 'Brown Tabby', body: '#8b6b4a', points: '#5a4a3a' },
                         { name: 'Gray Tabby', body: '#a8a8a8', points: '#5a5a5a' },
-                        { name: 'Orange Tabby', body: '#ff9966', points: '#cc6633' }
+                        { name: 'Orange Tabby', body: '#ff9966', points: '#cc6633' },
+                        { name: 'Cream', body: '#f5e6d3', points: '#e8d4c0' },
+                        { name: 'White', body: '#f5f5f5', points: '#e8e8e8' },
+                        { name: 'Black Smoke', body: '#2a2a2a', points: '#1a1a1a' }
+                    ]
+                },
+                persian: {
+                    name: 'Persian',
+                    cost: 150,
+                    colors: [
+                        { name: 'White', body: '#ffffff', points: '#f5f5f5' },
+                        { name: 'Black', body: '#1a1a1a', points: '#0d0d0d' },
+                        { name: 'Blue', body: '#b0b0c0', points: '#8a8a9a' },
+                        { name: 'Red', body: '#ff9966', points: '#ff6600' },
+                        { name: 'Cream', body: '#f5e6d3', points: '#e8d4c0' },
+                        { name: 'Chocolate', body: '#8b6f47', points: '#6b5437' },
+                        { name: 'Lilac', body: '#d8c8d8', points: '#b8a8b8' }
+                    ]
+                },
+                bengal: {
+                    name: 'Bengal',
+                    cost: 160,
+                    colors: [
+                        { name: 'Brown Spotted', body: '#cc9966', points: '#884422' },
+                        { name: 'Silver Spotted', body: '#d8d8d8', points: '#888888' },
+                        { name: 'Snow Spotted', body: '#f5e8e8', points: '#cc8888' },
+                        { name: 'Gray', body: '#9a9aaa', points: '#6a6a7a' }
+                    ]
+                },
+                abyssinian: {
+                    name: 'Abyssinian',
+                    cost: 130,
+                    colors: [
+                        { name: 'Ruddy', body: '#cc8844', points: '#884422' },
+                        { name: 'Fawn', body: '#d8b8a0', points: '#b8886a' },
+                        { name: 'Red', body: '#ff9966', points: '#ff6600' },
+                        { name: 'Blue', body: '#a8b0c0', points: '#8a9aaa' }
+                    ]
+                },
+                burmese: {
+                    name: 'Burmese',
+                    cost: 125,
+                    colors: [
+                        { name: 'Sable', body: '#4a3a2a', points: '#2a1a0a' },
+                        { name: 'Champagne', body: '#d4a898', points: '#b4886a' },
+                        { name: 'Blue', body: '#a8b0c0', points: '#8a9aaa' },
+                        { name: 'Platinum', body: '#d8d8e8', points: '#b8b8c8' }
+                    ]
+                },
+                scottish: {
+                    name: 'Scottish Fold',
+                    cost: 135,
+                    colors: [
+                        { name: 'Blue Gray', body: '#a8b0c0', points: '#8a9aaa' },
+                        { name: 'White', body: '#f5f5f5', points: '#e8e8e8' },
+                        { name: 'Black', body: '#1a1a1a', points: '#0d0d0d' },
+                        { name: 'Orange', body: '#ff9933', points: '#ff6600' },
+                        { name: 'Cream', body: '#f5e6d3', points: '#e8d4c0' }
                     ]
                 },
                 sphynx: {
                     name: 'Sphynx',
-                    cost: 250,
-                    care: { feedHours: 12, playHours: 12, grooming: 8 },
-                    description: 'Hairless & unique. Needs warmth and regular baths.',
+                    cost: 180,
                     colors: [
                         { name: 'Powder Puff', body: '#e8d4c0', points: '#d0b8a0' },
                         { name: 'Black', body: '#3a3a3a', points: '#2a2a2a' },
-                        { name: 'Spotted', body: '#d4a08a', points: '#8a6a5a' }
+                        { name: 'Spotted', body: '#d4a08a', points: '#8a6a5a' },
+                        { name: 'Red', body: '#ff9966', points: '#ff6600' },
+                        { name: 'Blue', body: '#a8b0c0', points: '#8a9aaa' }
                     ]
                 },
-                british: {
-                    name: 'British Shorthair',
-                    cost: 100,
-                    care: { feedHours: 12, playHours: 6, grooming: 3 },
-                    description: 'Sturdy, calm, and independent. Perfect for beginners!',
+                tuxedo: {
+                    name: 'Tuxedo',
+                    cost: 70,
                     colors: [
-                        { name: 'Blue Gray', body: '#b0b0c0', points: '#8a8a9a' },
-                        { name: 'Black', body: '#1a1a1a', points: '#0d0d0d' },
-                        { name: 'Cream', body: '#f5e6d3', points: '#e8d4c0' }
+                        { name: 'Black & White', body: '#1a1a1a', accents: '#f5f5f5' },
+                        { name: 'Gray & White', body: '#a8a8a8', accents: '#f5f5f5' },
+                        { name: 'Orange & White', body: '#ff9966', accents: '#f5f5f5' }
+                    ]
+                },
+                calico: {
+                    name: 'Calico',
+                    cost: 75,
+                    colors: [
+                        { name: 'Classic Calico', body: '#ff9966', accents1: '#ff0000', accents2: '#1a1a1a' },
+                        { name: 'Dilute Calico', body: '#ffccaa', accents1: '#ff9999', accents2: '#b0b0c0' }
                     ]
                 }
             };
 
             const MARKET_ITEMS = [
-                { id: 'food', name: 'Cat Food', cost: 20, icon: '🍖', description: 'Premium wet food' },
-                { id: 'toy', name: 'Toy Ball', cost: 15, icon: '🎾', description: 'Bouncy fun' },
-                { id: 'brush', name: 'Grooming Brush', cost: 40, icon: '🪮', description: 'Keeps fur healthy' },
-                { id: 'scratch', name: 'Scratching Post', cost: 60, icon: '🌳', description: 'Prevents furniture damage' },
-                { id: 'bed', name: 'Cozy Bed', cost: 50, icon: '🛏️', description: 'Cats love to rest' },
-                { id: 'tower', name: 'Cat Tower', cost: 80, icon: '🏰', description: 'For climbing & hiding' },
-                { id: 'litter', name: 'Litter Box', cost: 35, icon: '🚽', description: 'Essential supplies' }
+                { id: 'food', name: 'Food', cost: 15, icon: '🍖' },
+                { id: 'toy', name: 'Toy', cost: 12, icon: '🎾' },
+                { id: 'brush', name: 'Brush', cost: 35, icon: '🪮' },
+                { id: 'post', name: 'Scratching Post', cost: 50, icon: '🌳' },
+                { id: 'bed', name: 'Cozy Bed', cost: 40, icon: '🛏️' },
+                { id: 'tower', name: 'Cat Tower', cost: 65, icon: '🏰' }
             ];
 
-            // ===== GAME STATE =====
             let gameState = {
                 started: false,
                 playerName: 'Player',
@@ -410,27 +386,21 @@
                 cats: [],
                 activeCatIdx: -1,
                 inventory: {},
-                location: 'market', // 'market' or 'shelter'
-                playerPos: { x: 100, y: 400 },
+                location: 'market',
+                playerPos: { x: 100, y: 450 },
                 playerVel: { x: 0, y: 0 },
                 time: 0,
-                gameTime: 0, // in-game hours (0-24)
+                gameTime: 0,
                 messages: [],
-                clickTargets: [] // For tracking clickable areas
+                clickTargets: []
             };
 
-            // ===== UTILITIES =====
             function rand(min, max) {
                 return Math.random() * (max - min) + min;
             }
 
             function clamp(v, min, max) {
                 return Math.max(min, Math.min(max, v));
-            }
-
-            function dist(a, b) {
-                const dx = a.x - b.x, dy = a.y - b.y;
-                return Math.sqrt(dx * dx + dy * dy);
             }
 
             function showMsg(text, kind = '') {
@@ -440,248 +410,476 @@
                 msg.className = 'msg ' + kind;
                 msg.textContent = text;
                 log.appendChild(msg);
-                if (log.children.length > 5) log.removeChild(log.firstChild);
+                if (log.children.length > 4) log.removeChild(log.firstChild);
             }
 
-            // ===== CAT DRAWING (REALISTIC) =====
-            function drawCatHead(ctx, x, y, scale, color, breed) {
+            // REALISTIC CAT DRAWING
+            function drawCat(ctx, x, y, scale, breed, color, walking = 0, directionRight = true) {
                 ctx.save();
                 ctx.translate(x, y);
+                if (!directionRight) ctx.scale(-1, 1);
                 ctx.scale(scale, scale);
 
-                // Head shape
+                const legBobx = Math.sin(walking * 0.15) * 2;
+
+                // Back legs
                 ctx.fillStyle = color.body;
                 ctx.beginPath();
-                ctx.ellipse(0, 0, 25, 28, 0, 0, Math.PI * 2);
+                ctx.ellipse(-8, 15 + legBobx, 4, 8, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.ellipse(8, 15 + legBobx, 4, 8, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Body
+                ctx.fillStyle = color.body;
+                ctx.beginPath();
+                ctx.ellipse(0, 5, 12, 10, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Front legs
+                ctx.beginPath();
+                ctx.ellipse(-8, 12 - legBobx, 3, 7, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.ellipse(8, 12 - legBobx, 3, 7, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Tail (curved, animated)
+                ctx.strokeStyle = color.body;
+                ctx.lineWidth = 3;
+                ctx.lineCap = 'round';
+                ctx.beginPath();
+                ctx.moveTo(10, 8);
+                ctx.quadraticCurveTo(18 + Math.sin(walking * 0.2) * 3, 5, 20, -5);
+                ctx.stroke();
+
+                // Neck
+                ctx.fillStyle = color.body;
+                ctx.beginPath();
+                ctx.ellipse(0, -3, 8, 6, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Head
+                ctx.beginPath();
+                ctx.ellipse(0, -12, 10, 11, 0, 0, Math.PI * 2);
                 ctx.fill();
 
                 // Ears
-                ctx.fillStyle = color.body;
                 ctx.beginPath();
-                ctx.ellipse(-15, -25, 10, 18, -0.3, 0, Math.PI * 2);
+                ctx.ellipse(-6, -22, 3, 6, -0.4, 0, Math.PI * 2);
                 ctx.fill();
                 ctx.beginPath();
-                ctx.ellipse(15, -25, 10, 18, 0.3, 0, Math.PI * 2);
+                ctx.ellipse(6, -22, 3, 6, 0.4, 0, Math.PI * 2);
                 ctx.fill();
 
-                // Inner ears
+                // Ear innards
                 ctx.fillStyle = '#ffb3d9';
                 ctx.beginPath();
-                ctx.ellipse(-15, -22, 5, 10, -0.3, 0, Math.PI * 2);
+                ctx.ellipse(-6, -21, 1.5, 3, -0.4, 0, Math.PI * 2);
                 ctx.fill();
                 ctx.beginPath();
-                ctx.ellipse(15, -22, 5, 10, 0.3, 0, Math.PI * 2);
+                ctx.ellipse(6, -21, 1.5, 3, 0.4, 0, Math.PI * 2);
                 ctx.fill();
 
-                // Snout/muzzle
+                // Muzzle
                 ctx.fillStyle = '#ffd9e6';
                 ctx.beginPath();
-                ctx.ellipse(0, 8, 15, 12, 0, 0, Math.PI * 2);
+                ctx.ellipse(0, -8, 6, 5, 0, 0, Math.PI * 2);
                 ctx.fill();
 
                 // Eyes
                 ctx.fillStyle = '#90ee90';
                 ctx.beginPath();
-                ctx.ellipse(-10, -5, 6, 8, 0, 0, Math.PI * 2);
+                ctx.ellipse(-4, -14, 2.5, 3.5, 0, 0, Math.PI * 2);
                 ctx.fill();
                 ctx.beginPath();
-                ctx.ellipse(10, -5, 6, 8, 0, 0, Math.PI * 2);
+                ctx.ellipse(4, -14, 2.5, 3.5, 0, 0, Math.PI * 2);
                 ctx.fill();
 
-                // Pupils
+                // Pupils (follow direction)
                 ctx.fillStyle = '#000';
                 ctx.beginPath();
-                ctx.ellipse(-10, -3, 3, 5, 0, 0, Math.PI * 2);
+                ctx.ellipse(-3.5, -13, 1.2, 2, 0, 0, Math.PI * 2);
                 ctx.fill();
                 ctx.beginPath();
-                ctx.ellipse(10, -3, 3, 5, 0, 0, Math.PI * 2);
+                ctx.ellipse(4.5, -13, 1.2, 2, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Eye shine
+                ctx.fillStyle = '#fff';
+                ctx.beginPath();
+                ctx.ellipse(-3.2, -13.5, 0.5, 0.5, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.ellipse(4.8, -13.5, 0.5, 0.5, 0, 0, Math.PI * 2);
                 ctx.fill();
 
                 // Nose
                 ctx.fillStyle = '#ffb3d9';
                 ctx.beginPath();
-                ctx.ellipse(0, 5, 3, 2, 0, 0, Math.PI * 2);
+                ctx.ellipse(0, -9, 1.5, 1, 0, 0, Math.PI * 2);
                 ctx.fill();
 
                 // Mouth
                 ctx.strokeStyle = '#000';
-                ctx.lineWidth = 1.5;
+                ctx.lineWidth = 0.8;
                 ctx.beginPath();
-                ctx.moveTo(0, 5);
-                ctx.lineTo(0, 12);
+                ctx.moveTo(0, -8);
+                ctx.lineTo(0, -5);
                 ctx.stroke();
                 ctx.beginPath();
-                ctx.arc(0, 12, 4, 0, Math.PI, false);
+                ctx.arc(0, -4, 2, 0, Math.PI, false);
                 ctx.stroke();
 
                 // Whiskers
-                ctx.strokeStyle = '#666';
-                ctx.lineWidth = 1;
-                for (let i = -2; i <= 2; i++) {
+                ctx.strokeStyle = '#999';
+                ctx.lineWidth = 0.6;
+                for (let i = -1; i <= 1; i++) {
                     ctx.beginPath();
-                    ctx.moveTo(-18, i * 4);
-                    ctx.lineTo(-30, i * 4 - 2);
+                    ctx.moveTo(-6, -8 + i * 1.5);
+                    ctx.lineTo(-11, -7 + i * 1.5);
                     ctx.stroke();
                     ctx.beginPath();
-                    ctx.moveTo(18, i * 4);
-                    ctx.lineTo(30, i * 4 - 2);
+                    ctx.moveTo(6, -8 + i * 1.5);
+                    ctx.lineTo(11, -7 + i * 1.5);
                     ctx.stroke();
                 }
 
                 ctx.restore();
             }
 
-            function drawCatBody(ctx, x, y, scale, color, breed) {
-                ctx.save();
-                ctx.translate(x, y);
-                ctx.scale(scale, scale);
+            function updateCatCare(cat, dt) {
+                cat.hunger = Math.min(100, cat.hunger + dt * 0.1);
+                if (cat.hunger > 70) cat.health = Math.max(0, cat.health - dt * 0.05);
+                if (cat.cleanliness < 30) cat.health = Math.max(0, cat.health - dt * 0.05);
 
-                // Body
-                ctx.fillStyle = color.body;
-                ctx.beginPath();
-                ctx.ellipse(0, 30, 35, 45, 0, 0, Math.PI * 2);
-                ctx.fill();
-
-                // Tail
-                ctx.strokeStyle = color.body;
-                ctx.lineWidth = 15;
-                ctx.lineCap = 'round';
-                ctx.beginPath();
-                ctx.moveTo(30, 60);
-                ctx.quadraticCurveTo(60, 50, 70, 0);
-                ctx.stroke();
-
-                // Front paws
-                ctx.fillStyle = color.body;
-                ctx.beginPath();
-                ctx.ellipse(-15, 80, 10, 20, 0, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.beginPath();
-                ctx.ellipse(15, 80, 10, 20, 0, 0, Math.PI * 2);
-                ctx.fill();
-
-                // Back paws (visible from side)
-                ctx.beginPath();
-                ctx.ellipse(25, 75, 12, 18, 0, 0, Math.PI * 2);
-                ctx.fill();
-
-                // Paw pads
-                ctx.fillStyle = '#ffb3d9';
-                ctx.beginPath();
-                ctx.ellipse(-15, 95, 5, 7, 0, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.beginPath();
-                ctx.ellipse(15, 95, 5, 7, 0, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.beginPath();
-                ctx.ellipse(25, 90, 6, 8, 0, 0, Math.PI * 2);
-                ctx.fill();
-
-                ctx.restore();
+                cat.health = clamp(cat.health, 0, 100);
+                cat.happiness = clamp(cat.happiness, 0, 100);
+                cat.hunger = clamp(cat.hunger, 0, 100);
             }
 
-            function drawCatWithColor(ctx, x, y, scale, breed, color) {
-                drawCatBody(ctx, x, y + 20, scale, color, breed);
-                drawCatHead(ctx, x, y - 10, scale, color, breed);
-            }
-
-            // ===== INPUT HANDLING =====
-            const keys = {};
-            const touches = { active: false, x: 0, y: 0 };
-
-            window.addEventListener('keydown', (e) => {
-                keys[e.key] = true;
-                if (e.key === ' ') e.preventDefault();
-            });
-
-            window.addEventListener('keyup', (e) => {
-                keys[e.key] = false;
-            });
-
-            function getCanvasCoords(e) {
-                const rect = canvas.getBoundingClientRect();
-                const scaleX = canvas.width / rect.width;
-                const scaleY = canvas.height / rect.height;
-                return {
-                    x: (e.clientX - rect.left) * scaleX,
-                    y: (e.clientY - rect.top) * scaleY
-                };
-            }
-
-            canvas.addEventListener('click', (e) => {
+            function update(dt) {
                 if (!gameState.started) return;
-                const pos = getCanvasCoords(e);
+                dt = Math.min(dt, 0.05);
+                gameState.time += dt;
+                gameState.gameTime = (gameState.gameTime + dt * 0.01) % 24;
 
-                // Check if clicked on a target
-                gameState.clickTargets.forEach(target => {
-                    if (pos.x >= target.x && pos.x <= target.x + target.w &&
-                        pos.y >= target.y && pos.y <= target.y + target.h) {
-                        target.onClick();
+                // Player movement
+                const moveSpd = 180;
+                gameState.playerVel.x = 0;
+                gameState.playerVel.y = 0;
+
+                if (keys['w'] || keys['W'] || keys['ArrowUp']) gameState.playerVel.y = -moveSpd;
+                if (keys['s'] || keys['S'] || keys['ArrowDown']) gameState.playerVel.y = moveSpd;
+                if (keys['a'] || keys['A'] || keys['ArrowLeft']) gameState.playerVel.x = -moveSpd;
+                if (keys['d'] || keys['D'] || keys['ArrowRight']) gameState.playerVel.x = moveSpd;
+
+                gameState.playerPos.x += gameState.playerVel.x * dt;
+                gameState.playerPos.y += gameState.playerVel.y * dt;
+                gameState.playerPos.x = clamp(gameState.playerPos.x, 30, canvas.width - 30);
+                gameState.playerPos.y = clamp(gameState.playerPos.y, 30, canvas.height - 50);
+
+                if (gameState.playerPos.x < 400) gameState.location = 'market';
+                else gameState.location = 'shelter';
+
+                // Update cats with walking animation
+                gameState.cats.forEach((cat, idx) => {
+                    updateCatCare(cat, dt);
+
+                    // Cat AI walking
+                    if (!cat.walking) {
+                        cat.walking = 0;
+                        cat.walkDir = Math.random() > 0.5 ? 1 : -1;
+                        cat.walkDuration = Math.random() * 3 + 2;
+                        cat.walkTarget = gameState.location === 'market' ? 200 : 700;
+                    }
+
+                    cat.walking += dt;
+                    if (cat.walking > cat.walkDuration) {
+                        cat.walking = 0;
+                        cat.walkTarget = gameState.location === 'market' ? rand(50, 350) : rand(500, 900);
+                    }
+
+                    // Move toward target
+                    const dist = cat.walkTarget - cat.pos.x;
+                    if (Math.abs(dist) > 5) {
+                        cat.dirRight = dist > 0;
+                        cat.pos.x += Math.sign(dist) * 40 * dt;
                     }
                 });
-            });
 
-            canvas.addEventListener('touchstart', (e) => {
-                const rect = canvas.getBoundingClientRect();
-                const scaleX = canvas.width / rect.width;
-                const scaleY = canvas.height / rect.height;
-                touches.x = (e.touches[0].clientX - rect.left) * scaleX;
-                touches.y = (e.touches[0].clientY - rect.top) * scaleY;
-                touches.active = true;
-            });
+                gameState.messages = gameState.messages.filter(m => {
+                    m.time -= dt;
+                    return m.time > 0;
+                });
 
-            canvas.addEventListener('touchmove', (e) => {
-                const rect = canvas.getBoundingClientRect();
-                const scaleX = canvas.width / rect.width;
-                const scaleY = canvas.height / rect.height;
-                touches.x = (e.touches[0].clientX - rect.left) * scaleX;
-                touches.y = (e.touches[0].clientY - rect.top) * scaleY;
-            });
+                document.getElementById('moneyDisplay').textContent = Math.floor(gameState.money);
+                document.getElementById('catsDisplay').textContent = gameState.cats.length;
+                document.getElementById('zoneDisplay').textContent = gameState.location === 'market' ? 'Market' : 'Shelter';
 
-            canvas.addEventListener('touchend', () => {
-                touches.active = false;
-            });
+                if (gameState.activeCatIdx >= 0 && gameState.cats[gameState.activeCatIdx]) {
+                    const cat = gameState.cats[gameState.activeCatIdx];
+                    document.getElementById('activeCatDisplay').textContent = cat.name;
+                    document.getElementById('healthDisplay').textContent = Math.floor(cat.health) + '%';
+                    document.getElementById('happinessDisplay').textContent = Math.floor(cat.happiness) + '%';
+                }
+            }
 
-            // ===== CUSTOMIZER & STARTUP =====
-            window.startGame = function() {
-                const name = document.getElementById('playerName').value || 'Player';
-                const breedKey = document.getElementById('firstCatBreed').value;
-                const catName = document.getElementById('catName').value || 'Whiskers';
-                const colorName = document.querySelector('.color-option.selected')?.dataset.colorName;
+            function draw() {
+                gameState.clickTargets = [];
 
-                gameState.playerName = name;
+                ctx.fillStyle = '#87ceeb';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = '#90ee90';
+                ctx.fillRect(0, GROUND_Y, canvas.width, canvas.height - GROUND_Y);
 
+                // Zones
+                ctx.fillStyle = 'rgba(200, 150, 100, 0.2)';
+                ctx.fillRect(0, 0, 400, canvas.height);
+                ctx.fillStyle = 'rgba(150, 100, 200, 0.2)';
+                ctx.fillRect(400, 0, canvas.width - 400, canvas.height);
+
+                ctx.fillStyle = '#333';
+                ctx.font = 'bold 18px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('🏪 MARKET', 200, 40);
+                ctx.fillText('🏠 SHELTER', 680, 40);
+
+                // Market items
+                MARKET_ITEMS.forEach((item, idx) => {
+                    const itemX = 30 + (idx % 3) * 110;
+                    const itemY = 80 + Math.floor(idx / 3) * 100;
+
+                    ctx.fillStyle = '#ffeb99';
+                    ctx.fillRect(itemX - 20, itemY - 20, 40, 40);
+                    ctx.fillStyle = '#333';
+                    ctx.font = '24px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(item.icon, itemX, itemY);
+
+                    ctx.font = 'bold 10px Arial';
+                    ctx.fillText(`$${item.cost}`, itemX, itemY + 30);
+
+                    gameState.clickTargets.push({
+                        x: itemX - 20, y: itemY - 20, w: 40, h: 40,
+                        onClick: () => buyItem(item)
+                    });
+                });
+
+                // Cat shop & breeding
+                const shopX = 30, shopY = 340;
+                ctx.fillStyle = '#ffb3d9';
+                ctx.fillRect(shopX, shopY, 70, 50);
+                ctx.fillStyle = '#333';
+                ctx.font = 'bold 11px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('🐱 Buy Cat', shopX + 35, shopY + 18);
+                ctx.font = '9px Arial';
+                ctx.fillText('$70-180', shopX + 35, shopY + 35);
+
+                gameState.clickTargets.push({
+                    x: shopX, y: shopY, w: 70, h: 50,
+                    onClick: () => openCatShop()
+                });
+
+                const breedX = 110, breedY = 340;
+                ctx.fillStyle = '#ffe6e6';
+                ctx.fillRect(breedX, breedY, 70, 50);
+                ctx.fillStyle = '#333';
+                ctx.font = 'bold 11px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('💕 Breed', breedX + 35, breedY + 18);
+                ctx.font = '9px Arial';
+                ctx.fillText('(2+ cats)', breedX + 35, breedY + 35);
+
+                gameState.clickTargets.push({
+                    x: breedX, y: breedY, w: 70, h: 50,
+                    onClick: () => openBreedingPanel()
+                });
+
+                // Draw walking cats in shelter
+                gameState.cats.forEach((cat, idx) => {
+                    drawCat(ctx, cat.pos.x, cat.pos.y, 1.2, cat.breed, cat.color, gameState.time * 60, cat.dirRight);
+
+                    // Name + health bar
+                    ctx.fillStyle = '#333';
+                    ctx.font = 'bold 10px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(cat.name, cat.pos.x, cat.pos.y + 35);
+
+                    ctx.fillStyle = '#ddd';
+                    ctx.fillRect(cat.pos.x - 25, cat.pos.y + 40, 50, 5);
+                    ctx.fillStyle = cat.health > 60 ? '#8bc34a' : cat.health > 30 ? '#ff9800' : '#f44336';
+                    ctx.fillRect(cat.pos.x - 25, cat.pos.y + 40, (cat.health / 100) * 50, 5);
+
+                    gameState.clickTargets.push({
+                        x: cat.pos.x - 30, y: cat.pos.y - 40, w: 60, h: 80,
+                        onClick: () => selectCat(idx)
+                    });
+                });
+
+                // Draw player (actual person shape)
+                drawPlayer(ctx, gameState.playerPos.x, gameState.playerPos.y);
+
+                // Messages
+                gameState.messages.forEach((msg, idx) => {
+                    ctx.fillStyle = msg.kind === 'warn' ? '#ff9800' : msg.kind === 'bad' ? '#f44336' : '#000';
+                    ctx.font = '12px Arial';
+                    ctx.fillText(msg.text, 30, 20 + idx * 18);
+                });
+            }
+
+            function drawPlayer(ctx, x, y) {
+                ctx.fillStyle = '#f4a460'; // Skin tone
+                // Head
+                ctx.beginPath();
+                ctx.arc(x, y - 30, 10, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Body
+                ctx.fillRect(x - 7, y - 18, 14, 20);
+
+                // Arms
+                ctx.fillRect(x - 12, y - 12, 5, 16);
+                ctx.fillRect(x + 7, y - 12, 5, 16);
+
+                // Legs
+                ctx.fillRect(x - 6, y + 2, 5, 14);
+                ctx.fillRect(x + 1, y + 2, 5, 14);
+
+                // Hair
+                ctx.fillStyle = '#8b4513';
+                ctx.beginPath();
+                ctx.arc(x, y - 30, 10, 0, Math.PI);
+                ctx.fill();
+
+                // Face
+                ctx.fillStyle = '#000';
+                ctx.beginPath();
+                ctx.arc(x - 4, y - 32, 1.5, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.arc(x + 4, y - 32, 1.5, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            function buyItem(item) {
+                if (gameState.money >= item.cost) {
+                    gameState.money -= item.cost;
+                    gameState.inventory[item.id] = (gameState.inventory[item.id] || 0) + 1;
+
+                    if (gameState.activeCatIdx >= 0) {
+                        const cat = gameState.cats[gameState.activeCatIdx];
+                        if (item.id === 'food') {
+                            cat.hunger = Math.max(0, cat.hunger - 30);
+                            showMsg(`${cat.name} ate! Nom nom!`, 'good');
+                        } else if (item.id === 'toy') {
+                            cat.happiness = Math.min(100, cat.happiness + 25);
+                            showMsg(`${cat.name} is playing!`, 'good');
+                        } else if (item.id === 'brush') {
+                            cat.cleanliness = Math.min(100, cat.cleanliness + 40);
+                            showMsg(`${cat.name} is groomed!`, 'good');
+                        } else {
+                            showMsg(`Bought ${item.name}!`, 'good');
+                        }
+                    }
+                } else {
+                    showMsg(`Not enough money!`, 'warn');
+                }
+            }
+
+            function openCatShop() {
+                if (gameState.cats.length >= 100) {
+                    showMsg('Shelter full! Max 100 cats.', 'warn');
+                    return;
+                }
+
+                const breeds = Object.entries(CAT_BREEDS);
+                const [breedKey, breed] = breeds[Math.floor(Math.random() * breeds.length)];
+                const color = breed.colors[Math.floor(Math.random() * breed.colors.length)];
+
+                const modal = document.createElement('div');
+                modal.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:white;padding:20px;border-radius:8px;z-index:1000;max-width:300px;';
+                modal.innerHTML = `
+                    <h3>${breed.name}</h3>
+                    <p>Color: ${color.name}</p>
+                    <p style="font-weight:bold;">Cost: $${breed.cost}</p>
+                    <input type="text" id="newCatName" placeholder="Cat name" value="Kitty" style="width:100%;padding:8px;margin:10px 0;border:1px solid #ccc;border-radius:4px;">
+                    <button onclick="confirmCatPurchase('${breedKey}', '${color.name}', document.getElementById('newCatName').value); this.closest('div').remove();" style="background:#8bc34a;color:white;border:none;padding:8px 16px;border-radius:4px;cursor:pointer;width:100%;margin-bottom:5px;">Buy for $${breed.cost}</button>
+                    <button onclick="this.closest('div').remove();" style="background:#ccc;color:#333;border:none;padding:8px 16px;border-radius:4px;cursor:pointer;width:100%;">Cancel</button>
+                `;
+                document.body.appendChild(modal);
+            }
+
+            window.confirmCatPurchase = function(breedKey, colorName, catName) {
                 const breed = CAT_BREEDS[breedKey];
-                const color = breed.colors.find(c => c.name === colorName) || breed.colors[0];
+                const color = breed.colors.find(c => c.name === colorName);
+
+                if (gameState.money >= breed.cost && gameState.cats.length < 100) {
+                    gameState.money -= breed.cost;
+                    gameState.cats.push({
+                        id: Math.random(),
+                        name: catName || 'Kitty',
+                        breed: breedKey,
+                        breedName: breed.name,
+                        color: color,
+                        health: 95,
+                        happiness: 80,
+                        hunger: 20,
+                        cleanliness: 85,
+                        age: 0.1,
+                        pos: { x: rand(430, 900), y: rand(300, 450) },
+                        dirRight: true,
+                        walking: 0,
+                        walkTarget: 650
+                    });
+                    gameState.activeCatIdx = gameState.cats.length - 1;
+                    showMsg(`Welcome ${catName}!`, 'good');
+                }
+            };
+
+            function selectCat(idx) {
+                gameState.activeCatIdx = idx;
+                showMsg(`Selected: ${gameState.cats[idx].name}`, '');
+            }
+
+            function openBreedingPanel() {
+                if (gameState.cats.length < 2) {
+                    showMsg('Need 2+ cats to breed!', 'warn');
+                    return;
+                }
+                if (gameState.cats.length >= 100) {
+                    showMsg('Shelter full!', 'warn');
+                    return;
+                }
+
+                showMsg('Breeding activated!', 'good');
+                const cat1 = gameState.cats[0];
+                const breed = CAT_BREEDS[cat1.breed];
+                const color = breed.colors[Math.floor(Math.random() * breed.colors.length)];
 
                 gameState.cats.push({
                     id: Math.random(),
-                    name: catName,
-                    breed: breedKey,
+                    name: cat1.name + ' Jr.',
+                    breed: cat1.breed,
                     breedName: breed.name,
                     color: color,
-                    health: 100,
-                    happiness: 80,
-                    hunger: 30,
-                    lastFed: 0,
-                    lastPlayed: 0,
-                    lastGroomed: 0,
+                    health: 90,
+                    happiness: 85,
+                    hunger: 25,
                     cleanliness: 80,
-                    age: 0.1, // in years
-                    energy: 70,
-                    inventory: {}
+                    age: 0.05,
+                    pos: { x: rand(430, 900), y: rand(300, 450) },
+                    dirRight: true,
+                    walking: 0,
+                    walkTarget: 650
                 });
 
-                gameState.activeCatIdx = 0;
-                gameState.money -= breed.cost;
-                gameState.started = true;
-
-                document.getElementById('customizer').classList.remove('show');
-                showMsg(`Welcome, ${name}! You now own ${catName} the ${breed.name}!`, 'good');
-                showMsg('Use arrow keys or WASD to move. Click items to buy or manage cats.', '');
-
-                requestAnimationFrame(gameLoop);
-            };
+                gameState.money += 150;
+                showMsg(`Kitten born! +$150`, 'good');
+            }
 
             function updateColorGrid() {
                 const breedKey = document.getElementById('firstCatBreed').value;
@@ -716,404 +914,80 @@
 
                 previewCtx.fillStyle = '#e0f6ff';
                 previewCtx.fillRect(0, 0, previewCanvas.width, previewCanvas.height);
+                previewCtx.fillStyle = '#90ee90';
+                previewCtx.fillRect(0, 110, previewCanvas.width, previewCanvas.height - 110);
 
-                drawCatWithColor(previewCtx, previewCanvas.width / 2, previewCanvas.height / 2 - 20, 1.5, breedKey, color);
+                drawCat(previewCtx, previewCanvas.width / 2, 60, 2, breed, color, 0, true);
             }
 
             document.getElementById('firstCatBreed').addEventListener('change', updateColorGrid);
 
-            // ===== CAT CARE UPDATE =====
-            function updateCatCare(cat, dt) {
-                // Time-based degradation
-                const timeStep = dt * 0.2; // in-game hours per frame
+            const keys = {};
+            window.addEventListener('keydown', (e) => {
+                keys[e.key] = true;
+                if (e.key === ' ') e.preventDefault();
+            });
+            window.addEventListener('keyup', (e) => {
+                keys[e.key] = false;
+            });
 
-                // Hunger grows
-                cat.hunger = Math.min(100, cat.hunger + timeStep * 0.3);
-
-                // If hungry, health drops
-                if (cat.hunger > 70) {
-                    cat.health = Math.max(0, cat.health - timeStep * 0.2);
-                }
-
-                // Without play, happiness drops
-                if (gameState.gameTime - cat.lastPlayed > 4) {
-                    cat.happiness = Math.max(0, cat.happiness - timeStep * 0.1);
-                }
-
-                // Without grooming, cleanliness drops
-                if (gameState.gameTime - cat.lastGroomed > 6) {
-                    cat.cleanliness = Math.max(0, cat.cleanliness - timeStep * 0.15);
-                }
-
-                // Cleanliness affects health
-                if (cat.cleanliness < 30) {
-                    cat.health = Math.max(0, cat.health - timeStep * 0.1);
-                }
-
-                // Energy recovery over time
-                if (cat.energy < 100) {
-                    cat.energy = Math.min(100, cat.energy + timeStep * 0.2);
-                }
-
-                // Cap at 0-100
-                cat.health = clamp(cat.health, 0, 100);
-                cat.happiness = clamp(cat.happiness, 0, 100);
-                cat.hunger = clamp(cat.hunger, 0, 100);
-                cat.cleanliness = clamp(cat.cleanliness, 0, 100);
-            }
-
-            // ===== UPDATE LOOP =====
-            function update(dt) {
+            canvas.addEventListener('click', (e) => {
                 if (!gameState.started) return;
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+                const pos = {
+                    x: (e.clientX - rect.left) * scaleX,
+                    y: (e.clientY - rect.top) * scaleY
+                };
 
-                dt = Math.min(dt, 0.05); // Clamp to 50ms
-                gameState.time += dt;
-                gameState.gameTime = (gameState.gameTime + dt * 0.01) % 24; // ~1 hour per 100s
-
-                // Player movement
-                const moveSpd = 200; // pixels per second
-                gameState.playerVel.x = 0;
-                gameState.playerVel.y = 0;
-
-                if (keys['w'] || keys['W'] || keys['ArrowUp']) gameState.playerVel.y = -moveSpd;
-                if (keys['s'] || keys['S'] || keys['ArrowDown']) gameState.playerVel.y = moveSpd;
-                if (keys['a'] || keys['A'] || keys['ArrowLeft']) gameState.playerVel.x = -moveSpd;
-                if (keys['d'] || keys['D'] || keys['ArrowRight']) gameState.playerVel.x = moveSpd;
-
-                if (touches.active) {
-                    const dx = touches.x - gameState.playerPos.x;
-                    const dy = touches.y - gameState.playerPos.y;
-                    const dist = Math.sqrt(dx * dx + dy * dy);
-                    if (dist > 20) {
-                        gameState.playerVel.x = (dx / dist) * moveSpd;
-                        gameState.playerVel.y = (dy / dist) * moveSpd;
+                gameState.clickTargets.forEach(target => {
+                    if (pos.x >= target.x && pos.x <= target.x + target.w &&
+                        pos.y >= target.y && pos.y <= target.y + target.h) {
+                        target.onClick();
                     }
-                }
-
-                gameState.playerPos.x += gameState.playerVel.x * dt;
-                gameState.playerPos.y += gameState.playerVel.y * dt;
-
-                // Clamp to canvas
-                gameState.playerPos.x = clamp(gameState.playerPos.x, 30, canvas.width - 30);
-                gameState.playerPos.y = clamp(gameState.playerPos.y, 30, canvas.height - 50);
-
-                // Determine zone
-                if (gameState.playerPos.x < 400) {
-                    gameState.location = 'market';
-                } else {
-                    gameState.location = 'shelter';
-                }
-
-                // Update all cats
-                gameState.cats.forEach(cat => updateCatCare(cat, dt));
-
-                // Age cats (very slowly)
-                gameState.cats.forEach(cat => {
-                    cat.age += dt * 0.00001;
                 });
+            });
 
-                // Update messages
-                gameState.messages = gameState.messages.filter(m => {
-                    m.time -= dt;
-                    return m.time > 0;
-                });
+            window.startGame = function() {
+                const name = document.getElementById('playerName').value || 'Player';
+                const breedKey = document.getElementById('firstCatBreed').value;
+                const catName = document.getElementById('catName').value || 'Whiskers';
+                const colorName = document.querySelector('.color-option.selected')?.dataset.colorName;
 
-                // Update HUD
-                document.getElementById('moneyDisplay').textContent = Math.floor(gameState.money);
-                document.getElementById('catsDisplay').textContent = gameState.cats.length;
-                document.getElementById('zoneDisplay').textContent = gameState.location === 'market' ? 'Market' : 'Cat Shelter';
-
-                if (gameState.activeCatIdx >= 0 && gameState.cats[gameState.activeCatIdx]) {
-                    const cat = gameState.cats[gameState.activeCatIdx];
-                    document.getElementById('activeCatDisplay').textContent = cat.name;
-                    document.getElementById('healthDisplay').textContent = Math.floor(cat.health) + '%';
-                    document.getElementById('happinessDisplay').textContent = Math.floor(cat.happiness) + '%';
-                }
-            }
-
-            // ===== DRAWING =====
-            function draw() {
-                gameState.clickTargets = []; // Reset click targets
-
-                // Background
-                ctx.fillStyle = '#87ceeb';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                ctx.fillStyle = '#90ee90';
-                ctx.fillRect(0, GROUND_Y, canvas.width, canvas.height - GROUND_Y);
-
-                // Zones
-                ctx.fillStyle = 'rgba(200, 150, 100, 0.3)';
-                ctx.fillRect(0, 0, 450, canvas.height);
-                ctx.fillStyle = 'rgba(150, 100, 200, 0.3)';
-                ctx.fillRect(450, 0, canvas.width - 450, canvas.height);
-
-                // Zone labels
-                ctx.fillStyle = '#333';
-                ctx.font = 'bold 20px Arial';
-                ctx.textAlign = 'center';
-                ctx.fillText('🏪 MARKET', 225, 50);
-                ctx.fillText('🏠 SHELTER', 700, 50);
-
-                // Market items
-                const marketY = 150;
-                const itemSpacing = 120;
-                MARKET_ITEMS.forEach((item, idx) => {
-                    const itemX = 40 + (idx % 4) * itemSpacing;
-                    const itemY = marketY + Math.floor(idx / 4) * 150;
-
-                    // Draw item background
-                    ctx.fillStyle = '#ffeb99';
-                    ctx.fillRect(itemX - 25, itemY - 25, 50, 50);
-                    ctx.fillStyle = '#333';
-                    ctx.font = '30px Arial';
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'middle';
-                    ctx.fillText(item.icon, itemX, itemY);
-
-                    // Price
-                    ctx.font = 'bold 12px Arial';
-                    ctx.fillText(`$${item.cost}`, itemX, itemY + 35);
-
-                    // Add click target
-                    gameState.clickTargets.push({
-                        x: itemX - 25, y: itemY - 25, w: 50, h: 50,
-                        onClick: () => buyItem(item)
-                    });
-                });
-
-                // Cat shop (sell cats)
-                const shopX = 50, shopY = 400;
-                ctx.fillStyle = '#ffb3d9';
-                ctx.fillRect(shopX, shopY, 80, 60);
-                ctx.fillStyle = '#333';
-                ctx.font = 'bold 14px Arial';
-                ctx.textAlign = 'center';
-                ctx.fillText('🐱 Cat Shop', shopX + 40, shopY + 15);
-                ctx.font = '11px Arial';
-                ctx.fillText('Buy: $100-250', shopX + 40, shopY + 32);
-
-                gameState.clickTargets.push({
-                    x: shopX, y: shopY, w: 80, h: 60,
-                    onClick: () => openCatShop()
-                });
-
-                // Breeding station
-                const breedX = 160, breedY = 400;
-                ctx.fillStyle = '#ffe6e6';
-                ctx.fillRect(breedX, breedY, 80, 60);
-                ctx.fillStyle = '#333';
-                ctx.font = 'bold 12px Arial';
-                ctx.textAlign = 'center';
-                ctx.fillText('💕 Breeding', breedX + 40, breedY + 15);
-                ctx.font = '11px Arial';
-                ctx.fillText('(2+ cats)', breedX + 40, breedY + 32);
-
-                gameState.clickTargets.push({
-                    x: breedX, y: breedY, w: 80, h: 60,
-                    onClick: () => openBreedingPanel()
-                });
-
-                // Cat-sitting button
-                const sittingX = 530, sittingY = 400;
-                ctx.fillStyle = '#b3e5fc';
-                ctx.fillRect(sittingX, sittingY, 90, 60);
-                ctx.fillStyle = '#333';
-                ctx.font = 'bold 12px Arial';
-                ctx.textAlign = 'center';
-                ctx.fillText('📱 Sit Friends', sittingX + 45, sittingY + 15);
-                ctx.font = '10px Arial';
-                ctx.fillText('Care for pets', sittingX + 45, sittingY + 32);
-
-                gameState.clickTargets.push({
-                    x: sittingX, y: sittingY, w: 90, h: 60,
-                    onClick: () => openCatSitting()
-                });
-
-                // Shelter cats for adoption
-                const shelterStartX = 500;
-                const shelterStartY = 150;
-                gameState.cats.forEach((cat, idx) => {
-                    const catX = shelterStartX + (idx % 2) * 120;
-                    const catY = shelterStartY + Math.floor(idx / 2) * 140;
-
-                    // Cat card
-                    ctx.fillStyle = idx === gameState.activeCatIdx ? '#90ee90' : '#ffe8cc';
-                    ctx.fillRect(catX - 50, catY - 60, 100, 120);
-
-                    // Draw cat
-                    drawCatWithColor(ctx, catX, catY - 20, 0.8, cat.breed, cat.color);
-
-                    // Info
-                    ctx.fillStyle = '#333';
-                    ctx.font = 'bold 12px Arial';
-                    ctx.textAlign = 'center';
-                    ctx.fillText(cat.name, catX, catY + 50);
-                    ctx.font = '10px Arial';
-                    ctx.fillText(cat.breedName, catX, catY + 65);
-
-                    // Health bar
-                    ctx.fillStyle = '#ddd';
-                    ctx.fillRect(catX - 40, catY + 75, 80, 8);
-                    ctx.fillStyle = cat.health > 60 ? '#8bc34a' : cat.health > 30 ? '#ff9800' : '#f44336';
-                    ctx.fillRect(catX - 40, catY + 75, (cat.health / 100) * 80, 8);
-
-                    // Click target
-                    gameState.clickTargets.push({
-                        x: catX - 50, y: catY - 60, w: 100, h: 120,
-                        onClick: () => selectCat(idx)
-                    });
-                });
-
-                // Player
-                ctx.fillStyle = '#ff6b9d';
-                ctx.fillRect(gameState.playerPos.x - 15, gameState.playerPos.y - 20, 30, 40);
-                ctx.fillStyle = '#ffb3d9';
-                ctx.beginPath();
-                ctx.arc(gameState.playerPos.x, gameState.playerPos.y - 25, 10, 0, Math.PI * 2);
-                ctx.fill();
-
-                // Draw messages
-                gameState.messages.forEach((msg, idx) => {
-                    ctx.fillStyle = msg.kind === 'warn' ? '#ff9800' : msg.kind === 'bad' ? '#f44336' : '#333';
-                    ctx.font = '14px Arial';
-                    ctx.fillText(msg.text, 20, 20 + idx * 25);
-                });
-            }
-
-            // ===== INTERACTION HANDLERS =====
-            function buyItem(item) {
-                if (gameState.money >= item.cost) {
-                    gameState.money -= item.cost;
-                    gameState.inventory[item.id] = (gameState.inventory[item.id] || 0) + 1;
-
-                    // Apply effects based on item
-                    if (gameState.activeCatIdx >= 0) {
-                        const cat = gameState.cats[gameState.activeCatIdx];
-                        if (item.id === 'food') {
-                            cat.hunger = Math.max(0, cat.hunger - 30);
-                            cat.energy = Math.min(100, cat.energy + 10);
-                            showMsg(`${cat.name} ate and is happy!`, 'good');
-                        } else if (item.id === 'toy') {
-                            cat.happiness = Math.min(100, cat.happiness + 25);
-                            cat.energy = Math.max(0, cat.energy - 10);
-                            cat.lastPlayed = gameState.gameTime;
-                            showMsg(`${cat.name} loves playing!`, 'good');
-                        } else if (item.id === 'brush') {
-                            cat.cleanliness = Math.min(100, cat.cleanliness + 40);
-                            cat.happiness = Math.min(100, cat.happiness + 10);
-                            cat.lastGroomed = gameState.gameTime;
-                            showMsg(`${cat.name} is groomed and gorgeous!`, 'good');
-                        } else {
-                            showMsg(`Bought ${item.name} for $${item.cost}!`, 'good');
-                        }
-                    } else {
-                        showMsg(`Bought ${item.name} for $${item.cost}!`, 'good');
-                    }
-                } else {
-                    showMsg(`Can't afford ${item.name}! Need $${item.cost - gameState.money} more.`, 'warn');
-                }
-            }
-
-            function openCatShop() {
-                showMsg('Cat Shop - Choose a breed to buy!', '');
-                const breeds = Object.entries(CAT_BREEDS);
-                const breedIdx = Math.floor(Math.random() * breeds.length);
-                const [breedKey, breed] = breeds[breedIdx];
-
-                if (gameState.cats.length < 5) {
-                    const modal = document.createElement('div');
-                    modal.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:white;padding:20px;border-radius:8px;z-index:1000;max-width:300px;';
-                    modal.innerHTML = `
-                        <h3>${breed.name}</h3>
-                        <p>${breed.description}</p>
-                        <p>Cost: $${breed.cost}</p>
-                        <input type="text" id="newCatName" placeholder="Cat name" value="Fluffy">
-                        <button onclick="confirmCatPurchase('${breedKey}', document.getElementById('newCatName').value); this.closest('div').remove();">Buy for $${breed.cost}</button>
-                        <button onclick="this.closest('div').remove();">Cancel</button>
-                    `;
-                    document.body.appendChild(modal);
-                } else {
-                    showMsg('Your shelter is full! Max 5 cats.', 'warn');
-                }
-            }
-
-            window.confirmCatPurchase = function(breedKey, catName) {
+                gameState.playerName = name;
                 const breed = CAT_BREEDS[breedKey];
-                if (gameState.money >= breed.cost && gameState.cats.length < 5) {
-                    gameState.money -= breed.cost;
-                    const color = breed.colors[Math.floor(Math.random() * breed.colors.length)];
-                    gameState.cats.push({
-                        id: Math.random(),
-                        name: catName || 'Fluffy',
-                        breed: breedKey,
-                        breedName: breed.name,
-                        color: color,
-                        health: 100,
-                        happiness: 80,
-                        hunger: 20,
-                        lastFed: 0,
-                        lastPlayed: 0,
-                        lastGroomed: 0,
-                        cleanliness: 85,
-                        age: 0.1,
-                        energy: 70,
-                        inventory: {}
-                    });
-                    gameState.activeCatIdx = gameState.cats.length - 1;
-                    showMsg(`Welcome ${catName || 'Fluffy'} the ${breed.name}!`, 'good');
-                }
+                const color = breed.colors.find(c => c.name === colorName) || breed.colors[0];
+
+                gameState.cats.push({
+                    id: Math.random(),
+                    name: catName,
+                    breed: breedKey,
+                    breedName: breed.name,
+                    color: color,
+                    health: 100,
+                    happiness: 80,
+                    hunger: 20,
+                    cleanliness: 85,
+                    age: 0.1,
+                    pos: { x: 650, y: 350 },
+                    dirRight: true,
+                    walking: 0,
+                    walkTarget: 650
+                });
+
+                gameState.activeCatIdx = 0;
+                gameState.money -= breed.cost;
+                gameState.started = true;
+                document.getElementById('customizer').classList.remove('show');
+                showMsg(`Welcome, ${name}! You own ${catName} the ${breed.name}!`, 'good');
+                showMsg('WASD/Arrows to move. Click cats/items.', '');
+                requestAnimationFrame(gameLoop);
             };
 
-            function selectCat(idx) {
-                gameState.activeCatIdx = idx;
-                showMsg(`Selected: ${gameState.cats[idx].name}`, '');
-            }
+            document.getElementById('customizer').classList.add('show');
+            updateColorGrid();
 
-            function openBreedingPanel() {
-                if (gameState.cats.length < 2) {
-                    showMsg('Need at least 2 cats to breed!', 'warn');
-                    return;
-                }
-
-                showMsg('Breeding activated! A new kitten will be born soon!', 'good');
-                // Simple implementation: just create a new cat
-                const cat1 = gameState.cats[0];
-
-                if (gameState.cats.length < 5) {
-                    const breed = CAT_BREEDS[cat1.breed];
-                    const newColor = breed.colors[Math.floor(Math.random() * breed.colors.length)];
-                    const newName = cat1.name + ' Jr.';
-
-                    gameState.cats.push({
-                        id: Math.random(),
-                        name: newName,
-                        breed: cat1.breed,
-                        breedName: breed.name,
-                        color: newColor,
-                        health: 90,
-                        happiness: 85,
-                        hunger: 25,
-                        lastFed: 0,
-                        lastPlayed: 0,
-                        lastGroomed: 0,
-                        cleanliness: 80,
-                        age: 0.05,
-                        energy: 80,
-                        inventory: {}
-                    });
-                    gameState.money += 200; // Breeding reward
-                    showMsg(`${newName} was born! Earned $200!`, 'good');
-                    gameState.activeCatIdx = gameState.cats.length - 1;
-                } else {
-                    showMsg('Your shelter is full! Max 5 cats.', 'warn');
-                }
-            }
-
-            function openCatSitting() {
-                showMsg('🐱 Cat-Sitting System Coming Soon! Text friends to care for their cats!', '');
-            }
-
-            // ===== MAIN LOOP =====
             let lastTime = Date.now();
             function gameLoop() {
                 const now = Date.now();
@@ -1124,10 +998,6 @@
                 draw();
                 requestAnimationFrame(gameLoop);
             }
-
-            // ===== INIT CUSTOMIZER =====
-            document.getElementById('customizer').classList.add('show');
-            updateColorGrid();
         })();
     </script>
 </body>
