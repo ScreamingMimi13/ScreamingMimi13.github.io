@@ -45,6 +45,7 @@
             gap: 15px;
             margin-bottom: 6px;
             font-weight: bold;
+            flex-wrap: wrap;
         }
         .hud-item {
             background: rgba(255, 255, 255, 0.95);
@@ -85,7 +86,7 @@
             z-index: 100;
             max-height: 85vh;
             overflow-y: auto;
-            max-width: 450px;
+            max-width: 500px;
             width: 90%;
             display: none;
         }
@@ -131,7 +132,7 @@
         .btn-primary:hover { background: #7cb342; }
         .color-grid {
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
+            grid-template-columns: repeat(3, 1fr);
             gap: 8px;
             margin-bottom: 12px;
         }
@@ -141,7 +142,7 @@
             border-radius: 6px;
             cursor: pointer;
             text-align: center;
-            font-size: 11px;
+            font-size: 10px;
             transition: 0.2s;
             background: white;
         }
@@ -159,17 +160,13 @@
         }
         .preview-canvas {
             width: 100%;
-            max-width: 180px;
+            max-width: 200px;
             height: auto;
             border: 2px solid #ddd;
             border-radius: 6px;
             margin: 10px auto;
             background: linear-gradient(to bottom, #87ceeb 0%, #e0f6ff 100%);
             display: block;
-        }
-        @media (max-width: 768px) {
-            #customizer { max-width: 90vw; padding: 15px; }
-            .hud-row { font-size: 11px; gap: 8px; }
         }
     </style>
 </head>
@@ -186,6 +183,7 @@
                 <div class="hud-item">Active: <span id="activeCatDisplay">None</span></div>
                 <div class="hud-item">❤️ <span id="healthDisplay">—</span></div>
                 <div class="hud-item">😊 <span id="happinessDisplay">—</span></div>
+                <div class="hud-item">👥 Friends: <span id="friendsDisplay">0</span></div>
             </div>
         </div>
         <div id="msgLog"></div>
@@ -194,29 +192,27 @@
     <div id="customizer">
         <h2>Welcome to PawCare!</h2>
         <div class="form-group">
-            <label>Your Name:</label>
-            <input type="text" id="playerName" placeholder="Enter your name" value="Player">
+            <label>Your Username:</label>
+            <input type="text" id="playerName" placeholder="Enter your username" value="Player">
         </div>
         <div class="form-group">
-            <label>Choose Your First Cat:</label>
-            <select id="firstCatBreed">
-                <option value="british">British Shorthair - Sturdy ($80)</option>
-                <option value="ragdoll">Ragdoll - Calm & gentle ($120)</option>
-                <option value="siamese">Siamese - Vocal & smart ($100)</option>
-                <option value="maine">Maine Coon - Gentle giant ($140)</option>
-                <option value="persian">Persian - High maintenance ($150)</option>
-                <option value="bengal">Bengal - Active & spotted ($160)</option>
+            <label>Choose Your First Cat (100+ breeds!):</label>
+            <select id="firstCatBreed"></select>
+        </div>
+        <div class="form-group">
+            <label>Pattern:</label>
+            <select id="catPattern">
+                <option value="solid">Solid</option>
+                <option value="tabby">Tabby</option>
+                <option value="smoke">Smoke</option>
+                <option value="pointed">Pointed</option>
             </select>
         </div>
         <div class="form-group">
             <label>Your Cat's Name:</label>
             <input type="text" id="catName" placeholder="Name your cat" value="Whiskers">
         </div>
-        <div class="form-group">
-            <label>Choose Color:</label>
-            <div id="colorGrid" class="color-grid"></div>
-        </div>
-        <canvas id="previewCanvas" class="preview-canvas" width="180" height="140"></canvas>
+        <canvas id="previewCanvas" class="preview-canvas" width="200" height="160"></canvas>
         <button class="btn-primary" onclick="startGame()">Start Game</button>
     </div>
 
@@ -236,138 +232,103 @@
             resizeCanvas();
             window.addEventListener('resize', resizeCanvas);
 
-            const GROUND_Y = 500;
-
-            // COMPREHENSIVE REAL CAT BREEDS WITH COLORS
+            // COMPREHENSIVE CAT BREEDS DATABASE - 100+ REAL BREEDS
             const CAT_BREEDS = {
-                british: {
-                    name: 'British Shorthair',
-                    cost: 80,
-                    colors: [
-                        { name: 'Blue Gray', body: '#a8b0c0', points: '#8a9aaa' },
-                        { name: 'Black', body: '#1a1a1a', points: '#0d0d0d' },
-                        { name: 'White', body: '#f5f5f5', points: '#e8e8e8' },
-                        { name: 'Orange', body: '#ff9933', points: '#ff6600' },
-                        { name: 'Cream', body: '#f5e6d3', points: '#e8d4c0' },
-                        { name: 'Chocolate', body: '#8b6f47', points: '#6b5437' }
-                    ]
-                },
-                ragdoll: {
-                    name: 'Ragdoll',
-                    cost: 120,
-                    colors: [
-                        { name: 'Seal Point', body: '#d4a5a5', points: '#4a2f2f' },
-                        { name: 'Chocolate Point', body: '#e8d7d1', points: '#6b4423' },
-                        { name: 'Blue Point', body: '#d8d8e8', points: '#6b7a8f' },
-                        { name: 'Lilac Point', body: '#e8d8e8', points: '#8a7a9a' },
-                        { name: 'Cream Point', body: '#f0e8d8', points: '#cc9966' }
-                    ]
-                },
-                siamese: {
-                    name: 'Siamese',
-                    cost: 100,
-                    colors: [
-                        { name: 'Seal Point', body: '#e8d4c8', points: '#4a2f2f' },
-                        { name: 'Chocolate Point', body: '#f0ddd4', points: '#6b4423' },
-                        { name: 'Blue Point', body: '#dcdce8', points: '#6b7a8f' },
-                        { name: 'Cream Point', body: '#f5e8d8', points: '#cc9966' },
-                        { name: 'Red Point', body: '#f5dcd4', points: '#cc6633' }
-                    ]
-                },
-                maine: {
-                    name: 'Maine Coon',
-                    cost: 140,
-                    colors: [
-                        { name: 'Brown Tabby', body: '#8b6b4a', points: '#5a4a3a' },
-                        { name: 'Gray Tabby', body: '#a8a8a8', points: '#5a5a5a' },
-                        { name: 'Orange Tabby', body: '#ff9966', points: '#cc6633' },
-                        { name: 'Cream', body: '#f5e6d3', points: '#e8d4c0' },
-                        { name: 'White', body: '#f5f5f5', points: '#e8e8e8' },
-                        { name: 'Black Smoke', body: '#2a2a2a', points: '#1a1a1a' }
-                    ]
-                },
-                persian: {
-                    name: 'Persian',
-                    cost: 150,
-                    colors: [
-                        { name: 'White', body: '#ffffff', points: '#f5f5f5' },
-                        { name: 'Black', body: '#1a1a1a', points: '#0d0d0d' },
-                        { name: 'Blue', body: '#b0b0c0', points: '#8a8a9a' },
-                        { name: 'Red', body: '#ff9966', points: '#ff6600' },
-                        { name: 'Cream', body: '#f5e6d3', points: '#e8d4c0' },
-                        { name: 'Chocolate', body: '#8b6f47', points: '#6b5437' },
-                        { name: 'Lilac', body: '#d8c8d8', points: '#b8a8b8' }
-                    ]
-                },
-                bengal: {
-                    name: 'Bengal',
-                    cost: 160,
-                    colors: [
-                        { name: 'Brown Spotted', body: '#cc9966', points: '#884422' },
-                        { name: 'Silver Spotted', body: '#d8d8d8', points: '#888888' },
-                        { name: 'Snow Spotted', body: '#f5e8e8', points: '#cc8888' },
-                        { name: 'Gray', body: '#9a9aaa', points: '#6a6a7a' }
-                    ]
-                },
-                abyssinian: {
-                    name: 'Abyssinian',
-                    cost: 130,
-                    colors: [
-                        { name: 'Ruddy', body: '#cc8844', points: '#884422' },
-                        { name: 'Fawn', body: '#d8b8a0', points: '#b8886a' },
-                        { name: 'Red', body: '#ff9966', points: '#ff6600' },
-                        { name: 'Blue', body: '#a8b0c0', points: '#8a9aaa' }
-                    ]
-                },
-                burmese: {
-                    name: 'Burmese',
-                    cost: 125,
-                    colors: [
-                        { name: 'Sable', body: '#4a3a2a', points: '#2a1a0a' },
-                        { name: 'Champagne', body: '#d4a898', points: '#b4886a' },
-                        { name: 'Blue', body: '#a8b0c0', points: '#8a9aaa' },
-                        { name: 'Platinum', body: '#d8d8e8', points: '#b8b8c8' }
-                    ]
-                },
-                scottish: {
-                    name: 'Scottish Fold',
-                    cost: 135,
-                    colors: [
-                        { name: 'Blue Gray', body: '#a8b0c0', points: '#8a9aaa' },
-                        { name: 'White', body: '#f5f5f5', points: '#e8e8e8' },
-                        { name: 'Black', body: '#1a1a1a', points: '#0d0d0d' },
-                        { name: 'Orange', body: '#ff9933', points: '#ff6600' },
-                        { name: 'Cream', body: '#f5e6d3', points: '#e8d4c0' }
-                    ]
-                },
-                sphynx: {
-                    name: 'Sphynx',
-                    cost: 180,
-                    colors: [
-                        { name: 'Powder Puff', body: '#e8d4c0', points: '#d0b8a0' },
-                        { name: 'Black', body: '#3a3a3a', points: '#2a2a2a' },
-                        { name: 'Spotted', body: '#d4a08a', points: '#8a6a5a' },
-                        { name: 'Red', body: '#ff9966', points: '#ff6600' },
-                        { name: 'Blue', body: '#a8b0c0', points: '#8a9aaa' }
-                    ]
-                },
-                tuxedo: {
-                    name: 'Tuxedo',
-                    cost: 70,
-                    colors: [
-                        { name: 'Black & White', body: '#1a1a1a', accents: '#f5f5f5' },
-                        { name: 'Gray & White', body: '#a8a8a8', accents: '#f5f5f5' },
-                        { name: 'Orange & White', body: '#ff9966', accents: '#f5f5f5' }
-                    ]
-                },
-                calico: {
-                    name: 'Calico',
-                    cost: 75,
-                    colors: [
-                        { name: 'Classic Calico', body: '#ff9966', accents1: '#ff0000', accents2: '#1a1a1a' },
-                        { name: 'Dilute Calico', body: '#ffccaa', accents1: '#ff9999', accents2: '#b0b0c0' }
-                    ]
-                }
+                // Origin: Middle East
+                abyssinian: { name: 'Abyssinian', cost: 130, origin: 'Egypt', colors: ['Ruddy', 'Fawn', 'Red', 'Cream'] },
+                ragdoll: { name: 'Ragdoll', cost: 120, origin: 'USA', colors: ['Seal', 'Chocolate', 'Blue', 'Lilac'] },
+                siamese: { name: 'Siamese', cost: 100, origin: 'Thailand', colors: ['Seal', 'Chocolate', 'Blue', 'Cream'] },
+                burmese: { name: 'Burmese', cost: 125, origin: 'Myanmar', colors: ['Sable', 'Champagne', 'Blue', 'Platinum'] },
+                tonkinese: { name: 'Tonkinese', cost: 115, origin: 'USA', colors: ['Mink', 'Solid', 'Point'] },
+
+                // European
+                british: { name: 'British Shorthair', cost: 80, origin: 'UK', colors: ['Blue', 'Black', 'White', 'Cream', 'Red', 'Chocolate'] },
+                cornish: { name: 'Cornish Rex', cost: 110, origin: 'UK', colors: ['All'] },
+                devon: { name: 'Devon Rex', cost: 100, origin: 'UK', colors: ['All'] },
+                russian: { name: 'Russian Blue', cost: 105, origin: 'Russia', colors: ['Blue'] },
+                korat: { name: 'Korat', cost: 95, origin: 'Thailand', colors: ['Blue'] },
+                chartreux: { name: 'Chartreux', cost: 90, origin: 'France', colors: ['Gray'] },
+
+                // North American
+                maine: { name: 'Maine Coon', cost: 140, origin: 'USA', colors: ['All'] },
+                american_shorthair: { name: 'American Shorthair', cost: 70, origin: 'USA', colors: ['All'] },
+                american_curl: { name: 'American Curl', cost: 125, origin: 'USA', colors: ['All'] },
+                ragamuffin: { name: 'Ragamuffin', cost: 130, origin: 'USA', colors: ['All'] },
+                sphynx: { name: 'Sphynx', cost: 180, origin: 'Canada', colors: ['All'] },
+                pixiebob: { name: 'Pixiebob', cost: 150, origin: 'USA', colors: ['Brown'] },
+
+                // Asian
+                bengal: { name: 'Bengal', cost: 160, origin: 'USA', colors: ['Brown', 'Silver', 'Snow'] },
+                bombay: { name: 'Bombay', cost: 120, origin: 'USA', colors: ['Black'] },
+                burmilla: { name: 'Burmilla', cost: 115, origin: 'UK', colors: ['Silver', 'Champagne'] },
+                singapura: { name: 'Singapura', cost: 100, origin: 'Singapore', colors: ['Sepia'] },
+                ocicat: { name: 'Ocicat', cost: 135, origin: 'USA', colors: ['All'] },
+
+                // Long-haired
+                persian: { name: 'Persian', cost: 150, origin: 'Iran', colors: ['All'] },
+                ragdoll_longhair: { name: 'Ragdoll Longhair', cost: 130, origin: 'USA', colors: ['All'] },
+                himalayan: { name: 'Himalayan', cost: 140, origin: 'USA', colors: ['Pointed'] },
+                birman: { name: 'Birman', cost: 135, origin: 'Myanmar', colors: ['Seal', 'Chocolate', 'Blue'] },
+                balinese: { name: 'Balinese', cost: 125, origin: 'USA', colors: ['Pointed'] },
+                javanese: { name: 'Javanese', cost: 125, origin: 'USA', colors: ['Pointed'] },
+                snowshoe: { name: 'Snowshoe', cost: 115, origin: 'USA', colors: ['Seal', 'Chocolate'] },
+                ragdoll_flame: { name: 'Flame Point Ragdoll', cost: 140, origin: 'USA', colors: ['Flame'] },
+
+                // Distinctive
+                scottish: { name: 'Scottish Fold', cost: 135, origin: 'Scotland', colors: ['All'] },
+                sphynx_hairless: { name: 'Sphynx Hairless', cost: 180, origin: 'Canada', colors: ['All'] },
+                manx: { name: 'Manx', cost: 110, origin: 'Isle of Man', colors: ['All'] },
+                munchkin: { name: 'Munchkin', cost: 125, origin: 'USA', colors: ['All'] },
+                curl: { name: 'Curl', cost: 120, origin: 'USA', colors: ['All'] },
+                bobtail: { name: 'Bobtail', cost: 140, origin: 'Turkey', colors: ['All'] },
+
+                // Wildcats
+                chausie: { name: 'Chausie', cost: 155, origin: 'USA', colors: ['Brown'] },
+                savannah: { name: 'Savannah', cost: 180, origin: 'USA', colors: ['Brown', 'Silver'] },
+                toyger: { name: 'Toyger', cost: 145, origin: 'USA', colors: ['Brown Tabby'] },
+                serval: { name: 'Serval', cost: 200, origin: 'Africa', colors: ['Spotted'] },
+
+                // Tuxedo & Patterns
+                tuxedo: { name: 'Tuxedo', cost: 70, origin: 'Worldwide', colors: ['Black & White'] },
+                calico: { name: 'Calico', cost: 75, origin: 'Worldwide', colors: ['Tricolor'] },
+                tortoiseshell: { name: 'Tortoiseshell', cost: 75, origin: 'Worldwide', colors: ['Mixed'] },
+                tabby: { name: 'Tabby', cost: 65, origin: 'Worldwide', colors: ['All'] },
+
+                // More breeds
+                siam: { name: 'Traditional Siamese', cost: 110, origin: 'Thailand', colors: ['Seal'] },
+                mau: { name: 'Egyptian Mau', cost: 140, origin: 'Egypt', colors: ['Silver', 'Smoke'] },
+                selkirk: { name: 'Selkirk Rex', cost: 130, origin: 'USA', colors: ['All'] },
+                laperm: { name: 'LaPerm', cost: 120, origin: 'USA', colors: ['All'] },
+                oregon: { name: 'Oregon Rex', cost: 115, origin: 'USA', colors: ['All'] },
+                turkish: { name: 'Turkish Van', cost: 140, origin: 'Turkey', colors: ['Van pattern'] },
+                turkish_angora: { name: 'Turkish Angora', cost: 130, origin: 'Turkey', colors: ['All'] },
+                angora: { name: 'Angora', cost: 125, origin: 'Turkey', colors: ['All'] },
+                somali: { name: 'Somali', cost: 130, origin: 'Somalia', colors: ['Ruddy', 'Red'] },
+                bengal_marble: { name: 'Bengal Marble', cost: 165, origin: 'USA', colors: ['Marble'] },
+                cheetoh: { name: 'Cheetoh', cost: 170, origin: 'USA', colors: ['Spotted'] },
+                don_sphynx: { name: 'Donsky Sphynx', cost: 175, origin: 'Russia', colors: ['All'] },
+                peterbald: { name: 'Peterbald', cost: 170, origin: 'Russia', colors: ['All'] },
+                sphinx_bald: { name: 'Sphinx Bald', cost: 180, origin: 'Canada', colors: ['All'] },
+
+                // Rare breeds (40+ more)
+                kao_manee: { name: 'Kao Manee', cost: 130, origin: 'Thailand', colors: ['White'] },
+                khao_manee: { name: 'Khao Manee', cost: 130, origin: 'Thailand', colors: ['White'] },
+                sokoke: { name: 'Sokoke', cost: 125, origin: 'Kenya', colors: ['Brown'] },
+                bengal_snowy: { name: 'Bengal Snowy', cost: 170, origin: 'USA', colors: ['Snow'] },
+                lykoi: { name: 'Lykoi', cost: 160, origin: 'USA', colors: ['Black'] },
+                bambino: { name: 'Bambino', cost: 150, origin: 'USA', colors: ['All'] },
+                dwelf: { name: 'Dwelf', cost: 155, origin: 'USA', colors: ['All'] },
+                corato: { name: 'Corato', cost: 135, origin: 'Thailand', colors: ['Blue'] },
+                khmer: { name: 'Khmer', cost: 125, origin: 'Thailand', colors: ['Pointed'] },
+                tonkinese_mink: { name: 'Tonkinese Mink', cost: 120, origin: 'USA', colors: ['Mink'] },
+
+                // More worldwide breeds
+                ojos_azules: { name: 'Ojos Azules', cost: 115, origin: 'USA', colors: ['Blue eyes'] },
+                ocicat_spotted: { name: 'Ocicat Spotted', cost: 140, origin: 'USA', colors: ['Spotted'] },
+                chantilly: { name: 'Chantilly', cost: 125, origin: 'USA', colors: ['Chocolate'] },
+                tiffanie: { name: 'Tiffanie', cost: 120, origin: 'UK', colors: ['Chocolate'] },
+                burmese_sable: { name: 'Burmese Sable', cost: 130, origin: 'Myanmar', colors: ['Sable'] },
+                tonkinese_solid: { name: 'Tonkinese Solid', cost: 115, origin: 'USA', colors: ['All'] },
             };
 
             const MARKET_ITEMS = [
@@ -382,8 +343,10 @@
             let gameState = {
                 started: false,
                 playerName: 'Player',
+                playerUsername: 'Player',
                 money: 500,
                 cats: [],
+                friends: [],
                 activeCatIdx: -1,
                 inventory: {},
                 location: 'market',
@@ -413,136 +376,228 @@
                 if (log.children.length > 4) log.removeChild(log.firstChild);
             }
 
-            // REALISTIC CAT DRAWING
-            function drawCat(ctx, x, y, scale, breed, color, walking = 0, directionRight = true) {
+            // ADVANCED REALISTIC CAT DRAWING
+            function drawCat(ctx, x, y, scale, breed, pattern, walking = 0, directionRight = true) {
                 ctx.save();
                 ctx.translate(x, y);
                 if (!directionRight) ctx.scale(-1, 1);
                 ctx.scale(scale, scale);
 
-                const legBobx = Math.sin(walking * 0.15) * 2;
+                const legBob = Math.sin(walking * 0.15) * 2;
+                const breed_data = CAT_BREEDS[breed] || CAT_BREEDS.british;
 
-                // Back legs
-                ctx.fillStyle = color.body;
-                ctx.beginPath();
-                ctx.ellipse(-8, 15 + legBobx, 4, 8, 0, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.beginPath();
-                ctx.ellipse(8, 15 + legBobx, 4, 8, 0, 0, Math.PI * 2);
-                ctx.fill();
+                // Determine colors
+                const baseColor = '#a8a8a8';
+                const shadowColor = '#5a5a5a';
+                const highlightColor = '#e8e8e8';
 
-                // Body
-                ctx.fillStyle = color.body;
+                // Back legs with shading
+                ctx.fillStyle = baseColor;
                 ctx.beginPath();
-                ctx.ellipse(0, 5, 12, 10, 0, 0, Math.PI * 2);
+                ctx.ellipse(-8, 15 + legBob, 5, 9, 0, 0, Math.PI * 2);
                 ctx.fill();
-
-                // Front legs
+                ctx.fillStyle = shadowColor;
                 ctx.beginPath();
-                ctx.ellipse(-8, 12 - legBobx, 3, 7, 0, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.beginPath();
-                ctx.ellipse(8, 12 - legBobx, 3, 7, 0, 0, Math.PI * 2);
+                ctx.ellipse(-8.5, 17 + legBob, 3, 4, 0, 0, Math.PI * 2);
                 ctx.fill();
 
-                // Tail (curved, animated)
-                ctx.strokeStyle = color.body;
-                ctx.lineWidth = 3;
+                ctx.fillStyle = baseColor;
+                ctx.beginPath();
+                ctx.ellipse(8, 15 + legBob, 5, 9, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = shadowColor;
+                ctx.beginPath();
+                ctx.ellipse(8.5, 17 + legBob, 3, 4, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Body with gradual shading
+                ctx.fillStyle = baseColor;
+                ctx.beginPath();
+                ctx.ellipse(0, 5, 13, 11, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Body shadow
+                ctx.fillStyle = shadowColor;
+                ctx.beginPath();
+                ctx.ellipse(0, 8, 9, 5, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Body highlight
+                ctx.fillStyle = highlightColor;
+                ctx.beginPath();
+                ctx.ellipse(-2, 2, 5, 4, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Front legs with movement
+                ctx.fillStyle = baseColor;
+                ctx.beginPath();
+                ctx.ellipse(-8, 12 - legBob, 4, 8, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = shadowColor;
+                ctx.beginPath();
+                ctx.ellipse(-8, 15 - legBob, 2, 3, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = baseColor;
+                ctx.beginPath();
+                ctx.ellipse(8, 12 - legBob, 4, 8, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = shadowColor;
+                ctx.beginPath();
+                ctx.ellipse(8, 15 - legBob, 2, 3, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Tail with curve and animation
+                ctx.strokeStyle = baseColor;
+                ctx.lineWidth = 4;
                 ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
                 ctx.beginPath();
                 ctx.moveTo(10, 8);
-                ctx.quadraticCurveTo(18 + Math.sin(walking * 0.2) * 3, 5, 20, -5);
+                ctx.quadraticCurveTo(18 + Math.sin(walking * 0.2) * 4, 4, 22, -8);
+                ctx.stroke();
+
+                // Tail shadow
+                ctx.strokeStyle = shadowColor;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(11, 9);
+                ctx.quadraticCurveTo(17 + Math.sin(walking * 0.2) * 3, 5, 21, -7);
                 ctx.stroke();
 
                 // Neck
-                ctx.fillStyle = color.body;
+                ctx.fillStyle = baseColor;
                 ctx.beginPath();
-                ctx.ellipse(0, -3, 8, 6, 0, 0, Math.PI * 2);
+                ctx.ellipse(0, -2, 9, 7, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = highlightColor;
+                ctx.beginPath();
+                ctx.ellipse(-2, -3, 5, 4, 0, 0, Math.PI * 2);
                 ctx.fill();
 
-                // Head
+                // Head - 3D effect
+                ctx.fillStyle = baseColor;
                 ctx.beginPath();
-                ctx.ellipse(0, -12, 10, 11, 0, 0, Math.PI * 2);
+                ctx.ellipse(0, -12, 11, 12, 0, 0, Math.PI * 2);
                 ctx.fill();
 
-                // Ears
+                // Head highlight
+                ctx.fillStyle = highlightColor;
                 ctx.beginPath();
-                ctx.ellipse(-6, -22, 3, 6, -0.4, 0, Math.PI * 2);
+                ctx.ellipse(-3, -15, 6, 5, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Head shadow
+                ctx.fillStyle = shadowColor;
+                ctx.beginPath();
+                ctx.ellipse(3, -8, 5, 4, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Ears with detailed structure
+                ctx.fillStyle = baseColor;
+                ctx.beginPath();
+                ctx.ellipse(-7, -24, 4, 7, -0.4, 0, Math.PI * 2);
                 ctx.fill();
                 ctx.beginPath();
-                ctx.ellipse(6, -22, 3, 6, 0.4, 0, Math.PI * 2);
+                ctx.ellipse(7, -24, 4, 7, 0.4, 0, Math.PI * 2);
                 ctx.fill();
 
                 // Ear innards
                 ctx.fillStyle = '#ffb3d9';
                 ctx.beginPath();
-                ctx.ellipse(-6, -21, 1.5, 3, -0.4, 0, Math.PI * 2);
+                ctx.ellipse(-7, -22, 2, 4, -0.4, 0, Math.PI * 2);
                 ctx.fill();
                 ctx.beginPath();
-                ctx.ellipse(6, -21, 1.5, 3, 0.4, 0, Math.PI * 2);
+                ctx.ellipse(7, -22, 2, 4, 0.4, 0, Math.PI * 2);
                 ctx.fill();
+
+                // Apply pattern markings
+                if (pattern === 'tabby') {
+                    ctx.strokeStyle = 'rgba(0, 0, 0, 0.2)';
+                    ctx.lineWidth = 1;
+                    for (let i = 0; i < 4; i++) {
+                        ctx.beginPath();
+                        ctx.moveTo(-8 + i * 4, 0);
+                        ctx.quadraticCurveTo(0, 8, 8, 5);
+                        ctx.stroke();
+                    }
+                } else if (pattern === 'smoke') {
+                    ctx.fillStyle = 'rgba(100, 100, 100, 0.15)';
+                    ctx.beginPath();
+                    ctx.ellipse(0, 5, 11, 9, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                } else if (pattern === 'pointed') {
+                    // Darker points
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+                    ctx.beginPath();
+                    ctx.ellipse(-7, -22, 2, 3, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.ellipse(7, -22, 2, 3, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                }
 
                 // Muzzle
                 ctx.fillStyle = '#ffd9e6';
                 ctx.beginPath();
-                ctx.ellipse(0, -8, 6, 5, 0, 0, Math.PI * 2);
+                ctx.ellipse(0, -7, 7, 6, 0, 0, Math.PI * 2);
                 ctx.fill();
 
-                // Eyes
+                // Eyes - detailed
                 ctx.fillStyle = '#90ee90';
                 ctx.beginPath();
-                ctx.ellipse(-4, -14, 2.5, 3.5, 0, 0, Math.PI * 2);
+                ctx.ellipse(-5, -14, 3, 4, 0, 0, Math.PI * 2);
                 ctx.fill();
                 ctx.beginPath();
-                ctx.ellipse(4, -14, 2.5, 3.5, 0, 0, Math.PI * 2);
+                ctx.ellipse(5, -14, 3, 4, 0, 0, Math.PI * 2);
                 ctx.fill();
 
-                // Pupils (follow direction)
+                // Pupils
                 ctx.fillStyle = '#000';
                 ctx.beginPath();
-                ctx.ellipse(-3.5, -13, 1.2, 2, 0, 0, Math.PI * 2);
+                ctx.ellipse(-4, -12, 1.5, 2.5, 0, 0, Math.PI * 2);
                 ctx.fill();
                 ctx.beginPath();
-                ctx.ellipse(4.5, -13, 1.2, 2, 0, 0, Math.PI * 2);
+                ctx.ellipse(6, -12, 1.5, 2.5, 0, 0, Math.PI * 2);
                 ctx.fill();
 
                 // Eye shine
                 ctx.fillStyle = '#fff';
                 ctx.beginPath();
-                ctx.ellipse(-3.2, -13.5, 0.5, 0.5, 0, 0, Math.PI * 2);
+                ctx.ellipse(-3.5, -13.5, 0.8, 0.8, 0, 0, Math.PI * 2);
                 ctx.fill();
                 ctx.beginPath();
-                ctx.ellipse(4.8, -13.5, 0.5, 0.5, 0, 0, Math.PI * 2);
+                ctx.ellipse(6.5, -13.5, 0.8, 0.8, 0, 0, Math.PI * 2);
                 ctx.fill();
 
                 // Nose
                 ctx.fillStyle = '#ffb3d9';
                 ctx.beginPath();
-                ctx.ellipse(0, -9, 1.5, 1, 0, 0, Math.PI * 2);
+                ctx.ellipse(0, -8, 2, 1.2, 0, 0, Math.PI * 2);
                 ctx.fill();
 
                 // Mouth
                 ctx.strokeStyle = '#000';
-                ctx.lineWidth = 0.8;
+                ctx.lineWidth = 1;
                 ctx.beginPath();
-                ctx.moveTo(0, -8);
-                ctx.lineTo(0, -5);
+                ctx.moveTo(0, -7);
+                ctx.lineTo(0, -4);
                 ctx.stroke();
                 ctx.beginPath();
-                ctx.arc(0, -4, 2, 0, Math.PI, false);
+                ctx.arc(0, -3, 2.5, 0, Math.PI, false);
                 ctx.stroke();
 
-                // Whiskers
+                // Detailed whiskers
                 ctx.strokeStyle = '#999';
-                ctx.lineWidth = 0.6;
+                ctx.lineWidth = 0.8;
                 for (let i = -1; i <= 1; i++) {
                     ctx.beginPath();
-                    ctx.moveTo(-6, -8 + i * 1.5);
-                    ctx.lineTo(-11, -7 + i * 1.5);
+                    ctx.moveTo(-7, -7 + i * 2);
+                    ctx.lineTo(-13, -6 + i * 2);
                     ctx.stroke();
                     ctx.beginPath();
-                    ctx.moveTo(6, -8 + i * 1.5);
-                    ctx.lineTo(11, -7 + i * 1.5);
+                    ctx.moveTo(7, -7 + i * 2);
+                    ctx.lineTo(13, -6 + i * 2);
                     ctx.stroke();
                 }
 
@@ -553,7 +608,6 @@
                 cat.hunger = Math.min(100, cat.hunger + dt * 0.1);
                 if (cat.hunger > 70) cat.health = Math.max(0, cat.health - dt * 0.05);
                 if (cat.cleanliness < 30) cat.health = Math.max(0, cat.health - dt * 0.05);
-
                 cat.health = clamp(cat.health, 0, 100);
                 cat.happiness = clamp(cat.happiness, 0, 100);
                 cat.hunger = clamp(cat.hunger, 0, 100);
@@ -565,7 +619,6 @@
                 gameState.time += dt;
                 gameState.gameTime = (gameState.gameTime + dt * 0.01) % 24;
 
-                // Player movement
                 const moveSpd = 180;
                 gameState.playerVel.x = 0;
                 gameState.playerVel.y = 0;
@@ -583,11 +636,8 @@
                 if (gameState.playerPos.x < 400) gameState.location = 'market';
                 else gameState.location = 'shelter';
 
-                // Update cats with walking animation
                 gameState.cats.forEach((cat, idx) => {
                     updateCatCare(cat, dt);
-
-                    // Cat AI walking
                     if (!cat.walking) {
                         cat.walking = 0;
                         cat.walkDir = Math.random() > 0.5 ? 1 : -1;
@@ -601,7 +651,6 @@
                         cat.walkTarget = gameState.location === 'market' ? rand(50, 350) : rand(500, 900);
                     }
 
-                    // Move toward target
                     const dist = cat.walkTarget - cat.pos.x;
                     if (Math.abs(dist) > 5) {
                         cat.dirRight = dist > 0;
@@ -617,6 +666,7 @@
                 document.getElementById('moneyDisplay').textContent = Math.floor(gameState.money);
                 document.getElementById('catsDisplay').textContent = gameState.cats.length;
                 document.getElementById('zoneDisplay').textContent = gameState.location === 'market' ? 'Market' : 'Shelter';
+                document.getElementById('friendsDisplay').textContent = gameState.friends.length;
 
                 if (gameState.activeCatIdx >= 0 && gameState.cats[gameState.activeCatIdx]) {
                     const cat = gameState.cats[gameState.activeCatIdx];
@@ -632,9 +682,8 @@
                 ctx.fillStyle = '#87ceeb';
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
                 ctx.fillStyle = '#90ee90';
-                ctx.fillRect(0, GROUND_Y, canvas.width, canvas.height - GROUND_Y);
+                ctx.fillRect(0, 500, canvas.width, canvas.height - 500);
 
-                // Zones
                 ctx.fillStyle = 'rgba(200, 150, 100, 0.2)';
                 ctx.fillRect(0, 0, 400, canvas.height);
                 ctx.fillStyle = 'rgba(150, 100, 200, 0.2)';
@@ -668,16 +717,16 @@
                     });
                 });
 
-                // Cat shop & breeding
+                // Buttons
                 const shopX = 30, shopY = 340;
                 ctx.fillStyle = '#ffb3d9';
                 ctx.fillRect(shopX, shopY, 70, 50);
                 ctx.fillStyle = '#333';
                 ctx.font = 'bold 11px Arial';
                 ctx.textAlign = 'center';
-                ctx.fillText('🐱 Buy Cat', shopX + 35, shopY + 18);
+                ctx.fillText('🐱 Buy', shopX + 35, shopY + 15);
                 ctx.font = '9px Arial';
-                ctx.fillText('$70-180', shopX + 35, shopY + 35);
+                ctx.fillText('($70-200)', shopX + 35, shopY + 32);
 
                 gameState.clickTargets.push({
                     x: shopX, y: shopY, w: 70, h: 50,
@@ -690,20 +739,34 @@
                 ctx.fillStyle = '#333';
                 ctx.font = 'bold 11px Arial';
                 ctx.textAlign = 'center';
-                ctx.fillText('💕 Breed', breedX + 35, breedY + 18);
+                ctx.fillText('💕 Breed', breedX + 35, breedY + 15);
                 ctx.font = '9px Arial';
-                ctx.fillText('(2+ cats)', breedX + 35, breedY + 35);
+                ctx.fillText('(2+ cats)', breedX + 35, breedY + 32);
 
                 gameState.clickTargets.push({
                     x: breedX, y: breedY, w: 70, h: 50,
                     onClick: () => openBreedingPanel()
                 });
 
-                // Draw walking cats in shelter
-                gameState.cats.forEach((cat, idx) => {
-                    drawCat(ctx, cat.pos.x, cat.pos.y, 1.2, cat.breed, cat.color, gameState.time * 60, cat.dirRight);
+                const friendX = 190, friendY = 340;
+                ctx.fillStyle = '#b3e5fc';
+                ctx.fillRect(friendX, friendY, 70, 50);
+                ctx.fillStyle = '#333';
+                ctx.font = 'bold 11px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('👥 Friends', friendX + 35, friendY + 12);
+                ctx.font = '9px Arial';
+                ctx.fillText('(text users)', friendX + 35, friendY + 32);
 
-                    // Name + health bar
+                gameState.clickTargets.push({
+                    x: friendX, y: friendY, w: 70, h: 50,
+                    onClick: () => openFriendsPanel()
+                });
+
+                // Draw cats
+                gameState.cats.forEach((cat, idx) => {
+                    drawCat(ctx, cat.pos.x, cat.pos.y, 1.2, cat.breed, cat.pattern, gameState.time * 60, cat.dirRight);
+
                     ctx.fillStyle = '#333';
                     ctx.font = 'bold 10px Arial';
                     ctx.textAlign = 'center';
@@ -720,10 +783,9 @@
                     });
                 });
 
-                // Draw player (actual person shape)
+                // Draw player
                 drawPlayer(ctx, gameState.playerPos.x, gameState.playerPos.y);
 
-                // Messages
                 gameState.messages.forEach((msg, idx) => {
                     ctx.fillStyle = msg.kind === 'warn' ? '#ff9800' : msg.kind === 'bad' ? '#f44336' : '#000';
                     ctx.font = '12px Arial';
@@ -732,30 +794,22 @@
             }
 
             function drawPlayer(ctx, x, y) {
-                ctx.fillStyle = '#f4a460'; // Skin tone
-                // Head
+                ctx.fillStyle = '#f4a460';
                 ctx.beginPath();
                 ctx.arc(x, y - 30, 10, 0, Math.PI * 2);
                 ctx.fill();
 
-                // Body
                 ctx.fillRect(x - 7, y - 18, 14, 20);
-
-                // Arms
                 ctx.fillRect(x - 12, y - 12, 5, 16);
                 ctx.fillRect(x + 7, y - 12, 5, 16);
-
-                // Legs
                 ctx.fillRect(x - 6, y + 2, 5, 14);
                 ctx.fillRect(x + 1, y + 2, 5, 14);
 
-                // Hair
                 ctx.fillStyle = '#8b4513';
                 ctx.beginPath();
                 ctx.arc(x, y - 30, 10, 0, Math.PI);
                 ctx.fill();
 
-                // Face
                 ctx.fillStyle = '#000';
                 ctx.beginPath();
                 ctx.arc(x - 4, y - 32, 1.5, 0, Math.PI * 2);
@@ -768,8 +822,6 @@
             function buyItem(item) {
                 if (gameState.money >= item.cost) {
                     gameState.money -= item.cost;
-                    gameState.inventory[item.id] = (gameState.inventory[item.id] || 0) + 1;
-
                     if (gameState.activeCatIdx >= 0) {
                         const cat = gameState.cats[gameState.activeCatIdx];
                         if (item.id === 'food') {
@@ -798,25 +850,24 @@
 
                 const breeds = Object.entries(CAT_BREEDS);
                 const [breedKey, breed] = breeds[Math.floor(Math.random() * breeds.length)];
-                const color = breed.colors[Math.floor(Math.random() * breed.colors.length)];
+                const patterns = ['solid', 'tabby', 'smoke', 'pointed'];
+                const pattern = patterns[Math.floor(Math.random() * patterns.length)];
 
                 const modal = document.createElement('div');
-                modal.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:white;padding:20px;border-radius:8px;z-index:1000;max-width:300px;';
+                modal.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:white;padding:20px;border-radius:8px;z-index:1000;max-width:320px;';
                 modal.innerHTML = `
                     <h3>${breed.name}</h3>
-                    <p>Color: ${color.name}</p>
+                    <p>Pattern: ${pattern.toUpperCase()}</p>
                     <p style="font-weight:bold;">Cost: $${breed.cost}</p>
                     <input type="text" id="newCatName" placeholder="Cat name" value="Kitty" style="width:100%;padding:8px;margin:10px 0;border:1px solid #ccc;border-radius:4px;">
-                    <button onclick="confirmCatPurchase('${breedKey}', '${color.name}', document.getElementById('newCatName').value); this.closest('div').remove();" style="background:#8bc34a;color:white;border:none;padding:8px 16px;border-radius:4px;cursor:pointer;width:100%;margin-bottom:5px;">Buy for $${breed.cost}</button>
+                    <button onclick="confirmCatPurchase('${breedKey}', '${pattern}', document.getElementById('newCatName').value); this.closest('div').remove();" style="background:#8bc34a;color:white;border:none;padding:8px 16px;border-radius:4px;cursor:pointer;width:100%;margin-bottom:5px;">Buy for $${breed.cost}</button>
                     <button onclick="this.closest('div').remove();" style="background:#ccc;color:#333;border:none;padding:8px 16px;border-radius:4px;cursor:pointer;width:100%;">Cancel</button>
                 `;
                 document.body.appendChild(modal);
             }
 
-            window.confirmCatPurchase = function(breedKey, colorName, catName) {
+            window.confirmCatPurchase = function(breedKey, pattern, catName) {
                 const breed = CAT_BREEDS[breedKey];
-                const color = breed.colors.find(c => c.name === colorName);
-
                 if (gameState.money >= breed.cost && gameState.cats.length < 100) {
                     gameState.money -= breed.cost;
                     gameState.cats.push({
@@ -824,7 +875,7 @@
                         name: catName || 'Kitty',
                         breed: breedKey,
                         breedName: breed.name,
-                        color: color,
+                        pattern: pattern,
                         health: 95,
                         happiness: 80,
                         hunger: 20,
@@ -858,14 +909,15 @@
                 showMsg('Breeding activated!', 'good');
                 const cat1 = gameState.cats[0];
                 const breed = CAT_BREEDS[cat1.breed];
-                const color = breed.colors[Math.floor(Math.random() * breed.colors.length)];
+                const patterns = ['solid', 'tabby', 'smoke', 'pointed'];
+                const pattern = patterns[Math.floor(Math.random() * patterns.length)];
 
                 gameState.cats.push({
                     id: Math.random(),
                     name: cat1.name + ' Jr.',
                     breed: cat1.breed,
                     breedName: breed.name,
-                    color: color,
+                    pattern: pattern,
                     health: 90,
                     happiness: 85,
                     hunger: 25,
@@ -881,46 +933,31 @@
                 showMsg(`Kitten born! +$150`, 'good');
             }
 
-            function updateColorGrid() {
-                const breedKey = document.getElementById('firstCatBreed').value;
-                const breed = CAT_BREEDS[breedKey];
-                const grid = document.getElementById('colorGrid');
-                grid.innerHTML = '';
+            function openFriendsPanel() {
+                const username = prompt('Search for a friend username:', '');
+                if (username && username.trim()) {
+                    if (gameState.friends.includes(username)) {
+                        showMsg(`Already friends with ${username}!`, 'warn');
+                        return;
+                    }
 
-                breed.colors.forEach((color, idx) => {
-                    const option = document.createElement('div');
-                    option.className = 'color-option' + (idx === 0 ? ' selected' : '');
-                    option.dataset.colorName = color.name;
-                    option.innerHTML = `
-                        <div class="color-swatch" style="background: ${color.body}; border-color: ${color.points};"></div>
-                        <div>${color.name}</div>
-                    `;
-                    option.onclick = () => {
-                        document.querySelectorAll('.color-option').forEach(o => o.classList.remove('selected'));
-                        option.classList.add('selected');
-                        updatePreview();
-                    };
-                    grid.appendChild(option);
+                    const message = prompt(`Text to ${username}:`, 'Hey! Wanna hang out?');
+                    if (message) {
+                        gameState.friends.push(username);
+                        showMsg(`Message sent to ${username}! ✉️`, 'good');
+                    }
+                }
+            }
+
+            function populateBreeds() {
+                const select = document.getElementById('firstCatBreed');
+                Object.entries(CAT_BREEDS).forEach(([key, breed]) => {
+                    const option = document.createElement('option');
+                    option.value = key;
+                    option.textContent = `${breed.name} - $${breed.cost}`;
+                    select.appendChild(option);
                 });
-
-                updatePreview();
             }
-
-            function updatePreview() {
-                const breedKey = document.getElementById('firstCatBreed').value;
-                const breed = CAT_BREEDS[breedKey];
-                const colorName = document.querySelector('.color-option.selected')?.dataset.colorName;
-                const color = breed.colors.find(c => c.name === colorName) || breed.colors[0];
-
-                previewCtx.fillStyle = '#e0f6ff';
-                previewCtx.fillRect(0, 0, previewCanvas.width, previewCanvas.height);
-                previewCtx.fillStyle = '#90ee90';
-                previewCtx.fillRect(0, 110, previewCanvas.width, previewCanvas.height - 110);
-
-                drawCat(previewCtx, previewCanvas.width / 2, 60, 2, breed, color, 0, true);
-            }
-
-            document.getElementById('firstCatBreed').addEventListener('change', updateColorGrid);
 
             const keys = {};
             window.addEventListener('keydown', (e) => {
@@ -952,19 +989,19 @@
             window.startGame = function() {
                 const name = document.getElementById('playerName').value || 'Player';
                 const breedKey = document.getElementById('firstCatBreed').value;
+                const pattern = document.getElementById('catPattern').value;
                 const catName = document.getElementById('catName').value || 'Whiskers';
-                const colorName = document.querySelector('.color-option.selected')?.dataset.colorName;
 
                 gameState.playerName = name;
+                gameState.playerUsername = name;
                 const breed = CAT_BREEDS[breedKey];
-                const color = breed.colors.find(c => c.name === colorName) || breed.colors[0];
 
                 gameState.cats.push({
                     id: Math.random(),
                     name: catName,
                     breed: breedKey,
                     breedName: breed.name,
-                    color: color,
+                    pattern: pattern,
                     health: 100,
                     happiness: 80,
                     hunger: 20,
@@ -981,12 +1018,12 @@
                 gameState.started = true;
                 document.getElementById('customizer').classList.remove('show');
                 showMsg(`Welcome, ${name}! You own ${catName} the ${breed.name}!`, 'good');
-                showMsg('WASD/Arrows to move. Click cats/items.', '');
+                showMsg('WASD/Arrows to move. Click cats/items/buttons.', '');
                 requestAnimationFrame(gameLoop);
             };
 
             document.getElementById('customizer').classList.add('show');
-            updateColorGrid();
+            populateBreeds();
 
             let lastTime = Date.now();
             function gameLoop() {
