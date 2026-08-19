@@ -660,11 +660,67 @@ function buyCat(breed){
 
 function renderHome(){
   const catContainer=$('catsContainer');
+
+  // Show breeds owned + custom breeds
+  const ownedBreedIds=new Set(gameState.cats.map(c=>c.breed));
+  const ownedBreeds=Array.from(ownedBreedIds).map(id=>{
+    const b=CAT_BREEDS.find(br=>br.id===id)||gameState.customBreeds.find(br=>br.id===id);
+    return b;
+  }).filter(b=>b);
+
+  const breedsDiv=document.createElement('div');
+  breedsDiv.innerHTML='<h3>📚 Breeds Owned: '+ownedBreeds.length+'</h3>';
+  const breedsList=document.createElement('div');
+  breedsList.style.display='flex';
+  breedsList.style.flexWrap='wrap';
+  breedsList.style.gap='8px';
+  breedsList.style.marginBottom='12px';
+  ownedBreeds.forEach(breed=>{
+    const chip=document.createElement('div');
+    chip.style.background='#f0e4d4';
+    chip.style.padding='6px 12px';
+    chip.style.borderRadius='12px';
+    chip.style.fontSize='12px';
+    chip.style.fontWeight='bold';
+    chip.textContent=breed.name;
+    breedsList.appendChild(chip);
+  });
+  breedsDiv.appendChild(breedsList);
+
+  if(gameState.customBreeds.length>0){
+    const customDiv=document.createElement('div');
+    customDiv.innerHTML='<h3>✨ Custom Breeds Created: '+gameState.customBreeds.length+'</h3>';
+    const customList=document.createElement('div');
+    customList.style.display='flex';
+    customList.style.flexWrap='wrap';
+    customList.style.gap='8px';
+    customList.style.marginBottom='12px';
+    gameState.customBreeds.forEach(breed=>{
+      const chip=document.createElement('div');
+      chip.style.background='#e8d4e8';
+      chip.style.padding='6px 12px';
+      chip.style.borderRadius='12px';
+      chip.style.fontSize='12px';
+      chip.style.fontWeight='bold';
+      chip.style.border='2px solid #d4a8d4';
+      chip.textContent=breed.name;
+      customList.appendChild(chip);
+    });
+    customDiv.appendChild(customList);
+    breedsDiv.appendChild(customDiv);
+  }
+
+  catContainer.innerHTML='';
+  catContainer.appendChild(breedsDiv);
+
+  const listDiv=document.createElement('div');
   if(gameState.cats.length===0){
-    catContainer.innerHTML='<div class="empty">No cats yet! Visit the market to buy your first cat.</div>';
+    const emptyDiv=document.createElement('div');
+    emptyDiv.className='empty';
+    emptyDiv.textContent='No cats yet! Visit the market to buy your first cat.';
+    catContainer.appendChild(emptyDiv);
   } else {
-    catContainer.innerHTML='';
-    const listDiv=document.createElement('div');
+    catContainer.innerHTML+='<h3>🐱 Your Cats</h3>';
     gameState.cats.forEach(cat=>{
       const breed=CAT_BREEDS.find(b=>b.id===cat.breed);
       const row=document.createElement('div');
