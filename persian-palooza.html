@@ -1,0 +1,899 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Persian Palooza: Kawaii Cat Breeding</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: "Comic Sans MS", "Segoe UI", sans-serif;
+            background: linear-gradient(135deg, #ffe6f7 0%, #fff9e6 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 10px;
+        }
+        #gameContainer {
+            position: relative;
+            width: 100%;
+            max-width: 960px;
+            aspect-ratio: 3 / 2;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to bottom, #87ceeb 0%, #e0f6ff 100%);
+            border: 4px solid #ff69b4;
+            border-radius: 15px;
+            image-rendering: crisp-edges;
+            cursor: pointer;
+        }
+        #hud {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            right: 10px;
+            font-size: 13px;
+            color: #333;
+            z-index: 10;
+        }
+        .hud-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 6px;
+            font-weight: bold;
+            flex-wrap: wrap;
+        }
+        .hud-item {
+            background: rgba(255, 192, 220, 0.95);
+            padding: 5px 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 6px rgba(255, 105, 180, 0.3);
+            border: 2px solid #ff69b4;
+        }
+        #msgLog {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            right: 10px;
+            max-height: 70px;
+            overflow-y: auto;
+            font-size: 11px;
+            z-index: 10;
+        }
+        .msg {
+            background: rgba(255, 192, 220, 0.95);
+            padding: 4px 8px;
+            margin-bottom: 3px;
+            border-radius: 6px;
+            border-left: 4px solid #ff1493;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        #customizer {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(135deg, #ffe6f7 0%, #fff9cc 100%);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 40px rgba(255, 105, 180, 0.4);
+            z-index: 100;
+            max-height: 85vh;
+            overflow-y: auto;
+            max-width: 500px;
+            width: 90%;
+            display: none;
+            border: 3px solid #ff69b4;
+        }
+        #customizer.show { display: block; }
+        #customizer h2 { margin-bottom: 15px; color: #ff1493; font-size: 1.5rem; text-align: center; }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: bold;
+            color: #ff1493;
+            font-size: 0.95rem;
+        }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 8px;
+            border: 2px solid #ff69b4;
+            border-radius: 8px;
+            font-size: 13px;
+        }
+        .avatar-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        .avatar-option {
+            padding: 8px;
+            border: 3px solid #ddd;
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: center;
+            font-size: 30px;
+            transition: 0.2s;
+        }
+        .avatar-option:hover { border-color: #ff69b4; }
+        .avatar-option.selected {
+            border-color: #ff1493;
+            background: #ffe6f7;
+        }
+        button {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 14px;
+            width: 100%;
+            margin-top: 10px;
+            background: linear-gradient(135deg, #ff69b4 0%, #ff1493 100%);
+            color: white;
+            border: 2px solid #ff1493;
+        }
+        button:hover { background: linear-gradient(135deg, #ff1493 0%, #c71585 100%); }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas"></canvas>
+        <div id="hud">
+            <div class="hud-row">
+                <div class="hud-item">💰 $<span id="moneyDisplay">500</span></div>
+                <div class="hud-item">🐱 <span id="catsDisplay">0</span>/100</div>
+                <div class="hud-item">📍 <span id="zoneDisplay">Market</span></div>
+            </div>
+            <div class="hud-row">
+                <div class="hud-item">Active: <span id="activeCatDisplay">None</span></div>
+                <div class="hud-item">❤️ <span id="healthDisplay">—</span></div>
+                <div class="hud-item">😊 <span id="happinessDisplay">—</span></div>
+            </div>
+        </div>
+        <div id="msgLog"></div>
+    </div>
+
+    <div id="customizer">
+        <h2>✨ Persian Palooza ✨</h2>
+        <div class="form-group">
+            <label>Your Username:</label>
+            <input type="text" id="playerName" placeholder="Enter your username" value="Player">
+        </div>
+        <div class="form-group">
+            <label>Choose Your Avatar:</label>
+            <div class="avatar-grid" id="avatarGrid"></div>
+        </div>
+        <div class="form-group">
+            <label>Choose Your First Cat (70+ breeds!):</label>
+            <select id="firstCatBreed"></select>
+        </div>
+        <div class="form-group">
+            <label>Pattern:</label>
+            <select id="catPattern">
+                <option value="solid">Solid</option>
+                <option value="tabby">Tabby</option>
+                <option value="smoke">Smoke</option>
+                <option value="pointed">Pointed</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Your Cat's Name:</label>
+            <input type="text" id="catName" placeholder="Name your cat" value="Whiskers">
+        </div>
+        <canvas id="previewCanvas" style="width:100%;max-width:200px;height:auto;border:3px solid #ff69b4;border-radius:8px;margin:10px auto;background:linear-gradient(to bottom, #87ceeb 0%, #e0f6ff 100%);display:block;" width="200" height="160"></canvas>
+        <button onclick="startGame()">Start Game 🎮</button>
+    </div>
+
+    <script>
+        (function() {
+            'use strict';
+
+            const canvas = document.getElementById('gameCanvas');
+            const ctx = canvas.getContext('2d');
+            const previewCanvas = document.getElementById('previewCanvas');
+            const previewCtx = previewCanvas.getContext('2d');
+
+            function resizeCanvas() {
+                canvas.width = 960;
+                canvas.height = 640;
+            }
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+
+            // KAWAII CAT BREEDS
+            const CAT_BREEDS = {
+                abyssinian: { name: 'Abyssinian', cost: 130 },
+                ragdoll: { name: 'Ragdoll', cost: 120 },
+                siamese: { name: 'Siamese', cost: 100 },
+                burmese: { name: 'Burmese', cost: 125 },
+                british: { name: 'British Shorthair', cost: 80 },
+                maine: { name: 'Maine Coon', cost: 140 },
+                bengal: { name: 'Bengal', cost: 160 },
+                persian: { name: 'Persian', cost: 150 },
+                sphynx: { name: 'Sphynx', cost: 180 },
+                scottish: { name: 'Scottish Fold', cost: 135 },
+                munchkin: { name: 'Munchkin', cost: 125 },
+                ragamuffin: { name: 'Ragamuffin', cost: 130 },
+                birman: { name: 'Birman', cost: 135 },
+                balinese: { name: 'Balinese', cost: 125 },
+                bombay: { name: 'Bombay', cost: 120 },
+                cornish: { name: 'Cornish Rex', cost: 110 },
+                devon: { name: 'Devon Rex', cost: 100 },
+                egyptian_mau: { name: 'Egyptian Mau', cost: 140 },
+                turkish_angora: { name: 'Turkish Angora', cost: 130 },
+                tonkinese: { name: 'Tonkinese', cost: 115 },
+                singapura: { name: 'Singapura', cost: 100 },
+                korat: { name: 'Korat', cost: 95 },
+                ocicat: { name: 'Ocicat', cost: 135 },
+                chartreux: { name: 'Chartreux', cost: 90 },
+                russian_blue: { name: 'Russian Blue', cost: 105 },
+                burmilla: { name: 'Burmilla', cost: 115 },
+                tuxedo: { name: 'Tuxedo', cost: 70 },
+                calico: { name: 'Calico', cost: 75 },
+                tortoiseshell: { name: 'Tortoiseshell', cost: 75 },
+                tabby: { name: 'Tabby', cost: 65 },
+                snowshoe: { name: 'Snowshoe', cost: 115 },
+                selkirk: { name: 'Selkirk Rex', cost: 130 },
+                laperm: { name: 'LaPerm', cost: 120 },
+                chantilly: { name: 'Chantilly', cost: 125 },
+                toyger: { name: 'Toyger', cost: 145 },
+                savannah: { name: 'Savannah', cost: 180 },
+                chausie: { name: 'Chausie', cost: 155 },
+                bambino: { name: 'Bambino', cost: 150 },
+                dwelf: { name: 'Dwelf', cost: 155 },
+                lykoi: { name: 'Lykoi', cost: 160 },
+                american_shorthair: { name: 'American Shorthair', cost: 70 },
+                american_curl: { name: 'American Curl', cost: 125 },
+                pixiebob: { name: 'Pixiebob', cost: 150 },
+                manx: { name: 'Manx', cost: 110 },
+                curl: { name: 'Curl', cost: 120 },
+                bobtail: { name: 'Bobtail', cost: 140 },
+                somali: { name: 'Somali', cost: 130 },
+                oriental: { name: 'Oriental', cost: 110 },
+                siam: { name: 'Traditional Siamese', cost: 110 },
+                mau: { name: 'Mau', cost: 140 },
+                bengal_marble: { name: 'Bengal Marble', cost: 165 },
+                cheetoh: { name: 'Cheetoh', cost: 170 },
+                don_sphynx: { name: 'Donsky Sphynx', cost: 175 },
+                peterbald: { name: 'Peterbald', cost: 170 },
+                kao_manee: { name: 'Kao Manee', cost: 130 },
+                ojos_azules: { name: 'Ojos Azules', cost: 115 },
+                tiffanie: { name: 'Tiffanie', cost: 120 },
+                serval: { name: 'Serval', cost: 200 }
+            };
+
+            const MARKET_ITEMS = [
+                { id: 'food', name: 'Food', cost: 15, icon: '🍖' },
+                { id: 'toy', name: 'Toy', cost: 12, icon: '🎾' },
+                { id: 'brush', name: 'Brush', cost: 35, icon: '🪮' },
+                { id: 'post', name: 'Post', cost: 50, icon: '🌳' },
+                { id: 'bed', name: 'Bed', cost: 40, icon: '🛏️' },
+                { id: 'tower', name: 'Tower', cost: 65, icon: '🏰' }
+            ];
+
+            const AVATAR_STYLES = ['😊', '😸', '🥰', '😻', '😽', '🤩', '😇', '😂', '🥺'];
+
+            let gameState = {
+                started: false,
+                playerName: 'Player',
+                playerAvatar: '😊',
+                money: 500,
+                cats: [],
+                activeCatIdx: -1,
+                location: 'market',
+                playerPos: { x: 100, y: 450 },
+                playerVel: { x: 0, y: 0 },
+                time: 0,
+                messages: [],
+                clickTargets: []
+            };
+
+            function rand(min, max) {
+                return Math.random() * (max - min) + min;
+            }
+
+            function clamp(v, min, max) {
+                return Math.max(min, Math.min(max, v));
+            }
+
+            function showMsg(text, kind = '') {
+                gameState.messages.push({ text, kind, time: 3 });
+                const log = document.getElementById('msgLog');
+                const msg = document.createElement('div');
+                msg.className = 'msg ' + kind;
+                msg.textContent = text;
+                log.appendChild(msg);
+                if (log.children.length > 4) log.removeChild(log.firstChild);
+            }
+
+            // KAWAII CAT DRAWING
+            function drawKawaiiCat(ctx, x, y, scale, pattern, walking = 0, dirRight = true) {
+                ctx.save();
+                ctx.translate(x, y);
+                if (!dirRight) ctx.scale(-1, 1);
+                ctx.scale(scale, scale);
+
+                const legBob = Math.sin(walking * 0.15) * 2;
+
+                // Chubby body
+                ctx.fillStyle = '#ffb3d9';
+                ctx.beginPath();
+                ctx.ellipse(0, 8, 16, 14, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Back legs (short & chubby)
+                ctx.fillStyle = '#ffb3d9';
+                ctx.beginPath();
+                ctx.ellipse(-10, 18 + legBob, 6, 8, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.ellipse(10, 18 + legBob, 6, 8, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Front legs
+                ctx.beginPath();
+                ctx.ellipse(-10, 14 - legBob, 5, 7, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.ellipse(10, 14 - legBob, 5, 7, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Paw pads
+                ctx.fillStyle = '#ff69b4';
+                ctx.beginPath();
+                ctx.ellipse(-10, 22 + legBob, 3, 3, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.ellipse(10, 22 + legBob, 3, 3, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Tail (big and curly)
+                ctx.strokeStyle = '#ffb3d9';
+                ctx.lineWidth = 5;
+                ctx.lineCap = 'round';
+                ctx.beginPath();
+                ctx.moveTo(12, 10);
+                ctx.quadraticCurveTo(22 + Math.sin(walking * 0.2) * 4, 8, 24, -5);
+                ctx.stroke();
+
+                // Neck
+                ctx.fillStyle = '#ffb3d9';
+                ctx.beginPath();
+                ctx.ellipse(0, 0, 10, 8, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // BIG KAWAII HEAD
+                ctx.beginPath();
+                ctx.ellipse(0, -14, 14, 16, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Ears (big and pointy)
+                ctx.beginPath();
+                ctx.ellipse(-9, -28, 5, 10, -0.4, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.ellipse(9, -28, 5, 10, 0.4, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Ear innards (pink)
+                ctx.fillStyle = '#ff1493';
+                ctx.beginPath();
+                ctx.ellipse(-9, -25, 2.5, 5, -0.4, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.ellipse(9, -25, 2.5, 5, 0.4, 0, Math.PI * 2);
+                ctx.fill();
+
+                // HUGE KAWAII EYES
+                ctx.fillStyle = '#90ee90';
+                ctx.beginPath();
+                ctx.ellipse(-6, -16, 5, 7, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.ellipse(6, -16, 5, 7, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Big pupils (hearts for kawaii!)
+                ctx.fillStyle = '#000';
+                ctx.beginPath();
+                ctx.ellipse(-6, -14, 2.5, 4, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.ellipse(6, -14, 2.5, 4, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Eye sparkles (BIG for kawaii)
+                ctx.fillStyle = '#fff';
+                ctx.beginPath();
+                ctx.arc(-4, -17, 1.2, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.arc(8, -17, 1.2, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Tiny nose
+                ctx.fillStyle = '#ff69b4';
+                ctx.beginPath();
+                ctx.ellipse(0, -10, 1.5, 1, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Cute smile
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.arc(0, -8, 3, 0, Math.PI, false);
+                ctx.stroke();
+
+                // Blush (kawaii!)
+                ctx.fillStyle = 'rgba(255, 105, 180, 0.4)';
+                ctx.beginPath();
+                ctx.ellipse(-9, -9, 3, 2, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.ellipse(9, -9, 3, 2, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Pattern effects
+                if (pattern === 'tabby') {
+                    ctx.strokeStyle = 'rgba(0,0,0,0.15)';
+                    ctx.lineWidth = 1.5;
+                    for (let i = 0; i < 3; i++) {
+                        ctx.beginPath();
+                        ctx.moveTo(-10, 5 + i * 4);
+                        ctx.quadraticCurveTo(0, 10, 10, 8 + i * 4);
+                        ctx.stroke();
+                    }
+                }
+
+                ctx.restore();
+            }
+
+            // KAWAII PLAYER DRAWING
+            function drawKawaiiPlayer(ctx, x, y, avatar) {
+                ctx.save();
+
+                // Big round head
+                ctx.fillStyle = '#f4a460';
+                ctx.beginPath();
+                ctx.arc(x, y - 30, 12, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Hair (poofy)
+                ctx.fillStyle = '#8b4513';
+                ctx.beginPath();
+                ctx.arc(x, y - 30, 12, 0, Math.PI);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.arc(x - 10, y - 28, 4, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.arc(x + 10, y - 28, 4, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Cute face emoji
+                ctx.font = 'bold 20px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(avatar, x, y - 30);
+
+                // Round body
+                ctx.fillStyle = '#ff69b4';
+                ctx.beginPath();
+                ctx.ellipse(x, y - 10, 10, 14, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Arms
+                ctx.fillStyle = '#f4a460';
+                ctx.fillRect(x - 14, y - 8, 4, 12);
+                ctx.fillRect(x + 10, y - 8, 4, 12);
+
+                // Legs
+                ctx.fillStyle = '#333';
+                ctx.fillRect(x - 6, y + 4, 4, 12);
+                ctx.fillRect(x + 2, y + 4, 4, 12);
+
+                // Shoes
+                ctx.fillStyle = '#ff1493';
+                ctx.fillRect(x - 7, y + 15, 5, 3);
+                ctx.fillRect(x + 2, y + 15, 5, 3);
+
+                ctx.restore();
+            }
+
+            function updateCatCare(cat, dt) {
+                cat.hunger = Math.min(100, cat.hunger + dt * 0.1);
+                if (cat.hunger > 70) cat.health = Math.max(0, cat.health - dt * 0.05);
+                cat.health = clamp(cat.health, 0, 100);
+                cat.happiness = clamp(cat.happiness, 0, 100);
+            }
+
+            function update(dt) {
+                if (!gameState.started) return;
+                dt = Math.min(dt, 0.05);
+                gameState.time += dt;
+
+                const moveSpd = 180;
+                gameState.playerVel.x = 0;
+                gameState.playerVel.y = 0;
+
+                if (keys['w'] || keys['W'] || keys['ArrowUp']) gameState.playerVel.y = -moveSpd;
+                if (keys['s'] || keys['S'] || keys['ArrowDown']) gameState.playerVel.y = moveSpd;
+                if (keys['a'] || keys['A'] || keys['ArrowLeft']) gameState.playerVel.x = -moveSpd;
+                if (keys['d'] || keys['D'] || keys['ArrowRight']) gameState.playerVel.x = moveSpd;
+
+                gameState.playerPos.x += gameState.playerVel.x * dt;
+                gameState.playerPos.y += gameState.playerVel.y * dt;
+                gameState.playerPos.x = clamp(gameState.playerPos.x, 30, canvas.width - 30);
+                gameState.playerPos.y = clamp(gameState.playerPos.y, 30, canvas.height - 50);
+
+                if (gameState.playerPos.x < 400) gameState.location = 'market';
+                else gameState.location = 'shelter';
+
+                gameState.cats.forEach(cat => {
+                    updateCatCare(cat, dt);
+                    if (!cat.walking) {
+                        cat.walking = 0;
+                        cat.walkDuration = Math.random() * 3 + 2;
+                        cat.walkTarget = gameState.location === 'market' ? 200 : 700;
+                    }
+                    cat.walking += dt;
+                    if (cat.walking > cat.walkDuration) {
+                        cat.walking = 0;
+                        cat.walkTarget = gameState.location === 'market' ? rand(50, 350) : rand(500, 900);
+                    }
+                    const dist = cat.walkTarget - cat.pos.x;
+                    if (Math.abs(dist) > 5) {
+                        cat.dirRight = dist > 0;
+                        cat.pos.x += Math.sign(dist) * 40 * dt;
+                    }
+                });
+
+                gameState.messages = gameState.messages.filter(m => {
+                    m.time -= dt;
+                    return m.time > 0;
+                });
+
+                document.getElementById('moneyDisplay').textContent = Math.floor(gameState.money);
+                document.getElementById('catsDisplay').textContent = gameState.cats.length;
+                document.getElementById('zoneDisplay').textContent = gameState.location === 'market' ? 'Market' : 'Shelter';
+
+                if (gameState.activeCatIdx >= 0 && gameState.cats[gameState.activeCatIdx]) {
+                    const cat = gameState.cats[gameState.activeCatIdx];
+                    document.getElementById('activeCatDisplay').textContent = cat.name;
+                    document.getElementById('healthDisplay').textContent = Math.floor(cat.health) + '%';
+                    document.getElementById('happinessDisplay').textContent = Math.floor(cat.happiness) + '%';
+                }
+            }
+
+            function draw() {
+                gameState.clickTargets = [];
+
+                ctx.fillStyle = '#87ceeb';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = '#90ee90';
+                ctx.fillRect(0, 500, canvas.width, 140);
+
+                ctx.fillStyle = 'rgba(255, 192, 220, 0.15)';
+                ctx.fillRect(0, 0, 400, canvas.height);
+
+                ctx.fillStyle = '#333';
+                ctx.font = 'bold 22px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('🏪 MARKET', 200, 40);
+                ctx.fillText('🏠 SHELTER', 680, 40);
+
+                MARKET_ITEMS.forEach((item, idx) => {
+                    const itemX = 30 + (idx % 3) * 110;
+                    const itemY = 80 + Math.floor(idx / 3) * 100;
+
+                    ctx.fillStyle = '#ffeb99';
+                    ctx.fillRect(itemX - 20, itemY - 20, 40, 40);
+                    ctx.fillStyle = '#333';
+                    ctx.font = '28px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(item.icon, itemX, itemY);
+
+                    ctx.font = 'bold 10px Arial';
+                    ctx.fillText(`$${item.cost}`, itemX, itemY + 32);
+
+                    gameState.clickTargets.push({
+                        x: itemX - 20, y: itemY - 20, w: 40, h: 40,
+                        onClick: () => buyItem(item)
+                    });
+                });
+
+                // Action buttons
+                const shopX = 30, shopY = 340;
+                ctx.fillStyle = '#ff69b4';
+                ctx.fillRect(shopX, shopY, 70, 50);
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold 10px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('🐱 Buy', shopX + 35, shopY + 15);
+                ctx.fillText('($70-200)', shopX + 35, shopY + 32);
+
+                gameState.clickTargets.push({
+                    x: shopX, y: shopY, w: 70, h: 50,
+                    onClick: () => openCatShop()
+                });
+
+                const breedX = 110, breedY = 340;
+                ctx.fillStyle = '#ff1493';
+                ctx.fillRect(breedX, breedY, 70, 50);
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold 10px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('💕 Breed', breedX + 35, breedY + 15);
+                ctx.fillText('(2+ cats)', breedX + 35, breedY + 32);
+
+                gameState.clickTargets.push({
+                    x: breedX, y: breedY, w: 70, h: 50,
+                    onClick: () => openBreedingPanel()
+                });
+
+                // Draw kawaii cats
+                gameState.cats.forEach((cat, idx) => {
+                    drawKawaiiCat(ctx, cat.pos.x, cat.pos.y, 1.2, cat.pattern, gameState.time * 60, cat.dirRight);
+
+                    ctx.fillStyle = '#333';
+                    ctx.font = 'bold 11px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(cat.name, cat.pos.x, cat.pos.y + 38);
+
+                    ctx.fillStyle = '#ddd';
+                    ctx.fillRect(cat.pos.x - 25, cat.pos.y + 42, 50, 5);
+                    ctx.fillStyle = cat.health > 60 ? '#8bc34a' : cat.health > 30 ? '#ff9800' : '#f44336';
+                    ctx.fillRect(cat.pos.x - 25, cat.pos.y + 42, (cat.health / 100) * 50, 5);
+
+                    gameState.clickTargets.push({
+                        x: cat.pos.x - 30, y: cat.pos.y - 40, w: 60, h: 85,
+                        onClick: () => selectCat(idx)
+                    });
+                });
+
+                // Draw kawaii player
+                drawKawaiiPlayer(ctx, gameState.playerPos.x, gameState.playerPos.y, gameState.playerAvatar);
+
+                gameState.messages.forEach((msg, idx) => {
+                    ctx.fillStyle = msg.kind === 'warn' ? '#ff9800' : msg.kind === 'bad' ? '#f44336' : '#000';
+                    ctx.font = '12px Arial';
+                    ctx.fillText(msg.text, 30, 20 + idx * 18);
+                });
+            }
+
+            function buyItem(item) {
+                if (gameState.money >= item.cost && gameState.activeCatIdx >= 0) {
+                    gameState.money -= item.cost;
+                    const cat = gameState.cats[gameState.activeCatIdx];
+                    if (item.id === 'food') {
+                        cat.hunger = Math.max(0, cat.hunger - 30);
+                        showMsg(`${cat.name} ate! 😋`, 'good');
+                    } else if (item.id === 'toy') {
+                        cat.happiness = Math.min(100, cat.happiness + 25);
+                        showMsg(`${cat.name} is playing! 🎾`, 'good');
+                    } else if (item.id === 'brush') {
+                        showMsg(`${cat.name} is groomed! ✨`, 'good');
+                    } else {
+                        showMsg(`Bought ${item.name}!`, 'good');
+                    }
+                } else {
+                    showMsg('Select a cat first!', 'warn');
+                }
+            }
+
+            function openCatShop() {
+                if (gameState.cats.length >= 100) {
+                    showMsg('Shelter full!', 'warn');
+                    return;
+                }
+
+                const breeds = Object.entries(CAT_BREEDS);
+                const [breedKey, breed] = breeds[Math.floor(Math.random() * breeds.length)];
+                const patterns = ['solid', 'tabby', 'smoke', 'pointed'];
+                const pattern = patterns[Math.floor(Math.random() * patterns.length)];
+
+                const modal = document.createElement('div');
+                modal.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:linear-gradient(135deg, #ffe6f7, #fff9cc);padding:20px;border-radius:12px;z-index:1000;max-width:320px;border:3px solid #ff69b4;';
+                modal.innerHTML = `
+                    <h3 style="color:#ff1493;text-align:center;">${breed.name}</h3>
+                    <p style="text-align:center;">Pattern: ${pattern}</p>
+                    <p style="text-align:center;font-weight:bold;color:#ff69b4;">Cost: $${breed.cost}</p>
+                    <input type="text" id="newCatName" placeholder="Cat name" value="Cutie" style="width:100%;padding:8px;margin:10px 0;border:2px solid #ff69b4;border-radius:6px;">
+                    <button onclick="confirmCatPurchase('${breedKey}', '${pattern}', document.getElementById('newCatName').value); this.closest('div').remove();" style="background:linear-gradient(135deg, #ff69b4, #ff1493);color:white;border:2px solid #ff1493;width:100%;padding:8px;border-radius:6px;margin-bottom:5px;cursor:pointer;">Buy for $${breed.cost}</button>
+                    <button onclick="this.closest('div').remove();" style="background:#ddd;color:#333;border:none;width:100%;padding:8px;border-radius:6px;cursor:pointer;">Cancel</button>
+                `;
+                document.body.appendChild(modal);
+            }
+
+            window.confirmCatPurchase = function(breedKey, pattern, catName) {
+                const breed = CAT_BREEDS[breedKey];
+                if (gameState.money >= breed.cost && gameState.cats.length < 100) {
+                    gameState.money -= breed.cost;
+                    gameState.cats.push({
+                        id: Math.random(),
+                        name: catName || 'Cutie',
+                        breed: breedKey,
+                        breedName: breed.name,
+                        pattern: pattern,
+                        health: 95,
+                        happiness: 80,
+                        hunger: 20,
+                        pos: { x: rand(430, 900), y: rand(300, 450) },
+                        dirRight: true,
+                        walking: 0,
+                        walkTarget: 650
+                    });
+                    gameState.activeCatIdx = gameState.cats.length - 1;
+                    showMsg(`Welcome ${catName}! 💕`, 'good');
+                }
+            };
+
+            function selectCat(idx) {
+                gameState.activeCatIdx = idx;
+                const cat = gameState.cats[idx];
+                showMsg(`${cat.name} selected! Double-click to rename.`, '');
+            }
+
+            function openBreedingPanel() {
+                if (gameState.cats.length < 2) {
+                    showMsg('Need 2+ cats!', 'warn');
+                    return;
+                }
+                if (gameState.cats.length >= 100) {
+                    showMsg('Shelter full!', 'warn');
+                    return;
+                }
+
+                const cat1 = gameState.cats[0];
+                const breed = CAT_BREEDS[cat1.breed];
+                const patterns = ['solid', 'tabby', 'smoke', 'pointed'];
+                const pattern = patterns[Math.floor(Math.random() * patterns.length)];
+
+                const newKitten = {
+                    id: Math.random(),
+                    name: cat1.name + ' Jr.',
+                    breed: cat1.breed,
+                    breedName: breed.name,
+                    pattern: pattern,
+                    health: 90,
+                    happiness: 85,
+                    hunger: 25,
+                    pos: { x: rand(430, 900), y: rand(300, 450) },
+                    dirRight: true,
+                    walking: 0,
+                    walkTarget: 650
+                };
+
+                gameState.cats.push(newKitten);
+                gameState.money += 150;
+                showMsg(`Kitten born! 🎉 Click to rename.`, 'good');
+                gameState.activeCatIdx = gameState.cats.length - 1;
+            }
+
+            // Double-click to rename
+            document.addEventListener('dblclick', () => {
+                if (gameState.started && gameState.activeCatIdx >= 0) {
+                    const cat = gameState.cats[gameState.activeCatIdx];
+                    const newName = prompt(`Rename ${cat.name}:`, cat.name);
+                    if (newName && newName.trim()) {
+                        cat.name = newName.trim();
+                        showMsg(`Renamed to ${cat.name}! ✨`, 'good');
+                    }
+                }
+            });
+
+            function populateBreeds() {
+                const select = document.getElementById('firstCatBreed');
+                Object.entries(CAT_BREEDS).forEach(([key, breed]) => {
+                    const option = document.createElement('option');
+                    option.value = key;
+                    option.textContent = `${breed.name} - $${breed.cost}`;
+                    select.appendChild(option);
+                });
+            }
+
+            function populateAvatars() {
+                const grid = document.getElementById('avatarGrid');
+                AVATAR_STYLES.forEach((avatar, idx) => {
+                    const opt = document.createElement('div');
+                    opt.className = 'avatar-option' + (idx === 0 ? ' selected' : '');
+                    opt.textContent = avatar;
+                    opt.dataset.avatar = avatar;
+                    opt.onclick = () => {
+                        document.querySelectorAll('.avatar-option').forEach(o => o.classList.remove('selected'));
+                        opt.classList.add('selected');
+                    };
+                    grid.appendChild(opt);
+                });
+            }
+
+            const keys = {};
+            window.addEventListener('keydown', (e) => {
+                keys[e.key] = true;
+                if (e.key === ' ') e.preventDefault();
+            });
+            window.addEventListener('keyup', (e) => {
+                keys[e.key] = false;
+            });
+
+            canvas.addEventListener('click', (e) => {
+                if (!gameState.started) return;
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+                const pos = {
+                    x: (e.clientX - rect.left) * scaleX,
+                    y: (e.clientY - rect.top) * scaleY
+                };
+
+                gameState.clickTargets.forEach(target => {
+                    if (pos.x >= target.x && pos.x <= target.x + target.w &&
+                        pos.y >= target.y && pos.y <= target.y + target.h) {
+                        target.onClick();
+                    }
+                });
+            });
+
+            window.startGame = function() {
+                const name = document.getElementById('playerName').value || 'Player';
+                const avatar = document.querySelector('.avatar-option.selected').dataset.avatar;
+                const breedKey = document.getElementById('firstCatBreed').value;
+                const pattern = document.getElementById('catPattern').value;
+                const catName = document.getElementById('catName').value || 'Cutie';
+
+                gameState.playerName = name;
+                gameState.playerAvatar = avatar;
+                const breed = CAT_BREEDS[breedKey];
+
+                gameState.cats.push({
+                    id: Math.random(),
+                    name: catName,
+                    breed: breedKey,
+                    breedName: breed.name,
+                    pattern: pattern,
+                    health: 100,
+                    happiness: 80,
+                    hunger: 20,
+                    pos: { x: 650, y: 350 },
+                    dirRight: true,
+                    walking: 0,
+                    walkTarget: 650
+                });
+
+                gameState.activeCatIdx = 0;
+                gameState.money -= breed.cost;
+                gameState.started = true;
+                document.getElementById('customizer').classList.remove('show');
+                showMsg(`Welcome ${name}! Your kawaii ${breed.name} ${catName} 🐱`, 'good');
+                showMsg('Click cats to select, then double-click to rename kittens! 💕', '');
+                requestAnimationFrame(gameLoop);
+            };
+
+            document.getElementById('customizer').classList.add('show');
+            populateBreeds();
+            populateAvatars();
+
+            let lastTime = Date.now();
+            function gameLoop() {
+                const now = Date.now();
+                const dt = (now - lastTime) / 1000;
+                lastTime = now;
+
+                update(dt);
+                draw();
+                requestAnimationFrame(gameLoop);
+            }
+        })();
+    </script>
+</body>
+</html>
