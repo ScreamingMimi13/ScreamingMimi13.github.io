@@ -299,7 +299,7 @@ let gameState = {
 };
 
 function saveGame(){ localStorage.setItem('ppgame',JSON.stringify(gameState)); }
-function loadGame(){ const s=localStorage.getItem('ppgame'); if(s) gameState=JSON.parse(s); }
+function loadGame(){ const s=localStorage.getItem('ppgame'); if(s){ gameState=JSON.parse(s); if(!gameState.customBreeds) gameState.customBreeds=[]; } }
 function showMsg(text){ gameState.messages.push(text); console.log(text); }
 function money(n){ if(n>=1e6)return'$'+(n/1e6).toFixed(n%1e6===0?0:2).replace(/\.00$/,'')+'M'; return'$'+Math.round(n).toLocaleString('en-US'); }
 function clamp(v,a,b){ return v<a?a:(v>b?b:v); }
@@ -786,12 +786,12 @@ function renderBreeding(){
     let breedId=pick([p1.breed,p2.breed]);
     let breedName;
     if(isNovelBreedCombination(p1.breed,p2.breed)){
-      const customName=prompt('🎉 You created a new breed! What will you name it?','Hybrid');
-      if(customName){
-        const newBreed=createCustomBreed(p1.breed,p2.breed,customName);
-        breedId=newBreed.id;
-        breedName=customName;
-      }
+      const b1tmp=CAT_BREEDS.find(b=>b.id===p1.breed)||gameState.customBreeds.find(b=>b.id===p1.breed);
+      const b2tmp=CAT_BREEDS.find(b=>b.id===p2.breed)||gameState.customBreeds.find(b=>b.id===p2.breed);
+      showMsg('🎉 You created a new breed! '+b1tmp.name+' + '+b2tmp.name+' = Hybrid');
+      const newBreed=createCustomBreed(p1.breed,p2.breed,'Hybrid');
+      breedId=newBreed.id;
+      breedName='Hybrid';
     }
     const b1=CAT_BREEDS.find(b=>b.id===p1.breed)||gameState.customBreeds.find(b=>b.id===p1.breed);
     const b2=CAT_BREEDS.find(b=>b.id===p2.breed)||gameState.customBreeds.find(b=>b.id===p2.breed);
