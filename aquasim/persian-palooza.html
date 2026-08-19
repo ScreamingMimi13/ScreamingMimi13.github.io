@@ -250,25 +250,35 @@
 
 const CAT_BREEDS = [
   {id:'bengal',name:'Bengal',cost:160,desc:'Spotted body, sleek frame, alert and energetic',look:{baseColor:'#d4a86a',spotColor:'#8b6f47',pattern:'spotted',body:'sleek',ears:'alert'}},
-  {id:'persian',name:'Persian',cost:150,desc:'Extremely fluffy with round face and flat features',look:{baseColor:'#e8d8c8',pattern:'solid',body:'round',ears:'small'}},
-  {id:'siamese',name:'Siamese',cost:100,desc:'Thin elegant body, pointed ears, blue almond eyes',look:{baseColor:'#f4e4d4',pointColor:'#8b6f4f',pattern:'pointed',body:'sleek',ears:'pointed'}},
-  {id:'maine',name:'Maine Coon',cost:140,desc:'Large fluffy frame, tufted ears, bushy tail',look:{baseColor:'#b8a894',pattern:'solid',body:'large',ears:'tufted'}},
-  {id:'sphynx',name:'Sphynx',cost:180,desc:'Hairless with wrinkled skin, large ears, skinny',look:{baseColor:'#d4b8a8',pattern:'hairless',body:'skinny',ears:'huge'}},
-  {id:'ragdoll',name:'Ragdoll',cost:120,desc:'Large with blue eyes, pointed colors, fluffy',look:{baseColor:'#f0e4d4',pointColor:'#8b6f4f',pattern:'pointed',body:'large',ears:'medium'}},
-  {id:'british',name:'British Shorthair',cost:80,desc:'Round face, chubby cheeks, stocky build',look:{baseColor:'#a89484',pattern:'solid',body:'stocky',ears:'small'}},
+  {id:'bengal-s',name:'Bengal Silver',cost:165,desc:'Silver spotted Bengal with wild markings',look:{baseColor:'#d4c4b0',spotColor:'#4a4a4a',pattern:'spotted',body:'sleek',ears:'alert'}},
+  {id:'persian',name:'Persian Orange',cost:150,desc:'Extremely fluffy with round face and flat features',look:{baseColor:'#e8a870',pattern:'solid',body:'fluffy',ears:'small'}},
+  {id:'persian-c',name:'Persian Cream',cost:155,desc:'Luxurious cream-colored fluff ball',look:{baseColor:'#f4e4c8',pattern:'solid',body:'fluffy',ears:'small'}},
+  {id:'persian-s',name:'Persian Smoke',cost:160,desc:'Dark with silvery-tipped fur',look:{baseColor:'#3a3a3a',smokeColor:'#d4c4b0',pattern:'smoke',body:'fluffy',ears:'small'}},
+  {id:'siamese',name:'Siamese Seal',cost:100,desc:'Thin elegant body, pointed ears, blue almond eyes',look:{baseColor:'#f4e4d4',pointColor:'#8b6f4f',pattern:'pointed',body:'sleek',ears:'pointed'}},
+  {id:'siamese-c',name:'Siamese Chocolate',cost:105,desc:'Rich chocolate-pointed Siamese',look:{baseColor:'#f0e4d4',pointColor:'#6b4f3f',pattern:'pointed',body:'sleek',ears:'pointed'}},
+  {id:'maine',name:'Maine Coon Brown',cost:140,desc:'Large fluffy frame, tufted ears, bushy tail',look:{baseColor:'#b8a894',pattern:'solid',body:'large',ears:'tufted'}},
+  {id:'maine-t',name:'Maine Coon Tabby',cost:145,desc:'Brown tabby Maine Coon with stripes',look:{baseColor:'#c4a86a',pattern:'tabby',body:'large',ears:'tufted'}},
+  {id:'sphynx',name:'Sphynx',cost:180,desc:'Hairless with wrinkled skin, large ears, skinny',look:{baseColor:'#d4b8a8',pattern:'solid',body:'skinny',ears:'huge'}},
+  {id:'ragdoll',name:'Ragdoll Seal',cost:120,desc:'Large with blue eyes, pointed colors, fluffy',look:{baseColor:'#f0e4d4',pointColor:'#8b6f4f',pattern:'pointed',body:'large',ears:'medium'}},
+  {id:'ragdoll-b',name:'Ragdoll Blue',cost:125,desc:'Blue-pointed Ragdoll with sapphire eyes',look:{baseColor:'#e8dcc8',pointColor:'#7a8fa8',pattern:'pointed',body:'large',ears:'medium'}},
+  {id:'british',name:'British Gray',cost:80,desc:'Round face, chubby cheeks, stocky build',look:{baseColor:'#a89484',pattern:'solid',body:'stocky',ears:'small'}},
+  {id:'british-o',name:'British Orange',cost:85,desc:'Stocky ginger British Shorthair',look:{baseColor:'#d4a86a',pattern:'solid',body:'stocky',ears:'small'}},
   {id:'scottish',name:'Scottish Fold',cost:135,desc:'Round face, distinctive folded ears, stocky',look:{baseColor:'#d4c4b0',pattern:'solid',body:'stocky',ears:'folded'}},
-  {id:'munchkin',name:'Munchkin',cost:125,desc:'Short legs, normal body, cute and playful',look:{baseColor:'#e8c8b8',pattern:'solid',body:'short',ears:'small'}},
-  {id:'tabby',name:'Tabby',cost:65,desc:'Classic striped pattern, alert expression',look:{baseColor:'#d4a86a',stripColor:'#8b6f47',pattern:'tabby',body:'normal',ears:'alert'}},
-  {id:'ragamuffin',name:'Ragamuffin',cost:130,desc:'Soft, fluffy, teddy-bear appearance',look:{baseColor:'#e8d8c8',pattern:'solid',body:'fluffy',ears:'medium'}},
+  {id:'munchkin',name:'Munchkin White',cost:125,desc:'Short legs, normal body, cute and playful',look:{baseColor:'#f4f0e8',pattern:'solid',body:'short',ears:'small'}},
+  {id:'munchkin-g',name:'Munchkin Gray',cost:128,desc:'Gray short-legged cutie',look:{baseColor:'#b8b4a8',pattern:'solid',body:'short',ears:'small'}},
+  {id:'tabby-o',name:'Orange Tabby',cost:65,desc:'Classic ginger striped pattern, alert expression',look:{baseColor:'#d4a86a',pattern:'tabby',body:'normal',ears:'alert'}},
+  {id:'tabby-b',name:'Brown Tabby',cost:70,desc:'Dark brown tabby with striking stripes',look:{baseColor:'#8b6f47',pattern:'tabby',body:'normal',ears:'alert'}},
+  {id:'ragamuffin',name:'Ragamuffin Cream',cost:130,desc:'Soft, fluffy, teddy-bear appearance',look:{baseColor:'#f0e4d4',pattern:'solid',body:'fluffy',ears:'medium'}},
   {id:'bombay',name:'Bombay',cost:120,desc:'Sleek black coat, copper eyes, elegant',look:{baseColor:'#1a1a1a',pattern:'solid',body:'sleek',ears:'alert'}},
   {id:'birman',name:'Birman',cost:135,desc:'Silky coat with color points and white paws',look:{baseColor:'#d4c4b0',pointColor:'#8b6f4f',pattern:'pointed',body:'normal',ears:'medium'}},
   {id:'balinese',name:'Balinese',cost:125,desc:'Long silky coat, color-pointed, graceful',look:{baseColor:'#f4e4d4',pointColor:'#8b6f4f',pattern:'pointed',body:'sleek',ears:'pointed'}},
   {id:'ocicat',name:'Ocicat',cost:135,desc:'Wild spotted appearance, athletic build',look:{baseColor:'#d4a86a',spotColor:'#8b6f47',pattern:'spotted',body:'athletic',ears:'alert'}},
   {id:'russian_blue',name:'Russian Blue',cost:105,desc:'Silvery-blue coat, green eyes, elegant',look:{baseColor:'#a8a8c8',pattern:'solid',body:'sleek',ears:'alert'}},
-  {id:'burmese',name:'Burmese',cost:125,desc:'Satin coat, stocky muscular build',look:{baseColor:'#8b6f47',pattern:'solid',body:'muscular',ears:'medium'}},
-  {id:'devon_rex',name:'Devon Rex',cost:100,desc:'Curly coat, large ears, pixie-like face',look:{baseColor:'#d4c4b0',pattern:'wavy',body:'small',ears:'huge'}},
-  {id:'cornish_rex',name:'Cornish Rex',cost:110,desc:'Soft wavy coat, slender frame',look:{baseColor:'#c8b8a8',pattern:'wavy',body:'sleek',ears:'huge'}},
-  {id:'manx',name:'Manx',cost:110,desc:'Tailless or short-tailed, round body',look:{baseColor:'#d4a86a',pattern:'solid',body:'round',ears:'medium'}},
+  {id:'burmese',name:'Burmese Sable',cost:125,desc:'Satin coat, stocky muscular build',look:{baseColor:'#8b6f47',pattern:'solid',body:'muscular',ears:'medium'}},
+  {id:'devon_rex',name:'Devon Rex',cost:100,desc:'Curly coat, large ears, pixie-like face',look:{baseColor:'#d4c4b0',pattern:'solid',body:'small',ears:'huge'}},
+  {id:'cornish_rex',name:'Cornish Rex',cost:110,desc:'Soft wavy coat, slender frame',look:{baseColor:'#c8b8a8',pattern:'solid',body:'sleek',ears:'huge'}},
+  {id:'manx',name:'Manx Orange',cost:110,desc:'Tailless or short-tailed, round body',look:{baseColor:'#e8a870',pattern:'solid',body:'round',ears:'medium'}},
+  {id:'manx-b',name:'Manx Black',cost:115,desc:'Sleek tailless black cat',look:{baseColor:'#2a2a2a',pattern:'solid',body:'round',ears:'medium'}},
 ];
 
 const AVATAR_STYLES = [
@@ -298,23 +308,46 @@ function randi(a,b){ return Math.floor(rand(a,b+1)); }
 function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
 
 // Canvas drawing functions
-function drawCat(ctx,breed,x=50,y=50,scale=1){
+function drawCat(ctx,breed,x=50,y=50,scale=1,showBg=true){
   ctx.save();
   ctx.translate(x,y);
   ctx.scale(scale,scale);
   const look=breed.look;
 
+  // Background
+  if(showBg){
+    ctx.fillStyle='#f0e8e0';
+    ctx.fillRect(-90,-50,180,100);
+  }
+
+  // Back fluff/fur layers for fluffy breeds
+  const fluffLevel=look.body==='fluffy'?3:look.body==='large'?2:1;
+  if(fluffLevel>0){
+    ctx.fillStyle=look.baseColor;
+    for(let f=fluffLevel;f>0;f--){
+      ctx.globalAlpha=0.3;
+      ctx.beginPath();
+      if(look.body==='fluffy'){
+        ctx.ellipse(0,0,22-f*2,20-f*2,0,0,Math.PI*2);
+      } else if(look.body==='large'){
+        ctx.ellipse(0,0,21-f,22-f,0,0,Math.PI*2);
+      }
+      ctx.fill();
+    }
+    ctx.globalAlpha=1;
+  }
+
   ctx.fillStyle=look.baseColor;
 
-  // Body
+  // Main body
   if(look.body==='sleek'){
     ctx.beginPath();ctx.ellipse(0,0,14,18,0,0,Math.PI*2);ctx.fill();
   } else if(look.body==='round'){
     ctx.beginPath();ctx.ellipse(0,0,16,16,0,0,Math.PI*2);ctx.fill();
   } else if(look.body==='large'){
-    ctx.beginPath();ctx.ellipse(0,0,18,20,0,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(0,0,20,22,0,0,Math.PI*2);ctx.fill();
   } else if(look.body==='stocky'){
-    ctx.beginPath();ctx.ellipse(0,0,16,14,0,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(0,0,17,15,0,0,Math.PI*2);ctx.fill();
   } else if(look.body==='short'){
     ctx.beginPath();ctx.ellipse(0,0,14,12,0,0,Math.PI*2);ctx.fill();
   } else if(look.body==='skinny'){
@@ -324,83 +357,158 @@ function drawCat(ctx,breed,x=50,y=50,scale=1){
   } else if(look.body==='muscular'){
     ctx.beginPath();ctx.ellipse(0,2,16,16,0,0,Math.PI*2);ctx.fill();
   } else if(look.body==='fluffy'){
-    ctx.beginPath();ctx.ellipse(0,0,18,16,0,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(0,0,20,18,0,0,Math.PI*2);ctx.fill();
   } else {
     ctx.beginPath();ctx.ellipse(0,0,15,16,0,0,Math.PI*2);ctx.fill();
   }
 
-  // Legs
-  ctx.fillRect(-8,-10,3,14);
-  ctx.fillRect(-2,-10,3,14);
-  ctx.fillRect(2,-10,3,14);
-  ctx.fillRect(8,-10,3,14);
+  // Thick fluffy legs
+  ctx.fillStyle=look.baseColor;
+  const legW=look.body==='fluffy'?5:look.body==='large'?4.5:3.5;
+  ctx.fillRect(-10,-8,legW+1,16);
+  ctx.fillRect(-4,-8,legW+1,16);
+  ctx.fillRect(3,-8,legW+1,16);
+  ctx.fillRect(9,-8,legW+1,16);
 
-  // Tail
+  // Paws (darker)
+  ctx.fillStyle='rgba(0,0,0,0.1)';
+  ctx.beginPath();ctx.ellipse(-9.5,7,legW/2+1,2.5,0,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.ellipse(-3.5,7,legW/2+1,2.5,0,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.ellipse(3.5,7,legW/2+1,2.5,0,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.ellipse(9.5,7,legW/2+1,2.5,0,0,Math.PI*2);ctx.fill();
+
+  // Fluffy tail
   ctx.strokeStyle=look.baseColor;
-  ctx.lineWidth=4;
+  ctx.lineWidth=look.body==='fluffy'?7:5;
+  ctx.lineCap='round';
   ctx.beginPath();
-  ctx.moveTo(10,-2);
-  ctx.quadraticCurveTo(20,-8,18,-18);
+  ctx.moveTo(12,0);
+  ctx.quadraticCurveTo(22,-6,20,-20);
   ctx.stroke();
 
   // Head
   let headScale=1.2;
   if(look.body==='short') headScale=1.1;
+  if(look.body==='fluffy') headScale=1.4;
   ctx.fillStyle=look.baseColor;
-  ctx.beginPath();ctx.ellipse(0,-16,10*headScale,12*headScale,0,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.ellipse(0,-16,10*headScale,13*headScale,0,0,Math.PI*2);ctx.fill();
 
-  // Ears
+  // Ear inner (pink)
+  if(look.ears!=='folded'){
+    ctx.fillStyle='#f5c5b8';
+  }
+
+  // Ears - much larger and more visible
   if(look.ears==='alert'){
-    ctx.beginPath();ctx.ellipse(-6,-26,3,8,-.3,0,Math.PI*2);ctx.fill();
-    ctx.beginPath();ctx.ellipse(6,-26,3,8,.3,0,Math.PI*2);ctx.fill();
-  } else if(look.ears==='small'){
-    ctx.beginPath();ctx.ellipse(-5,-24,2,5,-.3,0,Math.PI*2);ctx.fill();
-    ctx.beginPath();ctx.ellipse(5,-24,2,5,.3,0,Math.PI*2);ctx.fill();
-  } else if(look.ears==='tufted'){
-    ctx.beginPath();ctx.ellipse(-7,-27,4,10,-.3,0,Math.PI*2);ctx.fill();
-    ctx.beginPath();ctx.ellipse(7,-27,4,10,.3,0,Math.PI*2);ctx.fill();
-  } else if(look.ears==='huge'){
-    ctx.beginPath();ctx.ellipse(-6,-28,5,12,-.2,0,Math.PI*2);ctx.fill();
-    ctx.beginPath();ctx.ellipse(6,-28,5,12,.2,0,Math.PI*2);ctx.fill();
-  } else if(look.ears==='folded'){
-    ctx.fillStyle='#8b6f47';
-    ctx.beginPath();ctx.ellipse(-5,-22,2,3,0,0,Math.PI*2);ctx.fill();
-    ctx.beginPath();ctx.ellipse(5,-22,2,3,0,0,Math.PI*2);ctx.fill();
     ctx.fillStyle=look.baseColor;
+    ctx.beginPath();ctx.ellipse(-8,-28,4,10,-.3,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(8,-28,4,10,.3,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#f5c5b8';
+    ctx.beginPath();ctx.ellipse(-8,-26,2,6,-.3,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(8,-26,2,6,.3,0,Math.PI*2);ctx.fill();
+  } else if(look.ears==='small'){
+    ctx.fillStyle=look.baseColor;
+    ctx.beginPath();ctx.ellipse(-6,-25,2.5,6,-.3,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(6,-25,2.5,6,.3,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#f5c5b8';
+    ctx.beginPath();ctx.ellipse(-6,-24,1,3,-.3,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(6,-24,1,3,.3,0,Math.PI*2);ctx.fill();
+  } else if(look.ears==='tufted'){
+    ctx.fillStyle=look.baseColor;
+    ctx.beginPath();ctx.ellipse(-9,-29,5,12,-.3,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(9,-29,5,12,.3,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#f5c5b8';
+    ctx.beginPath();ctx.ellipse(-9,-26,2.5,7,-.3,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(9,-26,2.5,7,.3,0,Math.PI*2);ctx.fill();
+  } else if(look.ears==='huge'){
+    ctx.fillStyle=look.baseColor;
+    ctx.beginPath();ctx.ellipse(-8,-30,6,14,-.2,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(8,-30,6,14,.2,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#f5c5b8';
+    ctx.beginPath();ctx.ellipse(-8,-27,3,8,-.2,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(8,-27,3,8,.2,0,Math.PI*2);ctx.fill();
+  } else if(look.ears==='folded'){
+    ctx.fillStyle='#a89484';
+    ctx.beginPath();ctx.ellipse(-6,-23,2.5,4,0,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(6,-23,2.5,4,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#d4b5a8';
+    ctx.beginPath();ctx.ellipse(-6,-23,1,2,0,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(6,-23,1,2,0,0,Math.PI*2);ctx.fill();
   } else if(look.ears==='pointed'){
-    ctx.beginPath();ctx.ellipse(-6,-26,2,7,-.4,0,Math.PI*2);ctx.fill();
-    ctx.beginPath();ctx.ellipse(6,-26,2,7,.4,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle=look.baseColor;
+    ctx.beginPath();ctx.ellipse(-7,-28,3,9,-.4,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(7,-28,3,9,.4,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#f5c5b8';
+    ctx.beginPath();ctx.ellipse(-7,-25,1.5,5,-.4,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(7,-25,1.5,5,.4,0,Math.PI*2);ctx.fill();
   } else if(look.ears==='medium'){
-    ctx.beginPath();ctx.ellipse(-5,-25,3,7,-.3,0,Math.PI*2);ctx.fill();
-    ctx.beginPath();ctx.ellipse(5,-25,3,7,.3,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle=look.baseColor;
+    ctx.beginPath();ctx.ellipse(-7,-27,4,8,-.3,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(7,-27,4,8,.3,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#f5c5b8';
+    ctx.beginPath();ctx.ellipse(-7,-25,2,5,-.3,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(7,-25,2,5,.3,0,Math.PI*2);ctx.fill();
   }
 
   // Eyes
   ctx.fillStyle='#fff';
-  ctx.beginPath();ctx.ellipse(-4,-17,3,4.5,0,0,Math.PI*2);ctx.fill();
-  ctx.beginPath();ctx.ellipse(4,-17,3,4.5,0,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.ellipse(-5,-17,3.5,5,0,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.ellipse(5,-17,3.5,5,0,0,Math.PI*2);ctx.fill();
 
   ctx.fillStyle=breed.id==='siamese'?'#4a90e2':'#1a1a1a';
-  ctx.beginPath();ctx.ellipse(-4,-17,1.5,2.5,0,0,Math.PI*2);ctx.fill();
-  ctx.beginPath();ctx.ellipse(4,-17,1.5,2.5,0,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.ellipse(-5,-17,2,3,0,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.ellipse(5,-17,2,3,0,0,Math.PI*2);ctx.fill();
 
-  // Pattern overlay
+  ctx.fillStyle='#fff';
+  ctx.beginPath();ctx.arc(-4,-16,0.7,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.arc(6,-16,0.7,0,Math.PI*2);ctx.fill();
+
+  // Nose
+  ctx.fillStyle='#f5a8a0';
+  ctx.beginPath();ctx.ellipse(0,-12,1.5,1.2,0,0,Math.PI*2);ctx.fill();
+
+  // Mouth
+  ctx.strokeStyle='#1a1a1a';
+  ctx.lineWidth=0.8;
+  ctx.beginPath();
+  ctx.moveTo(0,-11);
+  ctx.quadraticCurveTo(-1.5,-9,-2.5,-8);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(0,-11);
+  ctx.quadraticCurveTo(1.5,-9,2.5,-8);
+  ctx.stroke();
+
+  // Whiskers
+  ctx.strokeStyle='#1a1a1a';
+  ctx.lineWidth=0.5;
+  ctx.beginPath();ctx.moveTo(-7,-15);ctx.lineTo(-13,-15);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(-7,-12);ctx.lineTo(-13,-11);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(7,-15);ctx.lineTo(13,-15);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(7,-12);ctx.lineTo(13,-11);ctx.stroke();
+
+  // Pattern overlays
   if(look.pattern==='spotted' && look.spotColor){
-    ctx.fillStyle='rgba('+parseInt(look.spotColor.slice(1,3),16)+','+parseInt(look.spotColor.slice(3,5),16)+','+parseInt(look.spotColor.slice(5,7),16)+',0.4)';
-    for(let i=0;i<4;i++){
-      ctx.beginPath();ctx.arc(randi(-8,8),randi(-4,4),randi(2,4),0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='rgba('+parseInt(look.spotColor.slice(1,3),16)+','+parseInt(look.spotColor.slice(3,5),16)+','+parseInt(look.spotColor.slice(5,7),16)+',0.35)';
+    for(let i=0;i<6;i++){
+      ctx.beginPath();ctx.arc(randi(-10,10),randi(-6,6),randi(2.5,4.5),0,Math.PI*2);ctx.fill();
     }
   }
   if(look.pattern==='pointed' && look.pointColor){
-    ctx.fillStyle='rgba('+parseInt(look.pointColor.slice(1,3),16)+','+parseInt(look.pointColor.slice(3,5),16)+','+parseInt(look.pointColor.slice(5,7),16)+',0.3)';
-    ctx.beginPath();ctx.ellipse(-4,-17,3,4.5,0,0,Math.PI*2);ctx.fill();
-    ctx.beginPath();ctx.ellipse(4,-17,3,4.5,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='rgba('+parseInt(look.pointColor.slice(1,3),16)+','+parseInt(look.pointColor.slice(3,5),16)+','+parseInt(look.pointColor.slice(5,7),16)+',0.25)';
+    ctx.beginPath();ctx.ellipse(-5,-17,4,5.5,0,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(5,-17,4,5.5,0,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(0,-2,3,4,0,0,Math.PI*2);ctx.fill();
   }
   if(look.pattern==='tabby'){
-    ctx.strokeStyle='rgba(0,0,0,0.15)';ctx.lineWidth=1;
-    for(let i=0;i<3;i++){
-      ctx.beginPath();ctx.moveTo(-10,-5+i*5);ctx.quadraticCurveTo(0,0,10,-3+i*5);ctx.stroke();
+    ctx.strokeStyle='rgba(0,0,0,0.2)';ctx.lineWidth=1.2;
+    for(let i=0;i<4;i++){
+      ctx.beginPath();ctx.moveTo(-12,-4+i*4);ctx.quadraticCurveTo(0,1,12,-2+i*4);ctx.stroke();
     }
+  }
+  if(look.pattern==='smoke' && look.smokeColor){
+    ctx.fillStyle='rgba('+parseInt(look.smokeColor.slice(1,3),16)+','+parseInt(look.smokeColor.slice(3,5),16)+','+parseInt(look.smokeColor.slice(5,7),16)+',0.15)';
+    ctx.beginPath();ctx.ellipse(0,0,18,18,0,0,Math.PI*2);ctx.fill();
   }
 
   ctx.restore();
@@ -496,9 +604,7 @@ function renderCards(breedList,containerId){
     const canvas=document.createElement('canvas');
     canvas.width=180;canvas.height=100;
     const ctx=canvas.getContext('2d');
-    ctx.fillStyle='#f0e8e0';
-    ctx.fillRect(0,0,180,100);
-    drawCat(ctx,breed,90,50,1);
+    drawCat(ctx,breed,90,50,1,true);
 
     const nm=document.createElement('div');
     nm.className='nm';
