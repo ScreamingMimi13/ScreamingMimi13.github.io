@@ -294,7 +294,7 @@ const AVATAR_STYLES = [
 
 const $ = id => document.getElementById(id);
 let gameState = {
-  started:false, playerName:'Player', playerAvatar:0, money:1000, cats:[], nextCatId:1,
+  started:false, playerName:'Player', playerAvatar:0, money:50000, cats:[], nextCatId:1,
   totalCatsBred:0, totalEarnings:0, generation:1, catsittingJobs:[], messages:[], customBreeds:[]
 };
 
@@ -892,7 +892,7 @@ function startGame(){
 
 function resetGame(){
   if(confirm('Start a new game? All progress will be lost.')){
-    gameState={started:false,playerName:'Player',playerAvatar:0,money:1000,cats:[],nextCatId:1,totalCatsBred:0,totalEarnings:0,generation:1,catsittingJobs:[],messages:[],customBreeds:[]};
+    gameState={started:false,playerName:'Player',playerAvatar:0,money:50000,cats:[],nextCatId:1,totalCatsBred:0,totalEarnings:0,generation:1,catsittingJobs:[],messages:[],customBreeds:[]};
     saveGame();
     updateUI();
     renderHome();
