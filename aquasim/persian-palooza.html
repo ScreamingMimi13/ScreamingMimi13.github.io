@@ -565,10 +565,16 @@ function drawHyperrealisticAvatar(ctx,avatar,x=50,y=50,scale=1){
   ctx.translate(x,y);
   ctx.scale(scale,scale);
 
-  // Head (graphic novel style with bold outline)
+  // Head - soft round shape like a sketch
   ctx.fillStyle=avatar.skin;
-  ctx.beginPath();ctx.arc(0,-18,16,0,Math.PI*2);ctx.fill();
-  ctx.strokeStyle='#000';ctx.lineWidth=2;ctx.stroke();
+  ctx.beginPath();ctx.arc(0,-16,14,0,Math.PI*2);ctx.fill();
+
+  // Sketch line effect - double stroke for pencil look
+  ctx.strokeStyle='#000';ctx.lineWidth=2.5;
+  ctx.beginPath();ctx.arc(0,-16,14,0,Math.PI*2);ctx.stroke();
+  ctx.globalAlpha=0.3;ctx.lineWidth=1;
+  ctx.beginPath();ctx.arc(0,-16,14.5,0,Math.PI*2);ctx.stroke();
+  ctx.globalAlpha=1;
 
   // Hair
   const hairStyle=avatar.hairStyle||'long';
@@ -607,35 +613,51 @@ function drawHyperrealisticAvatar(ctx,avatar,x=50,y=50,scale=1){
   ctx.strokeStyle='#000';ctx.lineWidth=2;
   ctx.beginPath();ctx.arc(0,-18,16,0,Math.PI*2);ctx.stroke();
 
-  // Graphic novel style eyes with bold outlines
-  // Eye whites
+  // Eyes - expressive sketch style (almond shaped, tilted slightly)
+  // Eye whites/sclera
   ctx.fillStyle='#fff';
-  ctx.beginPath();ctx.ellipse(-6,-19,5.5,6.5,0,0,Math.PI*2);ctx.fill();
-  ctx.beginPath();ctx.ellipse(6,-19,5.5,6.5,0,0,Math.PI*2);ctx.fill();
-  ctx.strokeStyle='#000';ctx.lineWidth=2;
-  ctx.beginPath();ctx.ellipse(-6,-19,5.5,6.5,0,0,Math.PI*2);ctx.stroke();
-  ctx.beginPath();ctx.ellipse(6,-19,5.5,6.5,0,0,Math.PI*2);ctx.stroke();
+  ctx.beginPath();
+  ctx.ellipse(-7,-17,6,7,-0.2,0,Math.PI*2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(7,-17,6,7,0.2,0,Math.PI*2);
+  ctx.fill();
 
-  // Irises (large and dramatic)
+  // Sketch outline
+  ctx.strokeStyle='#000';ctx.lineWidth=2;
+  ctx.beginPath();ctx.ellipse(-7,-17,6,7,-0.2,0,Math.PI*2);ctx.stroke();
+  ctx.beginPath();ctx.ellipse(7,-17,6,7,0.2,0,Math.PI*2);ctx.stroke();
+
+  // Irises - large and expressive
   ctx.fillStyle=avatar.eyeColor||'#6b4423';
-  ctx.beginPath();ctx.arc(-6,-18,3.5,0,Math.PI*2);ctx.fill();
-  ctx.beginPath();ctx.arc(6,-18,3.5,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.arc(-7,-16,4,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.arc(7,-16,4,0,Math.PI*2);ctx.fill();
 
-  // Pupils
+  // Pupils - off-center for personality
   ctx.fillStyle='#000';
-  ctx.beginPath();ctx.arc(-6,-18,1.8,0,Math.PI*2);ctx.fill();
-  ctx.beginPath();ctx.arc(6,-18,1.8,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.arc(-6,-15,2.2,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.arc(8,-15,2.2,0,Math.PI*2);ctx.fill();
 
-  // Eye shine (comic style highlight)
+  // Eye shine - double dots for sketch effect
   ctx.fillStyle='#fff';
-  ctx.beginPath();ctx.arc(-5,-21,1.2,0,Math.PI*2);ctx.fill();
-  ctx.beginPath();ctx.arc(7,-21,1.2,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.arc(-5,-17,1.2,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.arc(9,-17,1.2,0,Math.PI*2);ctx.fill();
+  ctx.globalAlpha=0.5;
+  ctx.beginPath();ctx.arc(-4,-19,0.5,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.arc(10,-19,0.5,0,Math.PI*2);ctx.fill();
+  ctx.globalAlpha=1;
 
-  // Eyebrows (bold comic style)
-  ctx.fillStyle=avatar.hairColor||'#5a4a3a';
-  ctx.fillRect(-8,-26,5,2);ctx.fillRect(3,-26,5,2);
-  ctx.strokeStyle='#000';ctx.lineWidth=2;
-  ctx.strokeRect(-8,-26,5,2);ctx.strokeRect(3,-26,5,2);
+  // Eyebrows - expressive curved lines (sketch style)
+  ctx.strokeStyle=avatar.hairColor||'#5a4a3a';
+  ctx.lineWidth=2.5;
+  ctx.beginPath();ctx.moveTo(-10,-25);ctx.quadraticCurveTo(-7,-27,-4,-25);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(10,-25);ctx.quadraticCurveTo(7,-27,4,-25);ctx.stroke();
+
+  // Double line for sketch effect
+  ctx.globalAlpha=0.3;ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(-10,-24);ctx.quadraticCurveTo(-7,-26,-4,-24);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(10,-24);ctx.quadraticCurveTo(7,-26,4,-24);ctx.stroke();
+  ctx.globalAlpha=1;
 
   // Blush (comic style circles)
   ctx.fillStyle=avatar.lipColor||'#d4749a';
@@ -648,29 +670,37 @@ function drawHyperrealisticAvatar(ctx,avatar,x=50,y=50,scale=1){
   ctx.fillStyle='#000';
   ctx.beginPath();ctx.moveTo(0,-12);ctx.lineTo(-1,-8);ctx.lineTo(1,-8);ctx.fill();
 
-  // Mouth (comic style - bold)
-  ctx.strokeStyle=avatar.lipColor||'#d4749a';
-  ctx.lineWidth=2.5;
-  ctx.beginPath();ctx.arc(0,-4,5,0,Math.PI);ctx.stroke();
+  // Mouth - friendly smile (sketch style)
+  ctx.strokeStyle='#000';ctx.lineWidth=2;
+  ctx.beginPath();ctx.arc(0,-2,5,0.1*Math.PI,0.9*Math.PI);ctx.stroke();
 
   // Mouth fill
   ctx.fillStyle=avatar.lipColor||'#d4749a';
-  ctx.globalAlpha=0.4;
-  ctx.beginPath();ctx.arc(0,-4,5,0,Math.PI);ctx.fill();
+  ctx.globalAlpha=0.5;
+  ctx.beginPath();ctx.arc(0,-2,5,0.1*Math.PI,0.9*Math.PI);ctx.fill();
   ctx.globalAlpha=1;
 
-  // Body/Outfit (graphic novel geometric)
+  // Body/Outfit - rounded dress shape (sketch style)
   ctx.fillStyle=avatar.outfitColor||'#8b5a8e';
   ctx.beginPath();
-  ctx.moveTo(-14,2);ctx.lineTo(-16,28);ctx.lineTo(0,32);
-  ctx.lineTo(16,28);ctx.lineTo(14,2);ctx.quadraticCurveTo(0,0,-14,2);
+  ctx.moveTo(-12,-2);ctx.bezierCurveTo(-16,-2,-16,15,-12,30);
+  ctx.lineTo(12,30);ctx.bezierCurveTo(16,15,16,-2,12,-2);
+  ctx.quadraticCurveTo(0,-4,-12,-2);
   ctx.fill();
-  ctx.strokeStyle='#000';ctx.lineWidth=2;
+
+  // Sketch outline
+  ctx.strokeStyle='#000';ctx.lineWidth=2.5;
+  ctx.beginPath();
+  ctx.moveTo(-12,-2);ctx.bezierCurveTo(-16,-2,-16,15,-12,30);
+  ctx.lineTo(12,30);ctx.bezierCurveTo(16,15,16,-2,12,-2);
+  ctx.quadraticCurveTo(0,-4,-12,-2);
   ctx.stroke();
 
-  // Outfit detail/shadow
-  ctx.fillStyle='rgba(0,0,0,0.15)';
-  ctx.fillRect(-12,5,6,16);
+  // Cross-hatch shading for depth
+  ctx.strokeStyle='rgba(0,0,0,0.2)';ctx.lineWidth=0.8;
+  for(let i=-8;i<8;i+=2){
+    ctx.beginPath();ctx.moveTo(i,-2);ctx.lineTo(i-3,15);ctx.stroke();
+  }
 
   // Arms (geometric comic style)
   ctx.fillStyle=avatar.skin;
