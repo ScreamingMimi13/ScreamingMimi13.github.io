@@ -1,0 +1,1981 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Critter Cross — Breed Your Own Animals</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root{
+    --card:#fffdf6; --ink:#33302a; --muted:#7d7767;
+    --accent:#4e8f3a; --accent2:#e0913a; --line:#e6ddc8;
+    --good:#2f8f4e; --bad:#c2453c;
+  }
+  html,body{ min-height:100%; }
+  body{
+    font-family:"Segoe UI", "Avenir Next", system-ui, sans-serif;
+    color:var(--ink);
+    background:linear-gradient(180deg,#8ed0f5 0%, #cfeaf7 38%, #dff0cf 60%, #b8dfa2 100%);
+    background-attachment:fixed;
+    padding-bottom:60px;
+  }
+  header.top{
+    position:sticky; top:0; z-index:40;
+    background:linear-gradient(180deg,#5b3f2a,#442e1e);
+    color:#ffeccd; padding:10px 16px;
+    display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+    box-shadow:0 4px 14px rgba(0,0,0,.28);
+  }
+  .brand{ font-size:1.25rem; font-weight:800; letter-spacing:.3px; }
+  .brand small{ display:block; font-weight:500; font-size:.68rem; opacity:.75; letter-spacing:0; }
+  .wallet{
+    margin-left:auto; background:#f5d98b; color:#4a3413;
+    font-weight:900; font-size:1.15rem; padding:6px 16px; border-radius:999px;
+    box-shadow:inset 0 -2px 0 rgba(0,0,0,.15);
+  }
+  .hstat{ font-size:.78rem; opacity:.85; }
+  nav.tabs{
+    display:flex; gap:6px; flex-wrap:wrap; justify-content:center;
+    padding:10px 12px 4px;
+  }
+  .tab{
+    font:inherit; font-weight:700; font-size:.9rem; cursor:pointer;
+    background:rgba(255,255,255,.82); color:#4b463c; border:2px solid transparent;
+    padding:8px 14px; border-radius:999px; box-shadow:0 3px 8px rgba(0,0,0,.14);
+  }
+  .tab:hover{ background:#fff; }
+  .tab.active{ background:var(--accent); color:#fff; border-color:#2f6b21; }
+  main{ max-width:1080px; margin:0 auto; padding:12px 14px 40px; }
+  .view{ display:none; }
+  .view.active{ display:block; animation:fade .18s ease; }
+  @keyframes fade{ from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:none;} }
+  .panel{
+    background:var(--card); border-radius:16px; padding:18px;
+    box-shadow:0 8px 22px rgba(60,45,20,.18); border:1px solid var(--line);
+    margin-bottom:16px;
+  }
+  h2{ font-size:1.25rem; margin-bottom:4px; color:#3d5a2b; }
+  h3{ font-size:1rem; margin-bottom:8px; color:#5a4a2c; }
+  .hint{ color:var(--muted); font-size:.86rem; line-height:1.5; }
+  .row{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+  button.btn{
+    font:inherit; font-weight:700; cursor:pointer; border:none;
+    background:var(--accent); color:#fff; padding:10px 18px; border-radius:10px;
+    box-shadow:0 3px 0 #33621f; transition:transform .08s;
+  }
+  button.btn:active{ transform:translateY(2px); box-shadow:0 1px 0 #33621f; }
+  button.btn.alt{ background:var(--accent2); box-shadow:0 3px 0 #a4661f; }
+  button.btn.grey{ background:#8b8577; box-shadow:0 3px 0 #625d52; }
+  button.btn.red{ background:var(--bad); box-shadow:0 3px 0 #8c2f28; }
+  button.btn:disabled{ opacity:.45; cursor:not-allowed; }
+  button.mini{
+    font:inherit; font-size:.78rem; font-weight:700; cursor:pointer;
+    border:1px solid var(--line); background:#fff; color:#5a5344;
+    padding:5px 10px; border-radius:8px;
+  }
+  button.mini:hover{ background:#f4efdf; }
+  button.mini:disabled{ opacity:.45; cursor:not-allowed; }
+
+  /* ---------- math lab ---------- */
+  .tiers{ display:flex; gap:8px; flex-wrap:wrap; margin:10px 0 4px; }
+  .tierbtn{
+    font:inherit; cursor:pointer; border:2px solid var(--line); background:#fff;
+    border-radius:12px; padding:8px 12px; text-align:left; min-width:150px; flex:1 1 150px;
+  }
+  .tierbtn b{ display:block; font-size:.92rem; color:#3d5a2b; }
+  .tierbtn span{ font-size:.75rem; color:var(--muted); }
+  .tierbtn.on{ border-color:var(--accent); background:#eef7e6; }
+  .qtopic{
+    display:inline-block; background:#eef2ff; color:#3f4a9c; font-size:.74rem;
+    font-weight:700; padding:4px 10px; border-radius:999px; margin-bottom:10px;
+  }
+  .qtext{ font-size:1.2rem; line-height:1.7; margin:6px 0 16px; }
+  .opts{ display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:10px; }
+  .opt{
+    font:inherit; font-size:1.02rem; cursor:pointer; text-align:left;
+    background:#fff; border:2px solid var(--line); border-radius:12px; padding:13px 16px;
+    display:flex; gap:10px; align-items:center;
+  }
+  .opt:hover:not(:disabled){ border-color:var(--accent); background:#f3faee; }
+  .opt .k{ font-weight:800; color:#9a927c; }
+  .opt.right{ border-color:var(--good); background:#e7f7ea; }
+  .opt.wrong{ border-color:var(--bad); background:#fdeceb; }
+  .opt:disabled{ cursor:default; }
+  .feedback{ margin-top:14px; padding:14px; border-radius:12px; font-size:.95rem; line-height:1.65; display:none; }
+  .feedback.show{ display:block; }
+  .feedback.ok{ background:#e7f7ea; border:1px solid #b6e0bf; }
+  .feedback.no{ background:#fdeceb; border:1px solid #f0c1bd; }
+  .feedback .payout{ font-weight:800; color:#2f6b21; font-size:1.05rem; }
+  .timerbar{ height:8px; background:#e9e3d1; border-radius:99px; overflow:hidden; margin:2px 0 12px; }
+  .timerbar > i{ display:block; height:100%; background:linear-gradient(90deg,#f0b429,#7cc06a); width:100%; }
+
+  /* ---------- cards ---------- */
+  .grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(196px,1fr)); gap:12px; }
+  .acard{
+    background:#fff; border:1px solid var(--line); border-radius:14px; padding:10px;
+    display:flex; flex-direction:column; gap:6px; box-shadow:0 4px 10px rgba(60,45,20,.12);
+  }
+  .acard canvas{ width:100%; height:118px; display:block; border-radius:10px; background:linear-gradient(180deg,#dff1ff,#eaf7d9); }
+  .acard .nm{ font-weight:800; font-size:.98rem; line-height:1.2; }
+  .acard .br{ font-size:.78rem; color:#7b6a3f; font-weight:700; }
+  .acard .meta{ font-size:.74rem; color:var(--muted); line-height:1.45; }
+  .price{ font-weight:800; color:#2f6b21; }
+  .rar{ display:inline-block; font-size:.68rem; font-weight:800; padding:2px 8px; border-radius:999px; color:#fff; }
+  .r0{background:#9aa0a6;} .r1{background:#4c9b56;} .r2{background:#3d7fd6;}
+  .r3{background:#8a5cd6;} .r4{background:#d68a2c;} .r5{background:#d64c7a;}
+  .cardbtns{ display:flex; gap:6px; margin-top:auto; flex-wrap:wrap; }
+
+  /* ---------- farm scene ---------- */
+  #farm{ width:100%; height:auto; display:block; border-radius:14px; box-shadow:inset 0 0 0 1px var(--line); }
+
+  /* ---------- breeding ---------- */
+  .pens{ display:grid; grid-template-columns:1fr auto 1fr; gap:12px; align-items:center; }
+  @media(max-width:620px){ .pens{ grid-template-columns:1fr; } }
+  .pen{
+    border:3px dashed #c9b98d; border-radius:16px; padding:10px; text-align:center; cursor:pointer;
+    background:#fffdf3; min-height:190px; display:flex; flex-direction:column; gap:6px; align-items:center; justify-content:center;
+  }
+  .pen:hover{ border-color:var(--accent); }
+  .pen canvas{ width:100%; max-width:230px; height:128px; border-radius:10px; background:linear-gradient(180deg,#dff1ff,#eaf7d9); }
+  .heart{ font-size:2.2rem; text-align:center; }
+  .picker{ position:fixed; inset:0; background:rgba(30,24,12,.6); display:none; z-index:60; padding:16px; overflow:auto; }
+  .picker.show{ display:block; }
+  .pickbox{ max-width:900px; margin:20px auto; background:var(--card); border-radius:16px; padding:18px; }
+
+  /* ---------- modal ---------- */
+  .modal{ position:fixed; inset:0; background:rgba(30,24,12,.66); display:none; z-index:70; padding:16px; overflow:auto; }
+  .modal.show{ display:flex; align-items:flex-start; justify-content:center; }
+  .mbox{
+    background:var(--card); border-radius:18px; padding:22px; max-width:520px; width:100%;
+    margin:auto; box-shadow:0 18px 50px rgba(0,0,0,.4); text-align:center;
+  }
+  .mbox canvas{ width:100%; height:auto; border-radius:12px; background:linear-gradient(180deg,#dff1ff,#eaf7d9); }
+  .field{ text-align:left; margin:12px 0; }
+  .field label{ display:block; font-size:.82rem; font-weight:800; color:#6b6250; margin-bottom:4px; }
+  .field input{
+    font:inherit; font-size:1.1rem; width:100%; padding:11px 13px;
+    border:2px solid var(--line); border-radius:10px; background:#fff; color:var(--ink);
+  }
+  .field input:focus{ outline:none; border-color:var(--accent); }
+  .traits{ display:flex; flex-wrap:wrap; gap:6px; justify-content:center; margin-top:8px; }
+  .trait{ font-size:.72rem; background:#f1ecdb; color:#6b6250; padding:3px 9px; border-radius:999px; font-weight:700; }
+  .toast{
+    position:fixed; left:50%; bottom:22px; transform:translateX(-50%);
+    background:#3a2d1a; color:#ffeccd; padding:11px 20px; border-radius:999px;
+    font-weight:700; box-shadow:0 8px 22px rgba(0,0,0,.35); z-index:90;
+    opacity:0; pointer-events:none; transition:opacity .25s, transform .25s; font-size:.92rem;
+  }
+  .toast.show{ opacity:1; transform:translateX(-50%) translateY(-6px); }
+  .empty{ text-align:center; color:var(--muted); padding:26px 10px; font-size:.95rem; grid-column:1/-1; }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand">🧬 Critter Cross<small>breed your own animals · pay for them with math</small></div>
+  <div class="hstat" id="hdrStats">Animals 0 · Breeds 0</div>
+  <div class="wallet" id="money">$0</div>
+</header>
+
+<nav class="tabs">
+  <button class="tab active" data-view="math">📐 Math Lab</button>
+  <button class="tab" data-view="market">🏪 Market</button>
+  <button class="tab" data-view="barn">🚜 My Farm</button>
+  <button class="tab" data-view="breed">💞 Breeding Barn</button>
+  <button class="tab" data-view="codex">📖 Breed Book</button>
+</nav>
+
+<main>
+  <section id="view-math" class="view active">
+    <div class="panel">
+      <h2>Math Lab</h2>
+      <div class="hint">Every animal on this farm is paid for with real high-school math. Pick a course — harder courses pay more per question. Answer fast for a speed bonus, and keep a streak going for a multiplier.</div>
+      <div class="tiers" id="tiers"></div>
+    </div>
+    <div class="panel">
+      <div class="timerbar"><i id="tbar"></i></div>
+      <div class="qtopic" id="qtopic">—</div>
+      <div class="qtext" id="qtext">Loading…</div>
+      <div class="opts" id="opts"></div>
+      <div class="feedback" id="fb"></div>
+      <div class="row" style="margin-top:14px">
+        <button class="btn" id="nextQ">Next question →</button>
+        <button class="btn grey" id="skipQ">Skip (no pay)</button>
+        <span class="hint" id="sessionStats"></span>
+      </div>
+    </div>
+  </section>
+
+  <section id="view-market" class="view">
+    <div class="panel">
+      <h2>Livestock Market</h2>
+      <div class="hint">Buy purebred animals here. You need two to start breeding — they do not have to be the same species.</div>
+    </div>
+    <div class="grid" id="marketGrid"></div>
+  </section>
+
+  <section id="view-barn" class="view">
+    <div class="panel">
+      <h2>My Farm</h2>
+      <canvas id="farm" width="960" height="300"></canvas>
+      <div class="hint" style="margin-top:8px" id="farmHint">Your animals graze here.</div>
+    </div>
+    <div class="grid" id="barnGrid"></div>
+  </section>
+
+  <section id="view-breed" class="view">
+    <div class="panel">
+      <h2>Breeding Barn</h2>
+      <div class="hint">Pick two animals. The baby mixes their body, ears, horns, tail, coat and colours — and sometimes mutates into something nobody has ever seen. Vet fee: <b>$15</b> per pairing.</div>
+      <div class="pens" style="margin-top:14px">
+        <div class="pen" id="penA"><div class="hint">Tap to choose Parent&nbsp;1</div></div>
+        <div class="heart">💞</div>
+        <div class="pen" id="penB"><div class="hint">Tap to choose Parent&nbsp;2</div></div>
+      </div>
+      <div class="row" style="justify-content:center; margin-top:16px">
+        <button class="btn alt" id="doBreed" disabled>Breed them! ($15)</button>
+        <button class="btn grey" id="clearPens">Clear</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="view-codex" class="view">
+    <div class="panel">
+      <h2>Breed Book</h2>
+      <div class="hint">Every breed you have created, with the name you gave it.</div>
+    </div>
+    <div class="grid" id="codexGrid"></div>
+  </section>
+</main>
+
+<div class="picker" id="picker"><div class="pickbox">
+  <div class="row" style="justify-content:space-between; margin-bottom:12px">
+    <h3 id="pickTitle" style="margin:0">Choose an animal</h3>
+    <button class="mini" id="pickClose">Close ✕</button>
+  </div>
+  <div class="grid" id="pickGrid"></div>
+</div></div>
+
+<div class="modal" id="modal"><div class="mbox">
+  <h2 id="mTitle">A baby was born!</h2>
+  <div class="hint" id="mSub"></div>
+  <canvas id="mCanvas" width="520" height="230"></canvas>
+  <div class="traits" id="mTraits"></div>
+  <div class="field"><label for="mName">Name this animal</label><input id="mName" maxlength="24" autocomplete="off"></div>
+  <div class="field" id="breedField"><label for="mBreed">Name the new breed</label><input id="mBreed" maxlength="24" autocomplete="off"></div>
+  <div class="row" style="justify-content:center">
+    <button class="btn" id="mSave">Save name ✓</button>
+    <button class="mini" id="mDice">🎲 Suggest names</button>
+  </div>
+</div></div>
+
+<div class="toast" id="toast"></div>
+<script>
+(function(){
+'use strict';
+
+/* ============================================================
+   0. UTILITIES
+   ============================================================ */
+const $ = id => document.getElementById(id);
+const rand = (a,b) => a + Math.random()*(b-a);
+const randint = (a,b) => Math.floor(a + Math.random()*(b-a+1));
+const pick = arr => arr[Math.floor(Math.random()*arr.length)];
+const clamp = (v,a,b) => v<a?a:(v>b?b:v);
+const cash = n => '$' + Math.round(n).toLocaleString('en-US');
+
+function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+
+function mulberry32(seed){
+  let t = seed >>> 0;
+  return function(){
+    t += 0x6D2B79F5;
+    let r = Math.imul(t ^ (t>>>15), 1 | t);
+    r ^= r + Math.imul(r ^ (r>>>7), 61 | r);
+    return ((r ^ (r>>>14)) >>> 0) / 4294967296;
+  };
+}
+
+function hexToRgb(h){
+  h = h.replace('#','');
+  if(h.length===3) h = h.split('').map(c=>c+c).join('');
+  return [parseInt(h.slice(0,2),16), parseInt(h.slice(2,4),16), parseInt(h.slice(4,6),16)];
+}
+function rgbToHex(r,g,b){
+  const f = v => clamp(Math.round(v),0,255).toString(16).padStart(2,'0');
+  return '#' + f(r) + f(g) + f(b);
+}
+function mixHex(a,b,t){
+  const A = hexToRgb(a), B = hexToRgb(b);
+  return rgbToHex(A[0]+(B[0]-A[0])*t, A[1]+(B[1]-A[1])*t, A[2]+(B[2]-A[2])*t);
+}
+function shade(hex, amt){
+  const c = hexToRgb(hex);
+  return rgbToHex(c[0]+amt, c[1]+amt, c[2]+amt);
+}
+function jitterHex(hex, amount){
+  const c = hexToRgb(hex);
+  return rgbToHex(c[0]+rand(-amount,amount), c[1]+rand(-amount,amount), c[2]+rand(-amount,amount));
+}
+
+let toastTimer = null;
+function toast(msg){
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>t.classList.remove('show'), 2300);
+}
+
+/* ============================================================
+   1. GAME STATE
+   ============================================================ */
+const state = {
+  money: 0,
+  animals: [],
+  codex: {},          // breedName -> {count, best, sample}
+  nextId: 1,
+  tier: 0,
+  streak: 0,
+  bestStreak: 0,
+  asked: 0,
+  correct: 0,
+  earned: 0,
+  bred: 0
+};
+
+const BREED_FEE = 15;
+
+/* ============================================================
+   2. GENETICS
+   Every animal — chicken or camel or something you invented —
+   is the same list of numbers. That is what makes hybrids work.
+   ============================================================ */
+const GENE_KEYS = [
+  'size','bodyLen','bodyDepth','legLen','legThick','neckLen','headSize',
+  'snout','beak','earSize','earDroop','hornSize','hornCurl',
+  'tailLen','tailFluff','tailCurl','wool','mane','spots','stripes',
+  'hump','comb','plume','whisk'
+];
+
+function G(o){
+  const g = {};
+  for(const k of GENE_KEYS) g[k] = o[k] !== undefined ? o[k] : 0;
+  return g;
+}
+
+const SPECIES = [
+  { key:'chicken', name:'Chicken', price:45,
+    genes:G({size:.16,bodyLen:.22,bodyDepth:.42,legLen:.20,legThick:.12,neckLen:.20,headSize:.26,
+             beak:.95,earSize:.05,tailLen:.28,tailFluff:.85,comb:.9,plume:.15}),
+    palette:[['#f2f2ef','#d9d4c8','#e5b23c'],['#c0672c','#8c4520','#e5b23c'],['#3b3b40','#232327','#e0a02e'],['#e8c56a','#c9a24a','#e5b23c']] },
+
+  { key:'rabbit', name:'Rabbit', price:70,
+    genes:G({size:.12,bodyLen:.30,bodyDepth:.40,legLen:.18,legThick:.18,neckLen:.05,headSize:.34,
+             snout:.20,earSize:.92,earDroop:.10,tailLen:.06,tailFluff:1,whisk:.9,wool:.25}),
+    palette:[['#d9d2c6','#b8ae9d','#f0e7dc'],['#8a7461','#6b5747','#d8cfc2'],['#3c3a3a','#242323','#d7d2cb'],['#f4f1ec','#ddd6cb','#ffffff']] },
+
+  { key:'duck', name:'Duck', price:95,
+    genes:G({size:.18,bodyLen:.36,bodyDepth:.48,legLen:.14,legThick:.16,neckLen:.34,headSize:.28,
+             beak:.75,earSize:.03,tailLen:.20,tailFluff:.5,plume:.1}),
+    palette:[['#f6f4ee','#ded8c9','#f0a83a'],['#4a6b4a','#33502f','#e8a63a'],['#8a6f4e','#6a5238','#e0983a'],['#2f3b4a','#1f2833','#e5b23c']] },
+
+  { key:'goat', name:'Goat', price:140,
+    genes:G({size:.30,bodyLen:.44,bodyDepth:.40,legLen:.46,legThick:.24,neckLen:.30,headSize:.30,
+             snout:.55,earSize:.42,earDroop:.55,hornSize:.42,hornCurl:.30,tailLen:.16,tailFluff:.3,spots:.35}),
+    palette:[['#e8e2d3','#c8bda6','#c9b48a'],['#7a5a3c','#5a412a','#c9b48a'],['#3a352f','#241f1b','#b9a582'],['#c9a86c','#a3854f','#d9c9a4']] },
+
+  { key:'sheep', name:'Sheep', price:175,
+    genes:G({size:.30,bodyLen:.46,bodyDepth:.50,legLen:.34,legThick:.24,neckLen:.16,headSize:.28,
+             snout:.42,earSize:.36,earDroop:.75,hornSize:.22,hornCurl:.85,tailLen:.12,tailFluff:.9,wool:.95}),
+    palette:[['#f4f1e8','#ddd6c6','#3a352f'],['#3a352f','#242019','#dcd4c4'],['#d8c9ae','#bda98a','#4a4239'],['#efe7d6','#d2c6ae','#6b5b46']] },
+
+  { key:'pig', name:'Pig', price:210,
+    genes:G({size:.34,bodyLen:.62,bodyDepth:.56,legLen:.26,legThick:.34,neckLen:.10,headSize:.30,
+             snout:.85,earSize:.44,earDroop:.60,tailLen:.20,tailCurl:.95,spots:.30}),
+    palette:[['#f0b9b3','#d99a94','#c98a84'],['#e3ded7','#c6bfb4','#8f8a80'],['#4a3f3a','#332b28','#7a6a62'],['#d98f7a','#b06f5c','#8c5545']] },
+
+  { key:'alpaca', name:'Alpaca', price:290,
+    genes:G({size:.34,bodyLen:.42,bodyDepth:.44,legLen:.52,legThick:.20,neckLen:.85,headSize:.24,
+             snout:.40,earSize:.55,earDroop:.08,tailLen:.14,tailFluff:.6,wool:.88}),
+    palette:[['#efe4d0','#d4c5aa','#6b5b46'],['#8a6a4a','#6a4f36','#e0d2ba'],['#3a332c','#241f19','#d8ccb8'],['#c9a985','#a88a68','#efe4d0']] },
+
+  { key:'donkey', name:'Donkey', price:340,
+    genes:G({size:.44,bodyLen:.54,bodyDepth:.46,legLen:.56,legThick:.28,neckLen:.46,headSize:.32,
+             snout:.62,earSize:.85,earDroop:.14,tailLen:.46,tailFluff:.55,mane:.55}),
+    palette:[['#a09a92','#7d766d','#5a534c'],['#7a6b5c','#5c5044','#463d33'],['#c4bbae','#a0968a','#6b6156']] },
+
+  { key:'cow', name:'Cow', price:480,
+    genes:G({size:.62,bodyLen:.74,bodyDepth:.62,legLen:.50,legThick:.34,neckLen:.28,headSize:.34,
+             snout:.66,earSize:.44,earDroop:.62,hornSize:.34,hornCurl:.40,tailLen:.62,tailFluff:.7,spots:.80}),
+    palette:[['#f6f3ec','#d9d3c6','#2e2a26'],['#7a4a2c','#5c351d','#e6dccb'],['#3a3430','#211d1a','#efe7d8'],['#c9a06a','#a37e4c','#f0e7d6']] },
+
+  { key:'horse', name:'Horse', price:620,
+    genes:G({size:.60,bodyLen:.66,bodyDepth:.50,legLen:.78,legThick:.28,neckLen:.62,headSize:.32,
+             snout:.70,earSize:.34,earDroop:.06,tailLen:.72,tailFluff:.85,mane:.85}),
+    palette:[['#8a5a34','#66401f','#2e241c'],['#33302c','#1c1a17','#5a5049'],['#d9cdbb','#bcae98','#6b5f4e'],['#a8724a','#7e5231','#f0e7d6']] },
+
+  { key:'deer', name:'Deer', price:760,
+    genes:G({size:.42,bodyLen:.50,bodyDepth:.42,legLen:.80,legThick:.16,neckLen:.60,headSize:.26,
+             snout:.50,earSize:.60,earDroop:.10,hornSize:.62,hornCurl:.10,tailLen:.14,tailFluff:.8,spots:.62}),
+    palette:[['#b4854f','#8f6436','#f2ece0'],['#8a6b4a','#6a4f34','#efe7d8'],['#d9b98a','#b3915f','#fffaf0']] },
+
+  { key:'zebra', name:'Zebra', price:900,
+    genes:G({size:.55,bodyLen:.62,bodyDepth:.50,legLen:.72,legThick:.26,neckLen:.60,headSize:.32,
+             snout:.66,earSize:.52,earDroop:.06,tailLen:.60,tailFluff:.7,mane:.65,stripes:.95}),
+    palette:[['#f6f4ee','#dedad0','#1e1c1a'],['#e8e2d2','#cdc6b4','#2a2622']] },
+
+  { key:'yak', name:'Yak', price:1100,
+    genes:G({size:.70,bodyLen:.72,bodyDepth:.70,legLen:.36,legThick:.40,neckLen:.18,headSize:.36,
+             snout:.60,earSize:.30,earDroop:.50,hornSize:.66,hornCurl:.62,tailLen:.44,tailFluff:.95,wool:.80,hump:.70}),
+    palette:[['#4a3d33','#2e251e','#d6cbb8'],['#2a2422','#171312','#c9bda8'],['#7a6650','#584636','#e0d5c0']] },
+
+  { key:'peacock', name:'Peacock', price:1400,
+    genes:G({size:.24,bodyLen:.30,bodyDepth:.42,legLen:.30,legThick:.12,neckLen:.55,headSize:.22,
+             beak:.85,earSize:.02,tailLen:.40,tailFluff:.3,comb:.5,plume:1}),
+    palette:[['#1a5c8a','#0f3d5e','#2fa87a'],['#2f7a6a','#1a4f45','#3fb0d6'],['#efe9dc','#d3cbb8','#9ad0c8']] },
+
+  { key:'camel', name:'Camel', price:1700,
+    genes:G({size:.66,bodyLen:.66,bodyDepth:.52,legLen:.80,legThick:.26,neckLen:.80,headSize:.28,
+             snout:.72,earSize:.24,earDroop:.35,tailLen:.42,tailFluff:.5,hump:1,wool:.30}),
+    palette:[['#d3a86a','#b0854a','#6b5232'],['#c49a68','#9e7546','#5e4a2e'],['#e6c894','#c0a06c','#7a6040']] },
+
+  { key:'ostrich', name:'Ostrich', price:2100,
+    genes:G({size:.52,bodyLen:.44,bodyDepth:.62,legLen:.95,legThick:.18,neckLen:.95,headSize:.18,
+             beak:.70,earSize:.02,tailLen:.30,tailFluff:.95,plume:.45}),
+    palette:[['#2e2b28','#1a1817','#e8dfcc'],['#6b6156','#4a423a','#efe7d6'],['#c9bda8','#a3907a','#3a332c']] }
+];
+
+const RARITY = ['Common','Uncommon','Rare','Epic','Legendary','Mythic'];
+function rarityOf(value){
+  if(value < 200) return 0;
+  if(value < 500) return 1;
+  if(value < 1100) return 2;
+  if(value < 2400) return 3;
+  if(value < 5000) return 4;
+  return 5;
+}
+
+const FIRST_NAMES = ['Pepper','Biscuit','Clover','Moose','Waffles','Daisy','Turnip','Bandit','Mochi','Olive',
+  'Rusty','Pickle','Juniper','Tofu','Marbles','Cinnamon','Nugget','Willow','Bramble','Noodle',
+  'Poppy','Sprout','Hazel','Domino','Peanut','Comet','Maple','Gizmo','Suki','Barnaby'];
+
+function makeSeed(){ return randint(1, 2000000000); }
+
+function speciesAnimal(sp){
+  const g = {};
+  for(const k of GENE_KEYS) g[k] = clamp(sp.genes[k] + rand(-0.035,0.035), 0, 1);
+  const pal = pick(sp.palette);
+  return {
+    id: state.nextId++,
+    name: pick(FIRST_NAMES),
+    breed: sp.name,
+    species: sp.key,
+    genes: g,
+    colors: { base: jitterHex(pal[0],10), belly: jitterHex(pal[1],10), patch: jitterHex(pal[2],10), horn:'#e0d6bd' },
+    value: sp.price,
+    gen: 1,
+    parents: null,
+    seed: makeSeed(),
+    quirks: []
+  };
+}
+
+/* -------- breeding -------- */
+const QUIRKS = ['Tiny','Giant','Fluffy','Sleek','Long-legged','Stubby','Big-eared','Horned','Curly-tailed',
+  'Spotted','Striped','Woolly','Humped','Crested','Plumed','Bearded','Golden','Frosted','Inky','Rainbow'];
+
+function breedAnimals(a, b){
+  const g = {}, mutated = [];
+  for(const k of GENE_KEYS){
+    const w = rand(0.25, 0.75);
+    let v = a.genes[k]*w + b.genes[k]*(1-w);
+    v += rand(-0.03, 0.03);
+    if(Math.random() < 0.10){                       // small mutation
+      v += rand(-0.22, 0.22);
+      if(Math.random() < 0.28){                     // big mutation
+        v = clamp(v + (Math.random()<0.5 ? -0.42 : 0.42), 0, 1);
+        mutated.push(k);
+      }
+    }
+    g[k] = clamp(v, 0, 1);
+  }
+  const t = rand(0.2, 0.8);
+  const colors = {
+    base:  jitterHex(mixHex(a.colors.base,  b.colors.base,  t), Math.random()<0.14 ? 46 : 9),
+    belly: jitterHex(mixHex(a.colors.belly, b.colors.belly, t), 9),
+    patch: jitterHex(mixHex(a.colors.patch, b.colors.patch, rand(0,1)), Math.random()<0.18 ? 55 : 9),
+    horn:  mixHex(a.colors.horn, b.colors.horn, 0.5)
+  };
+
+  const gen = Math.max(a.gen, b.gen) + 1;
+  const rarityBonus = 1 + mutated.length*0.16 + (gen-1)*0.05 + rand(0, 0.12);
+  const value = Math.round(((a.value + b.value)/2) * rarityBonus);
+
+  const baby = {
+    id: state.nextId++,
+    name: pick(FIRST_NAMES),
+    breed: portmanteau(a.breed, b.breed),
+    species: 'hybrid',
+    genes: g,
+    colors,
+    value,
+    gen,
+    parents: [a.name + ' (' + a.breed + ')', b.name + ' (' + b.breed + ')'],
+    seed: makeSeed(),
+    quirks: []
+  };
+  baby.quirks = describeQuirks(baby, mutated);
+  return baby;
+}
+
+function describeQuirks(an, mutated){
+  const g = an.genes, out = [];
+  if(g.size > 0.8) out.push('Giant'); else if(g.size < 0.14) out.push('Pocket-sized');
+  if(g.legLen > 0.82) out.push('Stilt legs'); else if(g.legLen < 0.16) out.push('Stubby legs');
+  if(g.neckLen > 0.82) out.push('Long neck');
+  if(g.earSize > 0.78) out.push('Huge ears');
+  if(g.hornSize > 0.62) out.push('Big horns');
+  if(g.wool > 0.7) out.push('Woolly');
+  if(g.plume > 0.6) out.push('Show plumage');
+  if(g.hump > 0.55) out.push('Humped');
+  if(g.stripes > 0.6) out.push('Striped');
+  if(g.spots > 0.6) out.push('Spotted');
+  if(g.mane > 0.65) out.push('Flowing mane');
+  if(g.tailCurl > 0.7) out.push('Curly tail');
+  if(g.beak > 0.5) out.push('Beaked');
+  if(mutated && mutated.length >= 2) out.push('Mutant');
+  return out.slice(0, 4);
+}
+
+/* portmanteau: "Cow" + "Sheep" -> "Cheep" */
+function portmanteau(a, b){
+  a = String(a).replace(/[^A-Za-z]/g,'') || 'Critter';
+  b = String(b).replace(/[^A-Za-z]/g,'') || 'Beast';
+  const i = Math.max(1, Math.ceil(a.length * rand(0.35, 0.6)));
+  const j = Math.min(b.length - 1, Math.floor(b.length * rand(0.3, 0.55)));
+  let out = a.slice(0, i) + b.slice(j).toLowerCase();
+  out = out.replace(/(.)\1{2,}/g, '$1$1');
+  if(out.length < 4) out = a.slice(0,2) + b.toLowerCase();
+  if(out.length > 14) out = out.slice(0, 14);
+  out = out.charAt(0).toUpperCase() + out.slice(1).toLowerCase();
+  /* a blend that just repeats a parent's name is a boring suggestion */
+  if(out.toLowerCase() === a.toLowerCase() || out.toLowerCase() === b.toLowerCase()){
+    out = out + pick(['ino','ette','oon','ling','ox','ara','uff','ipp']);
+  }
+  return out;
+}
+
+function suggestBreedName(a, b){
+  const opts = [portmanteau(a.breed, b.breed), portmanteau(b.breed, a.breed)];
+  return pick(opts);
+}
+
+/* ============================================================
+   3. DRAWING A CRITTER FROM ITS GENES
+   Same rig for every animal, so a mix really looks like a mix.
+   ============================================================ */
+function drawScene(ctx, w, h){
+  const sky = ctx.createLinearGradient(0,0,0,h);
+  sky.addColorStop(0,'#cfe9ff'); sky.addColorStop(0.62,'#e6f4ff'); sky.addColorStop(0.63,'#a8d67f'); sky.addColorStop(1,'#7cb85f');
+  ctx.fillStyle = sky; ctx.fillRect(0,0,w,h);
+}
+
+function drawCritter(ctx, an, cx, groundY, S, phase){
+  const g = an.genes, C = an.colors;
+  const rnd = mulberry32(an.seed);
+  const scale = S * (0.62 + g.size * 0.95);
+
+  const bodyRx = (22 + g.bodyLen*30) * scale;
+  const bodyRy = (13 + g.bodyDepth*17) * scale;
+  const legL   = (7 + g.legLen*46) * scale;
+  const legW   = Math.max(1.6, (2.4 + g.legThick*7) * scale);
+  const cy     = groundY - legL - bodyRy*0.82;
+  const twoLegs = g.beak > 0.5;
+
+  const dark  = shade(C.base, -46);
+  const light = shade(C.base, 26);
+  const swingA = Math.sin(phase) * 0.30;
+  const swingB = Math.sin(phase + Math.PI) * 0.30;
+
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  function leg(x, ang, col){
+    const topY = cy + bodyRy*0.55;
+    const midX = x + Math.sin(ang)*legL*0.35, midY = topY + legL*0.52;
+    const endX = x + Math.sin(ang)*legL*0.62, endY = groundY;
+    ctx.strokeStyle = col; ctx.lineWidth = legW;
+    ctx.beginPath(); ctx.moveTo(x, topY); ctx.lineTo(midX, midY); ctx.lineTo(endX, endY); ctx.stroke();
+    ctx.fillStyle = shade(col, -34);
+    ctx.beginPath(); ctx.ellipse(endX, endY-legW*0.35, legW*0.85, legW*0.62, 0, 0, Math.PI*2); ctx.fill();
+  }
+
+  const frontX = cx + bodyRx*0.52, backX = cx - bodyRx*0.58;
+
+  /* ---- tail feathers / peacock plume (behind everything) ---- */
+  if(g.plume > 0.35){
+    const n = 5 + Math.round(g.plume*7);
+    const R = (18 + g.plume*54) * scale;
+    for(let i=0;i<n;i++){
+      const a0 = -0.15 - (i/(n-1))*1.5;
+      ctx.strokeStyle = i%2 ? C.patch : shade(C.patch, -22);
+      ctx.lineWidth = 3*scale;
+      ctx.beginPath();
+      ctx.moveTo(backX, cy);
+      ctx.quadraticCurveTo(backX - R*0.7, cy + Math.sin(a0)*R*0.9, backX - R*Math.cos(a0*0.6), cy + Math.sin(a0)*R);
+      ctx.stroke();
+      ctx.fillStyle = C.belly;
+      ctx.beginPath();
+      ctx.ellipse(backX - R*Math.cos(a0*0.6), cy + Math.sin(a0)*R, 4.4*scale, 3*scale, a0, 0, Math.PI*2);
+      ctx.fill();
+    }
+  }
+
+  /* ---- tail ---- */
+  if(g.tailLen > 0.04 && g.plume < 0.7){
+    const tl = (5 + g.tailLen*42) * scale;
+    const tx = backX - bodyRx*0.35, ty = cy - bodyRy*0.35;
+    ctx.strokeStyle = dark; ctx.lineWidth = Math.max(1.4, (1.6 + g.tailLen*4)*scale);
+    ctx.beginPath();
+    ctx.moveTo(tx, ty);
+    if(g.tailCurl > 0.55){
+      ctx.bezierCurveTo(tx - tl*0.8, ty - tl*0.5, tx - tl*0.2, ty - tl*0.9, tx - tl*0.6, ty - tl*0.25);
+    }else{
+      ctx.quadraticCurveTo(tx - tl*0.8, ty + tl*0.25, tx - tl*0.75, ty + tl*0.95);
+    }
+    ctx.stroke();
+    if(g.tailFluff > 0.35){
+      const fx = g.tailCurl > 0.55 ? tx - tl*0.6 : tx - tl*0.75;
+      const fy = g.tailCurl > 0.55 ? ty - tl*0.25 : ty + tl*0.95;
+      ctx.fillStyle = light;
+      const fr = (2.5 + g.tailFluff*8)*scale;
+      for(let i=0;i<4;i++){
+        ctx.beginPath();
+        ctx.ellipse(fx + (rnd()-0.5)*fr, fy + (rnd()-0.5)*fr, fr*0.72, fr*0.62, 0, 0, Math.PI*2);
+        ctx.fill();
+      }
+    }
+  }
+
+  /* ---- far legs ---- */
+  const farCol = shade(C.base, -58);
+  if(!twoLegs) leg(frontX - 5*scale, swingB, farCol);
+  leg(backX + 5*scale, swingA, farCol);
+
+  /* ---- body ---- */
+  ctx.fillStyle = C.base;
+  ctx.beginPath(); ctx.ellipse(cx, cy, bodyRx, bodyRy, 0, 0, Math.PI*2); ctx.fill();
+
+  /* belly */
+  ctx.fillStyle = C.belly;
+  ctx.beginPath(); ctx.ellipse(cx, cy + bodyRy*0.42, bodyRx*0.78, bodyRy*0.46, 0, 0, Math.PI*2); ctx.fill();
+
+  /* hump */
+  if(g.hump > 0.25){
+    ctx.fillStyle = C.base;
+    const hh = (4 + g.hump*22)*scale;
+    ctx.beginPath(); ctx.ellipse(cx - bodyRx*0.1, cy - bodyRy*0.75, bodyRx*0.42, hh, 0, 0, Math.PI*2); ctx.fill();
+    if(g.hump > 0.75){
+      ctx.beginPath(); ctx.ellipse(cx + bodyRx*0.42, cy - bodyRy*0.7, bodyRx*0.3, hh*0.8, 0, 0, Math.PI*2); ctx.fill();
+    }
+  }
+
+  /* patterns clipped to the body */
+  if(g.spots > 0.35 || g.stripes > 0.45){
+    ctx.save();
+    ctx.beginPath(); ctx.ellipse(cx, cy, bodyRx, bodyRy, 0, 0, Math.PI*2); ctx.clip();
+    if(g.stripes > 0.45){
+      ctx.fillStyle = C.patch;
+      const bars = 4 + Math.round(g.stripes*7);
+      for(let i=0;i<bars;i++){
+        const x = cx - bodyRx + (i+0.5)*(bodyRx*2/bars);
+        ctx.save(); ctx.translate(x, cy); ctx.rotate((rnd()-0.5)*0.35);
+        ctx.fillRect(-bodyRx*0.055, -bodyRy*1.2, bodyRx*0.11, bodyRy*2.4);
+        ctx.restore();
+      }
+    }
+    if(g.spots > 0.35){
+      ctx.fillStyle = C.patch;
+      const n = 3 + Math.round(g.spots*8);
+      for(let i=0;i<n;i++){
+        const sx = cx + (rnd()-0.5)*bodyRx*1.7;
+        const sy = cy + (rnd()-0.5)*bodyRy*1.6;
+        const sr = (2 + rnd()*5 + g.spots*4) * scale;
+        ctx.beginPath(); ctx.ellipse(sx, sy, sr, sr*0.78, rnd()*3, 0, Math.PI*2); ctx.fill();
+      }
+    }
+    ctx.restore();
+  }
+
+  /* wool overlay */
+  if(g.wool > 0.25){
+    ctx.fillStyle = shade(C.base, 20);
+    const puffs = 7 + Math.round(g.wool*9);
+    for(let i=0;i<puffs;i++){
+      const a = (i/puffs)*Math.PI*2;
+      const px = cx + Math.cos(a)*bodyRx*0.92, py = cy + Math.sin(a)*bodyRy*0.92;
+      const pr = (3 + g.wool*8)*scale;
+      ctx.beginPath(); ctx.arc(px, py, pr, 0, Math.PI*2); ctx.fill();
+    }
+    ctx.fillStyle = shade(C.base, 10);
+    for(let i=0;i<5;i++){
+      ctx.beginPath();
+      ctx.arc(cx + (rnd()-0.5)*bodyRx, cy + (rnd()-0.5)*bodyRy, (3+g.wool*7)*scale, 0, Math.PI*2);
+      ctx.fill();
+    }
+  }
+
+  /* ---- near legs ---- */
+  if(!twoLegs) leg(frontX, swingA, C.base);
+  leg(backX, swingB, C.base);
+  if(twoLegs) leg(cx + bodyRx*0.05, swingA, C.patch);
+
+  /* ---- neck + head ---- */
+  const neckL = (5 + g.neckLen*52) * scale;
+  const nbx = cx + bodyRx*0.72, nby = cy - bodyRy*0.42;
+  const hx = nbx + neckL*0.48, hy = nby - neckL*0.86;
+  const hR = (7 + g.headSize*12) * scale;
+
+  ctx.strokeStyle = C.base;
+  ctx.lineWidth = Math.max(3, (5 + g.headSize*10) * scale);
+  ctx.beginPath(); ctx.moveTo(nbx - 2*scale, nby + 3*scale);
+  ctx.quadraticCurveTo(nbx + neckL*0.12, nby - neckL*0.5, hx, hy);
+  ctx.stroke();
+
+  if(g.mane > 0.3){
+    ctx.strokeStyle = shade(C.patch, -10);
+    ctx.lineWidth = Math.max(1.5, 2.4*scale);
+    const steps = 6;
+    for(let i=0;i<steps;i++){
+      const t = i/(steps-1);
+      const mx = nbx + (hx-nbx)*t - 3*scale, my = nby + (hy-nby)*t;
+      ctx.beginPath();
+      ctx.moveTo(mx, my);
+      ctx.quadraticCurveTo(mx - 8*scale*g.mane, my + 4*scale, mx - 5*scale*g.mane, my + 12*scale*g.mane);
+      ctx.stroke();
+    }
+  }
+
+  ctx.fillStyle = C.base;
+  ctx.beginPath(); ctx.ellipse(hx, hy, hR*1.06, hR, -0.12, 0, Math.PI*2); ctx.fill();
+
+  /* ears */
+  if(g.earSize > 0.06){
+    const eL = (3 + g.earSize*22) * scale;
+    const eW = eL * (0.34 + g.earSize*0.22);
+    const ang = -1.15 + g.earDroop*2.3;
+    for(const side of [-1, 0.35]){
+      const ex = hx - hR*0.35 + side*hR*0.35;
+      const ey = hy - hR*0.72;
+      ctx.save(); ctx.translate(ex, ey); ctx.rotate(ang + (side<0 ? -0.22 : 0.14));
+      ctx.fillStyle = side<0 ? shade(C.base,-24) : C.base;
+      ctx.beginPath(); ctx.ellipse(0, -eL*0.45, eW, eL*0.55, 0, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = shade(C.belly, 12);
+      ctx.beginPath(); ctx.ellipse(0, -eL*0.45, eW*0.5, eL*0.36, 0, 0, Math.PI*2); ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  /* horns */
+  if(g.hornSize > 0.10){
+    const hl = (4 + g.hornSize*26) * scale;
+    ctx.strokeStyle = C.horn;
+    ctx.lineWidth = Math.max(1.8, (1.6 + g.hornSize*5) * scale);
+    for(const side of [-1, 1]){
+      const bx = hx - hR*0.35 + side*hR*0.28, by = hy - hR*0.82;
+      ctx.beginPath(); ctx.moveTo(bx, by);
+      if(g.hornCurl > 0.5){
+        ctx.bezierCurveTo(bx + side*hl*0.7, by - hl*0.6, bx + side*hl*1.15, by + hl*0.15, bx + side*hl*0.45, by + hl*0.5);
+      }else{
+        ctx.quadraticCurveTo(bx + side*hl*0.35, by - hl*0.8, bx + side*hl*0.85, by - hl*1.05);
+      }
+      ctx.stroke();
+    }
+  }
+
+  /* comb / crest */
+  if(g.comb > 0.3){
+    ctx.fillStyle = '#d94a3d';
+    ctx.beginPath();
+    ctx.moveTo(hx - hR*0.55, hy - hR*0.85);
+    for(let i=0;i<3;i++){
+      ctx.lineTo(hx - hR*0.35 + i*hR*0.4, hy - hR*(0.85 + g.comb*0.75));
+      ctx.lineTo(hx - hR*0.15 + i*hR*0.4, hy - hR*0.9);
+    }
+    ctx.closePath(); ctx.fill();
+  }
+
+  /* snout / muzzle or beak */
+  if(g.beak > 0.35){
+    ctx.fillStyle = C.patch;
+    const bl = (5 + g.beak*15) * scale;
+    const bw = (2 + g.beak*7) * scale * (0.6 + g.snout*0.8);
+    ctx.beginPath();
+    ctx.moveTo(hx + hR*0.6, hy - bw*0.4);
+    ctx.lineTo(hx + hR*0.6 + bl, hy + bw*0.1);
+    ctx.lineTo(hx + hR*0.6, hy + bw*0.9);
+    ctx.closePath(); ctx.fill();
+  }else if(g.snout > 0.12){
+    const sl = (2 + g.snout*15) * scale;
+    ctx.fillStyle = shade(C.base, 18);
+    ctx.beginPath(); ctx.ellipse(hx + hR*0.72, hy + hR*0.24, sl*0.8, sl*0.6 + hR*0.22, -0.1, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = shade(C.base, -52);
+    ctx.beginPath(); ctx.ellipse(hx + hR*0.72 + sl*0.42, hy + hR*0.2, sl*0.24, sl*0.2, 0, 0, Math.PI*2); ctx.fill();
+  }
+
+  /* whiskers */
+  if(g.whisk > 0.5){
+    ctx.strokeStyle = 'rgba(60,50,40,.55)'; ctx.lineWidth = Math.max(0.7, 0.9*scale);
+    for(let i=-1;i<=1;i++){
+      ctx.beginPath();
+      ctx.moveTo(hx + hR*0.7, hy + hR*0.25);
+      ctx.lineTo(hx + hR*0.7 + 14*scale, hy + hR*0.25 + i*5*scale);
+      ctx.stroke();
+    }
+  }
+
+  /* eye */
+  ctx.fillStyle = '#fff';
+  ctx.beginPath(); ctx.arc(hx + hR*0.28, hy - hR*0.16, hR*0.28, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#221c16';
+  ctx.beginPath(); ctx.arc(hx + hR*0.33, hy - hR*0.16, hR*0.16, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,.85)';
+  ctx.beginPath(); ctx.arc(hx + hR*0.38, hy - hR*0.23, hR*0.06, 0, Math.PI*2); ctx.fill();
+}
+
+/* how tall and wide this animal draws, in un-scaled units */
+function critterMetrics(g){
+  const legL = 7 + g.legLen*46;
+  const bodyRy = 13 + g.bodyDepth*17;
+  const bodyRx = 22 + g.bodyLen*30;
+  const neckL = 5 + g.neckLen*52;
+  const hR = 7 + g.headSize*12;
+  const crown = Math.max(g.earSize*24, g.hornSize*30, g.comb*16);
+  return {
+    height: legL + bodyRy*1.9 + neckL*0.86 + hR*2 + crown + 4,
+    width:  bodyRx*2 + neckL*0.5 + hR*2 + (5 + g.tailLen*42) + (g.plume > 0.35 ? 18 + g.plume*54 : 0)
+  };
+}
+/* the S that makes this animal exactly `target` px tall */
+function scaleForHeight(an, target){
+  const m = critterMetrics(an.genes);
+  return target / (m.height * (0.62 + an.genes.size*0.95));
+}
+/* the S that fits the animal inside w x h */
+function fitScale(an, w, h, padY){
+  const m = critterMetrics(an.genes);
+  const mult = 0.62 + an.genes.size*0.95;
+  return Math.min((h - (padY === undefined ? 18 : padY)) / m.height, (w - 26) / m.width) / mult;
+}
+
+/* draw one animal centred inside a canvas element */
+function paintCard(canvas, an, phase){
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width, h = canvas.height;
+  ctx.clearRect(0,0,w,h);
+  const sky = ctx.createLinearGradient(0,0,0,h);
+  sky.addColorStop(0,'#dff1ff'); sky.addColorStop(0.72,'#eef8e2'); sky.addColorStop(1,'#cbe7ac');
+  ctx.fillStyle = sky; ctx.fillRect(0,0,w,h);
+  ctx.fillStyle = 'rgba(120,175,95,.55)';
+  ctx.fillRect(0, h-12, w, 12);
+  /* a big tail fan sticks out behind, so shift showy birds to the right */
+  const cx = w * (0.46 + Math.max(0, an.genes.plume - 0.35) * 0.16);
+  drawCritter(ctx, an, cx, h-11, fitScale(an, w, h), phase||0);
+}
+
+/* ============================================================
+   4. THE MATH LAB — real high-school questions, generated fresh
+   Each generator returns { topic, text, ans, wrongs, sol }.
+   ============================================================ */
+function fmt(n, dp){
+  if(typeof n === 'string') return n;
+  const d = dp === undefined ? 2 : dp;
+  const r = Math.round(n * Math.pow(10,d)) / Math.pow(10,d);
+  return String(r);
+}
+function money2(n){ return '$' + (Math.round(n*100)/100).toFixed(2); }
+function gcd(a,b){ a=Math.abs(a); b=Math.abs(b); while(b){ [a,b]=[b,a%b]; } return a||1; }
+function fracStr(n,d){
+  if(d < 0){ n = -n; d = -d; }
+  const g = gcd(n,d); n/=g; d/=g;
+  return d === 1 ? String(n) : n + '/' + d;
+}
+function sgn(n){ return n < 0 ? ' − ' + Math.abs(n) : ' + ' + n; }
+function coef(a){ return a === 1 ? '' : (a === -1 ? '−' : String(a)); }
+/* leading term: lead(3,'x') -> "3x", lead(-1,'x') -> "−x", lead(0,'') -> "0" */
+function lead(v, vr){
+  if(v === 0) return vr ? '' : '0';
+  const m = Math.abs(v);
+  return (v < 0 ? '−' : '') + ((vr && m === 1) ? '' : m) + (vr || '');
+}
+/* continuing term: tc(-3,'y') -> " − 3y", tc(0,'y') -> "" */
+function tc(v, vr){
+  if(v === 0) return '';
+  const m = Math.abs(v);
+  return (v < 0 ? ' − ' : ' + ') + ((vr && m === 1) ? '' : m) + (vr || '');
+}
+/* "(x − 3)" / "(x + 3)" */
+function factorOf(r){ return r < 0 ? '(x + ' + (-r) + ')' : '(x − ' + r + ')'; }
+function nCr(n,r){ let v = 1; for(let i=1;i<=r;i++) v = v*(n-r+i)/i; return Math.round(v); }
+function fact(n){ let v=1; for(let i=2;i<=n;i++) v*=i; return v; }
+function M(s){ return '<b style="font-family:Cambria Math,Georgia,serif">' + s + '</b>'; }
+
+/* ---------------- Tier 1 : Algebra 1 & basic geometry ---------------- */
+const T1 = [
+function(){
+  const a = randint(2,9), x = randint(-8,12), b = randint(-15,15), c = a*x + b;
+  return { topic:'Linear equations',
+    text:'Solve for x: ' + M(a + 'x' + tc(b,'') + ' = ' + c),
+    ans:String(x), wrongs:[String(x+1), String(x-1), String(-x), fmt(c/a)],
+    sol:'Isolate the x term: ' + a + 'x = ' + (c-b) + ', then divide both sides by ' + a + ' → x = ' + x + '.' };
+},
+function(){
+  const a = randint(2,6), b = randint(-8,8), c = randint(1,a-1), x = randint(-6,10);
+  const d = a*(x+b) - c*x;
+  return { topic:'Linear equations',
+    text:'Solve for x: ' + M(a + '(x' + tc(b,'') + ') = ' + lead(c,'x') + tc(d,'')),
+    ans:String(x), wrongs:[String(x+2), String(-x), String(x-3), String(d-a*b)],
+    sol:'Distribute: ' + a + 'x' + tc(a*b,'') + ' = ' + lead(c,'x') + tc(d,'') + '. Collect terms: ' + lead(a-c,'x') + ' = ' + (d - a*b) + ', so x = ' + x + '.' };
+},
+function(){
+  const x1 = randint(-6,4), y1 = randint(-6,6), dx = randint(1,6), m = randint(-4,5);
+  const x2 = x1+dx, y2 = y1 + m*dx;
+  return { topic:'Slope of a line',
+    text:'What is the slope of the line through ' + M('(' + x1 + ', ' + y1 + ')') + ' and ' + M('(' + x2 + ', ' + y2 + ')') + '?',
+    ans:String(m), wrongs:[String(-m), fmt(dx/(m*dx||1)), String(m+1), String(m-2)],
+    sol:'m = (y₂ − y₁)/(x₂ − x₁) = (' + y2 + ' − ' + y1 + ')/(' + x2 + ' − ' + x1 + ') = ' + (m*dx) + '/' + dx + ' = ' + m + '.' };
+},
+function(){
+  const price = pick([24,36,48,60,80,120,150,45]), off = pick([10,15,20,25,30,40]);
+  const sale = price*(1-off/100);
+  return { topic:'Percent',
+    text:'A pair of boots costs ' + M('$'+price) + '. They are marked down ' + M(off + '%') + '. What is the sale price?',
+    ans:money2(sale), wrongs:[money2(price*off/100), money2(price*(1+off/100)), money2(price-off), money2(sale-1)],
+    sol:'The customer pays ' + (100-off) + '% of $' + price + ': ' + price + ' × ' + ((100-off)/100) + ' = ' + money2(sale) + '.' };
+},
+function(){
+  const trip = pick([[3,4,5],[5,12,13],[8,15,17],[7,24,25],[9,40,41],[20,21,29]]);
+  const k = randint(1,3), a = trip[0]*k, b = trip[1]*k, c = trip[2]*k;
+  if(Math.random() < 0.5){
+    return { topic:'Pythagorean theorem',
+      text:'A right triangle has legs of ' + M(a) + ' and ' + M(b) + '. How long is the hypotenuse?',
+      ans:String(c), wrongs:[String(a+b), String(c-1), String(c+2), fmt(Math.sqrt(b*b-a*a))],
+      sol:'c² = ' + a + '² + ' + b + '² = ' + (a*a+b*b) + ', so c = √' + (a*a+b*b) + ' = ' + c + '.' };
+  }
+  return { topic:'Pythagorean theorem',
+    text:'A right triangle has hypotenuse ' + M(c) + ' and one leg ' + M(b) + '. How long is the other leg?',
+    ans:String(a), wrongs:[String(c-b), String(a+1), fmt(Math.sqrt(c*c+b*b)), String(a*2)],
+    sol:'a² = ' + c + '² − ' + b + '² = ' + (c*c-b*b) + ', so a = ' + a + '.' };
+},
+function(){
+  const kind = randint(0,3);
+  if(kind===0){ const b=randint(5,18), h=randint(4,14);
+    return { topic:'Area', text:'Find the area of a triangle with base ' + M(b) + ' cm and height ' + M(h) + ' cm.',
+      ans:fmt(b*h/2) + ' cm²', wrongs:[fmt(b*h)+' cm²', fmt(b+h)+' cm²', fmt(2*(b+h))+' cm²', fmt(b*h/3)+' cm²'],
+      sol:'A = ½bh = ½ × ' + b + ' × ' + h + ' = ' + fmt(b*h/2) + ' cm².' }; }
+  if(kind===1){ const r=randint(3,12);
+    return { topic:'Area', text:'Find the area of a circle with radius ' + M(r) + ' m. Round to 2 decimal places.',
+      ans:fmt(Math.PI*r*r) + ' m²', wrongs:[fmt(2*Math.PI*r)+' m²', fmt(Math.PI*r*2)+' m²', fmt(Math.PI*r*r/2)+' m²', fmt(r*r)+' m²'],
+      sol:'A = πr² = π × ' + r + '² = ' + fmt(Math.PI*r*r) + ' m².' }; }
+  if(kind===2){ const a=randint(4,12), b=randint(5,14), h=randint(3,10);
+    return { topic:'Area', text:'A trapezoid has parallel sides ' + M(a) + ' and ' + M(b) + ' with height ' + M(h) + '. Find its area.',
+      ans:fmt((a+b)/2*h), wrongs:[fmt(a*b), fmt((a+b)*h), fmt((a+b)/2), fmt(a*h+b)],
+      sol:'A = ½(a + b)h = ½(' + a + ' + ' + b + ') × ' + h + ' = ' + fmt((a+b)/2*h) + '.' }; }
+  const l=randint(4,15), w=randint(3,12);
+  return { topic:'Perimeter', text:'A rectangle is ' + M(l) + ' m by ' + M(w) + ' m. What is its perimeter?',
+    ans:fmt(2*(l+w)) + ' m', wrongs:[fmt(l*w)+' m', fmt(l+w)+' m', fmt(2*l*w)+' m', fmt(2*(l+w)-2)+' m'],
+    sol:'P = 2(l + w) = 2(' + l + ' + ' + w + ') = ' + fmt(2*(l+w)) + ' m.' };
+},
+function(){
+  const n = 5, base = randint(2,20);
+  const vals = []; for(let i=0;i<n;i++) vals.push(base + randint(-4,9));
+  const mean = vals.reduce((s,v)=>s+v,0)/n;
+  const sorted = vals.slice().sort((a,b)=>a-b);
+  if(Math.random()<0.5){
+    return { topic:'Statistics', text:'Find the mean of the data set ' + M(vals.join(', ')) + '. Round to 2 decimal places.',
+      ans:fmt(mean), wrongs:[String(sorted[2]), fmt(mean+1), fmt(sorted[4]-sorted[0]), fmt(mean/2)],
+      sol:'Add them (' + vals.reduce((s,v)=>s+v,0) + ') and divide by ' + n + ' → ' + fmt(mean) + '.' };
+  }
+  return { topic:'Statistics', text:'Find the median of the data set ' + M(vals.join(', ')) + '.',
+    ans:String(sorted[2]), wrongs:[fmt(mean), String(sorted[0]), String(sorted[4]), String(sorted[3])],
+    sol:'Sorted: ' + sorted.join(', ') + '. The middle value is ' + sorted[2] + '.' };
+},
+function(){
+  const a=randint(2,5), b=randint(2,4), c=randint(1,6), d=randint(1,7);
+  const k = a*b + c - d;
+  return { topic:'Exponent rules',
+    text:'Simplify: ' + M('(x' + sup(a) + ')' + sup(b) + ' · x' + sup(c) + ' ÷ x' + sup(d)) + ' = x' + sup('k') + '. Find k.',
+    ans:String(k), wrongs:[String(a+b+c-d), String(a*b+c+d), String(k+1), String(a*b*c-d)],
+    sol:'Power of a power multiplies: x' + sup(a*b) + '. Multiplying adds, dividing subtracts: ' + a*b + ' + ' + c + ' − ' + d + ' = ' + k + '.' };
+},
+function(){
+  const unit = pick([1.25, 2.5, 3, 4.5, 0.75, 6]), n1 = randint(3,8), n2 = randint(9,20);
+  const p1 = unit*n1, p2 = unit*n2;
+  return { topic:'Proportions',
+    text:M(n1) + ' notebooks cost ' + M(money2(p1)) + '. At the same rate, what do ' + M(n2) + ' notebooks cost?',
+    ans:money2(p2), wrongs:[money2(p1*n2), money2(p2+unit), money2(p1+n2), money2(p2/2)],
+    sol:'Unit price = ' + money2(p1) + ' ÷ ' + n1 + ' = ' + money2(unit) + '. Then ' + money2(unit) + ' × ' + n2 + ' = ' + money2(p2) + '.' };
+},
+function(){
+  const a=randint(-4,5)||2, b=randint(-8,8), c=randint(-9,9), k=randint(-4,5);
+  const v = a*k*k + b*k + c;
+  return { topic:'Functions',
+    text:'If ' + M('f(x) = ' + lead(a,'x²') + tc(b,'x') + tc(c,'')) + ', find ' + M('f(' + k + ')') + '.',
+    ans:String(v), wrongs:[String(a*k*k - b*k + c), String(v+2*Math.abs(k)+1), String(a*k+b*k+c), String(-v)],
+    sol:'Substitute x = ' + k + ': ' + lead(a,'') + '(' + k + ')²' + tc(b,'(' + k + ')') + tc(c,'') + ' = ' + v + '.' };
+},
+function(){
+  const a=randint(2,7), x=randint(-5,8), b=randint(-9,9), c=a*x+b;
+  return { topic:'Inequalities',
+    text:'Solve: ' + M(a + 'x' + tc(b,'') + ' > ' + c),
+    ans:'x > ' + x, wrongs:['x < ' + x, 'x > ' + (x+1), 'x ≥ ' + x, 'x < ' + (-x)],
+    sol:'Get the x term alone: ' + a + 'x > ' + (c-b) + '. Divide by the positive number ' + a + ' (the inequality keeps its direction): x > ' + x + '.' };
+},
+function(){
+  const total = pick([180,240,300,360,420]), pct = pick([15,20,25,30,35,40,60]);
+  const part = total*pct/100;
+  return { topic:'Percent',
+    text:M(pct + '%') + ' of the ' + M(total) + ' students at a school ride the bus. How many students is that?',
+    ans:String(part), wrongs:[String(total-part), String(part*2), fmt(total/pct), String(part+pct)],
+    sol:total + ' × ' + (pct/100) + ' = ' + part + ' students.' };
+}
+];
+function sup(v){ return '<sup>' + v + '</sup>'; }
+
+/* ---------------- Tier 2 : Geometry & Algebra 2 ---------------- */
+const T2 = [
+function(){
+  let r1 = randint(-8,8), r2 = randint(-8,8);
+  if(r1 === r2) r2 = r1 + 1;
+  const b = -(r1+r2), c = r1*r2, hi = Math.max(r1,r2), lo = Math.min(r1,r2);
+  return { topic:'Quadratic equations',
+    text:'Solve by factoring: ' + M('x²' + tc(b,'x') + tc(c,'') + ' = 0') + '. What is the LARGER solution?',
+    ans:String(hi), wrongs:[String(lo), String(-hi), String(hi+1), String(c)],
+    sol:'It factors as ' + factorOf(r1) + factorOf(r2) + ' = 0 → x = ' + r1 + ' or x = ' + r2 + '. The larger is ' + hi + '.' };
+},
+function(){
+  const a=randint(1,4), b=randint(-9,9), c=randint(-8,8);
+  const D = b*b - 4*a*c;
+  const kind = D > 0 ? 'two real solutions' : (D === 0 ? 'exactly one real solution' : 'no real solutions');
+  if(Math.random()<0.5){
+    return { topic:'Discriminant',
+      text:'Find the discriminant of ' + M(lead(a,'x²') + tc(b,'x') + tc(c,'') + ' = 0') + '.',
+      ans:String(D), wrongs:[String(b*b+4*a*c), String(-D), String(b*b-2*a*c), String(D+4)],
+      sol:'b² − 4ac = (' + b + ')² − 4(' + a + ')(' + c + ') = ' + b*b + ' − ' + (4*a*c) + ' = ' + D + '.' };
+  }
+  return { topic:'Discriminant',
+    text:'How many real solutions does ' + M(lead(a,'x²') + tc(b,'x') + tc(c,'') + ' = 0') + ' have?',
+    ans:kind, wrongs:['two real solutions','exactly one real solution','no real solutions','infinitely many solutions'].filter(s=>s!==kind),
+    sol:'b² − 4ac = ' + D + '. ' + (D>0?'Positive → two real roots.':(D===0?'Zero → one repeated root.':'Negative → the roots are complex.')) };
+},
+function(){
+  const x=randint(-6,7), y=randint(-6,7);
+  let a1=randint(1,5), b1=randint(-5,5)||2, a2=randint(1,5), b2=randint(-5,5)||3;
+  if(a1*b2 - a2*b1 === 0) b2 += 1;
+  const c1 = a1*x + b1*y, c2 = a2*x + b2*y;
+  const askX = Math.random() < 0.5;
+  return { topic:'Systems of equations',
+    text:'Solve the system: ' + M(lead(a1,'x') + tc(b1,'y') + ' = ' + c1) + ' and ' + M(lead(a2,'x') + tc(b2,'y') + ' = ' + c2) + '. What is ' + M(askX?'x':'y') + '?',
+    ans:String(askX?x:y), wrongs:[String(askX?y:x), String((askX?x:y)+1), String(-(askX?x:y)), String((askX?x:y)-2)],
+    sol:'Eliminating one variable gives x = ' + x + ' and y = ' + y + '. Check the first equation: ' + lead(a1,'') + '(' + x + ')' + tc(b1,'(' + y + ')') + ' = ' + c1 + '. ✓' };
+},
+function(){
+  const ang = randint(20,70), hyp = randint(6,25);
+  const opp = hyp*Math.sin(ang*Math.PI/180), adj = hyp*Math.cos(ang*Math.PI/180);
+  const wantOpp = Math.random()<0.5;
+  return { topic:'Right-triangle trig',
+    text:'In a right triangle the hypotenuse is ' + M(hyp) + ' and one acute angle is ' + M(ang + '°') + '. Find the side ' + (wantOpp?'OPPOSITE':'ADJACENT to') + ' that angle. Round to 2 dp.',
+    ans:fmt(wantOpp?opp:adj), wrongs:[fmt(wantOpp?adj:opp), fmt(hyp*Math.tan(ang*Math.PI/180)), fmt(hyp/Math.sin(ang*Math.PI/180)), fmt((wantOpp?opp:adj)+1.5)],
+    sol:(wantOpp ? 'sin θ = opp/hyp → opp = ' + hyp + ' · sin ' + ang + '° = ' + fmt(opp)
+                 : 'cos θ = adj/hyp → adj = ' + hyp + ' · cos ' + ang + '° = ' + fmt(adj)) + '.' };
+},
+function(){
+  const kind = randint(0,2), r = randint(2,9), h = randint(4,15);
+  if(kind===0){ const v = Math.PI*r*r*h;
+    return { topic:'Volume', text:'Find the volume of a cylinder with radius ' + M(r) + ' cm and height ' + M(h) + ' cm. Round to 2 dp.',
+      ans:fmt(v) + ' cm³', wrongs:[fmt(v/3)+' cm³', fmt(2*Math.PI*r*h)+' cm³', fmt(Math.PI*r*h)+' cm³', fmt(v*2)+' cm³'],
+      sol:'V = πr²h = π(' + r + ')²(' + h + ') = ' + fmt(v) + ' cm³.' }; }
+  if(kind===1){ const v = Math.PI*r*r*h/3;
+    return { topic:'Volume', text:'Find the volume of a cone with radius ' + M(r) + ' cm and height ' + M(h) + ' cm. Round to 2 dp.',
+      ans:fmt(v) + ' cm³', wrongs:[fmt(v*3)+' cm³', fmt(Math.PI*r*h/3)+' cm³', fmt(v/2)+' cm³', fmt(v+10)+' cm³'],
+      sol:'V = ⅓πr²h = ⅓π(' + r + ')²(' + h + ') = ' + fmt(v) + ' cm³.' }; }
+  const v = 4/3*Math.PI*r*r*r;
+  return { topic:'Volume', text:'Find the volume of a sphere with radius ' + M(r) + ' cm. Round to 2 dp.',
+    ans:fmt(v) + ' cm³', wrongs:[fmt(4*Math.PI*r*r)+' cm³', fmt(v*3/4)+' cm³', fmt(Math.PI*r*r*r)+' cm³', fmt(v/2)+' cm³'],
+    sol:'V = 4⁄3 πr³ = 4⁄3 π(' + r + ')³ = ' + fmt(v) + ' cm³.' };
+},
+function(){
+  const a1=randint(-9,12), d=randint(2,9)*(Math.random()<0.3?-1:1), n=randint(8,30);
+  const an = a1 + (n-1)*d;
+  return { topic:'Arithmetic sequences',
+    text:'An arithmetic sequence starts at ' + M(a1) + ' with common difference ' + M(d) + '. What is the ' + M(n + 'th') + ' term?',
+    ans:String(an), wrongs:[String(a1 + n*d), String(an - d), String(a1*n), String(an + 2*d)],
+    sol:'aₙ = a₁ + (n − 1)d = ' + a1 + ' + (' + (n-1) + ')(' + d + ') = ' + an + '.' };
+},
+function(){
+  const a1=randint(2,6), r=pick([2,3,2,-2]), n=randint(4,8);
+  const an = a1*Math.pow(r,n-1);
+  return { topic:'Geometric sequences',
+    text:'A geometric sequence starts at ' + M(a1) + ' with common ratio ' + M(r) + '. What is the ' + M(n + 'th') + ' term?',
+    ans:String(an), wrongs:[String(a1*Math.pow(r,n)), String(an*r), String(a1+(n-1)*r), String(-an)],
+    sol:'aₙ = a₁·r^(n−1) = ' + a1 + '·(' + r + ')^' + (n-1) + ' = ' + an + '.' };
+},
+function(){
+  const target = randint(4,10);
+  let ways = 0;
+  for(let i=1;i<=6;i++) for(let j=1;j<=6;j++) if(i+j===target) ways++;
+  return { topic:'Probability',
+    text:'Two fair six-sided dice are rolled. What is the probability the sum is ' + M(target) + '? Give a reduced fraction.',
+    ans:fracStr(ways,36), wrongs:[fracStr(ways,12), fracStr(ways+1,36), fracStr(1,target), fracStr(6,36)],
+    sol:'There are ' + ways + ' ways to roll a sum of ' + target + ' out of 36 equally likely outcomes → ' + fracStr(ways,36) + '.' };
+},
+function(){
+  const red=randint(3,7), blue=randint(3,7), tot=red+blue;
+  const p_n = red*(red-1), p_d = tot*(tot-1);
+  return { topic:'Probability',
+    text:'A bag holds ' + M(red) + ' red and ' + M(blue) + ' blue marbles. Two are drawn WITHOUT replacement. P(both red)? Reduced fraction.',
+    ans:fracStr(p_n,p_d), wrongs:[fracStr(red*red, tot*tot), fracStr(red,tot), fracStr(red*blue*2, p_d), fracStr(blue*(blue-1), p_d)],
+    sol:'P = (' + red + '/' + tot + ') × (' + (red-1) + '/' + (tot-1) + ') = ' + fracStr(p_n,p_d) + '.' };
+},
+function(){
+  const n=randint(6,12), r=randint(2,4);
+  const v = nCr(n,r);
+  return { topic:'Combinations',
+    text:'How many different ' + M(r) + '-person committees can be chosen from ' + M(n) + ' people?',
+    ans:String(v), wrongs:[String(v*fact(r)), String(nCr(n,r+1)), String(n*r), String(v+n)],
+    sol:'C(' + n + ',' + r + ') = ' + n + '!/(' + r + '!·' + (n-r) + '!) = ' + v + '. (Order does not matter.)' };
+},
+function(){
+  const n = pick([5,6,8,9,10,12,15,18,20]);
+  const ang = (n-2)*180/n;
+  return { topic:'Polygon angles',
+    text:'What is the measure of each interior angle of a regular ' + M(n + '-gon') + '? Round to 2 dp.',
+    ans:fmt(ang) + '°', wrongs:[fmt(360/n)+'°', fmt((n-2)*180)+'°', fmt(180-ang)+'°', fmt(ang+10)+'°'],
+    sol:'Interior angle = (n − 2)·180/n = (' + (n-2) + ')(180)/' + n + ' = ' + fmt(ang) + '°.' };
+},
+function(){
+  const x1=randint(-8,4), y1=randint(-8,4), dx=randint(2,9), dy=randint(2,9);
+  const x2=x1+dx, y2=y1+dy, d=Math.sqrt(dx*dx+dy*dy);
+  return { topic:'Distance formula',
+    text:'Find the distance between ' + M('(' + x1 + ', ' + y1 + ')') + ' and ' + M('(' + x2 + ', ' + y2 + ')') + '. Round to 2 dp.',
+    ans:fmt(d), wrongs:[fmt(dx+dy), fmt(Math.abs(dx-dy)), fmt(d*2), fmt(dx*dy)],
+    sol:'d = √((' + dx + ')² + (' + dy + ')²) = √' + (dx*dx+dy*dy) + ' = ' + fmt(d) + '.' };
+},
+function(){
+  const k = pick([2,3,4,1.5]), a = randint(3,9), b = randint(4,12);
+  return { topic:'Similar figures',
+    text:'Two triangles are similar. The smaller has sides ' + M(a) + ' and ' + M(b) + '. In the larger triangle the side matching ' + M(a) + ' is ' + M(fmt(a*k)) + '. How long is the side matching ' + M(b) + '?',
+    ans:fmt(b*k), wrongs:[fmt(b+a*k-a), fmt(b*k+a), fmt(b/k), fmt(a*b/k)],
+    sol:'Scale factor = ' + fmt(a*k) + '/' + a + ' = ' + fmt(k) + '. So the matching side is ' + b + ' × ' + fmt(k) + ' = ' + fmt(b*k) + '.' };
+},
+function(){
+  const r = randint(3,15), C = 2*Math.PI*r;
+  return { topic:'Circles',
+    text:'A circle has radius ' + M(r) + ' cm. Find its circumference, rounded to 2 dp.',
+    ans:fmt(C) + ' cm', wrongs:[fmt(Math.PI*r*r)+' cm', fmt(Math.PI*r)+' cm', fmt(C*2)+' cm', fmt(C/2)+' cm'],
+    sol:'C = 2πr = 2π(' + r + ') = ' + fmt(C) + ' cm.' };
+}
+];
+
+/* ---------------- Tier 3 : Algebra 2 / Pre-calculus ---------------- */
+const T3 = [
+function(){
+  const b = pick([2,3,5,4]), x = randint(2,6), N = Math.pow(b,x);
+  return { topic:'Exponential equations',
+    text:'Solve for x: ' + M(b + sup('x') + ' = ' + N),
+    ans:String(x), wrongs:[String(N/b), String(x+1), String(x*b), fmt(N/x)],
+    sol:'Write ' + N + ' as a power of ' + b + ': ' + N + ' = ' + b + sup(x) + ', so x = ' + x + '.' };
+},
+function(){
+  const b1=pick([2,3,5]), e1=randint(2,5), b2=pick([2,3,10]), e2=randint(2,4);
+  const v = e1 + e2;
+  return { topic:'Logarithms',
+    text:'Evaluate ' + M('log' + sub(b1) + '(' + Math.pow(b1,e1) + ') + log' + sub(b2) + '(' + Math.pow(b2,e2) + ')'),
+    ans:String(v), wrongs:[String(e1*e2), String(v+1), String(Math.pow(b1,e1)+Math.pow(b2,e2)), String(Math.abs(e1-e2))],
+    sol:'log' + sub(b1) + '(' + Math.pow(b1,e1) + ') = ' + e1 + ' and log' + sub(b2) + '(' + Math.pow(b2,e2) + ') = ' + e2 + ', so the sum is ' + v + '.' };
+},
+function(){
+  const P = pick([800,1000,1200,1500,2000,2500]), r = pick([3,4,5,6,8]);
+  const n = pick([1,2,4,12]), t = pick([2,3,5,10]);
+  const A = P*Math.pow(1 + r/100/n, n*t);
+  const nm = {1:'annually',2:'semi-annually',4:'quarterly',12:'monthly'}[n];
+  return { topic:'Compound interest',
+    text:money2(P) + ' is invested at ' + M(r + '%') + ' compounded ' + M(nm) + ' for ' + M(t) + ' years. What is the balance? (2 dp)',
+    ans:money2(A), wrongs:[money2(P*(1+r/100*t)), money2(P*Math.pow(1+r/100, t)), money2(A*1.05), money2(P+r*t)],
+    sol:'A = P(1 + r/n)^(nt) = ' + P + '(1 + ' + (r/100) + '/' + n + ')^(' + n + '·' + t + ') = ' + money2(A) + '.' };
+},
+function(){
+  const a=randint(2,5), b=randint(-7,7), c=randint(-6,6), k=randint(-3,4);
+  const gk = k*k + c, v = a*gk + b;
+  return { topic:'Function composition',
+    text:'If ' + M('f(x) = ' + lead(a,'x') + tc(b,'')) + ' and ' + M('g(x) = x²' + tc(c,'')) + ', find ' + M('f(g(' + k + '))') + '.',
+    ans:String(v), wrongs:[String(Math.pow(a*k+b,2)+c), String(v+a), String(a*k*k+b+c), String(-v)],
+    sol:'g(' + k + ') = (' + k + ')²' + tc(c,'') + ' = ' + gk + '. Then f(' + gk + ') = ' + a + '(' + gk + ')' + tc(b,'') + ' = ' + v + '.' };
+},
+function(){
+  const a=randint(2,6), b=randint(-9,9), r=randint(-5,6), k=a*r+b;
+  return { topic:'Inverse functions',
+    text:'If ' + M('f(x) = ' + lead(a,'x') + tc(b,'')) + ', find ' + M('f' + sup('−1') + '(' + k + ')') + '.',
+    ans:String(r), wrongs:[String(a*k+b), String(r+1), String(-r), fmt((k+b)/a)],
+    sol:'Swap and solve: f⁻¹(x) = (x' + tc(-b,'') + ')/' + a + ', so f⁻¹(' + k + ') = (' + k + tc(-b,'') + ')/' + a + ' = ' + r + '.' };
+},
+function(){
+  const a=randint(5,14), b=randint(5,14), C=pick([35,42,50,60,75,110,120]);
+  const c=Math.sqrt(a*a + b*b - 2*a*b*Math.cos(C*Math.PI/180));
+  return { topic:'Law of cosines',
+    text:'A triangle has sides ' + M(a) + ' and ' + M(b) + ' with an included angle of ' + M(C + '°') + '. Find the third side. (2 dp)',
+    ans:fmt(c), wrongs:[fmt(Math.sqrt(a*a+b*b)), fmt(a+b), fmt(Math.sqrt(a*a+b*b+2*a*b*Math.cos(C*Math.PI/180))), fmt(c+2)],
+    sol:'c² = a² + b² − 2ab·cos C = ' + a*a + ' + ' + b*b + ' − 2(' + a + ')(' + b + ')cos ' + C + '° → c = ' + fmt(c) + '.' };
+},
+function(){
+  const x = randint(2,9), a = randint(1,7), b = x, c = x + a;
+  return { topic:'Rational equations',
+    text:'Solve for x: ' + M('x/(x + ' + a + ') = ' + b + '/' + c),
+    ans:String(x), wrongs:[String(x+a), String(c-b), String(x*2), String(-x)],
+    sol:'Cross-multiply: ' + c + 'x = ' + b + '(x + ' + a + ') → ' + (c-b) + 'x = ' + (b*a) + ' → x = ' + x + '.' };
+},
+function(){
+  const a=randint(2,5), b=randint(-9,9)||3, c=randint(-8,8)||2;
+  const askSum = Math.random()<0.5;
+  return { topic:'Roots of polynomials',
+    text:'For ' + M(lead(a,'x²') + tc(b,'x') + tc(c,'') + ' = 0') + ', find the ' + (askSum?'SUM':'PRODUCT') + ' of the roots.',
+    ans:askSum ? fracStr(-b,a) : fracStr(c,a),
+    wrongs:[askSum ? fracStr(c,a) : fracStr(-b,a), fracStr(b,a), fracStr(-c,a), fracStr(a,c)],
+    sol:'Sum of roots = −b/a = ' + fracStr(-b,a) + ', product = c/a = ' + fracStr(c,a) + '.' };
+},
+function(){
+  const a=randint(1,4), b=randint(-6,6), c=randint(-8,8), d=randint(-9,9), k=randint(-3,4);
+  const v = a*k*k*k + b*k*k + c*k + d;
+  return { topic:'Remainder theorem',
+    text:'Find the remainder when ' + M(lead(a,'x³') + tc(b,'x²') + tc(c,'x') + tc(d,'')) + ' is divided by ' + M(factorOf(k)) + '.',
+    ans:String(v), wrongs:[String(-v), String(v+k), String(a+b+c+d), String(a*k*k+b*k+c)],
+    sol:'By the remainder theorem the remainder is P(' + k + ') = ' + v + '.' };
+},
+function(){
+  const N0 = pick([120,240,320,500,640,800]), hl = pick([3,4,5,6,8]), halves = randint(2,4);
+  const t = hl*halves, left = N0/Math.pow(2,halves);
+  return { topic:'Half-life',
+    text:'A sample of ' + M(N0 + ' g') + ' has a half-life of ' + M(hl + ' years') + '. How much remains after ' + M(t + ' years') + '?',
+    ans:fmt(left) + ' g', wrongs:[fmt(N0/halves)+' g', fmt(N0/2)+' g', fmt(left*2)+' g', fmt(N0 - N0/Math.pow(2,halves))+' g'],
+    sol:t + ' ÷ ' + hl + ' = ' + halves + ' half-lives, so ' + N0 + ' ÷ 2' + sup(halves) + ' = ' + fmt(left) + ' g.' };
+},
+function(){
+  const table = [
+    ['sin(5π/6)','1/2',['−1/2','√3/2','−√3/2']],
+    ['cos(2π/3)','−1/2',['1/2','√3/2','−√2/2']],
+    ['sin(4π/3)','−√3/2',['√3/2','−1/2','√2/2']],
+    ['cos(7π/6)','−√3/2',['√3/2','−1/2','1/2']],
+    ['tan(3π/4)','−1',['1','√3','−√3']],
+    ['sin(3π/4)','√2/2',['−√2/2','1/2','√3/2']],
+    ['cos(5π/3)','1/2',['−1/2','√3/2','−√3/2']],
+    ['tan(5π/6)','−√3/3',['√3','−√3','√3/3']]
+  ];
+  const row = pick(table);
+  return { topic:'Unit circle',
+    text:'Give the EXACT value of ' + M(row[0]) + '.',
+    ans:row[1], wrongs:row[2].slice(), sol:'Use the reference angle and the sign in that quadrant: ' + row[0] + ' = ' + row[1] + '.' };
+},
+function(){
+  const a=randint(2,9), c=randint(2,9);
+  return { topic:'Absolute value',
+    text:'Solve: ' + M('|x − ' + a + '| < ' + c),
+    ans:(a-c) + ' < x < ' + (a+c),
+    wrongs:['x < ' + (a-c) + ' or x > ' + (a+c), (a-c) + ' ≤ x ≤ ' + (a+c), '−' + c + ' < x < ' + c, 'x < ' + (a+c)],
+    sol:'|x − ' + a + '| < ' + c + ' means −' + c + ' < x − ' + a + ' < ' + c + '. Add ' + a + ' throughout: ' + (a-c) + ' < x < ' + (a+c) + '.' };
+},
+function(){
+  const a=pick([1,1,2,-1]), h=randint(-5,5), k=randint(-8,8);
+  const b = -2*a*h, c = a*h*h + k;
+  return { topic:'Parabolas',
+    text:'Find the vertex of ' + M('y = ' + lead(a,'x²') + tc(b,'x') + tc(c,'')),
+    ans:'(' + h + ', ' + k + ')', wrongs:['(' + (-h) + ', ' + k + ')', '(' + k + ', ' + h + ')', '(' + h + ', ' + (-k) + ')', '(' + (h+1) + ', ' + k + ')'],
+    sol:'x = −b/(2a) = ' + h + '. Substituting back gives y = ' + k + ', so the vertex is (' + h + ', ' + k + ').' };
+},
+function(){
+  const a1=randint(1,9), d=randint(2,7), n=randint(10,25);
+  const S = n/2*(2*a1 + (n-1)*d);
+  return { topic:'Series',
+    text:'Find the sum of the first ' + M(n) + ' terms of the arithmetic series starting at ' + M(a1) + ' with difference ' + M(d) + '.',
+    ans:String(S), wrongs:[String(a1 + (n-1)*d), String(S+n*d), String(n*a1*d), String(S/2)],
+    sol:'Sₙ = n/2·(2a₁ + (n − 1)d) = ' + n + '/2 · (' + (2*a1) + ' + ' + ((n-1)*d) + ') = ' + S + '.' };
+}
+];
+function sub(v){ return '<sub>' + v + '</sub>'; }
+
+/* ---------------- Tier 4 : Pre-calculus / early calculus ---------------- */
+const T4 = [
+function(){
+  const set = [
+    ['log(x) + log(x − 3) = 1', '5', ['−2','10','13'], 'x(x − 3) = 10 → x² − 3x − 10 = 0 → (x − 5)(x + 2) = 0. x = −2 is rejected (log of a negative), so x = 5.'],
+    ['log(x) + log(x − 9) = 1', '10', ['−1','9','11'], 'x(x − 9) = 10 → x² − 9x − 10 = 0 → (x − 10)(x + 1) = 0. Only x = 10 is in the domain.'],
+    ['log₂(x) + log₂(x − 2) = 3', '4', ['−2','8','6'], 'x(x − 2) = 2³ = 8 → x² − 2x − 8 = 0 → (x − 4)(x + 2) = 0. Only x = 4 works.'],
+    ['log₃(x) + log₃(x + 2) = 1', '1', ['3','−3','2'], 'x(x + 2) = 3 → x² + 2x − 3 = 0 → (x + 3)(x − 1) = 0. Only x = 1 is in the domain.'],
+    ['log₂(x + 3) + log₂(x − 3) = 4', '5', ['−5','4','7'], '(x + 3)(x − 3) = 2⁴ = 16 → x² = 25 → x = ±5. Only x = 5 keeps both logs defined.']
+  ];
+  const r = pick(set);
+  return { topic:'Logarithmic equations', text:'Solve for x: ' + M(r[0]), ans:r[1], wrongs:r[2].slice(), sol:r[3] };
+},
+function(){
+  const set = [
+    ['2 sin x = 1', 'x = π/6, 5π/6', ['x = π/3, 2π/3','x = π/6, 7π/6','x = π/4, 3π/4'], 'sin x = ½ → the reference angle is π/6, and sine is positive in quadrants I and II.'],
+    ['2 cos x = 1', 'x = π/3, 5π/3', ['x = π/6, 11π/6','x = π/3, 2π/3','x = 2π/3, 4π/3'], 'cos x = ½ → reference angle π/3, cosine is positive in quadrants I and IV.'],
+    ['2 cos x = −1', 'x = 2π/3, 4π/3', ['x = π/3, 5π/3','x = π/6, 5π/6','x = 3π/4, 5π/4'], 'cos x = −½ → reference angle π/3, cosine is negative in quadrants II and III.'],
+    ['tan x = 1', 'x = π/4, 5π/4', ['x = π/4, 3π/4','x = π/3, 4π/3','x = 3π/4, 7π/4'], 'tan x = 1 → reference angle π/4, tangent is positive in quadrants I and III.'],
+    ['√2 sin x = 1', 'x = π/4, 3π/4', ['x = π/4, 5π/4','x = π/6, 5π/6','x = π/3, 2π/3'], 'sin x = √2/2 → reference angle π/4, sine is positive in quadrants I and II.']
+  ];
+  const r = pick(set);
+  return { topic:'Trig equations', text:'Solve on ' + M('[0, 2π)') + ': ' + M(r[0]), ans:r[1], wrongs:r[2].slice(), sol:r[3] };
+},
+function(){
+  const n=randint(4,7), a=randint(1,3), k=randint(1,n-1);
+  const v = nCr(n,k)*Math.pow(a, n-k);
+  return { topic:'Binomial theorem',
+    text:'What is the coefficient of ' + M('x' + sup(k)) + ' in the expansion of ' + M('(x + ' + a + ')' + sup(n)) + '?',
+    ans:String(v), wrongs:[String(nCr(n,k)), String(nCr(n,k)*Math.pow(a,k)), String(v*2), String(Math.pow(a,n-k))],
+    sol:'The term is C(' + n + ',' + k + ')·x' + sup(k) + '·' + a + sup(n-k) + ' = ' + nCr(n,k) + ' · ' + Math.pow(a,n-k) + ' = ' + v + '.' };
+},
+function(){
+  const a=randint(1,4), b=randint(-6,6), c=randint(-9,9), k=randint(-3,4);
+  const v = 3*a*k*k + 2*b*k + c;
+  return { topic:'Derivatives',
+    text:'If ' + M('f(x) = ' + lead(a,'x³') + tc(b,'x²') + tc(c,'x')) + ', find ' + M("f ′(" + k + ')') + '.',
+    ans:String(v), wrongs:[String(a*k*k*k + b*k*k + c*k), String(v + 3*a), String(3*a*k + 2*b + c), String(-v)],
+    sol:"Differentiate term by term: f ′(x) = " + lead(3*a,'x²') + tc(2*b,'x') + tc(c,'') + '. At x = ' + k + ' this is ' + v + '.' };
+},
+function(){
+  const pairs = [[6,'1/3',9],[8,'1/2',16],[5,'2/5',25/3],[4,'1/4',16/3],[9,'2/3',27],[3,'1/2',6],[10,'3/5',25],[7,'1/7',49/6]];
+  const p = pick(pairs);
+  const S = p[2];
+  return { topic:'Infinite series',
+    text:'Find the sum of the infinite geometric series with first term ' + M(p[0]) + ' and ratio ' + M(p[1]) + '.',
+    ans:fmt(S), wrongs:[fmt(S*2), fmt(p[0]), fmt(S-p[0]), 'the series diverges'],
+    sol:'S = a/(1 − r) = ' + p[0] + '/(1 − ' + p[1] + ') = ' + fmt(S) + '. It converges because |r| < 1.' };
+},
+function(){
+  const a=randint(-6,8), b=randint(-6,8), c=randint(-6,8), d=randint(-6,8);
+  const dot = a*c + b*d, mag = Math.sqrt(a*a+b*b);
+  if(Math.random()<0.5){
+    return { topic:'Vectors',
+      text:'Find the dot product of ' + M('u = ⟨' + a + ', ' + b + '⟩') + ' and ' + M('v = ⟨' + c + ', ' + d + '⟩') + '.',
+      ans:String(dot), wrongs:[String(a*d + b*c), String(a*c - b*d), String(dot+4), String(a+b+c+d)],
+      sol:'u · v = (' + a + ')(' + c + ') + (' + b + ')(' + d + ') = ' + dot + '.' };
+  }
+  return { topic:'Vectors',
+    text:'Find the magnitude of ' + M('u = ⟨' + a + ', ' + b + '⟩') + '. Round to 2 dp.',
+    ans:fmt(mag), wrongs:[fmt(Math.abs(a)+Math.abs(b)), fmt(a*a+b*b), fmt(mag*2), fmt(Math.abs(a-b))],
+    sol:'|u| = √(' + a + '² + ' + b + '²) = √' + (a*a+b*b) + ' = ' + fmt(mag) + '.' };
+},
+function(){
+  const a=randint(-5,7), b=randint(-5,7), c=randint(-5,7), d=randint(-5,7);
+  const det = a*d - b*c;
+  return { topic:'Matrices',
+    text:'Find the determinant of the matrix ' + M('[[' + a + ', ' + b + '], [' + c + ', ' + d + ']]') + '.',
+    ans:String(det), wrongs:[String(a*d + b*c), String(a*c - b*d), String(-det), String(a+d)],
+    sol:'det = ad − bc = (' + a + ')(' + d + ') − (' + b + ')(' + c + ') = ' + det + '.' };
+},
+function(){
+  const P = pick([200,500,800,1200,1500]), r = pick([4,5,6,7,8,10]), mult = pick([2,3]);
+  const target = P*mult;
+  const exact = Math.log(mult)/Math.log(1 + r/100);
+  const yrs = Math.ceil(exact);
+  return { topic:'Exponential growth',
+    text:'A population of ' + M(P) + ' grows ' + M(r + '%') + ' per year. After how many WHOLE years does it first reach ' + M(target) + '?',
+    ans:String(yrs) + ' years', wrongs:[String(yrs+2)+' years', String(Math.max(1,yrs-3))+' years', String(Math.round(100*mult/r))+' years', String(yrs*2)+' years'],
+    sol:'Solve ' + P + '(1.' + String(r).padStart(2,'0') + ')^t = ' + target + ' → t = ln ' + mult + ' / ln 1.' + String(r).padStart(2,'0') + ' ≈ ' + fmt(exact) + ', so ' + yrs + ' whole years.' };
+},
+function(){
+  const n = pick([5,6,7,8]), k = randint(2, n-1);
+  const ways = nCr(n,k), tot = Math.pow(2,n);
+  return { topic:'Binomial probability',
+    text:'A fair coin is flipped ' + M(n) + ' times. What is the probability of exactly ' + M(k) + ' heads? Reduced fraction.',
+    ans:fracStr(ways,tot), wrongs:[fracStr(k,n), fracStr(ways,tot*2), fracStr(1,tot), fracStr(nCr(n,k+1),tot)],
+    sol:'P = C(' + n + ',' + k + ')/2' + sup(n) + ' = ' + ways + '/' + tot + ' = ' + fracStr(ways,tot) + '.' };
+},
+function(){
+  const a=randint(2,5), b=randint(-6,6), c=randint(1,9), split=randint(0,4);
+  const k = pick([split-2, split+3]);
+  const v = k < split ? a*k + b : k*k - c;
+  return { topic:'Piecewise functions',
+    text:'Let ' + M('f(x) = ' + lead(a,'x') + tc(b,'') + ' for x &lt; ' + split + ', and f(x) = x² − ' + c + ' for x ≥ ' + split) + '. Find ' + M('f(' + k + ')') + '.',
+    ans:String(v), wrongs:[String(k < split ? k*k - c : a*k + b), String(v+3), String(-v), String(v - c)],
+    sol:'Since ' + k + (k < split ? ' < ' : ' ≥ ') + split + ', use the ' + (k<split ? 'first' : 'second') + ' rule → f(' + k + ') = ' + v + '.' };
+}
+];
+
+const TIERS = [
+  { name:'Algebra 1', sub:'grade 9 · $16 a question', pay:16, gens:T1 },
+  { name:'Geometry & Algebra 2', sub:'grade 10 · $28 a question', pay:28, gens:T2 },
+  { name:'Algebra 2 / Pre-calc', sub:'grade 11 · $44 a question', pay:44, gens:T3 },
+  { name:'Pre-calc & Calculus', sub:'grade 12 · $68 a question', pay:68, gens:T4 }
+];
+
+function buildQuestion(tier){
+  const gens = TIERS[tier].gens;
+  for(let attempt=0; attempt<8; attempt++){
+    const q = pick(gens)();
+    const seen = {}; seen[q.ans] = 1;
+    const opts = [q.ans];
+    for(const w of q.wrongs){
+      const s = String(w);
+      if(!seen[s] && s !== 'NaN' && s !== 'undefined'){ seen[s] = 1; opts.push(s); }
+      if(opts.length === 4) break;
+    }
+    if(opts.length < 4) continue;
+    shuffle(opts);
+    q.opts = opts;
+    q.correctIndex = opts.indexOf(q.ans);
+    return q;
+  }
+  return buildQuestion(0);
+}
+
+/* ============================================================
+   5. UI — money, tabs, header
+   ============================================================ */
+function refreshHeader(){
+  $('money').textContent = cash(state.money);
+  const breeds = Object.keys(state.codex).length;
+  $('hdrStats').textContent = state.animals.length + ' animals · ' + breeds + ' breed' + (breeds===1?'':'s') + ' · streak ' + state.streak;
+}
+function addMoney(n){ state.money += n; refreshHeader(); renderMarket(); }
+
+let currentView = 'math';
+function showView(v){
+  currentView = v;
+  document.querySelectorAll('.view').forEach(s => s.classList.toggle('active', s.id === 'view-' + v));
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.view === v));
+  if(v === 'market') renderMarket();
+  if(v === 'barn'){ renderBarn(); rebuildFarm(); }
+  if(v === 'breed') renderPens();
+  if(v === 'codex') renderCodex();
+  window.scrollTo({ top:0, behavior:'smooth' });
+}
+document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => showView(t.dataset.view)));
+
+/* ============================================================
+   6. MATH LAB
+   ============================================================ */
+let currentQ = null, answered = false, qStart = 0, timerId = null;
+const Q_SECONDS = 75, FAST_SECONDS = 30;
+
+function renderTiers(){
+  const box = $('tiers');
+  box.innerHTML = '';
+  TIERS.forEach((t,i) => {
+    const b = document.createElement('button');
+    b.className = 'tierbtn' + (i === state.tier ? ' on' : '');
+    b.innerHTML = '<b>' + t.name + '</b><span>' + t.sub + '</span>';
+    b.addEventListener('click', () => { state.tier = i; renderTiers(); newQuestion(); });
+    box.appendChild(b);
+  });
+}
+
+/* typographic minus for anything shown to the player */
+function pretty(s){ return String(s).replace(/-(?=\d)/g, '−'); }
+
+function newQuestion(){
+  currentQ = buildQuestion(state.tier);
+  answered = false;
+  qStart = Date.now();
+  $('qtopic').textContent = currentQ.topic + ' · ' + TIERS[state.tier].name;
+  $('qtext').innerHTML = pretty(currentQ.text);
+  $('fb').className = 'feedback';
+  const box = $('opts');
+  box.innerHTML = '';
+  currentQ.opts.forEach((o,i) => {
+    const b = document.createElement('button');
+    b.className = 'opt';
+    b.innerHTML = '<span class="k">' + 'ABCD'[i] + '</span><span>' + pretty(o) + '</span>';
+    b.addEventListener('click', () => answer(i, b));
+    box.appendChild(b);
+  });
+  clearInterval(timerId);
+  timerId = setInterval(tickTimer, 200);
+  tickTimer();
+  updateSessionStats();
+}
+
+function tickTimer(){
+  const left = Math.max(0, Q_SECONDS - (Date.now() - qStart)/1000);
+  $('tbar').style.width = (left / Q_SECONDS * 100) + '%';
+  if(left <= 0) clearInterval(timerId);
+}
+
+function answer(i, btn){
+  if(answered) return;
+  answered = true;
+  clearInterval(timerId);
+  const secs = (Date.now() - qStart) / 1000;
+  const right = i === currentQ.correctIndex;
+  state.asked++;
+
+  document.querySelectorAll('#opts .opt').forEach((b,k) => {
+    b.disabled = true;
+    if(k === currentQ.correctIndex) b.classList.add('right');
+  });
+  if(!right) btn.classList.add('wrong');
+
+  const fb = $('fb');
+  if(right){
+    state.correct++;
+    state.streak++;
+    state.bestStreak = Math.max(state.bestStreak, state.streak);
+    const base = TIERS[state.tier].pay;
+    const streakMult = 1 + Math.min(state.streak - 1, 10) * 0.10;
+    const fast = secs <= FAST_SECONDS;
+    const total = Math.round(base * streakMult * (fast ? 1.25 : 1));
+    state.earned += total;
+    addMoney(total);
+    fb.className = 'feedback show ok';
+    fb.innerHTML = '<div class="payout">✓ Correct — you earned ' + cash(total) + '</div>' +
+      '<div class="hint" style="margin:4px 0 8px">base ' + cash(base) +
+      ' × streak ' + streakMult.toFixed(2) + (fast ? ' × speed bonus 1.25' : '') + '</div>' +
+      '<div>' + pretty(currentQ.sol) + '</div>';
+  }else{
+    state.streak = 0;
+    fb.className = 'feedback show no';
+    fb.innerHTML = '<div style="font-weight:800;color:#a83a32">✗ Not quite — the answer was ' + pretty(currentQ.ans) + '</div>' +
+      '<div style="margin-top:6px">' + pretty(currentQ.sol) + '</div>';
+  }
+  refreshHeader();
+  updateSessionStats();
+}
+
+function updateSessionStats(){
+  const pct = state.asked ? Math.round(state.correct / state.asked * 100) : 0;
+  $('sessionStats').textContent = state.correct + '/' + state.asked + ' correct (' + pct + '%) · best streak ' +
+    state.bestStreak + ' · earned ' + cash(state.earned) + ' total';
+}
+
+$('nextQ').addEventListener('click', newQuestion);
+$('skipQ').addEventListener('click', () => { state.streak = 0; refreshHeader(); newQuestion(); });
+
+/* ============================================================
+   7. MARKET
+   ============================================================ */
+const marketSamples = {};
+function sampleFor(sp){
+  if(!marketSamples[sp.key]) marketSamples[sp.key] = speciesAnimal(sp);
+  return marketSamples[sp.key];
+}
+
+function renderMarket(){
+  const grid = $('marketGrid');
+  if(!grid) return;
+  grid.innerHTML = '';
+  SPECIES.forEach(sp => {
+    const an = sampleFor(sp);
+    const card = document.createElement('div');
+    card.className = 'acard';
+    const cv = document.createElement('canvas');
+    cv.width = 380; cv.height = 236;
+    card.appendChild(cv);
+    const info = document.createElement('div');
+    info.innerHTML = '<div class="nm">' + sp.name + '</div>' +
+      '<div class="meta">purebred · starter stock</div>' +
+      '<div class="price">' + cash(sp.price) + '</div>';
+    card.appendChild(info);
+    const btns = document.createElement('div');
+    btns.className = 'cardbtns';
+    const buy = document.createElement('button');
+    buy.className = 'btn';
+    buy.style.fontSize = '.85rem';
+    buy.style.padding = '7px 14px';
+    buy.textContent = state.money >= sp.price ? 'Buy' : 'Need ' + cash(sp.price - state.money);
+    buy.disabled = state.money < sp.price;
+    buy.addEventListener('click', () => buyAnimal(sp));
+    btns.appendChild(buy);
+    card.appendChild(btns);
+    grid.appendChild(card);
+    paintCard(cv, an, 0);
+  });
+}
+
+function buyAnimal(sp){
+  if(state.money < sp.price){ toast('Not enough money — back to the Math Lab!'); return; }
+  state.money -= sp.price;
+  const an = speciesAnimal(sp);
+  state.animals.push(an);
+  codexAdd(an);
+  marketSamples[sp.key] = speciesAnimal(sp);   // new stock on the shelf
+  refreshHeader();
+  renderMarket();
+  toast('You bought ' + an.name + ' the ' + sp.name + '!');
+  openNaming(an, 'buy');
+}
+
+/* ============================================================
+   8. BARN
+   ============================================================ */
+function animalCard(an, opts){
+  opts = opts || {};
+  const card = document.createElement('div');
+  card.className = 'acard';
+  const cv = document.createElement('canvas');
+  cv.width = 380; cv.height = 236;
+  card.appendChild(cv);
+  const r = rarityOf(an.value);
+  const info = document.createElement('div');
+  info.innerHTML =
+    '<div class="nm">' + esc(an.name) + '</div>' +
+    '<div class="br">' + esc(an.breed) + ' <span class="rar r' + r + '">' + RARITY[r] + '</span></div>' +
+    '<div class="meta">gen ' + an.gen + ' · worth <b>' + cash(an.value) + '</b>' +
+    (an.quirks.length ? '<br>' + an.quirks.join(' · ') : '') +
+    (an.parents ? '<br>from ' + esc(an.parents[0]) + ' + ' + esc(an.parents[1]) : '') + '</div>';
+  card.appendChild(info);
+  const btns = document.createElement('div');
+  btns.className = 'cardbtns';
+  if(opts.buttons !== false){
+    const ren = document.createElement('button');
+    ren.className = 'mini';
+    ren.textContent = '✏️ Rename';
+    ren.addEventListener('click', () => openNaming(an, 'rename'));
+    btns.appendChild(ren);
+
+    const bre = document.createElement('button');
+    bre.className = 'mini';
+    bre.textContent = '💞 Breed';
+    bre.addEventListener('click', () => { sendToPen(an); });
+    btns.appendChild(bre);
+
+    const sell = document.createElement('button');
+    sell.className = 'mini';
+    const price = Math.round(an.value * 0.7);
+    sell.textContent = '💰 Sell ' + cash(price);
+    let armed = false;
+    sell.addEventListener('click', () => {
+      if(!armed){ armed = true; sell.textContent = 'Sure? ' + cash(price); sell.style.borderColor = '#c2453c';
+        setTimeout(() => { if(armed){ armed = false; sell.textContent = '💰 Sell ' + cash(price); sell.style.borderColor = ''; } }, 3000);
+        return; }
+      sellAnimal(an, price);
+    });
+    btns.appendChild(sell);
+  }
+  card.appendChild(btns);
+  paintCard(cv, an, 0);
+  return card;
+}
+
+function esc(s){ return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+function sellAnimal(an, price){
+  const i = state.animals.indexOf(an);
+  if(i < 0) return;
+  state.animals.splice(i, 1);
+  if(penA === an) penA = null;
+  if(penB === an) penB = null;
+  state.money += price;
+  refreshHeader();
+  renderBarn(); rebuildFarm(); renderPens();
+  toast('Sold ' + an.name + ' for ' + cash(price));
+}
+
+function renderBarn(){
+  const grid = $('barnGrid');
+  grid.innerHTML = '';
+  if(!state.animals.length){
+    grid.innerHTML = '<div class="empty">No animals yet. Earn money in the <b>Math Lab</b>, then buy your first two at the <b>Market</b>.</div>';
+    $('farmHint').textContent = 'Empty pasture — buy an animal to get started.';
+    return;
+  }
+  const worth = state.animals.reduce((s,a) => s + a.value, 0);
+  $('farmHint').textContent = state.animals.length + ' animals grazing · herd value ' + cash(worth) +
+    ' · ' + state.bred + ' babies bred so far';
+  state.animals.slice().sort((a,b) => b.value - a.value).forEach(an => grid.appendChild(animalCard(an)));
+}
+
+/* ---- animated pasture ---- */
+let sprites = [], farmRaf = null, lastT = 0, farmClock = 0;
+function rebuildFarm(){
+  const cv = $('farm');
+  sprites = state.animals.map((an,i) => ({
+    an,
+    x: 80 + (i * 137) % (cv.width - 160),
+    y: 0.55 + ((i * 37) % 40) / 100,
+    dir: Math.random() < 0.5 ? -1 : 1,
+    speed: rand(6, 20),
+    phase: rand(0, 6.28),
+    pause: rand(0, 3)
+  }));
+  renderFarm(0);
+  if(!farmRaf) farmRaf = requestAnimationFrame(farmLoop);
+}
+
+function farmLoop(t){
+  farmRaf = requestAnimationFrame(farmLoop);
+  const dt = Math.min(0.05, (t - lastT) / 1000 || 0.016);
+  lastT = t;
+  if(currentView !== 'barn') return;
+  renderFarm(dt);
+}
+
+function renderFarm(dt){
+  farmClock += dt;
+  const cv = $('farm'), ctx = cv.getContext('2d');
+  const w = cv.width, h = cv.height;
+
+  const sky = ctx.createLinearGradient(0,0,0,h);
+  sky.addColorStop(0,'#a9dcff'); sky.addColorStop(0.52,'#dcefff'); sky.addColorStop(0.53,'#9fce78'); sky.addColorStop(1,'#79b45c');
+  ctx.fillStyle = sky; ctx.fillRect(0,0,w,h);
+
+  ctx.fillStyle = '#fff'; ctx.globalAlpha = 0.85;
+  for(let i=0;i<4;i++){
+    const cxp = ((i*260 + farmClock*8) % (w+160)) - 80, cyp = 30 + (i%2)*26;
+    ctx.beginPath();
+    ctx.ellipse(cxp, cyp, 34, 15, 0, 0, Math.PI*2);
+    ctx.ellipse(cxp+26, cyp+5, 24, 12, 0, 0, Math.PI*2);
+    ctx.ellipse(cxp-24, cyp+6, 20, 10, 0, 0, Math.PI*2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+
+  /* fence */
+  ctx.strokeStyle = '#a8794c'; ctx.lineWidth = 5;
+  ctx.beginPath(); ctx.moveTo(0, h*0.56); ctx.lineTo(w, h*0.56); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(0, h*0.62); ctx.lineTo(w, h*0.62); ctx.stroke();
+  for(let x=20; x<w; x+=110){ ctx.beginPath(); ctx.moveTo(x, h*0.50); ctx.lineTo(x, h*0.68); ctx.stroke(); }
+
+  /* grass tufts */
+  ctx.strokeStyle = '#5f9b45'; ctx.lineWidth = 2;
+  for(let i=0;i<26;i++){
+    const gx = (i*79) % w, gy = h*0.72 + (i%5)*22;
+    ctx.beginPath(); ctx.moveTo(gx, gy); ctx.lineTo(gx-4, gy-8); ctx.moveTo(gx, gy); ctx.lineTo(gx+4, gy-7); ctx.stroke();
+  }
+
+  if(!sprites.length){
+    ctx.fillStyle = 'rgba(60,50,30,.5)';
+    ctx.font = 'bold 20px Segoe UI, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Your pasture is empty…', w/2, h*0.42);
+    ctx.textAlign = 'left';
+    return;
+  }
+
+  sprites.sort((a,b) => a.y - b.y);
+  for(const s of sprites){
+    s.pause -= dt;
+    if(s.pause <= 0){
+      s.x += s.dir * s.speed * dt;
+      s.phase += dt * 7;
+      if(s.x < 60){ s.x = 60; s.dir = 1; }
+      if(s.x > w - 60){ s.x = w - 60; s.dir = -1; }
+      if(Math.random() < 0.004){ s.pause = rand(0.6, 2.5); }
+      if(Math.random() < 0.003){ s.dir *= -1; }
+    }
+    const gy = h * (0.62 + s.y * 0.36);
+    /* every animal gets a sensible on-screen height: small species stay small,
+       big ones stay inside the pasture instead of towering out of frame */
+    const target = (52 + s.an.genes.size * 66) * (0.86 + s.y * 0.3);
+    const scale = scaleForHeight(s.an, target);
+    ctx.save();
+    if(s.dir < 0){ ctx.translate(s.x*2, 0); ctx.scale(-1, 1); }
+    ctx.globalAlpha = 0.18;
+    ctx.fillStyle = '#3a5c2a';
+    ctx.beginPath(); ctx.ellipse(s.x, gy+2, 26*scale, 5*scale, 0, 0, Math.PI*2); ctx.fill();
+    ctx.globalAlpha = 1;
+    drawCritter(ctx, s.an, s.x, gy, scale, s.pause > 0 ? 0 : s.phase);
+    ctx.restore();
+
+    ctx.fillStyle = 'rgba(35,28,18,.72)';
+    ctx.font = 'bold 12px Segoe UI, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(s.an.name, s.x, gy + 15);
+    ctx.textAlign = 'left';
+  }
+}
+
+/* ============================================================
+   9. BREEDING
+   ============================================================ */
+let penA = null, penB = null, pickTarget = 'A';
+
+function penMarkup(slot, an){
+  const el = $('pen' + slot);
+  el.innerHTML = '';
+  if(!an){
+    const d = document.createElement('div');
+    d.className = 'hint';
+    d.innerHTML = 'Tap to choose Parent&nbsp;' + (slot === 'A' ? '1' : '2');
+    el.appendChild(d);
+    return;
+  }
+  const cv = document.createElement('canvas');
+  cv.width = 460; cv.height = 256;
+  el.appendChild(cv);
+  const t = document.createElement('div');
+  t.innerHTML = '<div class="nm" style="font-weight:800">' + esc(an.name) + '</div>' +
+    '<div class="br">' + esc(an.breed) + '</div>' +
+    '<div class="meta">gen ' + an.gen + ' · ' + cash(an.value) + '</div>';
+  el.appendChild(t);
+  paintCard(cv, an, 0);
+}
+
+function renderPens(){
+  penMarkup('A', penA);
+  penMarkup('B', penB);
+  const ok = penA && penB && penA !== penB && state.money >= BREED_FEE;
+  const btn = $('doBreed');
+  btn.disabled = !ok;
+  btn.textContent = (penA && penB && state.money < BREED_FEE) ? 'Need ' + cash(BREED_FEE) + ' for the vet' : 'Breed them! (' + cash(BREED_FEE) + ')';
+}
+
+function sendToPen(an){
+  if(!penA || penA === an) penA = an;
+  else penB = an;
+  showView('breed');
+  renderPens();
+  toast(an.name + ' is in the breeding barn');
+}
+
+$('penA').addEventListener('click', () => openPicker('A'));
+$('penB').addEventListener('click', () => openPicker('B'));
+$('clearPens').addEventListener('click', () => { penA = penB = null; renderPens(); });
+
+function openPicker(slot){
+  if(!state.animals.length){ toast('Buy some animals first!'); showView('market'); return; }
+  pickTarget = slot;
+  $('pickTitle').textContent = 'Choose Parent ' + (slot === 'A' ? '1' : '2');
+  const grid = $('pickGrid');
+  grid.innerHTML = '';
+  state.animals.forEach(an => {
+    const card = animalCard(an, { buttons:false });
+    card.style.cursor = 'pointer';
+    card.addEventListener('click', () => {
+      if(slot === 'A'){ if(penB === an) penB = null; penA = an; }
+      else { if(penA === an) penA = null; penB = an; }
+      $('picker').classList.remove('show');
+      renderPens();
+    });
+    grid.appendChild(card);
+  });
+  $('picker').classList.add('show');
+}
+$('pickClose').addEventListener('click', () => $('picker').classList.remove('show'));
+$('picker').addEventListener('click', e => { if(e.target.id === 'picker') $('picker').classList.remove('show'); });
+
+$('doBreed').addEventListener('click', () => {
+  if(!penA || !penB || penA === penB) return;
+  if(state.money < BREED_FEE){ toast('You need ' + cash(BREED_FEE) + ' for the vet.'); return; }
+  state.money -= BREED_FEE;
+  const baby = breedAnimals(penA, penB);
+  state.animals.push(baby);
+  state.bred++;
+  refreshHeader();
+  openNaming(baby, 'newborn');
+});
+
+/* ============================================================
+   10. NAMING / RENAMING
+   ============================================================ */
+let namingAnimal = null, namingMode = 'newborn', oldBreed = '';
+
+function openNaming(an, mode){
+  namingAnimal = an;
+  namingMode = mode;
+  oldBreed = an.breed;
+  const isNew = mode === 'newborn';
+  $('mTitle').textContent = isNew ? '🎉 A baby was born!' : (mode === 'buy' ? '🏷️ Name your new animal' : '✏️ Rename');
+  const r = rarityOf(an.value);
+  $('mSub').innerHTML = isNew
+    ? 'Parents: ' + esc(an.parents[0]) + ' + ' + esc(an.parents[1]) +
+      '<br><b>' + RARITY[r] + '</b> · generation ' + an.gen + ' · worth <b>' + cash(an.value) + '</b>' +
+      '<br>Give it a name — and name the brand-new breed you just created.'
+    : '<b>' + RARITY[r] + '</b> · worth ' + cash(an.value) + ' · you can change both names any time.';
+  const cv = $('mCanvas');
+  paintCard(cv, an, 0);
+  const tr = $('mTraits');
+  tr.innerHTML = '';
+  an.quirks.forEach(q => { const s = document.createElement('span'); s.className = 'trait'; s.textContent = q; tr.appendChild(s); });
+  $('mName').value = an.name;
+  $('mBreed').value = an.breed;
+  $('modal').classList.add('show');
+  setTimeout(() => $('mName').focus(), 60);
+}
+
+$('mDice').addEventListener('click', () => {
+  $('mName').value = pick(FIRST_NAMES);
+  if(namingAnimal && namingAnimal.parents) $('mBreed').value = portmanteau(namingAnimal.breed, pick(SPECIES).name);
+});
+
+function saveNaming(){
+  if(!namingAnimal) return;
+  const nm = $('mName').value.trim() || pick(FIRST_NAMES);
+  const br = $('mBreed').value.trim() || namingAnimal.breed;
+  codexRemove(namingAnimal);
+  namingAnimal.name = nm.slice(0,24);
+  namingAnimal.breed = br.slice(0,24);
+  codexAdd(namingAnimal);
+  $('modal').classList.remove('show');
+  const wasNew = namingMode === 'newborn';
+  namingAnimal = null;
+  refreshHeader();
+  renderBarn(); rebuildFarm(); renderPens(); renderCodex();
+  if(wasNew){
+    toast('Welcome, ' + nm + ' the ' + br + '!');
+    showView('barn');
+  }else{
+    toast('Saved: ' + nm + ' the ' + br);
+  }
+}
+$('mSave').addEventListener('click', saveNaming);
+$('mName').addEventListener('keydown', e => { if(e.key === 'Enter') $('mBreed').focus(); });
+$('mBreed').addEventListener('keydown', e => { if(e.key === 'Enter') saveNaming(); });
+
+/* ============================================================
+   11. BREED BOOK
+   ============================================================ */
+function codexAdd(an){
+  const key = an.breed;
+  if(!state.codex[key]) state.codex[key] = { count:0, best:0, sample:null, gen:an.gen };
+  const e = state.codex[key];
+  e.count++;
+  if(an.value >= e.best){ e.best = an.value; e.sample = JSON.parse(JSON.stringify(an)); e.gen = an.gen; }
+  refreshHeader();
+}
+function codexRemove(an){
+  const e = state.codex[an.breed];
+  if(!e) return;
+  e.count--;
+  if(e.count <= 0) delete state.codex[an.breed];
+}
+
+function renderCodex(){
+  const grid = $('codexGrid');
+  grid.innerHTML = '';
+  const keys = Object.keys(state.codex);
+  if(!keys.length){
+    grid.innerHTML = '<div class="empty">No breeds yet. Buy an animal or breed two together and the book fills up.</div>';
+    return;
+  }
+  keys.sort((a,b) => state.codex[b].best - state.codex[a].best).forEach(k => {
+    const e = state.codex[k];
+    const card = document.createElement('div');
+    card.className = 'acard';
+    const cv = document.createElement('canvas');
+    cv.width = 380; cv.height = 236;
+    card.appendChild(cv);
+    const r = rarityOf(e.best);
+    card.insertAdjacentHTML('beforeend',
+      '<div class="nm">' + esc(k) + '</div>' +
+      '<div class="br"><span class="rar r' + r + '">' + RARITY[r] + '</span></div>' +
+      '<div class="meta">' + e.count + ' on the farm · best worth ' + cash(e.best) + ' · gen ' + e.gen + '</div>');
+    grid.appendChild(card);
+    if(e.sample) paintCard(cv, e.sample, 0);
+  });
+}
+
+/* ============================================================
+   12. START
+   ============================================================ */
+renderTiers();
+newQuestion();
+refreshHeader();
+renderMarket();
+renderBarn();
+rebuildFarm();
+toast('Answer math questions to earn money, then buy your first animals!');
+
+})();
+</script>
+</body>
+</html>
