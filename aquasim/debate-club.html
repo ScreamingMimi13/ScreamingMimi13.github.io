@@ -1,0 +1,2562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Clash — Debate Club</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg:#0d0b1c; --bg2:#15122c; --panel:#1c1838; --panel2:#241f45;
+  --line:#332c5e; --ink:#f2eefc; --muted:#a49bcd; --dim:#7b73a3;
+  --pro:#2fd4a7; --con:#ff5c8a; --gold:#ffc857; --acc:#8b6cff; --acc2:#5ce1ff;
+  --ok:#2fd4a7; --warn:#ffc857; --bad:#ff5c8a;
+  --r:16px; --shadow:0 10px 30px rgba(0,0,0,.45);
+}
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg:#f2eefc; --bg2:#e8e1fb; --panel:#ffffff; --panel2:#f4f0ff;
+    --line:#ddd4f5; --ink:#1c1838; --muted:#5f5788; --dim:#8b83b0;
+    --shadow:0 10px 26px rgba(90,70,160,.16);
+  }
+}
+html, body { height:100%; }
+body {
+  font-family:"Segoe UI Variable Text","Segoe UI",system-ui,-apple-system,"Inter",sans-serif;
+  background:radial-gradient(1200px 700px at 12% -8%, var(--bg2), var(--bg) 60%);
+  background-attachment:fixed;
+  color:var(--ink); -webkit-tap-highlight-color:transparent;
+  overflow:hidden;
+}
+button, input, textarea, select { font:inherit; color:inherit; }
+button { cursor:pointer; border:none; background:none; }
+::-webkit-scrollbar { width:9px; height:9px; }
+::-webkit-scrollbar-thumb { background:var(--line); border-radius:9px; }
+::selection { background:var(--acc); color:#fff; }
+
+/* ---------- shell ---------- */
+#app { display:flex; height:100vh; height:100dvh; }
+#side {
+  width:230px; flex:0 0 230px; background:var(--panel);
+  border-right:1px solid var(--line); display:flex; flex-direction:column; padding:16px 12px;
+}
+.brand { display:flex; align-items:center; gap:9px; padding:4px 8px 16px; }
+.brand .logo {
+  width:38px; height:38px; border-radius:12px; display:grid; place-items:center; font-size:20px;
+  background:linear-gradient(140deg,var(--acc),var(--con)); box-shadow:0 6px 16px rgba(139,108,255,.4);
+}
+.brand b { font-size:1.22rem; letter-spacing:.5px; }
+.brand small { display:block; color:var(--dim); font-size:.68rem; letter-spacing:1.4px; text-transform:uppercase; }
+.navbtn {
+  display:flex; align-items:center; gap:11px; width:100%; padding:11px 12px; border-radius:12px;
+  color:var(--muted); font-size:.95rem; font-weight:600; text-align:left; position:relative;
+  transition:background .14s, color .14s;
+}
+.navbtn i { font-style:normal; font-size:1.15rem; width:22px; text-align:center; }
+.navbtn:hover { background:var(--panel2); color:var(--ink); }
+.navbtn.on { background:linear-gradient(100deg,rgba(139,108,255,.28),rgba(139,108,255,.06)); color:var(--ink); }
+.navbtn.on::before { content:""; position:absolute; left:-12px; top:9px; bottom:9px; width:4px; border-radius:0 4px 4px 0; background:var(--acc); }
+.navbtn .pip {
+  margin-left:auto; background:var(--con); color:#fff; font-size:.68rem; font-weight:800;
+  min-width:19px; height:19px; border-radius:10px; display:grid; place-items:center; padding:0 5px;
+}
+.sidefoot { margin-top:auto; padding:10px 8px 0; border-top:1px solid var(--line); }
+.mecard { display:flex; align-items:center; gap:10px; padding:8px; border-radius:12px; width:100%; text-align:left; }
+.mecard:hover { background:var(--panel2); }
+.mecard .av { width:36px; height:36px; border-radius:11px; display:grid; place-items:center; font-size:19px; background:var(--panel2); }
+.mecard .nm { font-weight:700; font-size:.9rem; }
+.mecard .rk { font-size:.72rem; color:var(--gold); font-weight:700; }
+
+#main { flex:1; overflow-y:auto; overflow-x:hidden; position:relative; }
+.wrap { max-width:920px; margin:0 auto; padding:26px 22px 90px; }
+.view { display:none; animation:fade .22s ease; }
+.view.on { display:block; }
+@keyframes fade { from{opacity:0; transform:translateY(8px)} to{opacity:1; transform:none} }
+
+#tabs { display:none; }
+
+/* ---------- bits ---------- */
+h2.title { font-size:1.7rem; letter-spacing:-.4px; }
+p.lede { color:var(--muted); margin-top:5px; line-height:1.55; font-size:.95rem; }
+.head { margin-bottom:20px; }
+.card {
+  background:var(--panel); border:1px solid var(--line); border-radius:var(--r);
+  padding:18px; box-shadow:var(--shadow);
+}
+.card + .card { margin-top:14px; }
+.grid { display:grid; gap:13px; }
+.g2 { grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); }
+.g3 { grid-template-columns:repeat(auto-fill,minmax(178px,1fr)); }
+.btn {
+  background:var(--acc); color:#fff; font-weight:700; padding:11px 18px; border-radius:11px;
+  font-size:.92rem; transition:transform .1s, filter .14s; display:inline-flex; align-items:center; gap:7px;
+}
+.btn:hover { filter:brightness(1.12); }
+.btn:active { transform:scale(.97); }
+.btn.ghost { background:var(--panel2); color:var(--ink); border:1px solid var(--line); }
+.btn.pro { background:var(--pro); color:#08281f; }
+.btn.con { background:var(--con); color:#3a0a1a; }
+.btn.gold { background:var(--gold); color:#3a2a00; }
+.btn:disabled { opacity:.45; cursor:not-allowed; }
+.btn.sm { padding:7px 13px; font-size:.83rem; border-radius:9px; }
+.row { display:flex; gap:9px; flex-wrap:wrap; align-items:center; }
+.chip {
+  background:var(--panel2); border:1px solid var(--line); border-radius:999px;
+  padding:5px 12px; font-size:.78rem; color:var(--muted); font-weight:600;
+}
+.chip.on { background:var(--acc); border-color:var(--acc); color:#fff; }
+.tag { font-size:.68rem; font-weight:800; letter-spacing:.8px; text-transform:uppercase; padding:3px 8px; border-radius:6px; }
+.tag.pro { background:rgba(47,212,167,.16); color:var(--pro); }
+.tag.con { background:rgba(255,92,138,.16); color:var(--con); }
+.tag.neu { background:var(--panel2); color:var(--muted); }
+textarea, input[type=text] {
+  width:100%; background:var(--panel2); border:1px solid var(--line); border-radius:12px;
+  padding:12px 14px; font-size:.95rem; line-height:1.55; resize:vertical; outline:none;
+  transition:border-color .14s;
+}
+textarea:focus, input[type=text]:focus { border-color:var(--acc); }
+.bar { height:8px; border-radius:9px; background:var(--panel2); overflow:hidden; }
+.bar > span { display:block; height:100%; border-radius:9px; background:linear-gradient(90deg,var(--acc),var(--acc2)); transition:width .5s cubic-bezier(.2,.8,.2,1); }
+.muted { color:var(--muted); }
+.dim { color:var(--dim); }
+.sec-h { font-size:.74rem; letter-spacing:1.4px; text-transform:uppercase; color:var(--dim); font-weight:800; margin:24px 0 10px; }
+.pill-stat { background:var(--panel2); border:1px solid var(--line); border-radius:12px; padding:11px 13px; }
+.pill-stat b { display:block; font-size:1.35rem; }
+.pill-stat span { font-size:.74rem; color:var(--dim); text-transform:uppercase; letter-spacing:.8px; font-weight:700; }
+
+/* ---------- home ---------- */
+.hero {
+  background:linear-gradient(135deg,rgba(139,108,255,.9),rgba(255,92,138,.75));
+  border-radius:20px; padding:24px; color:#fff; box-shadow:0 14px 34px rgba(139,108,255,.32);
+}
+.hero h1 { font-size:1.85rem; letter-spacing:-.6px; }
+.hero p { opacity:.92; margin-top:6px; font-size:.95rem; line-height:1.5; max-width:46ch; }
+.hero .row { margin-top:16px; }
+.hero .btn { background:rgba(255,255,255,.95); color:#3a1a6a; }
+.hero .btn.ghost { background:rgba(255,255,255,.18); color:#fff; border-color:rgba(255,255,255,.4); }
+.tile {
+  background:var(--panel); border:1px solid var(--line); border-radius:var(--r); padding:16px;
+  text-align:left; box-shadow:var(--shadow); transition:transform .12s, border-color .12s;
+  display:flex; flex-direction:column; gap:6px; width:100%;
+}
+.tile:hover { transform:translateY(-3px); border-color:var(--acc); }
+.tile .ic { font-size:1.8rem; }
+.tile b { font-size:1.02rem; }
+.tile small { color:var(--muted); font-size:.83rem; line-height:1.45; }
+.xpwrap { display:flex; align-items:center; gap:12px; }
+.xpwrap .bar { flex:1; }
+
+/* ---------- lessons ---------- */
+.lesson-item {
+  display:flex; align-items:center; gap:13px; width:100%; text-align:left; padding:14px;
+  background:var(--panel); border:1px solid var(--line); border-radius:14px; transition:border-color .12s, transform .12s;
+}
+.lesson-item:hover { border-color:var(--acc); transform:translateX(3px); }
+.lesson-item .ic { font-size:1.6rem; width:44px; height:44px; display:grid; place-items:center; background:var(--panel2); border-radius:12px; flex:0 0 auto; }
+.lesson-item .tx { flex:1; min-width:0; }
+.lesson-item .tx b { display:block; font-size:.98rem; }
+.lesson-item .tx small { color:var(--muted); font-size:.82rem; }
+.lesson-item .done { color:var(--pro); font-size:1.2rem; }
+.slide { min-height:180px; }
+.slide h3 { font-size:1.15rem; margin-bottom:9px; color:var(--acc2); }
+.slide p { line-height:1.68; color:var(--ink); font-size:.96rem; }
+.slide p + p { margin-top:11px; }
+.slide .ex {
+  margin-top:12px; background:var(--panel2); border-left:3px solid var(--acc); border-radius:0 10px 10px 0;
+  padding:11px 13px; font-size:.9rem; line-height:1.6; color:var(--muted);
+}
+.slide .ex b { color:var(--ink); }
+.dots { display:flex; gap:6px; justify-content:center; margin:14px 0; }
+.dots i { width:7px; height:7px; border-radius:50%; background:var(--line); display:block; }
+.dots i.on { background:var(--acc); width:20px; border-radius:4px; }
+.qopt {
+  display:block; width:100%; text-align:left; padding:12px 14px; border-radius:12px; margin-top:9px;
+  background:var(--panel2); border:2px solid var(--line); font-size:.92rem; transition:border-color .12s;
+}
+.qopt:hover { border-color:var(--acc); }
+.qopt.right { border-color:var(--pro); background:rgba(47,212,167,.13); }
+.qopt.wrong { border-color:var(--con); background:rgba(255,92,138,.13); }
+
+/* ---------- builder ---------- */
+.step-box { border:1px solid var(--line); border-radius:14px; overflow:hidden; margin-top:12px; }
+.step-box > .hd { display:flex; align-items:center; gap:9px; padding:11px 14px; background:var(--panel2); }
+.step-box > .hd b { font-size:.92rem; }
+.step-box > .hd .n { width:22px; height:22px; border-radius:7px; background:var(--acc); color:#fff; font-size:.75rem; font-weight:800; display:grid; place-items:center; }
+.step-box > .hd small { margin-left:auto; color:var(--dim); font-size:.76rem; }
+.step-box textarea { border:none; border-radius:0; background:var(--panel); min-height:70px; }
+.fb-line { display:flex; gap:9px; align-items:flex-start; padding:9px 0; border-top:1px solid var(--line); font-size:.89rem; line-height:1.5; }
+.fb-line .m { font-size:1rem; flex:0 0 auto; }
+
+/* ---------- arena ---------- */
+.vs { display:flex; align-items:center; gap:14px; }
+.vs .who { flex:1; text-align:center; }
+.vs .av { font-size:2.2rem; }
+.vs .who b { display:block; font-size:.95rem; margin-top:3px; }
+.vs .who small { color:var(--dim); font-size:.76rem; }
+.vs .mid { font-size:1.1rem; font-weight:900; color:var(--dim); letter-spacing:1px; }
+.res-banner {
+  background:linear-gradient(120deg,var(--panel2),var(--panel));
+  border:1px dashed var(--line); border-radius:13px; padding:13px 15px; margin:14px 0;
+}
+.res-banner small { color:var(--dim); font-size:.7rem; letter-spacing:1.3px; text-transform:uppercase; font-weight:800; }
+.res-banner p { font-size:1.02rem; line-height:1.5; margin-top:4px; font-weight:600; }
+#floor { display:flex; flex-direction:column; gap:12px; }
+.speech { display:flex; gap:10px; max-width:92%; }
+.speech .av { width:36px; height:36px; border-radius:11px; background:var(--panel2); display:grid; place-items:center; font-size:19px; flex:0 0 auto; }
+.speech .bub { background:var(--panel); border:1px solid var(--line); border-radius:4px 14px 14px 14px; padding:11px 14px; font-size:.93rem; line-height:1.6; }
+.speech .bub .nm { font-size:.74rem; font-weight:800; letter-spacing:.6px; text-transform:uppercase; margin-bottom:4px; color:var(--dim); }
+.speech.me { align-self:flex-end; flex-direction:row-reverse; }
+.speech.me .bub { border-radius:14px 4px 14px 14px; background:linear-gradient(140deg,rgba(139,108,255,.24),rgba(139,108,255,.1)); border-color:rgba(139,108,255,.4); }
+.speech.judge .bub { border-color:var(--gold); background:rgba(255,200,87,.09); }
+.phase-bar { display:flex; gap:6px; margin:14px 0; }
+.phase-bar div { flex:1; height:5px; border-radius:4px; background:var(--line); }
+.phase-bar div.on { background:var(--acc); }
+.phase-bar div.past { background:var(--pro); }
+.timer { font-variant-numeric:tabular-nums; font-weight:800; font-size:.9rem; }
+.timer.low { color:var(--con); }
+.prep-card { background:var(--panel2); border:1px solid var(--line); border-radius:11px; padding:11px; font-size:.85rem; line-height:1.55; }
+.prep-card b { color:var(--acc2); }
+.score-row { display:flex; align-items:center; gap:10px; margin-top:9px; }
+.score-row .lb { width:88px; font-size:.82rem; font-weight:700; color:var(--muted); }
+.score-row .bar { flex:1; }
+.score-row .vl { width:42px; text-align:right; font-weight:800; font-size:.86rem; }
+.verdict { text-align:center; padding:20px; }
+.verdict .big { font-size:2.4rem; font-weight:900; letter-spacing:-1px; }
+.typing span { display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--dim); margin:0 2px; animation:bounce 1.1s infinite; }
+.typing span:nth-child(2){animation-delay:.15s} .typing span:nth-child(3){animation-delay:.3s}
+@keyframes bounce { 0%,60%,100%{transform:translateY(0);opacity:.4} 30%{transform:translateY(-5px);opacity:1} }
+
+/* ---------- friends and chat ---------- */
+.friend-row {
+  display:flex; align-items:center; gap:12px; width:100%; text-align:left; padding:11px;
+  border-radius:13px; transition:background .12s;
+}
+.friend-row:hover { background:var(--panel2); }
+.friend-row .av { width:44px; height:44px; border-radius:13px; background:var(--panel2); display:grid; place-items:center; font-size:22px; flex:0 0 auto; position:relative; }
+.friend-row .av .dot { position:absolute; right:-1px; bottom:-1px; width:12px; height:12px; border-radius:50%; border:2px solid var(--panel); background:var(--dim); }
+.friend-row .av .dot.on { background:var(--pro); }
+.friend-row .tx { flex:1; min-width:0; }
+.friend-row .tx b { display:block; font-size:.93rem; }
+.friend-row .tx small { color:var(--muted); font-size:.81rem; display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.friend-row .un { background:var(--con); color:#fff; font-size:.68rem; font-weight:800; min-width:19px; height:19px; border-radius:10px; display:grid; place-items:center; padding:0 5px; }
+#thread { display:flex; flex-direction:column; gap:9px; padding:4px 2px; }
+.msg { max-width:78%; padding:9px 13px; border-radius:15px; font-size:.92rem; line-height:1.5; }
+.msg.them { background:var(--panel2); border:1px solid var(--line); align-self:flex-start; border-bottom-left-radius:5px; }
+.msg.me { background:var(--acc); color:#fff; align-self:flex-end; border-bottom-right-radius:5px; }
+.msg.sys { align-self:center; background:none; color:var(--dim); font-size:.78rem; text-align:center; max-width:100%; }
+.msg .who { font-size:.7rem; font-weight:800; opacity:.75; display:block; margin-bottom:2px; }
+.msg .act { display:block; margin-top:8px; }
+.composer { display:flex; gap:8px; margin-top:12px; }
+.composer input { flex:1; }
+.qr { display:flex; gap:7px; flex-wrap:wrap; margin-top:9px; }
+.qr button { background:var(--panel2); border:1px solid var(--line); border-radius:999px; padding:6px 12px; font-size:.8rem; color:var(--muted); }
+.qr button:hover { border-color:var(--acc); color:var(--ink); }
+
+/* ---------- misc ---------- */
+.badge-chip { display:flex; flex-direction:column; align-items:center; gap:4px; padding:13px 8px; background:var(--panel2); border:1px solid var(--line); border-radius:13px; text-align:center; }
+.badge-chip.locked { opacity:.32; }
+.badge-chip .e { font-size:1.7rem; }
+.badge-chip b { font-size:.78rem; }
+.badge-chip small { font-size:.68rem; color:var(--dim); line-height:1.35; }
+#toast {
+  position:fixed; left:50%; bottom:28px; transform:translate(-50%,140%);
+  background:var(--panel); border:1px solid var(--acc); color:var(--ink);
+  padding:11px 20px; border-radius:999px; font-weight:700; font-size:.9rem; z-index:900;
+  box-shadow:var(--shadow); transition:transform .3s cubic-bezier(.2,1.3,.4,1); max-width:90vw; text-align:center;
+}
+#toast.on { transform:translate(-50%,0); }
+.modal { position:fixed; inset:0; background:rgba(6,4,18,.72); backdrop-filter:blur(5px); display:none; place-items:center; z-index:800; padding:18px; }
+.modal.on { display:grid; }
+.modal .box { background:var(--panel); border:1px solid var(--line); border-radius:20px; padding:24px; max-width:460px; width:100%; box-shadow:var(--shadow); max-height:88vh; overflow-y:auto; }
+.avpick { display:grid; grid-template-columns:repeat(auto-fill,minmax(50px,1fr)); gap:8px; margin-top:10px; }
+.avpick button { aspect-ratio:1; font-size:24px; background:var(--panel2); border:2px solid var(--line); border-radius:13px; }
+.avpick button.on { border-color:var(--acc); background:rgba(139,108,255,.18); }
+
+@media (max-width:760px) {
+  #side { display:none; }
+  #app { flex-direction:column; }
+  #tabs {
+    display:flex; background:var(--panel); border-top:1px solid var(--line);
+    padding:7px 4px calc(7px + env(safe-area-inset-bottom)); flex:0 0 auto;
+  }
+  #tabs button { flex:1; display:flex; flex-direction:column; align-items:center; gap:2px; padding:5px 2px; color:var(--dim); font-size:.62rem; font-weight:700; position:relative; }
+  #tabs button i { font-style:normal; font-size:1.32rem; }
+  #tabs button.on { color:var(--acc); }
+  #tabs button .pip { position:absolute; top:1px; right:24%; background:var(--con); color:#fff; font-size:.6rem; min-width:15px; height:15px; border-radius:8px; display:grid; place-items:center; }
+  .wrap { padding:18px 14px 30px; }
+  h2.title { font-size:1.42rem; }
+  .hero h1 { font-size:1.5rem; }
+}
+</style>
+</head>
+<body>
+
+<div id="app">
+
+  <nav id="side">
+    <div class="brand">
+      <div class="logo">🎙️</div>
+      <div><b>CLASH</b><small>Debate Club</small></div>
+    </div>
+    <button class="navbtn on" data-go="home"><i>🏠</i>Home</button>
+    <button class="navbtn" data-go="learn"><i>📘</i>Learn</button>
+    <button class="navbtn" data-go="build"><i>🧱</i>Argument Lab</button>
+    <button class="navbtn" data-go="arena"><i>⚔️</i>Debate Arena</button>
+    <button class="navbtn" data-go="fallacy"><i>🕵️</i>Fallacy Hunt</button>
+    <button class="navbtn" data-go="friends"><i>👥</i>Friends<span class="pip" id="pipSide" hidden>0</span></button>
+    <button class="navbtn" data-go="profile"><i>🏆</i>Trophy Case</button>
+    <div class="sidefoot">
+      <button class="mecard" data-go="profile">
+        <div class="av" id="meAv">🦉</div>
+        <div><div class="nm" id="meName">You</div><div class="rk" id="meRank">Novice</div></div>
+      </button>
+    </div>
+  </nav>
+
+  <main id="main">
+    <div class="wrap">
+
+      <!-- ============ HOME ============ -->
+      <section class="view on" id="v-home">
+        <div class="hero">
+          <h1 id="heroHi">Ready to argue?</h1>
+          <p id="heroSub">Learn how real debaters build a case, then take it to the floor against a live opponent.</p>
+          <div class="row">
+            <button class="btn" data-go="arena">⚔️ Start a debate</button>
+            <button class="btn ghost" id="dailyBtn">🎯 Daily drill</button>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:16px">
+          <div class="row" style="justify-content:space-between">
+            <b id="rankLine">Novice Speaker</b>
+            <small class="dim" id="xpLine">0 / 100 XP</small>
+          </div>
+          <div class="bar" style="margin-top:9px"><span id="xpBar" style="width:0%"></span></div>
+          <div class="grid g3" style="margin-top:14px">
+            <div class="pill-stat"><b id="stWins">0</b><span>Debates won</span></div>
+            <div class="pill-stat"><b id="stStreak">0</b><span>Day streak</span></div>
+            <div class="pill-stat"><b id="stLessons">0</b><span>Lessons done</span></div>
+            <div class="pill-stat"><b id="stBadges">0</b><span>Badges</span></div>
+          </div>
+        </div>
+
+        <div class="sec-h">Jump in</div>
+        <div class="grid g2">
+          <button class="tile" data-go="learn"><span class="ic">📘</span><b>Debate School</b><small id="tLearn">12 short lessons — claims, evidence, rebuttal, cross-ex.</small></button>
+          <button class="tile" data-go="build"><span class="ic">🧱</span><b>Argument Lab</b><small>Build one airtight argument. Get it graded line by line.</small></button>
+          <button class="tile" data-go="arena"><span class="ic">⚔️</span><b>Debate Arena</b><small>Six-round debate vs. a rival. A judge scores the whole thing.</small></button>
+          <button class="tile" data-go="fallacy"><span class="ic">🕵️</span><b>Fallacy Hunt</b><small>Sixty seconds. Spot the broken logic before the clock dies.</small></button>
+        </div>
+
+        <div class="sec-h">Club feed</div>
+        <div class="card" id="feed"></div>
+      </section>
+
+      <!-- ============ LEARN ============ -->
+      <section class="view" id="v-learn">
+        <div class="head">
+          <h2 class="title">📘 Debate School</h2>
+          <p class="lede">Twelve lessons that cover what an actual high-school debater needs. Each one ends with a check — pass it and you bank the XP.</p>
+        </div>
+        <div id="lessonList" class="grid" style="gap:10px"></div>
+        <div id="lessonView" hidden></div>
+      </section>
+
+      <!-- ============ BUILDER ============ -->
+      <section class="view" id="v-build">
+        <div class="head">
+          <h2 class="title">🧱 Argument Lab</h2>
+          <p class="lede">Every good argument has four parts. Fill them in, and the Lab grades each one and tells you exactly what is missing.</p>
+        </div>
+        <div id="buildBody"></div>
+      </section>
+
+      <!-- ============ ARENA ============ -->
+      <section class="view" id="v-arena">
+        <div id="arenaBody"></div>
+      </section>
+
+      <!-- ============ FALLACY ============ -->
+      <section class="view" id="v-fallacy">
+        <div id="fallacyBody"></div>
+      </section>
+
+      <!-- ============ FRIENDS ============ -->
+      <section class="view" id="v-friends">
+        <div id="friendsBody"></div>
+      </section>
+
+      <!-- ============ PROFILE ============ -->
+      <section class="view" id="v-profile">
+        <div id="profileBody"></div>
+      </section>
+
+    </div>
+  </main>
+
+  <nav id="tabs">
+    <button class="on" data-go="home"><i>🏠</i>Home</button>
+    <button data-go="learn"><i>📘</i>Learn</button>
+    <button data-go="arena"><i>⚔️</i>Arena</button>
+    <button data-go="friends"><i>👥</i>Friends<span class="pip" id="pipTab" hidden>0</span></button>
+    <button data-go="profile"><i>🏆</i>Me</button>
+  </nav>
+</div>
+
+<div id="toast"></div>
+
+<div class="modal on" id="setup">
+  <div class="box">
+    <h2 class="title">🎙️ Welcome to Clash</h2>
+    <p class="lede">A debate club that lives in your browser. Pick a name and a face — that is the whole signup.</p>
+    <div style="margin-top:16px">
+      <label class="dim" style="font-size:.78rem;font-weight:800;letter-spacing:1px;text-transform:uppercase">Your name</label>
+      <input type="text" id="setupName" maxlength="16" placeholder="e.g. Riya" style="margin-top:7px">
+    </div>
+    <div style="margin-top:14px">
+      <label class="dim" style="font-size:.78rem;font-weight:800;letter-spacing:1px;text-transform:uppercase">Your avatar</label>
+      <div class="avpick" id="avPick"></div>
+    </div>
+    <button class="btn" id="setupGo" style="margin-top:18px;width:100%;justify-content:center">Join the club →</button>
+    <p class="dim" style="font-size:.76rem;margin-top:11px;line-height:1.5">Nothing is saved anywhere. Close the tab and the club resets — your friends here are practice opponents, not real people.</p>
+  </div>
+</div>
+
+<div class="modal" id="modal"><div class="box" id="modalBox"></div></div>
+
+<script>
+(function () {
+'use strict';
+
+/* =========================================================================
+   1. DATA — lessons, topics, fallacies, club members, badges
+   ========================================================================= */
+
+var AVATARS = ['🦉','🦊','🐙','🐝','🦈','🐧','🦅','🐺','🦁','🐯','🦄','🐲','👽','🤖','🦖','🐨'];
+
+var RANKS = [
+  { at: 0,    name: 'Novice Speaker',   e: '🎈' },
+  { at: 150,  name: 'Rookie Debater',   e: '🎓' },
+  { at: 400,  name: 'Floor Regular',    e: '🗣️' },
+  { at: 800,  name: 'Varsity Debater',  e: '⭐' },
+  { at: 1400, name: 'Team Captain',     e: '🎖️' },
+  { at: 2200, name: 'Circuit Champion', e: '👑' }
+];
+
+/* ---------------- LESSONS ---------------- */
+var LESSONS = [
+  {
+    id: 'what', ic: '🎙️', t: 'What Debate Actually Is',
+    d: 'It is not arguing. It is proving.',
+    cards: [
+      { h: 'You are not trying to win the room', b: 'A debate is not a shouting contest and it is not about who cares the most. It is a structured test of whose case survives contact with the other side. The loudest speaker in the room loses all the time.',
+        ex: 'Arguing sounds like: <b>"That is such a dumb take."</b><br>Debating sounds like: <b>"That claim would only hold if X were true, and here is why it is not."</b>' },
+      { h: 'The resolution is the whole map', b: 'Every debate starts with a resolution — one sentence you either affirm or negate. "Resolved: high schools should ban phones during the school day." Your entire job is to prove that sentence true or false. Anything that does not push toward that sentence is wasted breath.',
+        ex: 'If the resolution is about <b>banning phones in school</b>, an argument about teens texting while driving is off-topic. Real, but off-topic. A judge will not count it.' },
+      { h: 'You often argue the side you disagree with', b: 'In most formats you are assigned Pro or Con by coin flip. That is the point. Being forced to build the best case for a position you personally reject is the single fastest way to understand it — and to find the weak spots in your own beliefs.',
+        ex: 'Debaters call this <b>switch-side debate</b>. Practising it is why debaters are famously hard to argue with: they have already run your argument themselves.' }
+    ],
+    quiz: [
+      { q: 'Your resolution is "Homework should be abolished." Which of these actually helps you win?', o: ['Teachers assign way too much and it is unfair', 'Three districts that cut homework saw test scores hold steady and stress drop', 'My cousin hates homework and he is really smart', 'Homework has been around forever so it is outdated'], a: 1, why: 'It is specific, checkable, and points straight at the resolution. The others are feelings, one story, and an appeal to novelty.' },
+      { q: 'You are assigned the side you personally disagree with. What do you do?', o: ['Ask to switch sides', 'Argue it half-heartedly so nobody thinks that is your real view', 'Build the strongest possible case for it anyway', 'Attack the other side instead of defending your own'], a: 2, why: 'Switch-side debate is the whole training method. Steelmanning a view you reject is how you learn to beat it.' }
+    ]
+  },
+  {
+    id: 'are', ic: '🧱', t: 'The ARE Model',
+    d: 'Assertion, Reasoning, Evidence — the shape of every argument.',
+    cards: [
+      { h: 'One claim is not an argument', b: 'Saying "school should start later" is an assertion. On its own it is worth nothing — the other side can just assert the opposite and you are back to zero. An argument is an assertion plus the reason it is true plus proof that the reason holds.',
+        ex: '<b>A</b>ssertion — school should start after 9am.<br><b>R</b>easoning — teenage sleep cycles shift later during puberty, so an 7:30 start cuts real sleep.<br><b>E</b>vidence — districts that pushed start times back saw students gain roughly half an hour of sleep a night.' },
+      { h: 'Reasoning is the part everyone skips', b: 'Most beginners give you a claim and a statistic and stop. But a statistic does not explain itself. The reasoning — debaters call it the warrant — is the sentence that says why this fact makes that claim true. Skip it and the judge has to do your thinking for you. Judges do not.',
+        ex: 'Weak: "Later starts are better. Studies show teens are tired."<br>Strong: "Later starts are better <b>because</b> the tiredness is biological, not behavioural — so no amount of going to bed earlier fixes it. Only moving the clock does."' },
+      { h: 'Say it in that order, out loud', b: 'Claim first so the judge knows where you are going. Then the reasoning. Then the evidence that backs the reasoning. Then, always, the impact — what changes in the world if you are right. A four-sentence argument in that order beats a two-minute ramble every single time.',
+        ex: 'Practice frame: <b>"My argument is ___. This is true because ___. We know this because ___. That matters because ___."</b> Learn that frame and you can build an argument about anything, on the spot.' }
+    ],
+    quiz: [
+      { q: 'Which part is missing? "We should ban single-use plastic. A study found 8 million tonnes enter the ocean every year."', o: ['The assertion', 'The evidence', 'The reasoning', 'Nothing is missing'], a: 2, why: 'There is a claim and a fact, but nothing connecting them. Why does that tonnage mean a ban specifically is the fix? That sentence is the warrant.' },
+      { q: 'What is the best first sentence of an argument?', o: ['A surprising statistic', 'A story about someone affected', 'The claim you are about to prove', 'A question to the audience'], a: 2, why: 'Signpost first. The judge is taking notes — tell them what they are writing down before you fill it in.' }
+    ]
+  },
+  {
+    id: 'impact', ic: '💥', t: 'Impacts: So What?',
+    d: 'The question that decides most rounds.',
+    cards: [
+      { h: 'Prove the harm, not just the fact', b: 'You can win every fact in a round and still lose it. "So what?" is the judge sitting there wondering why they should care. The impact is your answer: who is hurt or helped, how badly, and how many of them.',
+        ex: 'Fact: "Uniforms cost families about $150 a year."<br>Impact: "For a family already choosing between rent and groceries, $150 per child in August is the difference between a kid starting school and a kid starting school ashamed."' },
+      { h: 'Impacts have size, scope and likelihood', b: 'Three dials. <b>Size</b> — how bad is it for one person? <b>Scope</b> — how many people? <b>Likelihood</b> — how sure are we it happens at all? A tiny harm to millions can outweigh a huge harm to three people. A catastrophic harm that is wildly unlikely usually loses to a modest harm that is certain.',
+        ex: 'This is why "but it could theoretically lead to nuclear war" arguments lose. Enormous size, near-zero likelihood. Judges multiply.' },
+      { h: 'Terminal impacts', b: 'Keep asking "and then what?" until you hit something nobody would argue is fine. Lost sleep → worse concentration → lower grades → fewer options after graduation. That last one is a terminal impact: you cannot ask "so what?" about a kid losing their future.',
+        ex: 'Try it on any argument you make this week. Three "so whats" deep is usually where the real reason lives.' }
+    ],
+    quiz: [
+      { q: 'Which impact is strongest under size × scope × likelihood?', o: ['A policy that might, in a worst case, cause a war', 'A policy that certainly costs 40,000 students an hour of sleep a night', 'A policy that definitely annoys one principal', 'A policy that could possibly reduce someone’s commute'], a: 1, why: 'Certain, large scope, real size. The war impact has enormous size but almost no likelihood, so it discounts to nearly nothing.' },
+      { q: 'You say "the rule is unfair" and stop. What have you not done?', o: ['Signposted', 'Given the impact', 'Cited evidence', 'Refuted the other side'], a: 1, why: 'Unfair to whom, how badly, and what does that unfairness cost them? Without that, the judge has nothing to weigh.' }
+    ]
+  },
+  {
+    id: 'sign', ic: '🚏', t: 'Signposting & Structure',
+    d: 'Make the judge’s notes easy to take.',
+    cards: [
+      { h: 'The judge is writing, not listening', b: 'Judges keep a flow — a page split into columns tracking every argument through the round. If they cannot tell where one argument ends and the next begins, arguments fall off the page. Yours. Signposting is how you control what lands on paper.',
+        ex: '<b>"Three contentions today. One, cost. Two, safety. Three, fairness."</b><br>Then: <b>"Onto contention one — cost."</b> Numbered, named, repeated.' },
+      { h: 'Roadmap, body, crystallise', b: 'Open by telling them what is coming. Deliver it in the order you promised. Close by naming the two or three clashes that decide the round and explaining why you win each. Never reorder mid-speech — the judge is following your promised order.',
+        ex: 'Closing frame: <b>"This round comes down to two questions. First, does the plan actually reduce harm? We showed it does, and they never answered our data. Second, is the cost bearable? They dropped that entirely."</b>' },
+      { h: 'A dropped argument is a conceded argument', b: 'If the other side makes an argument and you never mention it, most judges treat it as true. This is the single most common way beginners lose rounds they should have won. Answer everything, even in one sentence.',
+        ex: 'One-line answers are fine: <b>"On their economy point — that study is about universities, not high schools, so it does not apply here. Moving on."</b>' }
+    ],
+    quiz: [
+      { q: 'Your opponent makes four arguments. You answer three and run out of time. What happens to the fourth?', o: ['It is ignored by the judge', 'The judge answers it for you', 'It stands as true', 'It is split evenly'], a: 2, why: 'Dropped equals conceded. One rushed sentence beats silence every single time.' },
+      { q: 'What is a roadmap?', o: ['A list of your evidence sources', 'A quick preview of the order of your speech', 'The judge’s notes', 'A summary of the other side’s case'], a: 1, why: 'Ten seconds at the top that tells the judge exactly which column to write in.' }
+    ]
+  },
+  {
+    id: 'refute', ic: '🎯', t: 'The Four-Step Refutation',
+    d: 'They said it. Here is how you take it apart.',
+    cards: [
+      { h: 'They say / I say / because / therefore', b: 'The cleanest refutation in debate is four moves. <b>1. They say</b> — restate their argument fairly. <b>2. But I say</b> — state your response. <b>3. Because</b> — give the reason and proof. <b>4. Therefore</b> — say what it means for the round.',
+        ex: '<b>"They say uniforms cut bullying. But bullying does not disappear, it relocates — schools that adopted uniforms reported the same incident rates within two years, just about shoes and bags instead. Therefore their only harm reduction does not actually reduce harm."</b>' },
+      { h: 'Restate them fairly, then hit harder', b: 'Never twist their argument to make it easier to beat — a judge who notices you strawmanning stops trusting everything else you say. Restate it in a form they would agree with. Then break it. Beating the strong version is the only version that counts.',
+        ex: 'Weak: "They think kids should just be on their phones all day."<br>Strong: "Their strongest version is that phones are a safety line to parents in an emergency. Even granting that fully — schools already have office phones and PA systems, so the safety benefit is duplicated, not lost."' },
+      { h: 'Attack the weakest link, not the biggest word', b: 'Every argument is a chain: claim → warrant → evidence → impact. You do not need to break all four. Find the one link that does not hold. Usually it is the warrant — the unstated leap in the middle — not the statistic everybody stares at.',
+        ex: 'Their chain: phones distract → distraction lowers grades → so ban phones.<br>The weak link is not the data on distraction. It is the jump from <b>"distracting"</b> to <b>"a ban is the fix"</b>. Attack that.' },
+      { h: 'Even-if', b: 'The strongest defensive move in debate. Grant their point entirely, and show you still win. It makes you look fearless and it saves you from having to win every fight.',
+        ex: '<b>"Even if every word of their study is right, it measures a six-week trial. Our case is about a permanent policy, and their own author says the effect faded by month four."</b>' }
+    ],
+    quiz: [
+      { q: 'Which is the correct four-step order?', o: ['Because / therefore / they say / I say', 'They say / but I say / because / therefore', 'I say / they say / therefore / because', 'Therefore / they say / because / I say'], a: 1, why: 'Name their argument, give your response, prove it, then tell the judge what it does to the round.' },
+      { q: 'What is an "even-if" response?', o: ['Conceding the round', 'Granting their point and showing you still win', 'Repeating your own argument louder', 'Asking the judge to ignore them'], a: 1, why: 'It removes their best argument as a threat without you having to disprove it.' },
+      { q: 'Restating your opponent as "so you want total chaos" is:', o: ['Good framing', 'A strawman', 'An even-if', 'Signposting'], a: 1, why: 'You beat a version they never argued. Judges punish it, and it costs you credibility for the rest of the round.' }
+    ]
+  },
+  {
+    id: 'crossex', ic: '❓', t: 'Cross-Examination',
+    d: 'Three minutes to set traps, not to give a speech.',
+    cards: [
+      { h: 'Questions, not speeches', b: 'Cross-ex is for extracting admissions you will use in your next speech. It is not extra speaking time. Ask short closed questions that have only one honest answer, and stop talking the instant you get it.',
+        ex: 'Bad: "Don’t you think that given everything we know about teenagers and sleep it is kind of ridiculous to..." (that is a speech)<br>Good: <b>"Your study — how many schools?"</b> ... <b>"And over how long?"</b>' },
+      { h: 'Build a staircase', b: 'Never ask the killer question first. Ask three small ones they must answer yes to, then the one that traps them. By the time they see where it is going, they have already agreed to the steps.',
+        ex: '"Your plan needs funding — yes?"<br>"That funding comes from the district budget — yes?"<br>"And the district budget is fixed this year — yes?"<br><b>"So what gets cut?"</b>' },
+      { h: 'You do not have to answer a bad question', b: 'When you are being questioned, answer honestly and briefly, then stop. If a question contains a false premise, name it: "That question assumes our plan is federal. It is not." Never let someone put words in your mouth and never fill a silence with rambling.',
+        ex: 'The strongest cross-ex answer is often four words: <b>"No — here is why."</b> Then one sentence. Then silence.' }
+    ],
+    quiz: [
+      { q: 'Best cross-ex question?', o: ['Do you not think your entire case falls apart given the evidence we presented earlier about funding?', 'How many schools were in your study?', 'Why is your side always like this?', 'Can you explain your whole second contention?'], a: 1, why: 'Short, closed, one honest answer, and it sets up a later attack. The last one just hands them free speaking time.' },
+      { q: 'They ask a question built on something you never said. You should:', o: ['Answer it anyway to be polite', 'Refuse to speak', 'Name the false premise, then answer', 'Ask the judge to intervene'], a: 2, why: 'Correct the record first, briefly, or their framing goes on the judge’s flow unchallenged.' }
+    ]
+  },
+  {
+    id: 'weigh', ic: '⚖️', t: 'Weighing the Round',
+    d: 'Both sides are right. Now what?',
+    cards: [
+      { h: 'Most rounds are not won by disproving', b: 'By the last speech both sides usually have real arguments still standing. The winner is whoever tells the judge why theirs matters more. That comparison is weighing, and almost nobody does it — which is exactly why doing it wins.',
+        ex: 'Weighing sounds like: <b>"Even taking their fairness argument as true, ours affects every student every day and theirs affects a handful once a year. Magnitude and scope both go to us."</b>' },
+      { h: 'The three weighing tools', b: '<b>Magnitude</b> — whose harm is worse. <b>Probability</b> — whose harm is more likely to actually happen. <b>Timeframe</b> — whose harm arrives first, and does the other one even arrive in time to matter?',
+        ex: 'Timeframe wins more rounds than people expect: <b>"Their benefit takes a decade of funding. Ours starts in September. If we are wrong, we can reverse it. If they are wrong, a generation of students already paid."</b>' },
+      { h: 'Write the ballot for the judge', b: 'End your last speech by saying, almost word for word, the sentence you want in their decision. Name the two clashes that decide it, say who won each and why. If you do not write that sentence, the judge writes it themselves — and they may not pick your framing.',
+        ex: '<b>"You vote Pro if you believe two things: that the harm is happening now, and that our fix is reversible. They contested neither."</b>' }
+    ],
+    quiz: [
+      { q: 'Both sides have standing arguments at the end. What wins?', o: ['Whoever spoke last', 'Whoever compared the impacts and explained why theirs matters more', 'Whoever had more evidence cards', 'Whoever was loudest'], a: 1, why: 'That comparison is the round. Judges want to be told how to decide, in your words.' },
+      { q: '"Their harm takes ten years, ours starts in September." That is weighing by:', o: ['Magnitude', 'Probability', 'Timeframe', 'Scope'], a: 2, why: 'Timeframe — which harm arrives first, and whether the slower one arrives in time to matter.' }
+    ]
+  },
+  {
+    id: 'evid', ic: '🔍', t: 'Evidence That Holds Up',
+    d: 'Not all facts survive being asked about.',
+    cards: [
+      { h: 'Cite it like you expect to be challenged', b: 'Because you will be. Every piece of evidence needs a source, a date, and a scale. "A study showed" is worthless — anyone can say that. "A 2022 Department of Education review of 400 schools found" is something the other side has to actually engage with.',
+        ex: 'The three questions you will be asked: <b>Who ran it? When? How big?</b> If you cannot answer all three, do not lead with it.' },
+      { h: 'Correlation is not causation, and the other side knows', b: 'Two things moving together does not mean one caused the other. If your evidence is correlational, say so and give a mechanism — the actual physical story of how A causes B. Otherwise a decent opponent kills it in one sentence.',
+        ex: 'Weak: "Schools with uniforms have better attendance."<br>Killed by: <b>"Schools that adopt uniforms are usually also schools that just got new funding and new leadership. Which one moved attendance?"</b>' },
+      { h: 'Beware the number with no denominator', b: '"Crime rose by 200%" means nothing without the starting number — two incidents becoming six is a 200% rise. Always ask for the base rate, and always give yours before someone asks.',
+        ex: 'When you hear a percentage with no denominator in a round, that is a free point. Ask: <b>"Two hundred percent of what?"</b>' }
+    ],
+    quiz: [
+      { q: 'Opponent says "crime went up 300% after the policy." Best response?', o: ['Say it is fake', 'Ask for the raw numbers behind the percentage', 'Cite a different statistic', 'Concede it'], a: 1, why: 'A percentage with no base rate can hide a jump from one to four. Ask for the denominator.' },
+      { q: 'Your evidence is correlational. What must you add?', o: ['A louder delivery', 'A mechanism explaining how one causes the other', 'More of the same kind of study', 'An apology'], a: 1, why: 'Without a mechanism, any judge with a pulse discounts it — and a good opponent names the confound for you.' }
+    ]
+  },
+  {
+    id: 'fall', ic: '🕵️', t: 'Logical Fallacies 101',
+    d: 'The eight you will actually meet in a round.',
+    cards: [
+      { h: 'The ones that show up constantly', b: '<b>Ad hominem</b> — attacking the speaker, not the argument. <b>Strawman</b> — beating a version they never argued. <b>Slippery slope</b> — claiming one step must lead to a disaster, with no proof of any step. <b>False dilemma</b> — pretending there are only two options.',
+        ex: 'Naming a fallacy is not enough. Say <b>why</b> it breaks: "That is a slippery slope — they need to prove each step, and they have not proven even the first one."' },
+      { h: 'The sneaky ones', b: '<b>Appeal to popularity</b> — everyone thinks it, so it is true. <b>Appeal to authority</b> — a famous person said it, so it is true. <b>Circular reasoning</b> — the conclusion is used as the proof. <b>Hasty generalisation</b> — one story becomes a rule.',
+        ex: 'Appeal to authority is only a fallacy when the authority is outside their field. A climate scientist on climate is evidence. A film star on climate is not.' },
+      { h: 'Do not become a fallacy cop', b: 'Beginners who just learned the list start shouting Latin names at everything. Judges hate it. Explain the flaw in plain English and only name the fallacy if the name adds clarity. Winning is about the reasoning, not the vocabulary.',
+        ex: 'Instead of "that is a post hoc fallacy," say: <b>"It happened afterwards, but they have not shown it happened because of it — and three other things changed that same year."</b>' }
+    ],
+    quiz: [
+      { q: '"Nobody serious believes that anymore." Which fallacy?', o: ['Slippery slope', 'Appeal to popularity', 'Circular reasoning', 'False dilemma'], a: 1, why: 'How many people believe something is not evidence about whether it is true.' },
+      { q: '"Either we ban phones completely or we accept total classroom chaos." Which fallacy?', o: ['False dilemma', 'Ad hominem', 'Hasty generalisation', 'Appeal to authority'], a: 0, why: 'Two options presented as the only options, when limited-use policies exist in between.' },
+      { q: 'You spot a fallacy. Best move?', o: ['Say its Latin name and move on', 'Explain in plain words why the reasoning fails', 'Ignore it', 'Use one yourself in return'], a: 1, why: 'The judge scores reasoning, not vocabulary. Name it only if the name makes the flaw clearer.' }
+    ]
+  },
+  {
+    id: 'deliv', ic: '🗣️', t: 'Delivery: Voice & Presence',
+    d: 'The same words, twice as convincing.',
+    cards: [
+      { h: 'Slow is fast', b: 'Nervous speakers speed up, and speed makes a judge stop taking notes. Deliberately slow down on your claim sentences and your impacts — those are the words you want written down. Speed up only on background nobody needs verbatim.',
+        ex: 'Pause for a full second before your strongest line. The silence makes the room look up. Then say it.' },
+      { h: 'Fill the silence with silence', b: 'Um, like, uh and you know are what a brain does when it needs a moment. So take the moment — silently. A two-second pause reads as confidence. Two seconds of "ummm" reads as lost.',
+        ex: 'Record yourself for sixty seconds and count your fillers. Everyone is shocked by the first count and almost nobody is shocked by the second.' },
+      { h: 'Hands, eyes, feet', b: 'Feet planted, weight even — rocking telegraphs nerves. Eyes on the judge, not your notes, for at least your claim sentences. Hands above the waist doing something deliberate, or still. One clear gesture per argument beats constant motion.',
+        ex: 'Counting on your fingers while you say "one, cost — two, safety — three, fairness" gives the judge a visual flow. Simple and it works.' }
+    ],
+    quiz: [
+      { q: 'You lose your place mid-speech. Best move?', o: ['Fill with "um" until you find it', 'Pause silently, find it, continue', 'Skip to the conclusion', 'Apologise to the judge'], a: 1, why: 'Silence reads as control. Filler reads as panic, and it is what the judge remembers.' },
+      { q: 'Which sentence should you slow down on?', o: ['Background context', 'Your claim and your impact', 'A source citation', 'Your greeting'], a: 1, why: 'Those are the words you want on the judge’s flow. Give them time to write.' }
+    ]
+  },
+  {
+    id: 'fmt', ic: '📋', t: 'The Formats',
+    d: 'Which room you might end up in.',
+    cards: [
+      { h: 'Public Forum', b: 'Two-on-two, a new resolution every month, usually a current-events policy question. Judged by whoever they could recruit — which means no jargon, no speed. The most beginner-friendly format and the most common at first tournaments.',
+        ex: 'Rule of thumb for PF: if your grandparent could not follow the sentence, rewrite the sentence.' },
+      { h: 'Lincoln-Douglas', b: 'One-on-one, values based. You are arguing about what is right, not what works — justice, liberty, autonomy. You pick a value and a criterion for measuring it, and the round is often decided on whose framework the judge accepts.',
+        ex: 'Classic LD frame: <b>"My value is justice, defined as giving each person what they are owed. My criterion is minimising state coercion."</b> Everything after that is measured against it.' },
+      { h: 'Policy and Parli', b: '<b>Policy</b> — two-on-two, one resolution for the entire year, enormous evidence files, famously fast delivery. <b>Parliamentary</b> — motion announced fifteen to twenty minutes before you speak, no internet, no prepared files. Parli rewards general knowledge and nerve.',
+        ex: 'Parli is the best format for improving fast: you cannot hide behind prepared cards, so you have to actually think on your feet.' }
+    ],
+    quiz: [
+      { q: 'Format built around values like justice and liberty rather than policy outcomes?', o: ['Public Forum', 'Lincoln-Douglas', 'Policy', 'Parliamentary'], a: 1, why: 'LD is the values format — value plus criterion, then everything is weighed against that framework.' },
+      { q: 'You get the motion twenty minutes before speaking with no internet. Which format?', o: ['Policy', 'Public Forum', 'Parliamentary', 'Lincoln-Douglas'], a: 2, why: 'Parli. Limited prep, no files, which is exactly why it builds speaking skill fastest.' }
+    ]
+  },
+  {
+    id: 'flow', ic: '✍️', t: 'Flowing',
+    d: 'The note-taking system that wins rounds.',
+    cards: [
+      { h: 'Columns, not paragraphs', b: 'A flow is one page per contention, turned sideways, split into a column per speech. Their argument goes in column one. Your answer sits directly beside it in column two. Their answer to your answer sits beside that. At a glance you can see every argument that never got answered.',
+        ex: 'Those blank spaces are gold. A gap in their column is an argument they dropped — and in your last speech you point at it: <b>"Never answered."</b>' },
+      { h: 'Abbreviate ruthlessly', b: 'You cannot write full sentences at speaking speed and you should not try. Build your own shorthand and use it forever: w/ for with, b/c because, ↑ increases, ↓ decreases, x for refuted, ! for impact. Capture the claim and the tag, never the whole sentence.',
+        ex: '"phones ↓ focus, 2019 study 30 schls, ! grades" is a complete flow entry. It took three seconds.' },
+      { h: 'Flow your own speech too', b: 'Most beginners only flow the opponent. Track your own arguments in their column and you can instantly see which of yours they never touched — the cheapest points in the entire round.',
+        ex: 'Before your final speech, scan for gaps in their columns. That scan writes your closing for you.' }
+    ],
+    quiz: [
+      { q: 'Why flow in columns instead of a list?', o: ['It looks neater', 'You can see which arguments were never answered', 'Judges require it', 'It fits more words'], a: 1, why: 'The layout makes drops visible instantly — and drops are conceded points.' },
+      { q: 'A blank space across from their argument means:', o: ['You forgot to write', 'They dropped it — free point in your summary', 'The argument was withdrawn', 'The judge missed it'], a: 1, why: 'Unanswered equals conceded. Point at the gap by name in your last speech.' }
+    ]
+  }
+];
+
+/* ---------------- TOPICS ----------------
+   Each side has three arguments in claim / evidence / warrant / impact form.
+   The arena composes opponent speeches out of these.
+------------------------------------------- */
+function T(id, tag, res, pro, con) { return { id: id, tag: tag, res: res, pro: pro, con: con }; }
+function A(c, e, w, i) { return { c: c, e: e, w: w, i: i }; }
+
+var TOPICS = [
+  T('phones', 'School', 'Phones should be banned during the school day.',
+    [ A('Phones fracture attention even when nobody is using them.',
+        'Classroom studies find students check devices several times an hour, and refocusing after each check takes minutes, not seconds.',
+        'The cost is not the checking, it is the recovery time — a lesson does not pause while a brain reboots.',
+        'Across a school year that is weeks of instruction lost to a device sitting face-down on a desk.'),
+      A('A ban is the only rule that is actually enforceable.',
+        'Schools running limited-use policies report teachers spending the first minutes of every period policing pockets.',
+        'A clear line takes the judgement call away from thirty individual teachers making it thirty different ways.',
+        'Teachers get their period back and students stop learning that rules are negotiable.'),
+      A('Phone-free schools report students talking to each other again.',
+        'Schools that locked phones in pouches describe canteens that got loud for the first time in years.',
+        'Face-to-face social skill is a practised thing, and the practice window is exactly the time phones occupy.',
+        'Loneliness among teenagers is rising, and the school day is the one place that can be designed against it.') ],
+    [ A('A ban treats a symptom and teaches nothing.',
+        'Students graduate into a world of unlimited phone access with zero practice managing it.',
+        'Self-regulation is a skill built by supervised practice, not by removal — removal just delays the first attempt.',
+        'You get compliant sixteen-year-olds and unequipped nineteen-year-olds.'),
+      A('Phones are a genuine safety and access line.',
+        'Families rely on direct contact during emergencies, and many students use phones for translation, medical alerts and glucose monitoring.',
+        'A blanket ban has to carve out so many exceptions that it stops being blanket, and the students needing exceptions get singled out.',
+        'The kids who most need the device are the ones a ban visibly marks out.'),
+      A('The evidence for bans is much weaker than it sounds.',
+        'Most cited studies compare schools that also changed leadership, funding and behaviour policy in the same year.',
+        'When several things change at once, you cannot credit the outcome to the one you like — that is a confound, not a result.',
+        'We would be imposing a real cost on every student on the strength of correlation.') ]),
+
+  T('uniform', 'School', 'Public schools should require uniforms.',
+    [ A('Uniforms remove a visible line between rich and poor students.',
+        'Clothing brand is one of the most reported triggers in school bullying surveys.',
+        'You cannot bully someone for the shoes they cannot afford if everyone wears the same ones.',
+        'The students most exposed are the ones with least room to fix it.'),
+      A('Uniforms cut friction out of the morning and the corridor.',
+        'Schools report fewer dress-code disputes and less lost teaching time after adopting a uniform.',
+        'A single rule everyone can see is enforced in seconds; a subjective code is argued about all day.',
+        'That is minutes back in every period and one less daily conflict between staff and students.'),
+      A('A shared uniform builds a shared identity.',
+        'Schools with uniforms report higher scores on belonging measures in student surveys.',
+        'Visible common membership is one of the oldest ways groups build cohesion — teams and orchestras use it for the same reason.',
+        'Students who feel they belong turn up more and drop out less.') ],
+    [ A('Uniforms shift cost onto families rather than removing it.',
+        'A full uniform set with the required items typically costs well over a hundred pounds or dollars a year, per child.',
+        'Poor families do not stop being poor because the clothes are standardised — the bill just arrives all at once in August.',
+        'For a family with three children the uniform becomes its own hardship.'),
+      A('The bullying evidence does not survive scrutiny.',
+        'Follow-up studies find harassment reappears within a couple of years, redirected at bags, shoes, haircuts and phones.',
+        'Bullying is about hierarchy, not fabric, and hierarchy finds another marker as soon as you remove one.',
+        'We take a real freedom from every student and buy a benefit that expires.'),
+      A('Self-expression is part of what school is for.',
+        'Adolescence is when identity is formed, and clothing is one of the few channels a school does not already control.',
+        'Removing the last low-stakes way to say who you are is not a neutral act just because it is tidy.',
+        'A school optimised for looking orderly is not the same as a school that is good for its students.') ]),
+
+  T('homework', 'School', 'Homework should be abolished in high school.',
+    [ A('Homework multiplies inequality outside the school gates.',
+        'Students differ enormously in whether they have a quiet room, reliable internet, or an adult who can help.',
+        'Work set for everyone is completed under wildly unequal conditions, so it measures the household as much as the student.',
+        'We grade a kid on their kitchen table, then call the result merit.'),
+      A('The academic payoff at this age is far smaller than assumed.',
+        'Reviews of homework research find gains that are modest at secondary level and close to zero below it.',
+        'Beyond a fairly low threshold of time, extra assigned work stops adding learning and starts adding hours.',
+        'We are spending a large amount of teenage life on something that stopped paying out hours earlier.'),
+      A('The hidden cost lands on sleep and health.',
+        'Students reporting heavy homework loads also report later bedtimes and higher anxiety.',
+        'The hours have to come from somewhere, and the thing that gets cut is always sleep, which is the thing they most need.',
+        'We are trading the exact resource that makes learning possible.') ],
+    [ A('Independent practice is where learning consolidates.',
+        'Retrieval practice — recalling material after a delay rather than rereading — is one of the best-supported findings in learning science.',
+        'That delay only exists outside the lesson, so removing homework removes the mechanism, not just the workload.',
+        'Students would need more class time to reach the same understanding, and there is not more class time.'),
+      A('Abolition removes the skills nobody else teaches.',
+        'University and work both run on unsupervised deadlines with nobody watching you start.',
+        'Managing your own time is learned by doing it badly at low stakes first — that is exactly what homework is for.',
+        'We would hand students their first real deadline at eighteen, with no practice runs.'),
+      A('The fix is quality and quantity, not abolition.',
+        'Districts that capped homework at a sensible nightly limit kept the benefit and lost most of the stress.',
+        'If the harm comes from volume, cut the volume — you do not need to delete the whole category to fix a dosage problem.',
+        'Abolition throws away a working tool to solve a problem a rule could solve.') ]),
+
+  T('vote16', 'Politics', 'The voting age should be lowered to 16.',
+    [ A('Sixteen-year-olds already carry adult obligations.',
+        'At sixteen you can work, pay income tax, and in many places leave school or consent to medical treatment.',
+        'Taxation and legal responsibility without representation is the exact objection democracies were founded on.',
+        'A group is being governed and taxed with no say in either.'),
+      A('Voting early builds a lifetime habit.',
+        'Countries that lowered the age found sixteen and seventeen-year-olds turned out at higher rates than first-time voters in their twenties.',
+        'At sixteen most are still at home and in school — a stable setting that makes a first vote easy; at eighteen they are moving and voting is easy to skip.',
+        'Habit formed at the first opportunity persists for decades, which lifts turnout permanently.'),
+      A('The decisions being made are mostly about them.',
+        'Climate policy, education funding and student debt are set on timelines measured in decades.',
+        'The people who will live with a policy longest currently have the least influence over it.',
+        'Policy skews toward voters who will not be alive for the consequences.') ],
+    [ A('Judgement under social pressure is still developing at sixteen.',
+        'Research on adolescent decision-making finds that reasoning matures earlier than resistance to peer influence.',
+        'Voting is a decision made under exactly the kind of social pressure that develops last.',
+        'We would be adding voters at the age most vulnerable to it.'),
+      A('Eighteen is the line the rest of the law uses.',
+        'Contracts, juries, criminal responsibility as an adult and military service mostly begin at eighteen.',
+        'Consistency is not bureaucratic tidiness — a single age of majority is what makes rights legible to the people holding them.',
+        'Pulling one right down starts an argument about all of them with no principle to settle it.'),
+      A('The turnout evidence comes from unusual cases.',
+        'The strongest results come from small countries with compulsory civics teaching alongside the change.',
+        'You cannot credit the age change when the civics programme is doing the work, and the programme is what does not travel.',
+        'We would import the reform and leave behind the part that made it work.') ]),
+
+  T('social16', 'Tech', 'Social media should be restricted to users 16 and older.',
+    [ A('The platforms are engineered against adolescent self-control.',
+        'Internal research leaked from major platforms showed known harms to teenage body image that shipped anyway.',
+        'Infinite feeds are tuned to the same reward timing that makes gambling sticky, aimed at brains whose impulse control matures last.',
+        'This is not children misusing a tool, it is a tool built to defeat them.'),
+      A('The mental health timing is hard to explain away.',
+        'Teen anxiety and self-harm indicators rose sharply across several countries in the years smartphones and feeds became near-universal.',
+        'A change that lands in multiple countries at once, tracking one shared variable, is not easily explained by local causes.',
+        'If we are even partly right, the cost of waiting is measured in a generation.'),
+      A('An age floor moves the fight off individual families.',
+        'Parents who restrict alone watch their child lose the social layer their whole year group lives in.',
+        'A common rule removes the penalty for holding the line — nobody is the only one who is not there.',
+        'Right now every family is playing a game they can only lose by acting alone.') ],
+    [ A('Enforcement means identifying everyone.',
+        'Robust age checks require ID or biometric verification for every user, not just teenagers.',
+        'You cannot verify some people without building a system that verifies all of them, which ends anonymous speech online.',
+        'We would trade a contested harm for a permanent surveillance layer.'),
+      A('It cuts off the people who need the connection most.',
+        'For isolated, rural, disabled and LGBTQ+ teenagers, online community is often the only community available.',
+        'A blunt age rule cannot tell the difference between doom-scrolling and the one place someone is not alone.',
+        'The students with the least local support lose the most.'),
+      A('The evidence is contested and the effect sizes are small.',
+        'Large re-analyses find the association between social media use and teen wellbeing is real but modest, comparable to other everyday factors.',
+        'Policy that removes a right from millions needs more than a small correlation to justify itself.',
+        'Bans are hard to reverse, and this one would be built on shaky ground.') ]),
+
+  T('aiessay', 'Tech', 'Students should be allowed to use AI to write essays.',
+    [ A('The tool is now part of the job it is training you for.',
+        'Writing at work increasingly starts from a draft and becomes editing, prompting and fact-checking.',
+        'A school that bans the tool trains for a version of the task that no longer exists outside the building.',
+        'Students graduate fluent in a workflow nobody uses.'),
+      A('It is the best writing tutor most students will ever get.',
+        'Instant feedback on structure and clarity, available at midnight, is something no teacher with a hundred and fifty students can provide.',
+        'Feedback speed is one of the biggest drivers of skill growth, and the gap between draft and feedback is currently days.',
+        'The students without a parent who can edit their essay gain the most.'),
+      A('The ban is unenforceable and the enforcement is unjust.',
+        'Detection tools produce false positives, and they misfire most on students writing in a second language.',
+        'A rule that cannot be applied accurately does not protect integrity, it just distributes accusations unevenly.',
+        'We punish the wrong students and call it academic honesty.') ],
+    [ A('Writing is thinking, and outsourcing it outsources the thinking.',
+        'The struggle of turning a vague idea into a sentence is where the idea actually gets built.',
+        'Skip the struggle and you get the artifact without the cognition — a finished essay and an unchanged mind.',
+        'We would produce a generation that can obtain good essays and cannot reason through a hard problem.'),
+      A('Assessment stops meaning anything.',
+        'If a grade cannot distinguish student work from generated work, the grade stops carrying information.',
+        'Credentials work only as signals, and a signal that anyone can produce is not a signal.',
+        'Every honest student loses the value of the qualification they earned.'),
+      A('These systems assert false things confidently.',
+        'Language models routinely produce plausible citations to sources that do not exist.',
+        'A student who has not yet built subject knowledge is exactly the person least able to catch it.',
+        'Novices absorb confident errors as facts, which is worse than not having written the essay at all.') ]),
+
+  T('passfail', 'School', 'Letter grades should be replaced with pass/fail.',
+    [ A('Grades pull students toward the safe choice.',
+        'Students consistently report picking easier classes and safer essay topics to protect a GPA.',
+        'When the number is the goal, risk becomes irrational — and every interesting piece of learning involves risk.',
+        'We systematically train the most ambitious students out of ambition.'),
+      A('Fine-grained grades are less precise than they look.',
+        'The same essay scored by different teachers routinely lands whole grades apart.',
+        'A scale with more steps than the underlying judgement can support manufactures false precision.',
+        'Life-shaping decisions get made on a difference that is mostly noise.'),
+      A('The mental health cost is concentrated and severe.',
+        'Schools that moved to pass/fail report lower student anxiety with no measured drop in learning.',
+        'Removing constant ranking removes constant comparison, which is where most of the stress lives.',
+        'Same learning, much less harm, which is a straightforward trade.') ],
+    [ A('Pass/fail hides who needs help.',
+        'A single pass covers everyone from barely scraping through to genuinely excellent.',
+        'Teachers and students both need resolution to know where the gap is — a binary signal deletes the information.',
+        'The struggling student looks identical to the strong one until it is too late to intervene.'),
+      A('Gatekeepers will just find another ranking.',
+        'Where grades were removed, admissions weight shifted onto test scores, essays and extracurriculars.',
+        'The demand for a ranking does not disappear, and the substitutes correlate more strongly with family income.',
+        'The reform makes the process less fair rather than more.'),
+      A('Grades are feedback, not just judgement.',
+        'A number that moves tells a student whether the change they made to their work actually helped.',
+        'Feedback needs resolution — you cannot steer by a signal with two settings.',
+        'Students lose the main way they can tell they are improving.') ]),
+
+  T('athletes', 'Sport', 'College athletes should be paid a salary.',
+    [ A('They generate enormous revenue and receive a fraction of it.',
+        'Major college sports programmes bring in billions annually while coaches are the highest paid public employees in many states.',
+        'Everyone in the arena is paid market rate except the people the crowd came to watch.',
+        'A workforce producing the value is excluded from it by rule, not by economics.'),
+      A('The scholarship does not cover the reality.',
+        'Athletes in revenue sports report weekly commitments comparable to a full-time job, on top of classes.',
+        'If the time demand is a job, then compensation set below the value of the labour is not generosity, it is a wage floor of zero.',
+        'Athletes leave with a degree they had no time to use properly and no earnings.'),
+      A('The injury risk is carried entirely by the athlete.',
+        'A career-ending injury ends the scholarship and the earning potential in the same afternoon.',
+        'Bearing catastrophic downside without any upside is the definition of an unfair contract.',
+        'One bad landing and a young person carries the whole loss alone.') ],
+    [ A('Only a handful of programmes could actually pay.',
+        'The large majority of athletic departments run at a loss and are subsidised by the wider university.',
+        'A salary mandate does not create revenue, it forces cuts — and cuts land on the sports that do not sell tickets.',
+        'Swimming, wrestling and most women’s programmes get cut to pay two teams.'),
+      A('It formally ends the student half of student-athlete.',
+        'Once athletes are employees, universities have every incentive to reduce academic requirements.',
+        'Employment restructures the relationship: the school stops being a school and becomes a club with a campus.',
+        'The degree, which is the only guaranteed asset for the ninety-eight percent who do not turn professional, gets hollowed out.'),
+      A('Name-and-likeness earnings already solved most of this.',
+        'Athletes can now sign endorsement deals and profit from their own brand without being employees.',
+        'If the objection was that they could not earn, that objection has been answered by a mechanism that does not bankrupt the department.',
+        'We would take a large risk to fix something already largely fixed.') ]),
+
+  T('junkads', 'Health', 'Advertising junk food to children should be banned.',
+    [ A('Children cannot recognise persuasive intent.',
+        'Developmental research finds younger children do not reliably distinguish advertising from programming.',
+        'Consent to persuasion requires knowing you are being persuaded, which is precisely the capacity being targeted.',
+        'This is not a market transaction, it is an unfair one by design.'),
+      A('Restrictions have measurably changed what children eat.',
+        'Jurisdictions that restricted junk food advertising to children recorded measurable falls in purchases of the targeted products.',
+        'Advertising spend tracks effectiveness — companies do not spend billions on something that does not move behaviour.',
+        'The mechanism is proven by the industry’s own budget.'),
+      A('The public carries the bill either way.',
+        'Diet-related illness is among the largest cost pressures on public health systems.',
+        'A private company keeps the profit from the advertising while the public pays for the resulting disease.',
+        'We are subsidising a harm and calling it a free market.') ],
+    [ A('Advertising is not the driver the case needs it to be.',
+        'Obesity rose in countries with strict advertising rules and in countries with almost none.',
+        'A factor that varies while the outcome does not is not the cause of the outcome.',
+        'We would spend our one big policy move on the wrong lever.'),
+      A('The line around junk food is genuinely arbitrary.',
+        'Nutrient-profile rules end up classifying some cereals, juices and yoghurts as junk and others as fine on narrow margins.',
+        'Where the boundary is unclear, enforcement becomes lobbying, and the biggest firms win the reclassification fight.',
+        'The ban ends up hitting small producers and missing the largest ones.'),
+      A('It displaces responsibility from where it can actually act.',
+        'School meals, food pricing and neighbourhood availability are stronger predictors of diet than advertising exposure.',
+        'A ban is visible and cheap, which is why it gets chosen over the expensive interventions that work.',
+        'We get the appearance of action and keep the problem.') ]),
+
+  T('zoos', 'Ethics', 'Zoos should be phased out.',
+    [ A('Confinement causes measurable harm to wide-ranging animals.',
+        'Elephants, big cats and cetaceans in captivity show repetitive stereotypic behaviours and shortened lifespans compared with the wild.',
+        'Species evolved to cover enormous territory cannot have that need met by any enclosure at any budget.',
+        'For those species the harm is structural, not a matter of better zoos.'),
+      A('The conservation claim is much smaller than advertised.',
+        'Only a small fraction of zoo-held species are part of a reintroduction programme, and successful releases are rarer still.',
+        'Conservation is used to justify the whole institution while describing a tiny corner of it.',
+        'The public consents to something on grounds that mostly are not true.'),
+      A('The lesson taught is not the lesson intended.',
+        'Seeing a bored animal behind glass teaches that animals are exhibits available for our attention.',
+        'What a child learns from a place is the relationship it models, not the words on the sign.',
+        'We build the attitude that makes exploitation feel normal, in the building that says it opposes it.') ],
+    [ A('Some species now exist only because of captive breeding.',
+        'Several animals extinct in the wild — including certain oryx, condors and Przewalski’s horses — were returned from zoo populations.',
+        'When wild numbers hit zero, a managed population is the only remaining option, and it must already exist to be used.',
+        'Phasing out zoos removes the last-resort ark before we know we need it.'),
+      A('Zoos fund and staff field conservation.',
+        'Accredited zoos collectively contribute hundreds of millions annually to in-situ conservation and employ much of the field research workforce.',
+        'That money comes from ticket sales, so removing the visitors removes the funding stream with them.',
+        'The wild programmes people prefer are largely paid for by the zoos they want closed.'),
+      A('Regulate the bad ones instead of ending all of them.',
+        'Accreditation standards already separate serious institutions from roadside attractions, and the welfare gap between them is enormous.',
+        'If the harm is concentrated in the worst operators, the proportionate answer is enforcement, not abolition.',
+        'Abolition destroys the good actors and leaves the unregulated ones abroad untouched.') ]),
+
+  T('space', 'Science', 'Money spent on space exploration should be spent on Earth instead.',
+    [ A('The need here is immediate and the need there is not.',
+        'Hundreds of millions of people lack safe water and basic healthcare right now.',
+        'When one need is urgent and certain and the other is speculative and distant, urgency wins the allocation.',
+        'Every launch is a choice made against someone who needed it this year.'),
+      A('The spin-off argument does not justify the route.',
+        'Spin-off technologies are real, but they were produced incidentally by enormous general-purpose spending.',
+        'If the goal is medical or materials advances, funding medical and materials research directly is far more efficient than hoping for by-products.',
+        'We take the slowest possible path to the benefit we claim to want.'),
+      A('It is a small group deciding for everyone.',
+        'A growing share of launch capacity and long-term planning sits with a handful of private companies.',
+        'Decisions with civilisational scope are being made outside any democratic process.',
+        'The public pays much of the cost and holds none of the steering wheel.') ],
+    [ A('Space budgets are a rounding error against the problems named.',
+        'National space agency budgets are a fraction of a percent of government spending, far smaller than annual military or subsidy lines.',
+        'Cancelling a rounding error does not fund a solution — the money is not what is missing.',
+        'We would lose the programme and the water crisis would be exactly as bad the next morning.'),
+      A('Earth observation is the actual climate infrastructure.',
+        'Satellites supply the data behind weather forecasting, crop planning, disaster response and every climate model.',
+        'The instruments that measure the planet are in orbit, so spending on Earth and spending on space are not opposites.',
+        'Cutting space spending blinds the exact effort it claims to prioritise.'),
+      A('It is the one project that reliably crosses borders.',
+        'The International Space Station kept scientific cooperation running through serious geopolitical breakdowns.',
+        'Shared long-horizon projects create working relationships that survive politics, and those are rare and hard to build.',
+        'We would give up a stabiliser we cannot easily replace.') ]),
+
+  T('fourday', 'School', 'Schools should switch to a four-day week.',
+    [ A('It is one of the few things that helps teacher retention.',
+        'Districts that moved to four days report large jumps in applications for vacancies.',
+        'When you cannot raise pay, time is the only compensation left, and it is worth a lot to the people you are trying to keep.',
+        'A stable, experienced staff is the largest in-school factor in student outcomes.'),
+      A('Longer days let learning go deeper.',
+        'Extended periods make labs, workshops and long-form projects possible instead of being cut for time.',
+        'Some learning needs an uninterrupted block, and a fifty-minute period cannot supply one.',
+        'Students get the kind of work that actually resembles the subject.'),
+      A('The savings are real and land where they are needed.',
+        'Transport, catering and utilities all drop by roughly a fifth of the week.',
+        'In small and rural districts those fixed costs are a large share of a budget that has nothing left to cut.',
+        'The alternative is usually cutting staff or programmes.') ],
+    [ A('The fifth day becomes a childcare crisis for working parents.',
+        'Families without flexible work must find and pay for a full extra day of care every week.',
+        'A school schedule is public infrastructure whether or not it was designed that way, and this removes a day of it.',
+        'Lower-income families absorb a new weekly cost they did not choose.'),
+      A('For some students school is the safest place they go.',
+        'Schools supply meals, heating, supervision and the adult most likely to notice something is wrong.',
+        'Removing a day removes all of that for the students who depend on it most, not just the lessons.',
+        'The most vulnerable students carry the entire cost of the schedule change.'),
+      A('The academic results are mixed at best.',
+        'Several state-level studies found small declines in maths and reading after districts switched.',
+        'Longer days hit the limits of adolescent attention, so added minutes are not equal to the minutes removed.',
+        'We take a real learning risk to solve a budget problem.') ]),
+
+  T('cars', 'Cities', 'City centres should be closed to private cars.',
+    [ A('Urban air pollution is a measurable killer.',
+        'Traffic emissions are linked to childhood asthma and to hundreds of thousands of early deaths a year in cities.',
+        'The exposure is highest at pavement level, exactly where pedestrians and school children are.',
+        'These are deaths a street layout decision can prevent.'),
+      A('Cities that did it are thriving, not emptying.',
+        'Pedestrianised centres in Europe report higher footfall and higher retail revenue than before the change.',
+        'Drivers spend more per trip but walkers and cyclists make far more trips, and the total is larger.',
+        'The predicted economic disaster has repeatedly failed to appear.'),
+      A('Car space is the most wasteful use of the most valuable land.',
+        'A parked car occupies roughly twelve square metres and moves for a small fraction of the day.',
+        'The scarcest land in the country is being used as free storage for private property.',
+        'That space could be housing, transit or somewhere to actually be.') ],
+    [ A('It fails anyone who cannot simply walk.',
+        'Disabled residents, carers, parents with small children and shift workers finishing after midnight depend on door-to-door access.',
+        'Public transport coverage is thinnest at exactly the hours and edges where those journeys happen.',
+        'A policy sold as freeing the city removes the city from the people with the fewest alternatives.'),
+      A('Without transit first it just moves the traffic.',
+        'Cities that restricted access before building capacity saw congestion and emissions rise on the ring roads instead.',
+        'Demand does not vanish when you close a route, it relocates — usually onto poorer neighbourhoods.',
+        'The pollution lands on the residents with the least power to object.'),
+      A('The cost falls on small independent traders first.',
+        'Tradespeople, deliveries and shops without loading access carry the change directly.',
+        'Large chains can absorb a logistics overhaul; a two-person business cannot.',
+        'The centre gets prettier and more uniform, and the independents are the ones who leave.') ]),
+
+  T('tests', 'School', 'Standardised tests should not be used in college admissions.',
+    [ A('Scores track family income more than ability.',
+        'Average scores rise steadily with family income across every published bracket.',
+        'When a measure correlates that cleanly with wealth, it is partly measuring wealth, and preparation is purchasable.',
+        'We call the result merit and reproduce the advantage that produced it.'),
+      A('They predict less than their weight implies.',
+        'Test scores add only modest predictive power for college performance once school grades are accounted for.',
+        'A measure that adds little beyond what you already have should not carry a large share of the decision.',
+        'Enormous consequences hang on a small amount of signal.'),
+      A('The test reshapes the school years before it.',
+        'Schools narrow teaching toward tested formats and drop what is not on the paper.',
+        'Any high-stakes measure eventually becomes the target rather than the measure of the thing.',
+        'Years of education get distorted by one morning.') ],
+    [ A('Without a common measure, admissions get less fair, not more.',
+        'Where tests were dropped, weight moved to essays, interviews and extracurriculars — all more coachable and more expensive.',
+        'A standardised measure is the one part of the file that a paid consultant cannot simply write for you.',
+        'The reform can hand more power to exactly the advantage it meant to remove.'),
+      A('Grade inflation has made school grades unreadable.',
+        'Average school grades have risen sharply while independent measures of attainment have not.',
+        'When most applicants have near-identical top grades, the grade stops distinguishing anyone.',
+        'Something must break the tie, and the alternatives are worse.'),
+      A('It is a route out for students with no other signal.',
+        'A student at an underfunded school with no recognised feeder relationship can post a score nobody can dismiss.',
+        'Reputation-based judgement favours known schools; a number does not know where you came from.',
+        'Removing it closes the one door that opens on evidence alone.') ]),
+
+  T('latestart', 'School', 'High school should start no earlier than 9am.',
+    [ A('Teenage sleep timing is biological, not a discipline problem.',
+        'Melatonin release shifts roughly two hours later during adolescence, so falling asleep early is physiologically difficult.',
+        'You cannot instruct a body clock, so an early start does not create earlier sleep, it just removes sleep.',
+        'We built a schedule that guarantees chronic deprivation for an entire age group.'),
+      A('Districts that changed it measured the benefit.',
+        'Later-start districts recorded higher attendance, better grades and fewer teen car crashes in the morning window.',
+        'These are outcomes with a plausible direct mechanism — a rested driver and a rested student both perform better.',
+        'This is a rare policy with real evidence and no ongoing cost.'),
+      A('The current schedule exists for buses, not for students.',
+        'Staggered start times mostly reflect the cost of running one bus fleet across several schools.',
+        'A logistics saving is being paid for in adolescent health, which is a bad exchange rate.',
+        'We optimised the timetable for vehicles and let students absorb the difference.') ],
+    [ A('The knock-on effects hit families and work.',
+        'Later starts push finishing times into the evening, colliding with jobs, sports, and younger siblings needing collection.',
+        'A school day sits inside a working day, so moving one end moves everything attached to it.',
+        'Students working to support their families lose shifts they cannot afford to lose.'),
+      A('Bus fleets cannot simply be duplicated.',
+        'Districts that tried to move all schools later faced buying entire additional fleets and hiring drivers during a driver shortage.',
+        'The staggered timetable is not laziness, it is what makes a single fleet cover a district.',
+        'The money would come out of teaching to pay for buses.'),
+      A('Extra time gets absorbed, not slept.',
+        'Follow-up surveys find some of the gained morning is offset by later bedtimes within a year or two.',
+        'If bedtime drifts to match, you have moved the whole schedule rather than adding rest.',
+        'We rebuild the district timetable for a benefit that partly evaporates.') ]),
+
+  T('facial', 'Tech', 'Facial recognition should be banned in public spaces.',
+    [ A('It ends the practical possibility of anonymity.',
+        'Live systems can match faces against watchlists continuously across an entire city centre.',
+        'Being unremarkable in a crowd is what makes protest, journalism and ordinary private life possible.',
+        'A right that depends on nobody bothering to look disappears the moment looking becomes automatic.'),
+      A('The error rate is not evenly distributed.',
+        'Federal testing found substantially higher false match rates for women and for darker-skinned faces.',
+        'A false match here is not an inconvenience, it is being stopped, searched or arrested for someone else’s face.',
+        'The burden of the technology falls hardest on the people already most policed.'),
+      A('Built infrastructure gets repurposed.',
+        'Systems installed for one stated purpose have repeatedly been extended to others without new consent.',
+        'Capability, once deployed, outlasts the policy that authorised it and the government that promised limits.',
+        'You are not approving today’s use, you are approving every future use of the same cameras.') ],
+    [ A('It genuinely finds people who need finding.',
+        'Police forces credit the technology with locating missing children and identifying suspects in serious violent crime.',
+        'Some searches are impossible at human scale — a person cannot watch every camera continuously.',
+        'A total ban has a body count too, and it is made of cases that were not solved.'),
+      A('Regulation can capture the benefit and cut the harm.',
+        'Warrant requirements, accuracy thresholds, audit logs and narrow watchlists all exist as workable models.',
+        'When a tool is dangerous in proportion to how it is used, the precise instrument is rules, not prohibition.',
+        'A ban forfeits the good uses to avoid writing the harder law.'),
+      A('A national ban does not stop the technology.',
+        'Private operators, foreign vendors and neighbouring jurisdictions continue deploying regardless.',
+        'Prohibition without jurisdiction over the supply just moves the systems somewhere with no oversight at all.',
+        'We lose the ability to set standards for tools that get used on our citizens anyway.') ])
+];
+
+/* ---------------- FALLACIES ---------------- */
+var FALLACIES = [
+  { id: 'adhom', n: 'Ad Hominem', d: 'Attacking the person instead of their argument.',
+    ex: ['You can ignore her climate data — she flew to the conference.',
+         'He failed maths last year, so his statistics point is worthless.',
+         'Of course the student council president supports the rule. Look who benefits.'] },
+  { id: 'straw', n: 'Strawman', d: 'Beating a distorted version of the argument nobody made.',
+    ex: ['So my opponent wants zero rules and total anarchy in the corridors.',
+         'They said reduce homework, which means they think learning does not matter.',
+         'Basically they want to hand the whole budget to one department and let the rest starve.'] },
+  { id: 'slip', n: 'Slippery Slope', d: 'Claiming one step must cascade into disaster, with no proof of any step.',
+    ex: ['If we let students use calculators, soon nobody will be able to add at all.',
+         'Allow one late submission and by June no deadline in the school will mean anything.',
+         'Lower the voting age to sixteen and next it will be twelve, then eight.'] },
+  { id: 'dilem', n: 'False Dilemma', d: 'Presenting two options as if they were the only two.',
+    ex: ['Either we ban phones completely or we accept total classroom chaos.',
+         'You either support the new dress code or you do not care about school safety.',
+         'We can fund the arts or we can fund science. Pick one.'] },
+  { id: 'pop', n: 'Appeal to Popularity', d: 'Treating how many people believe it as evidence that it is true.',
+    ex: ['Every single person in my year group agrees, so clearly it is the right call.',
+         'It is the most popular policy in the poll, so it must be the correct one.',
+         'Nobody serious believes that anymore.'] },
+  { id: 'auth', n: 'Misused Authority', d: 'Leaning on a famous name outside their actual field.',
+    ex: ['A world-famous actor said the drug is dangerous, so it is dangerous.',
+         'My uncle has been alive fifty years, so he knows more about economics than any economist.',
+         'A billionaire tweeted it, and he built a rocket company, so it is settled.'] },
+  { id: 'circ', n: 'Circular Reasoning', d: 'Using the conclusion as the proof of the conclusion.',
+    ex: ['The rule is fair because it applies the rules fairly.',
+         'He is trustworthy because he says he never lies.',
+         'This is the best textbook because no better textbook exists.'] },
+  { id: 'hasty', n: 'Hasty Generalisation', d: 'Turning one or two cases into a general rule.',
+    ex: ['My cousin skipped homework and got into a great university, so homework is pointless.',
+         'Two people in my class found the app distracting, so it distracts everyone.',
+         'I met one rude tourist there, so the whole city is unfriendly.'] },
+  { id: 'posthoc', n: 'False Cause', d: 'Assuming that because B followed A, A caused B.',
+    ex: ['Scores went up the year we repainted the hall, so the paint raised the scores.',
+         'Crime fell after the new mayor took office, so the mayor stopped the crime.',
+         'I wore these socks and we won, so the socks won the match.'] },
+  { id: 'anec', n: 'Anecdote as Evidence', d: 'A vivid personal story standing in for data.',
+    ex: ['My grandfather smoked until he was ninety, so the health warnings are overblown.',
+         'I know a student who thrived on four hours of sleep, so the sleep research is wrong.',
+         'It worked for me, so it will work for everyone.'] },
+  { id: 'redherr', n: 'Red Herring', d: 'Changing the subject to something easier to defend.',
+    ex: ['You ask about the budget shortfall, but what about how well the team played this season?',
+         'Before we discuss the policy, can we talk about how rude that question was?',
+         'Sure, the data is contested, but did you know the school was founded in 1904?'] },
+  { id: 'burden', n: 'Shifting the Burden', d: 'Demanding the other side disprove your unsupported claim.',
+    ex: ['Nobody has proven the policy does not work, so it works.',
+         'Until you show me it is harmless, I will assume it is dangerous.',
+         'You cannot disprove my theory, which is why it stands.'] },
+  { id: 'trad', n: 'Appeal to Tradition', d: 'Treating age as a reason.',
+    ex: ['We have graded students this way for a century, so it must be right.',
+         'That is simply how debate has always been judged.',
+         'Our school has never allowed it, and that is reason enough.'] },
+  { id: 'nature', n: 'Appeal to Nature', d: 'Assuming natural means good and artificial means bad.',
+    ex: ['It is a completely natural remedy, so it cannot possibly harm you.',
+         'Humans never evolved to sit at desks, so classrooms are inherently harmful.',
+         'If it is made in a lab it cannot be good for you.'] },
+  { id: 'noscot', n: 'No True Scotsman', d: 'Redefining a group to dodge a counterexample.',
+    ex: ['No real debater would ever use notes. Then they are not a real debater.',
+         'A genuine supporter would never criticise the plan.',
+         'That study does not count, because no serious researcher would run it that way.'] },
+  { id: 'equiv', n: 'Equivocation', d: 'Sliding between two meanings of the same word mid-argument.',
+    ex: ['Evolution is only a theory, and theories are just guesses, so it is a guess.',
+         'The law says all people are equal, so everyone should get equal grades.',
+         'She has a right to speak, so it is wrong for anyone to disagree with her.'] }
+];
+
+/* Statements used by Fallacy Hunt. `f` is null when the reasoning is sound. */
+var HUNT = [
+  { s: 'Three separate districts cut start times and each recorded higher attendance the following year, so later starts likely help attendance.', f: null },
+  { s: 'You cannot trust his argument about the budget — he has been late to every meeting this term.', f: 'adhom' },
+  { s: 'If we allow one student to retake the test, eventually nobody will bother studying for anything.', f: 'slip' },
+  { s: 'Either we spend the whole budget on sport or we admit we do not care about student health.', f: 'dilem' },
+  { s: 'Nine out of ten students in the corridor agreed with me, so the policy must be correct.', f: 'pop' },
+  { s: 'A famous singer said the additive causes headaches, so the additive causes headaches.', f: 'auth' },
+  { s: 'The policy is effective because it produces the effects it was designed to produce.', f: 'circ' },
+  { s: 'My best friend used that study app and failed, so the app does not work for anyone.', f: 'hasty' },
+  { s: 'Attendance improved right after we changed the bell sound, so the new bell improved attendance.', f: 'posthoc' },
+  { s: 'A survey of four hundred schools found a small but consistent drop in reported bullying after the programme, though the authors note other reforms happened alongside it.', f: null },
+  { s: 'My aunt never wore a seatbelt and she is perfectly fine, so seatbelt laws are overblown.', f: 'anec' },
+  { s: 'You asked about the missing funds, but I would rather discuss how great this year’s concert was.', f: 'redherr' },
+  { s: 'No one has proven the new schedule causes any harm, therefore it is harmless.', f: 'burden' },
+  { s: 'We have always held the awards ceremony in March, so moving it would be wrong.', f: 'trad' },
+  { s: 'This tea is entirely natural, so it cannot possibly have side effects.', f: 'nature' },
+  { s: 'Any true supporter of the team would never question the coach. So they were never a true supporter.', f: 'noscot' },
+  { s: 'The sign says fine for parking here, so parking here must be perfectly fine.', f: 'equiv' },
+  { s: 'So my opponent believes students should have no supervision at all and be left entirely alone.', f: 'straw' },
+  { s: 'The cost per student is roughly forty pounds a year, and the district budget lists that line, so the figure is checkable.', f: null },
+  { s: 'She only supports the recycling scheme because her mother runs the recycling company.', f: 'adhom' },
+  { s: 'Ban the vending machines and before long the school will be dictating what parents pack for lunch.', f: 'slip' },
+  { s: 'Everyone knows that format is outdated — you would be laughed out of any serious tournament.', f: 'pop' },
+  { s: 'Two independent reviews reached opposite conclusions, so the evidence here is genuinely unsettled.', f: null },
+  { s: 'The programme must be working, because the students who chose to join it are doing well.', f: 'posthoc' },
+  { s: 'Either you back the ban or you are fine with students being harmed.', f: 'dilem' },
+  { s: 'I tried the technique once and it did not help, so the technique is useless.', f: 'anec' }
+];
+
+/* ---------------- CLUB MEMBERS ---------------- */
+/* style: how they argue. agg: how aggressive their rebuttals read. */
+var CLUB = [
+  { id: 'mira', n: 'Mira', av: '🦊', tag: 'Captain, varsity team', agg: 0.8, style: 'evidence',
+    bio: 'Runs the flow like a spreadsheet. Will find the one number you did not check.',
+    open: ['Alright. Roadmap: two contentions, then I am done. Try to keep up.', 'I have got three cards on this and I only need one of them.'],
+    win: ['Good round. Your second contention was the real one — lead with it next time.', 'You had me on the impact. I won on the drop, not the argument.'],
+    lose: ['That was clean. You weighed and I did not. Fair.', 'Fine. Take it. I want a rematch on the other side.'] },
+  { id: 'deo', n: 'Deo', av: '🐧', tag: 'Novice, tries everything', agg: 0.35, style: 'story',
+    bio: 'Argues in stories. Sometimes the story is better than the evidence.',
+    open: ['Okay okay I have been reading about this all week, let me just — right. Here.', 'I might get the order wrong but the argument is good, I promise.'],
+    win: ['Ahh I actually won one! Do not tell Mira, I want to tell Mira.', 'I think I only won because you forgot the impact. Still counting it.'],
+    lose: ['That was so much better than mine. How do you do the ending part?', 'Right, noted, I am going to steal your structure entirely.'] },
+  { id: 'sable', n: 'Sable', av: '🦈', tag: 'Cross-ex specialist', agg: 0.95, style: 'attack',
+    bio: 'Asks four small questions then closes the door behind you.',
+    open: ['I am not going to build much. I am going to take yours apart.', 'Two questions in cross and this round is over. Let us begin.'],
+    win: ['You left the warrant open. I walked through it. Close it next time.', 'Predictable. Vary your structure or I will read you every round.'],
+    lose: ['Hm. You answered the trap. Nobody answers the trap.', 'Take it. I underestimated your rebuttal and that is on me.'] },
+  { id: 'nova', n: 'Nova', av: '🦉', tag: 'Lincoln-Douglas, values', agg: 0.5, style: 'values',
+    bio: 'Wants to know what is right before she will discuss what works.',
+    open: ['Before the facts — what are we actually valuing here? I say autonomy.', 'My framework first. If you accept it, the rest follows.'],
+    win: ['You fought the evidence and let the framework go. Framework decides rounds.', 'Solid case. It just was not measured against anything.'],
+    lose: ['You beat my criterion. That is the hard way to win and you did it.', 'Genuinely good. I will rewrite the value for next time.'] },
+  { id: 'kit', n: 'Kit', av: '🐝', tag: 'Public Forum, fast talker', agg: 0.6, style: 'speed',
+    bio: 'Talks quickly, signposts beautifully, occasionally forgets to breathe.',
+    open: ['Three points, going quick, stop me if the flow gets away from you.', 'Signposting hard today because last time you said I lost you. Fair.'],
+    win: ['Number one and number three both went unanswered. That is the round.', 'You were slower but cleaner. I won on coverage, not quality.'],
+    lose: ['Okay you slowed me down and it worked. Annoying. Well played.', 'I flowed my own speech and found the hole you found. Ugh.'] },
+  { id: 'rook', n: 'Rook', av: '🐺', tag: 'Policy, enormous files', agg: 0.7, style: 'evidence',
+    bio: 'Has a folder for this. Has a folder for the objection to this.',
+    open: ['I have prepped both sides of this one. You are getting the good half anyway.', 'Card for that. Card for the answer to that. Let us go.'],
+    win: ['Evidence beat instinct. Bring numbers next round and it is closer.', 'You argued well with nothing. Imagine it with a source.'],
+    lose: ['You out-warranted me. All the cards in the world do not fix a missing warrant.', 'Good. I was reading, not thinking. You were thinking.'] },
+  { id: 'ines', n: 'Inés', av: '🦅', tag: 'Parliamentary, no prep', agg: 0.65, style: 'attack',
+    bio: 'Give her fifteen minutes and no internet and she is dangerous.',
+    open: ['No notes today. Let us find out together what I think.', 'Fifteen minutes of prep and I already like my side. Bad sign for you.'],
+    win: ['You had prep and I had a napkin. Think about that one.', 'Structure was yours. Adaptation was mine. Adaptation won.'],
+    lose: ['Beaten fairly. You held the line when I moved the ground.', 'Good round. You did not chase the bait, which is rare.'] },
+  { id: 'tobi', n: 'Tobi', av: '🐨', tag: 'Judge in training', agg: 0.4, style: 'values',
+    bio: 'Half the time he is scoring you instead of arguing with you.',
+    open: ['I will debate, but I am also flowing this like a judge, so be tidy.', 'Warning: I will absolutely say the words "you dropped that".'],
+    win: ['I wrote the ballot in my head at the halfway point. Weigh earlier.', 'Clean speaking, no comparison. Comparison is the whole thing.'],
+    lose: ['You wrote my ballot for me in your last speech. That is the trick, yes.', 'Nothing to correct. Genuinely.'] },
+  { id: 'juno', n: 'Juno', av: '🦄', tag: 'Best delivery on the team', agg: 0.55, style: 'story',
+    bio: 'Could read a bus timetable and you would believe the bus mattered.',
+    open: ['I am going to tell you about one person, and then about four hundred thousand of them.', 'Watch the pause. The pause is doing half the work.'],
+    win: ['You had the better case. I had the better last sentence. Sorry.', 'Say your impact slower. It was good and it went past too fast.'],
+    lose: ['Beautifully done. You made me care and I was arguing the other way.', 'That closing was better than mine and I am the closing person.'] },
+  { id: 'oz', n: 'Oz', av: '🐙', tag: 'Argues for fun', agg: 0.45, style: 'speed',
+    bio: 'Will happily take the side he disagrees with, purely to see what happens.',
+    open: ['I do not believe a word of this side. Watch me win it anyway.', 'Switch-side practice. This is going to be fun for exactly one of us.'],
+    win: ['I won an argument I disagree with. That should worry you a little.', 'Your case was real. Mine was a machine. Machines are hard to beat.'],
+    lose: ['Ha. Good. Somebody should beat the position I do not even hold.', 'You found the seam. It was always there and nobody looks for it.'] }
+];
+
+/* ---------------- BADGES ---------------- */
+var BADGES = [
+  { id: 'first', e: '🥚', n: 'First Words', d: 'Finish your first debate.' },
+  { id: 'win1', e: '🏅', n: 'On the Board', d: 'Win a debate.' },
+  { id: 'win5', e: '🏆', n: 'Five Ballots', d: 'Win five debates.' },
+  { id: 'sweep', e: '🧹', n: 'Clean Sweep', d: 'Win a debate scoring 85 or higher.' },
+  { id: 'switch', e: '🔄', n: 'Switch Side', d: 'Win on both sides of the same resolution.' },
+  { id: 'scholar', e: '📗', n: 'Scholar', d: 'Finish five lessons.' },
+  { id: 'grad', e: '🎓', n: 'Graduate', d: 'Finish every lesson.' },
+  { id: 'lab5', e: '🧱', n: 'Bricklayer', d: 'Build five graded arguments.' },
+  { id: 'lab90', e: '💎', n: 'Airtight', d: 'Score 90+ in the Argument Lab.' },
+  { id: 'hunt', e: '🕵️', n: 'Fallacy Hunter', d: 'Score 8+ in one Fallacy Hunt.' },
+  { id: 'hunt15', e: '🔬', n: 'Eagle Eye', d: 'Score 15+ in one Fallacy Hunt.' },
+  { id: 'social', e: '💬', n: 'Club Member', d: 'Reply to five club messages.' },
+  { id: 'allfr', e: '👥', n: 'Whole Roster', d: 'Debate six different club members.' },
+  { id: 'streak3', e: '🔥', n: 'Regular', d: 'Reach a three-round win streak.' },
+  { id: 'evid', e: '🔍', n: 'Show Your Work', d: 'Cite evidence in five different speeches.' },
+  { id: 'nofill', e: '🎯', n: 'No Filler', d: 'Give a speech with zero filler words and 60+ words.' }
+];
+
+/* =========================================================================
+   2. STATE + HELPERS
+   ========================================================================= */
+var S = {
+  name: 'You', av: '🦉', xp: 0, wins: 0, losses: 0, streak: 0, bestStreak: 0,
+  day: 1, lessonsDone: {}, badges: {}, labCount: 0, labBest: 0, huntBest: 0,
+  replies: 0, faced: {}, wonSides: {}, evidCount: 0, unread: 0,
+  chats: {}, friends: {}, pendingChallenge: null, dailyDone: false, feed: []
+};
+
+var $ = function (s, r) { return (r || document).querySelector(s); };
+var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
+function pick(a) { return a[Math.floor(Math.random() * a.length)]; }
+function shuffle(a) { a = a.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+function clamp(v, lo, hi) { return v < lo ? lo : v > hi ? hi : v; }
+function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+function byId(list, id) { for (var i = 0; i < list.length; i++) if (list[i].id === id) return list[i]; return null; }
+
+var toastT;
+function toast(msg) {
+  var t = $('#toast');
+  t.innerHTML = msg;
+  t.classList.add('on');
+  clearTimeout(toastT);
+  toastT = setTimeout(function () { t.classList.remove('on'); }, 2600);
+}
+
+function rankOf(xp) { var r = RANKS[0]; for (var i = 0; i < RANKS.length; i++) if (xp >= RANKS[i].at) r = RANKS[i]; return r; }
+function nextRank(xp) { for (var i = 0; i < RANKS.length; i++) if (RANKS[i].at > xp) return RANKS[i]; return null; }
+
+function addXp(n, why) {
+  var before = rankOf(S.xp);
+  S.xp += n;
+  var after = rankOf(S.xp);
+  toast('+' + n + ' XP · ' + why);
+  if (after !== before) {
+    setTimeout(function () { toast(after.e + ' Rank up — ' + after.name + '!'); }, 2000);
+    pushFeed(pick(CLUB).av + ' The club noticed: you made ' + after.name + '.');
+  }
+  paintMe();
+}
+
+function award(id) {
+  if (S.badges[id]) return;
+  var b = byId(BADGES, id);
+  if (!b) return;
+  S.badges[id] = true;
+  setTimeout(function () { toast(b.e + ' Badge unlocked — ' + b.n); }, 900);
+  pushFeed(b.e + ' You unlocked <b>' + b.n + '</b>.');
+  paintMe();
+}
+
+function pushFeed(html) {
+  S.feed.unshift(html);
+  if (S.feed.length > 8) S.feed.pop();
+  if ($('#feed')) paintFeed();
+}
+
+/* =========================================================================
+   3. THE COACH — analyses what the player actually typed
+   ========================================================================= */
+var RX = {
+  claim:   /\b(i argue|i contend|my (first|second|third|next|main|final) (point|contention|argument|reason)|contention|my argument is|we should|we must|schools should|the resolution|i affirm|i negate|our case)\b/i,
+  warrant: /\b(because|since|the reason (is|being)|this means|which means|which shows|therefore|thus|so that|leads to|as a result|that is why|that's why|due to|the mechanism)\b/i,
+  evidence:/\b(stud(y|ies)|research|researchers|data|according to|a survey|surveys|report(ed|s)?|found that|percent|%|per cent|figures|statistics|review of|trial|analysis|census|in \d{4})\b/i,
+  numbers: /\b\d[\d,.]*\s*(%|percent|per cent|million|billion|thousand|hours?|years?|students?|schools?|people|deaths?|pounds?|dollars?)\b/i,
+  impact:  /\b(matters because|the impact|impacts?|at stake|harms?|harmful|benefits?|costs? (them|us|families|students)|consequence|affects?|risk|outcome|the result is|lose|loses|losing|damage|suffer)\b/i,
+  weigh:   /\b(even if|outweighs?|more important|matters more|magnitude|likelihood|probability|timeframe|compared (to|with)|on balance|the bigger|worse than|scope)\b/i,
+  rebut:   /\b(my opponent|they (say|claim|argue|said|argued)|their (argument|case|point|evidence|claim)|the other side|however|but that|that assumes|the problem with|this fails because|even granting|does not follow|doesn't follow)\b/i,
+  sign:    /\b(first(ly)?|second(ly)?|third(ly)?|finally|to begin|in conclusion|to summari[sz]e|number one|number two|next,|lastly|my roadmap)\b/i,
+  concl:   /\b(in conclusion|so you should|for these reasons|therefore (i|we)|that is why (i|we)|vote (pro|con|affirmative|negative)|i urge)\b/i,
+  filler:  /\b(um+|uh+|erm|like,? i mean|i mean like|kinda|sorta|stuff like that|and stuff|whatever|idk|dunno|basically just|literally just)\b/gi,
+  hedge:   /\b(maybe|i guess|sort of|kind of|i think maybe|probably just|might sort of|not really sure)\b/gi,
+  attack:  /\b(stupid|dumb|idiot|moron|shut up|ignorant|pathetic|clown|loser|braindead)\b/i,
+  absolute:/\b(everyone knows|everybody knows|no one (thinks|believes|can deny)|nobody thinks|literally everyone|obviously|any idiot|clearly everyone|100% of|it is undeniable|always the case|never the case|every single person)\b/i,
+  ohno:    /\b(because it just is|it just is|thats just how it is|that's just how it is|it's obvious|its obvious)\b/i
+};
+
+function countRx(t, rx) { var m = t.match(rx); return m ? m.length : 0; }
+
+/*  ctx: { phase: 'constructive'|'rebuttal'|'closing'|'lab', side, topic }  */
+function coach(text, ctx) {
+  ctx = ctx || {};
+  var t = (text || '').trim();
+  var words = t ? t.split(/\s+/) : [];
+  var wc = words.length;
+  var sentences = t.split(/[.!?]+/).filter(function (s) { return s.trim().split(/\s+/).length > 2; });
+  var sc = sentences.length;
+  var avgLen = sc ? wc / sc : wc;
+
+  var has = {
+    claim: RX.claim.test(t), warrant: RX.warrant.test(t), evidence: RX.evidence.test(t),
+    numbers: RX.numbers.test(t), impact: RX.impact.test(t), weigh: RX.weigh.test(t),
+    rebut: RX.rebut.test(t), sign: RX.sign.test(t), concl: RX.concl.test(t),
+    attack: RX.attack.test(t), absolute: RX.absolute.test(t), lazy: RX.ohno.test(t)
+  };
+  var fillers = countRx(t, RX.filler);
+  var hedges = countRx(t, RX.hedge);
+
+  var notes = [];
+  function note(good, m, txt) { notes.push({ good: good, m: m, txt: txt }); }
+
+  /* ---- LOGIC: is there a claim, a warrant, and does the chain hold? ---- */
+  var late = ctx.phase === 'rebuttal' || ctx.phase === 'closing';
+  var logic = 30;
+  if (has.claim || (late && has.rebut)) { logic += 18; }
+  else if (late) { note(false, '🚏', 'Anchor each answer to a claim of your own. "They say X — but the truth is Y" gives the judge something to write in your column, not just a hole in theirs.'); }
+  else { note(false, '🚏', 'No clear claim. Open with the sentence you are trying to prove — "My argument is that…" — so the judge knows what to write down.'); }
+  if (has.warrant) { logic += 24; } else { note(false, '🔗', 'The warrant is missing. Somewhere you need the word <b>because</b>: the sentence explaining <i>why</i> your reason makes your claim true.'); }
+  if (has.impact) { logic += 16; } else { note(false, '💥', 'No impact. Finish with "and that matters because…" — who is harmed or helped, how badly, and how many.'); }
+  if (has.weigh && ctx.phase !== 'constructive') { logic += 8; note(true, '⚖️', 'You weighed the impacts against theirs. That comparison is what most rounds actually turn on.'); }
+  if (has.lazy) { logic -= 14; note(false, '🕳️', '"It is obvious" is not a reason. If it were obvious the resolution would not be debatable — give the actual mechanism.'); }
+  if (has.absolute) { logic -= 8; note(false, '📢', 'Watch the absolutes ("everyone knows", "always", "never"). One counterexample kills an absolute, and a good opponent has one ready.'); }
+  if (has.attack) { logic -= 22; note(false, '🚫', 'That is an ad hominem — you attacked the person, not the argument. Judges drop your speaker points for it and it never proves anything.'); }
+  if (sc >= 3 && has.claim && has.warrant && has.impact) { note(true, '🧱', 'Full ARE structure: claim, reasoning and impact all present. That is the shape judges are listening for.'); }
+
+  /* ---- EVIDENCE ---- */
+  var evidence = ctx.phase === 'closing' ? 44 : 26;
+  if (has.evidence) evidence += 30;
+  if (has.numbers) evidence += 22;
+  if (has.evidence && has.numbers) { evidence += 8; note(true, '🔍', 'Sourced <i>and</i> quantified. That is the version an opponent actually has to engage with.'); }
+  else if (has.evidence && !has.numbers) note(false, '📏', 'You referenced research but gave no scale. Add the number — how many schools, what percentage, which year. "A study showed" is free to say and free to dismiss.');
+  else if (!has.evidence && ctx.phase === 'closing') note(false, '📚', 'A closing should not carry new evidence, but it should point back at yours. Name the study or figure again so the judge remembers who proved what.');
+  else if (!has.evidence) note(false, '📚', 'No evidence at all. Even one concrete example, figure or named case turns an opinion into an argument.');
+  if (wc > 45 && !has.evidence && has.warrant) note(false, '💡', 'Your reasoning is doing all the work alone. Reasoning tells the judge it <i>could</i> be true; evidence tells them it <i>is</i>.');
+
+  /* ---- CLARITY ---- */
+  var clarity = 44;
+  if (has.sign) { clarity += 16; note(true, '🚏', 'Signposted. The judge knows exactly which column this goes in.'); }
+  else if (wc > 55) note(false, '🔢', 'Number your points out loud — "first… second…". Long speeches without signposts fall off the judge’s flow.');
+  if (wc < 25) { clarity -= 22; note(false, '⏱️', 'Too short to score well. A constructive needs roughly 60–120 words to carry a claim, a warrant, evidence and an impact.'); }
+  else if (wc > 45 && wc < 220) clarity += 14;
+  else if (wc >= 220) { clarity += 4; note(false, '✂️', 'Long. Judges remember the first and last sentence of an argument — everything in between competes with itself.'); }
+  if (avgLen > 34) { clarity -= 12; note(false, '🪓', 'Your sentences are running very long. Split them. Short sentences are easier to say under pressure and easier to write down.'); }
+  if (fillers) { clarity -= Math.min(20, fillers * 6); note(false, '🗣️', fillers + ' filler ' + (fillers === 1 ? 'phrase' : 'phrases') + ' ("um", "kinda", "and stuff"). Replace each with a silent pause — silence reads as confidence.'); }
+  if (hedges > 1) { clarity -= 8; note(false, '🤏', 'You hedged ' + hedges + ' times ("maybe", "I guess"). Hedging tells the judge you do not believe it either. State it, then defend it.'); }
+  if (has.concl) { clarity += 8; note(true, '🎬', 'You closed properly instead of trailing off. Good.'); }
+  if (!fillers && !hedges && wc >= 60) note(true, '🎯', 'Zero filler, zero hedging. That is genuinely hard to do.');
+
+  /* ---- REBUTTAL ---- */
+  var rebuttal;
+  if (ctx.phase === 'constructive' || ctx.phase === 'lab') {
+    rebuttal = has.rebut ? 72 : 62;
+    if (has.rebut) note(true, '🛡️', 'You pre-empted their case inside your constructive. That is advanced and it saves you time later.');
+  } else {
+    rebuttal = 24;
+    if (has.rebut) { rebuttal += 34; } else { note(false, '🎯', 'You never referenced their argument. In a rebuttal you must name what they said before you answer it — "They say X, but…". Unanswered arguments count as conceded.'); }
+    if (/\beven if\b|\beven granting\b/i.test(t)) { rebuttal += 16; note(true, '🧠', 'Nice "even-if" — you granted their point and won anyway. That is the strongest defensive move there is.'); }
+    if (has.warrant) rebuttal += 12;
+    if (has.evidence) rebuttal += 10;
+    if (ctx.oppKeywords && ctx.oppKeywords.length) {
+      var hit = 0, lower = t.toLowerCase();
+      for (var k = 0; k < ctx.oppKeywords.length; k++) if (lower.indexOf(ctx.oppKeywords[k]) >= 0) hit++;
+      if (hit >= 2) { rebuttal += 12; note(true, '📌', 'You engaged their actual language, not a version of it you preferred. No strawman here.'); }
+      else if (hit === 0 && has.rebut) note(false, '🎭', 'You answered "their argument" in general terms without touching what they specifically said. Quote them, then break it.');
+    }
+  }
+
+  logic = clamp(Math.round(logic), 5, 100);
+  evidence = clamp(Math.round(evidence), 5, 100);
+  clarity = clamp(Math.round(clarity), 5, 100);
+  rebuttal = clamp(Math.round(rebuttal), 5, 100);
+  var total = Math.round(logic * 0.34 + evidence * 0.22 + clarity * 0.22 + rebuttal * 0.22);
+
+  /* keep feedback readable: best two positives, worst four fixes */
+  var good = notes.filter(function (n) { return n.good; }).slice(0, 2);
+  var bad = notes.filter(function (n) { return !n.good; }).slice(0, 4);
+
+  return {
+    logic: logic, evidence: evidence, clarity: clarity, rebuttal: rebuttal, total: total,
+    notes: bad.concat(good), wc: wc, has: has, fillers: fillers
+  };
+}
+
+function gradeWord(n) {
+  if (n >= 90) return 'Outstanding';
+  if (n >= 80) return 'Strong';
+  if (n >= 68) return 'Solid';
+  if (n >= 55) return 'Developing';
+  if (n >= 40) return 'Shaky';
+  return 'Needs work';
+}
+function gradeColor(n) { return n >= 78 ? 'var(--pro)' : n >= 55 ? 'var(--gold)' : 'var(--con)'; }
+
+function scoreRow(label, val) {
+  return '<div class="score-row"><div class="lb">' + label + '</div>' +
+    '<div class="bar"><span style="width:' + val + '%;background:' + gradeColor(val) + '"></span></div>' +
+    '<div class="vl" style="color:' + gradeColor(val) + '">' + val + '</div></div>';
+}
+
+function feedbackHtml(r) {
+  if (!r.notes.length) return '';
+  return r.notes.map(function (n) {
+    return '<div class="fb-line"><span class="m">' + n.m + '</span><span style="color:' +
+      (n.good ? 'var(--pro)' : 'var(--ink)') + '">' + n.txt + '</span></div>';
+  }).join('');
+}
+
+/* =========================================================================
+   4. NAVIGATION + HOME
+   ========================================================================= */
+var VIEW = 'home';
+function go(v) {
+  VIEW = v;
+  $$('.view').forEach(function (el) { el.classList.toggle('on', el.id === 'v-' + v); });
+  $$('#side .navbtn').forEach(function (b) { b.classList.toggle('on', b.dataset.go === v); });
+  $$('#tabs button').forEach(function (b) { b.classList.toggle('on', b.dataset.go === v); });
+  $('#main').scrollTop = 0;
+  if (v === 'learn') paintLessons();
+  if (v === 'build') paintBuild();
+  if (v === 'arena') paintArena();
+  if (v === 'fallacy') paintFallacy();
+  if (v === 'friends') { paintFriends(); S.unread = 0; paintPips(); }
+  if (v === 'profile') paintProfile();
+  if (v === 'home') paintHome();
+}
+
+function paintPips() {
+  [['#pipSide'], ['#pipTab']].forEach(function (p) {
+    var el = $(p[0]);
+    if (!el) return;
+    el.textContent = S.unread;
+    el.hidden = S.unread === 0;
+  });
+}
+
+function paintMe() {
+  var r = rankOf(S.xp);
+  $('#meAv').textContent = S.av;
+  $('#meName').textContent = S.name;
+  $('#meRank').textContent = r.e + ' ' + r.name;
+  if ($('#rankLine')) {
+    var nx = nextRank(S.xp);
+    $('#rankLine').textContent = r.e + ' ' + r.name;
+    $('#xpLine').textContent = nx ? (S.xp + ' / ' + nx.at + ' XP') : (S.xp + ' XP · maxed');
+    var lo = r.at, hi = nx ? nx.at : r.at + 1;
+    $('#xpBar').style.width = clamp(((S.xp - lo) / (hi - lo)) * 100, 3, 100) + '%';
+    $('#stWins').textContent = S.wins;
+    $('#stStreak').textContent = S.day;
+    $('#stLessons').textContent = Object.keys(S.lessonsDone).length;
+    $('#stBadges').textContent = Object.keys(S.badges).length;
+  }
+}
+
+function paintFeed() {
+  var f = $('#feed');
+  if (!f) return;
+  if (!S.feed.length) { f.innerHTML = '<div class="dim" style="font-size:.88rem">Nothing yet. Win something.</div>'; return; }
+  f.innerHTML = S.feed.map(function (h) {
+    return '<div class="fb-line" style="border-top:0;border-bottom:1px solid var(--line);padding:9px 0">' + h + '</div>';
+  }).join('');
+}
+
+function paintHome() {
+  $('#heroHi').textContent = 'Ready to argue, ' + S.name + '?';
+  var done = Object.keys(S.lessonsDone).length;
+  $('#tLearn').textContent = done ? (done + ' of ' + LESSONS.length + ' lessons done — keep going.') : '12 short lessons — claims, evidence, rebuttal, cross-ex.';
+  $('#heroSub').textContent = S.wins + S.losses === 0
+    ? 'Learn how real debaters build a case, then take it to the floor against a live opponent.'
+    : 'Record ' + S.wins + '–' + S.losses + '. ' + (S.streak > 1 ? S.streak + ' in a row. Do not stop now.' : 'The club is waiting.');
+  paintMe();
+  paintFeed();
+}
+
+/* =========================================================================
+   5. DEBATE SCHOOL
+   ========================================================================= */
+var L = { lesson: null, card: 0, qi: 0, right: 0, answered: false };
+
+function paintLessons() {
+  $('#lessonView').hidden = true;
+  $('#lessonList').hidden = false;
+  $('#lessonList').innerHTML = LESSONS.map(function (l, i) {
+    var done = S.lessonsDone[l.id];
+    return '<button class="lesson-item" data-lesson="' + l.id + '">' +
+      '<span class="ic">' + l.ic + '</span>' +
+      '<span class="tx"><b>' + (i + 1) + '. ' + l.t + '</b><small>' + l.d + '</small></span>' +
+      (done ? '<span class="done">✓</span>' : '<span class="chip">' + l.cards.length + ' min</span>') +
+      '</button>';
+  }).join('');
+  $$('#lessonList [data-lesson]').forEach(function (b) {
+    b.onclick = function () { openLesson(b.dataset.lesson); };
+  });
+}
+
+function openLesson(id) {
+  L.lesson = byId(LESSONS, id); L.card = 0; L.qi = 0; L.right = 0; L.answered = false;
+  $('#lessonList').hidden = true;
+  $('#lessonView').hidden = false;
+  paintCard();
+}
+
+function paintCard() {
+  var l = L.lesson, c = l.cards[L.card];
+  $('#lessonView').innerHTML =
+    '<button class="btn ghost sm" id="lBack">← All lessons</button>' +
+    '<div class="card" style="margin-top:14px">' +
+      '<div class="row" style="justify-content:space-between;margin-bottom:12px">' +
+        '<span class="chip">' + l.ic + ' ' + esc(l.t) + '</span>' +
+        '<small class="dim">' + (L.card + 1) + ' / ' + l.cards.length + '</small>' +
+      '</div>' +
+      '<div class="slide"><h3>' + esc(c.h) + '</h3><p>' + c.b + '</p>' +
+        (c.ex ? '<div class="ex">' + c.ex + '</div>' : '') +
+      '</div>' +
+      '<div class="dots">' + l.cards.map(function (_, i) { return '<i class="' + (i === L.card ? 'on' : '') + '"></i>'; }).join('') + '</div>' +
+      '<div class="row" style="justify-content:space-between">' +
+        '<button class="btn ghost" id="lPrev"' + (L.card === 0 ? ' disabled' : '') + '>← Back</button>' +
+        '<button class="btn" id="lNext">' + (L.card === l.cards.length - 1 ? 'Take the check →' : 'Next →') + '</button>' +
+      '</div>' +
+    '</div>';
+  $('#lBack').onclick = paintLessons;
+  $('#lPrev').onclick = function () { if (L.card > 0) { L.card--; paintCard(); } };
+  $('#lNext').onclick = function () {
+    if (L.card < l.cards.length - 1) { L.card++; paintCard(); }
+    else { L.qi = 0; L.right = 0; paintQuiz(); }
+  };
+}
+
+function paintQuiz() {
+  var l = L.lesson;
+  if (L.qi >= l.quiz.length) return finishLesson();
+  var q = l.quiz[L.qi];
+  L.answered = false;
+  $('#lessonView').innerHTML =
+    '<button class="btn ghost sm" id="lBack">← All lessons</button>' +
+    '<div class="card" style="margin-top:14px">' +
+      '<div class="row" style="justify-content:space-between;margin-bottom:12px">' +
+        '<span class="chip">✅ Check · ' + esc(l.t) + '</span>' +
+        '<small class="dim">Q' + (L.qi + 1) + ' / ' + l.quiz.length + '</small>' +
+      '</div>' +
+      '<p style="font-size:1.04rem;line-height:1.6;font-weight:600">' + esc(q.q) + '</p>' +
+      '<div id="qOpts" style="margin-top:12px">' +
+        q.o.map(function (o, i) { return '<button class="qopt" data-i="' + i + '">' + esc(o) + '</button>'; }).join('') +
+      '</div>' +
+      '<div id="qWhy"></div>' +
+    '</div>';
+  $('#lBack').onclick = paintLessons;
+  $$('#qOpts .qopt').forEach(function (b) {
+    b.onclick = function () {
+      if (L.answered) return;
+      L.answered = true;
+      var i = +b.dataset.i, ok = i === q.a;
+      if (ok) L.right++;
+      $$('#qOpts .qopt').forEach(function (x, xi) {
+        if (xi === q.a) x.classList.add('right');
+        else if (xi === i) x.classList.add('wrong');
+      });
+      $('#qWhy').innerHTML =
+        '<div class="ex" style="margin-top:14px"><b>' + (ok ? '✓ Right. ' : '✗ Not quite. ') + '</b>' + esc(q.why) + '</div>' +
+        '<button class="btn" id="qNext" style="margin-top:14px">' + (L.qi === l.quiz.length - 1 ? 'Finish lesson →' : 'Next question →') + '</button>';
+      $('#qNext').onclick = function () { L.qi++; paintQuiz(); };
+    };
+  });
+}
+
+function finishLesson() {
+  var l = L.lesson, tot = l.quiz.length, pass = L.right >= Math.ceil(tot / 2);
+  var fresh = !S.lessonsDone[l.id];
+  if (pass) S.lessonsDone[l.id] = true;
+  var gained = pass ? (fresh ? 40 + L.right * 10 : 8) : 0;
+  $('#lessonView').innerHTML =
+    '<div class="card verdict">' +
+      '<div style="font-size:3rem">' + (pass ? l.ic : '📖') + '</div>' +
+      '<div class="big" style="color:' + (pass ? 'var(--pro)' : 'var(--gold)') + '">' + L.right + ' / ' + tot + '</div>' +
+      '<p class="lede" style="margin-top:6px">' + (pass
+        ? (fresh ? 'Lesson banked. That one sticks — you will use it in the Arena tonight.' : 'Refreshed. You had already banked this one.')
+        : 'Close. Read it once more and retake the check — nothing is lost.') + '</p>' +
+      '<div class="row" style="justify-content:center;margin-top:16px">' +
+        '<button class="btn ghost" id="lAgain">Read again</button>' +
+        '<button class="btn" id="lList">More lessons</button>' +
+        '<button class="btn gold" id="lArena">⚔️ Try it in a debate</button>' +
+      '</div>' +
+    '</div>';
+  $('#lAgain').onclick = function () { openLesson(l.id); };
+  $('#lList').onclick = paintLessons;
+  $('#lArena').onclick = function () { go('arena'); };
+  if (gained) addXp(gained, 'lesson: ' + l.t);
+  var n = Object.keys(S.lessonsDone).length;
+  if (n >= 5) award('scholar');
+  if (n >= LESSONS.length) award('grad');
+  if (pass && fresh) pushFeed('📘 You finished <b>' + esc(l.t) + '</b>.');
+  paintMe();
+}
+
+/* =========================================================================
+   6. ARGUMENT LAB
+   ========================================================================= */
+var LAB = { topic: null, side: 'pro' };
+
+function paintBuild() {
+  if (!LAB.topic) LAB.topic = pick(TOPICS);
+  var t = LAB.topic;
+  $('#buildBody').innerHTML =
+    '<div class="card">' +
+      '<div class="row" style="justify-content:space-between">' +
+        '<span class="chip">' + esc(t.tag) + '</span>' +
+        '<button class="btn ghost sm" id="labNew">🎲 Different motion</button>' +
+      '</div>' +
+      '<div class="res-banner"><small>Resolved</small><p>' + esc(t.res) + '</p></div>' +
+      '<div class="row">' +
+        '<span class="dim" style="font-size:.85rem">Argue:</span>' +
+        '<button class="chip' + (LAB.side === 'pro' ? ' on' : '') + '" data-side="pro">👍 For</button>' +
+        '<button class="chip' + (LAB.side === 'con' ? ' on' : '') + '" data-side="con">👎 Against</button>' +
+      '</div>' +
+    '</div>' +
+    '<div class="card">' +
+      step(1, 'Claim', 'The one sentence you are proving.', 'labC', 'e.g. Schools should… because it is the only version of the policy that…') +
+      step(2, 'Evidence', 'A fact, figure, case or source.', 'labE', 'e.g. A 2022 review of 400 schools found…') +
+      step(3, 'Warrant', 'Why that evidence makes your claim true.', 'labW', 'Start with the word because…') +
+      step(4, 'Impact', 'Who is affected, how badly, how many.', 'labI', 'e.g. That matters because…') +
+      '<button class="btn" id="labGo" style="margin-top:16px;width:100%;justify-content:center">🔬 Grade my argument</button>' +
+    '</div>' +
+    '<div id="labOut"></div>';
+
+  $('#labNew').onclick = function () { LAB.topic = pick(TOPICS.filter(function (x) { return x !== LAB.topic; })); paintBuild(); };
+  $$('#buildBody [data-side]').forEach(function (b) {
+    b.onclick = function () { LAB.side = b.dataset.side; paintBuild(); };
+  });
+  $('#labGo').onclick = gradeLab;
+}
+
+function step(n, name, hint, id, ph) {
+  return '<div class="step-box"><div class="hd"><span class="n">' + n + '</span><b>' + name + '</b><small>' + hint + '</small></div>' +
+    '<textarea id="' + id + '" placeholder="' + ph + '"></textarea></div>';
+}
+
+function gradeLab() {
+  var c = $('#labC').value.trim(), e = $('#labE').value.trim(),
+      w = $('#labW').value.trim(), i = $('#labI').value.trim();
+  if ((c + e + w + i).trim().length < 25) { toast('Fill in more of the argument first.'); return; }
+
+  var full = c + ' ' + e + ' ' + w + ' ' + i;
+  var r = coach(full, { phase: 'lab' });
+
+  /* part-by-part checks the free-text coach cannot see */
+  var parts = [];
+  function part(label, ok, tip) { parts.push({ label: label, ok: ok, tip: tip }); }
+  part('Claim', c.length > 12 && !RX.evidence.test(c),
+    c.length <= 12 ? 'Too short to be a claim. Write the full sentence you want the judge to write down.'
+    : 'You put evidence in the claim box. Keep the claim a single assertable sentence — the proof goes in box two.');
+  part('Evidence', e.length > 12 && (RX.evidence.test(e) || RX.numbers.test(e) || /\b(19|20)\d\d\b/.test(e)),
+    'Evidence needs a source, a scale or a date. "People say" and "it is known" are not evidence — an opponent deletes them in four words.');
+  part('Warrant', w.length > 12 && RX.warrant.test(w),
+    'A warrant almost always contains the word "because" or "which means". It is the bridge from your evidence to your claim — without it the judge has to build the bridge themselves.');
+  part('Impact', i.length > 12 && RX.impact.test(i),
+    'An impact names who is affected and how badly. Ask "so what?" of your own claim until the answer is something nobody would call fine.');
+
+  var okCount = parts.filter(function (p) { return p.ok; }).length;
+  var score = clamp(Math.round(r.total * 0.55 + (okCount / 4) * 100 * 0.45), 5, 100);
+
+  S.labCount++;
+  if (score > S.labBest) S.labBest = score;
+  if (S.labCount >= 5) award('lab5');
+  if (score >= 90) award('lab90');
+  addXp(12 + Math.round(score / 5), 'Argument Lab');
+
+  var out = '<div class="card"><div class="row" style="justify-content:space-between">' +
+      '<b>🔬 Lab report</b><span class="tag ' + (score >= 70 ? 'pro' : 'neu') + '">' + gradeWord(score) + ' · ' + score + '</span></div>' +
+      scoreRow('Logic', r.logic) + scoreRow('Evidence', r.evidence) + scoreRow('Clarity', r.clarity) +
+      '<div class="sec-h" style="margin-top:18px">Part by part</div>' +
+      parts.map(function (p) {
+        return '<div class="fb-line"><span class="m">' + (p.ok ? '✅' : '⚠️') + '</span><span><b>' + p.label + '</b>' +
+          (p.ok ? ' — holds up.' : ' — ' + p.tip) + '</span></div>';
+      }).join('') +
+      '<div class="sec-h" style="margin-top:18px">Coach notes</div>' + (feedbackHtml(r) || '<div class="dim" style="font-size:.88rem">Nothing to fix. Rare.</div>') +
+    '</div>';
+
+  if (okCount === 4) {
+    out += '<div class="card"><b>🗣️ Say it out loud, in this order</b>' +
+      '<div class="ex" style="margin-top:10px">' + esc(c) + ' ' + esc(w) + ' ' + esc(e) + ' ' + esc(i) + '</div>' +
+      '<p class="dim" style="font-size:.84rem;margin-top:10px">Notice the reorder — claim, reasoning, evidence, impact. That is the order a judge can follow.</p>' +
+      '<button class="btn gold sm" id="labToArena" style="margin-top:12px">⚔️ Take this into the Arena</button></div>';
+  }
+  $('#labOut').innerHTML = out;
+  if ($('#labToArena')) $('#labToArena').onclick = function () { ARENA.presetTopic = LAB.topic; ARENA.presetSide = LAB.side; go('arena'); };
+  $('#labOut').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+/* =========================================================================
+   7. DEBATE ARENA
+   ========================================================================= */
+var ARENA = {
+  live: false, topic: null, side: 'pro', opp: null, step: 0,
+  log: [], mine: [], oppSaid: '', timer: null, left: 0, over: false,
+  presetTopic: null, presetSide: null, crossDone: false, crossBonus: 0
+};
+
+var STEPS = [
+  { k: 'you', id: 'c1', t: 'Your Constructive', ph: 'constructive', secs: 150,
+    hint: 'Build your case from nothing. Claim → because → evidence → impact. Signpost your points.' },
+  { k: 'opp', id: 'oc' },
+  { k: 'cross' },
+  { k: 'you', id: 'r1', t: 'Your Rebuttal', ph: 'rebuttal', secs: 120,
+    hint: 'Answer what they said. "They say X, but… because… therefore…" Do not drop anything.' },
+  { k: 'opp', id: 'orb' },
+  { k: 'you', id: 'cl', t: 'Your Closing', ph: 'closing', secs: 90,
+    hint: 'Do not repeat — weigh. Name the two clashes that decide this and say why you win each.' },
+  { k: 'verdict' }
+];
+
+var THEMES = [
+  { k: 'cost',    rx: /\b(cost|money|budget|expensive|afford|pay|funding|fund|price|tax)\b/i,
+    a: 'They lean on cost. Cost is a design question, not a reason to refuse — you fund it, you phase it, or you accept a smaller version. None of that is an argument against the principle.' },
+  { k: 'freedom', rx: /\b(freedom|liberty|right|rights|choice|choose|autonomy|express|expression|ban|banning)\b/i,
+    a: 'They frame this as freedom. Every rule limits something. The question is whether what it protects is worth more than what it costs, and that comparison never got made.' },
+  { k: 'safety',  rx: /\b(safe|safety|danger|dangerous|harm|protect|risk|emergency|crime|violence)\b/i,
+    a: 'The safety claim assumes their plan actually prevents the harm they described. They proved the harm exists. They never proved their side stops it.' },
+  { k: 'learn',   rx: /\b(learn|learning|teach|teacher|grade|grades|study|studying|school|class|classroom|education|skill)\b/i,
+    a: 'On learning — they measured the wrong thing. What they described is compliance in the building, and what the resolution asks about is capability afterwards.' },
+  { k: 'fair',    rx: /\b(fair|unfair|equal|equality|inequality|poor|rich|income|privilege|access|discriminat)\b/i,
+    a: 'They say fairness. But their plan applies one rule to unequal starting points, and a uniform rule over unequal conditions produces unequal outcomes. That is the opposite of what they claimed.' },
+  { k: 'health',  rx: /\b(health|mental|anxiety|stress|sleep|wellbeing|depress|body|medical|doctor)\b/i,
+    a: 'The health point is the strongest thing they have, and I will grant it entirely. Even granting it, they never showed their plan is what improves it rather than the three other things changing at the same time.' },
+  { k: 'time',    rx: /\b(time|hours|schedule|day|week|late|early|minutes|rush)\b/i,
+    a: 'On time — the hours do not disappear, they relocate. They have shown the cost moves. They have not shown it shrinks.' },
+  { k: 'tech',    rx: /\b(technology|tech|phone|app|ai|online|internet|digital|screen|algorithm|platform)\b/i,
+    a: 'Their technology argument is about a snapshot. The tool changes every eighteen months, and a policy written against this year’s version is obsolete before it is enforced.' },
+  { k: 'data',    rx: /\b(study|studies|research|data|evidence|statistic|percent|survey|report|source)\b/i,
+    a: 'They read a number at us. One number, no scale, no comparison group. I am not disputing that it exists — I am saying it does not do the work they need it to do.' },
+  { k: 'future',  rx: /\b(future|generation|long term|later|years from now|kids|children|young)\b/i,
+    a: 'They argue about the long run. The long run is where their evidence is weakest and their confidence is highest, and the judge should notice those two things travelling together.' }
+];
+
+function themeOf(text) {
+  for (var i = 0; i < THEMES.length; i++) if (THEMES[i].rx.test(text)) return THEMES[i];
+  return null;
+}
+function keywordsOf(text) {
+  var out = [], low = (text || '').toLowerCase();
+  var stop = /^(the|and|that|this|with|from|they|their|have|has|will|would|about|which|because|there|these|those|what|when|your|you|for|are|was|but|not|all|can|our|its|it|is|of|to|a|in|on|it)$/;
+  low.replace(/[^a-z\s]/g, ' ').split(/\s+/).forEach(function (w) {
+    if (w.length > 4 && !stop.test(w) && out.indexOf(w) < 0) out.push(w);
+  });
+  return out.slice(0, 14);
+}
+
+function sideArgs(topic, side) { return side === 'pro' ? topic.pro : topic.con; }
+
+/* ---------- opponent speeches ---------- */
+function oppConstructive() {
+  var o = ARENA.opp, args = ARENA.oppArgs;
+  var s = pick(o.open) + ' ';
+  s += 'Two contentions. First — ' + args[0].c + ' ' + args[0].e + ' The reason that matters is that ' + lower1(args[0].w) + ' ' + args[0].i + ' ';
+  s += 'Second — ' + args[1].c + ' ' + args[1].e + ' ' + cap(args[1].w) + ' ' + args[1].i;
+  return s;
+}
+
+function oppRebuttal(playerText) {
+  var o = ARENA.opp, args = ARENA.oppArgs, r = coach(playerText, { phase: 'constructive' });
+  var bits = [];
+  var th = themeOf(playerText);
+
+  if (r.wc < 25) bits.push('That was barely a speech, so most of my case is standing untouched. I will take that.');
+  else if (th) bits.push(th.a);
+  else bits.push('I could not find the load-bearing sentence in that speech, so let me name the one I think they meant — and then break it.');
+
+  if (!r.has.evidence) bits.push('Notice there was no evidence in there at all. Not a study, not a number, not a case. Assertion is not argument.');
+  else if (!r.has.numbers) bits.push('They said research shows. Which research, how many schools, and what year? Until we know, that is a sentence, not a source.');
+
+  if (!r.has.warrant) bits.push('And there is no warrant. They gave us a claim and a conclusion with nothing in between — the judge is being asked to build the bridge themselves.');
+  if (!r.has.impact) bits.push('No impact either. Even if every word were true, they never told you what changes for a single human being.');
+  if (r.has.attack) bits.push('They also came at me instead of the argument, which I am happy to leave on the flow exactly as it landed.');
+  if (r.has.absolute) bits.push('They said it as an absolute. One counterexample breaks an absolute, and I have one.');
+
+  bits.push('Extending my own case — ' + args[2].c + ' ' + args[2].e + ' ' + cap(args[2].w) + ' ' + args[2].i);
+  if (o.agg > 0.7) bits.push('Nothing they said touched that. Weigh it and we are done.');
+  return bits.join(' ');
+}
+
+function lower1(s) { return s.charAt(0).toLowerCase() + s.slice(1); }
+
+/* ---------- setup screen ---------- */
+function paintArena() {
+  if (ARENA.live) return;
+  if (S.pendingChallenge) {
+    ARENA.presetTopic = byId(TOPICS, S.pendingChallenge.topic) || ARENA.presetTopic;
+    ARENA.presetOpp = byId(CLUB, S.pendingChallenge.opp);
+    S.pendingChallenge = null;
+    toast('Challenge accepted.');
+  }
+  var t = ARENA.presetTopic || pick(TOPICS);
+  var side = ARENA.presetSide || (Math.random() < 0.5 ? 'pro' : 'con');
+  var opp = ARENA.presetOpp || pick(CLUB);
+  ARENA.setupTopic = t; ARENA.setupSide = side; ARENA.setupOpp = opp;
+  ARENA.presetTopic = ARENA.presetSide = ARENA.presetOpp = null;
+  drawSetup();
+}
+
+function drawSetup() {
+  var t = ARENA.setupTopic, side = ARENA.setupSide, opp = ARENA.setupOpp;
+  var args = sideArgs(t, side);
+  $('#arenaBody').innerHTML =
+    '<div class="head"><h2 class="title">⚔️ Debate Arena</h2>' +
+    '<p class="lede">Six rounds, one judge. You speak, they speak, then a ballot gets written. Your side is assigned — that is how real tournaments work.</p></div>' +
+
+    '<div class="card">' +
+      '<div class="vs">' +
+        '<div class="who"><div class="av">' + S.av + '</div><b>' + esc(S.name) + '</b><small>' + rankOf(S.xp).name + '</small></div>' +
+        '<div class="mid">VS</div>' +
+        '<div class="who"><div class="av">' + opp.av + '</div><b>' + esc(opp.n) + '</b><small>' + esc(opp.tag) + '</small></div>' +
+      '</div>' +
+      '<p class="dim" style="text-align:center;font-size:.85rem;margin-top:10px">' + esc(opp.bio) + '</p>' +
+      '<div class="res-banner"><small>Resolved · ' + esc(t.tag) + '</small><p>' + esc(t.res) + '</p></div>' +
+      '<div class="row" style="justify-content:center">' +
+        '<span class="tag ' + side + '">You are ' + (side === 'pro' ? 'PRO — you must prove it true' : 'CON — you must prove it false') + '</span>' +
+      '</div>' +
+      '<div class="row" style="margin-top:14px;justify-content:center">' +
+        '<button class="btn ghost sm" id="aTopic">🎲 New motion</button>' +
+        '<button class="btn ghost sm" id="aSide">🔁 Flip side</button>' +
+        '<button class="btn ghost sm" id="aOpp">👥 New opponent</button>' +
+      '</div>' +
+    '</div>' +
+
+    '<div class="card">' +
+      '<b>📋 Prep sheet — your side</b>' +
+      '<p class="dim" style="font-size:.84rem;margin:6px 0 12px">Three arguments you could run. Use them, rewrite them, or ignore them entirely — the judge scores what you say, not what is on this card.</p>' +
+      '<div class="grid" style="gap:9px">' +
+        args.map(function (a, i) {
+          return '<div class="prep-card"><b>' + (i + 1) + '. ' + esc(a.c) + '</b><br>' +
+            '<span class="dim">Evidence:</span> ' + esc(a.e) + '<br>' +
+            '<span class="dim">Because:</span> ' + esc(lower1(a.w)) + '<br>' +
+            '<span class="dim">So what:</span> ' + esc(a.i) + '</div>';
+        }).join('') +
+      '</div>' +
+      '<button class="btn" id="aStart" style="margin-top:16px;width:100%;justify-content:center">🎙️ Take the floor</button>' +
+    '</div>';
+
+  $('#aTopic').onclick = function () { ARENA.setupTopic = pick(TOPICS.filter(function (x) { return x !== t; })); drawSetup(); };
+  $('#aSide').onclick = function () { ARENA.setupSide = side === 'pro' ? 'con' : 'pro'; drawSetup(); };
+  $('#aOpp').onclick = function () { ARENA.setupOpp = pick(CLUB.filter(function (x) { return x !== opp; })); drawSetup(); };
+  $('#aStart').onclick = startDebate;
+}
+
+function startDebate() {
+  ARENA.live = true; ARENA.topic = ARENA.setupTopic; ARENA.side = ARENA.setupSide; ARENA.opp = ARENA.setupOpp;
+  ARENA.oppSide = ARENA.side === 'pro' ? 'con' : 'pro';
+  ARENA.oppArgs = shuffle(sideArgs(ARENA.topic, ARENA.oppSide));
+  ARENA.step = 0; ARENA.log = []; ARENA.mine = []; ARENA.myTexts = []; ARENA.oppSaid = '';
+  ARENA.crossDone = false; ARENA.crossBonus = 0;
+  S.faced[ARENA.opp.id] = true;
+  if (Object.keys(S.faced).length >= 6) award('allfr');
+  drawFloor();
+}
+
+function drawFloor(extra) {
+  var st = STEPS[ARENA.step];
+  var t = ARENA.topic;
+  var html =
+    '<div class="card">' +
+      '<div class="row" style="justify-content:space-between">' +
+        '<span class="chip">' + S.av + ' ' + esc(S.name) + ' <span class="tag ' + ARENA.side + '" style="margin-left:5px">' + ARENA.side.toUpperCase() + '</span></span>' +
+        '<span class="chip">' + ARENA.opp.av + ' ' + esc(ARENA.opp.n) + ' <span class="tag ' + ARENA.oppSide + '" style="margin-left:5px">' + ARENA.oppSide.toUpperCase() + '</span></span>' +
+      '</div>' +
+      '<div class="res-banner"><small>Resolved</small><p>' + esc(t.res) + '</p></div>' +
+      '<div class="phase-bar">' + STEPS.slice(0, 6).map(function (_, i) {
+        return '<div class="' + (i < ARENA.step ? 'past' : i === ARENA.step ? 'on' : '') + '"></div>';
+      }).join('') + '</div>' +
+      '<div id="floor">' + ARENA.log.join('') + '</div>' +
+    '</div>' +
+    '<div id="stage">' + (extra || '') + '</div>';
+  $('#arenaBody').innerHTML = html;
+  runStep();
+}
+
+function say(who, name, av, text, cls) {
+  ARENA.log.push('<div class="speech ' + (cls || '') + '"><div class="av">' + av + '</div>' +
+    '<div class="bub"><div class="nm">' + esc(name) + '</div>' + esc(text) + '</div></div>');
+}
+function sayHtml(name, av, html, cls) {
+  ARENA.log.push('<div class="speech ' + (cls || '') + '"><div class="av">' + av + '</div>' +
+    '<div class="bub"><div class="nm">' + esc(name) + '</div>' + html + '</div></div>');
+}
+function refloor() { var f = $('#floor'); if (f) { f.innerHTML = ARENA.log.join(''); f.lastElementChild.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } }
+
+function runStep() {
+  var st = STEPS[ARENA.step];
+  if (!st) return;
+  if (st.k === 'you') return stageSpeech(st);
+  if (st.k === 'opp') return stageOpp();
+  if (st.k === 'cross') return stageCross();
+  if (st.k === 'verdict') return stageVerdict();
+}
+
+/* ---------- player speech ---------- */
+function stageSpeech(st) {
+  ARENA.over = false;
+  $('#stage').innerHTML =
+    '<div class="card">' +
+      '<div class="row" style="justify-content:space-between">' +
+        '<b>🎙️ ' + st.t + '</b><span class="timer" id="tmr">' + fmt(st.secs) + '</span>' +
+      '</div>' +
+      '<p class="dim" style="font-size:.85rem;margin:6px 0 10px">' + st.hint + '</p>' +
+      '<textarea id="spTxt" rows="7" placeholder="Speak. Write it the way you would say it out loud."></textarea>' +
+      '<div class="row" style="justify-content:space-between;margin-top:11px">' +
+        '<small class="dim" id="wcOut">0 words</small>' +
+        '<div class="row">' +
+          '<button class="btn ghost sm" id="spPrep">📋 Prep sheet</button>' +
+          '<button class="btn" id="spGo">Deliver →</button>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  var ta = $('#spTxt');
+  ta.focus();
+  ta.oninput = function () {
+    var n = ta.value.trim() ? ta.value.trim().split(/\s+/).length : 0;
+    $('#wcOut').textContent = n + ' words' + (n < 25 ? ' — thin' : n > 200 ? ' — long' : '');
+  };
+  $('#spPrep').onclick = showPrep;
+  $('#spGo').onclick = function () { deliver(st, ta.value); };
+  startTimer(st.secs);
+}
+
+function fmt(s) { var m = Math.floor(s / 60); s = s % 60; return m + ':' + (s < 10 ? '0' : '') + s; }
+function startTimer(secs) {
+  clearInterval(ARENA.timer);
+  ARENA.left = secs;
+  ARENA.timer = setInterval(function () {
+    ARENA.left--;
+    var el = $('#tmr');
+    if (!el) { clearInterval(ARENA.timer); return; }
+    if (ARENA.left <= 0) {
+      ARENA.over = true;
+      el.textContent = 'TIME';
+      el.classList.add('low');
+      clearInterval(ARENA.timer);
+      return;
+    }
+    el.textContent = fmt(ARENA.left);
+    el.classList.toggle('low', ARENA.left <= 20);
+  }, 1000);
+}
+
+function showPrep() {
+  var args = sideArgs(ARENA.topic, ARENA.side);
+  openModal('<b>📋 Prep sheet</b><p class="dim" style="font-size:.84rem;margin:6px 0 12px">' + esc(ARENA.topic.res) + ' — you are ' + ARENA.side.toUpperCase() + '.</p>' +
+    args.map(function (a, i) {
+      return '<div class="prep-card" style="margin-bottom:9px"><b>' + (i + 1) + '. ' + esc(a.c) + '</b><br><span class="dim">Evidence:</span> ' + esc(a.e) +
+        '<br><span class="dim">Because:</span> ' + esc(lower1(a.w)) + '<br><span class="dim">So what:</span> ' + esc(a.i) + '</div>';
+    }).join('') +
+    '<button class="btn" id="mClose" style="width:100%;justify-content:center;margin-top:8px">Back to the floor</button>');
+}
+
+function deliver(st, text) {
+  text = (text || '').trim();
+  if (text.split(/\s+/).filter(Boolean).length < 8) { toast('Say something first — at least a full sentence.'); return; }
+  clearInterval(ARENA.timer);
+  var r = coach(text, { phase: st.ph, oppKeywords: ARENA.step >= 3 ? keywordsOf(ARENA.oppSaid) : null });
+  if (ARENA.over) { r.total = clamp(r.total - 6, 5, 100); r.notes.unshift({ good: false, m: '⏰', txt: 'You went over time. In a real round the judge stops writing the moment the clock hits zero — everything after that was said to an empty page.' }); }
+  if (r.has.evidence) S.evidCount++;
+  if (S.evidCount >= 5) award('evid');
+  if (!r.fillers && r.wc >= 60) award('nofill');
+  ARENA.mine.push(r);
+  ARENA.myTexts.push(text);
+
+  say('me', S.name, S.av, text, 'me');
+  sayHtml('Judge', '⚖️', '<b>' + gradeWord(r.total) + ' · ' + r.total + '</b>' + scoreRow('Logic', r.logic) + scoreRow('Evidence', r.evidence) +
+    scoreRow('Clarity', r.clarity) + scoreRow('Rebuttal', r.rebuttal) +
+    '<div style="margin-top:8px">' + feedbackHtml(r) + '</div>', 'judge');
+  ARENA.step++;
+  drawFloor();
+}
+
+/* ---------- opponent turn ---------- */
+function stageOpp() {
+  $('#stage').innerHTML = '<div class="card"><div class="row"><div class="av" style="font-size:1.6rem">' + ARENA.opp.av + '</div>' +
+    '<div><b>' + esc(ARENA.opp.n) + ' is speaking</b><div class="typing"><span></span><span></span><span></span></div></div></div></div>';
+  var isReb = ARENA.step === 4;
+  var text = isReb ? oppRebuttal(lastMine()) : oppConstructive();
+  ARENA.oppSaid += ' ' + text;
+  setTimeout(function () {
+    say('them', ARENA.opp.n, ARENA.opp.av, text);
+    ARENA.step++;
+    drawFloor();
+  }, 1400);
+}
+function lastMine() { return ARENA.myTexts.length ? ARENA.myTexts[ARENA.myTexts.length - 1] : ''; }
+
+/* ---------- cross-examination ---------- */
+var CROSS_Q = [
+  { q: 'How many schools were in that study?', good: true,
+    a: 'Fewer than I would like. It is a regional sample — but it is the only one that measured this directly.' },
+  { q: 'What year was that evidence from?', good: true,
+    a: 'A few years back. I will concede it predates the most recent policy changes.' },
+  { q: 'Does your plan work if the funding does not arrive?', good: true,
+    a: 'It works smaller. It does not work at the scale I described, no.' },
+  { q: 'Who exactly is harmed if I am right and you are wrong?', good: true,
+    a: 'Fewer people than on my side of it. But I am not going to pretend the number is zero.' },
+  { q: 'Is that correlation or causation?', good: true,
+    a: 'Correlation, with a mechanism I have described. I would not push it further than that.' },
+  { q: 'Do you not think your whole case is basically wrong given everything?', good: false,
+    a: 'No, and that question was a speech. Ask me something I can answer in a word.' }
+];
+
+function stageCross() {
+  var qs = shuffle(CROSS_Q.filter(function (q) { return q.good; })).slice(0, 3).concat([CROSS_Q[CROSS_Q.length - 1]]);
+  $('#stage').innerHTML =
+    '<div class="card">' +
+      '<b>❓ Cross-examination</b>' +
+      '<p class="dim" style="font-size:.85rem;margin:6px 0 12px">Three minutes, and it is not extra speaking time. Ask short closed questions that force one honest answer — then use the answer in your rebuttal.</p>' +
+      '<div class="qr" id="cxQ">' + qs.map(function (q, i) { return '<button data-i="' + i + '">' + esc(q.q) + '</button>'; }).join('') + '</div>' +
+      '<div class="composer"><input type="text" id="cxOwn" placeholder="…or ask your own question"><button class="btn sm" id="cxGo">Ask</button></div>' +
+      '<button class="btn ghost sm" id="cxSkip" style="margin-top:11px">Skip cross-ex →</button>' +
+    '</div>';
+  var asked = 0;
+  function ask(text, canned) {
+    say('me', S.name, S.av, text, 'me');
+    var ans = canned;
+    if (!ans) {
+      var short = text.split(/\s+/).length <= 12;
+      var closed = /^(how many|how much|when|who|what year|does|do you|is it|are you|can you name|which)\b/i.test(text.trim());
+      if (closed && short) { ARENA.crossBonus += 4; ans = pick([
+        'Yes — and I can see where you are going with that. Fine. Yes.',
+        'I will give you that one. It does not sink my case, but I will give it to you.',
+        'Honestly? I do not have the number in front of me.']); }
+      else if (short) { ans = pick(['Roughly, yes. Ask me the precise version and I will answer that too.', 'That depends on what you mean, and I think you know that.']); }
+      else { ARENA.crossBonus -= 2; ans = 'That was a speech, not a question. The judge is timing this and you just spent it on me.'; }
+    } else if (canned && ARENA.crossQGood) ARENA.crossBonus += 5;
+    setTimeout(function () { say('them', ARENA.opp.n, ARENA.opp.av, ans); refloor(); }, 700);
+    refloor();
+    asked++;
+    if (asked >= 3) finishCross();
+  }
+  $$('#cxQ button').forEach(function (b) {
+    b.onclick = function () {
+      var q = qs[+b.dataset.i];
+      ARENA.crossQGood = q.good;
+      if (!q.good) ARENA.crossBonus -= 3;
+      b.remove();
+      ask(q.q, q.a);
+    };
+  });
+  $('#cxGo').onclick = function () {
+    var v = $('#cxOwn').value.trim();
+    if (v.length < 4) return;
+    $('#cxOwn').value = '';
+    ARENA.crossQGood = false;
+    ask(v, null);
+  };
+  $('#cxOwn').onkeydown = function (e) { if (e.key === 'Enter') $('#cxGo').click(); };
+  $('#cxSkip').onclick = finishCross;
+}
+
+function finishCross() {
+  if (ARENA.crossDone) return;
+  ARENA.crossDone = true;
+  setTimeout(function () {
+    sayHtml('Judge', '⚖️', ARENA.crossBonus > 4
+      ? '<b>Good cross.</b> Short, closed questions and you stopped talking once you had the answer. Use those admissions by name in your rebuttal.'
+      : ARENA.crossBonus < 0
+        ? '<b>Cross got away from you.</b> Those were speeches, not questions. Cross-ex is for extracting admissions — save the arguing for your rebuttal.'
+        : '<b>Cross noted.</b> Now go and actually use what they conceded — an admission you never mention may as well not exist.', 'judge');
+    ARENA.step++;
+    drawFloor();
+  }, 1400);
+}
+
+/* ---------- the ballot ---------- */
+function stageVerdict() {
+  clearInterval(ARENA.timer);
+  var m = ARENA.mine;
+  var w = [1, 1.2, 1.1];
+  var num = 0, den = 0;
+  for (var i = 0; i < m.length; i++) { num += m[i].total * (w[i] || 1); den += (w[i] || 1); }
+  var mine = clamp(Math.round(num / (den || 1)) + Math.round(ARENA.crossBonus / 2), 5, 100);
+
+  var o = ARENA.opp;
+  var opp = Math.round(50 + o.agg * 20 + (Math.random() * 12 - 5));
+  var reb = m[1] || { has: {} };
+  if (!reb.has.rebut) opp += 8;            /* you never answered them */
+  if (m[2] && !m[2].has.weigh) opp += 4;   /* you never weighed */
+  if (m[0] && m[0].has.evidence && m[1] && m[1].has.rebut) opp -= 4;
+  opp = clamp(opp, 20, 96);
+
+  var won = mine >= opp;
+  var cats = ['logic', 'evidence', 'clarity', 'rebuttal'];
+  var avg = {};
+  cats.forEach(function (c) {
+    var s = 0; for (var i = 0; i < m.length; i++) s += m[i][c];
+    avg[c] = Math.round(s / (m.length || 1));
+  });
+
+  /* record */
+  if (won) { S.wins++; S.streak++; if (S.streak > S.bestStreak) S.bestStreak = S.streak; }
+  else { S.losses++; S.streak = 0; }
+  award('first');
+  if (won) {
+    award('win1');
+    if (S.wins >= 5) award('win5');
+    if (mine >= 85) award('sweep');
+    if (S.streak >= 3) award('streak3');
+    S.wonSides[ARENA.topic.id + ':' + ARENA.side] = true;
+    if (S.wonSides[ARENA.topic.id + ':pro'] && S.wonSides[ARENA.topic.id + ':con']) award('switch');
+  }
+  var xp = won ? 70 + Math.round(mine / 2) : 25 + Math.round(mine / 3);
+
+  var weakest = cats.slice().sort(function (a, b) { return avg[a] - avg[b]; })[0];
+  var advice = {
+    logic: 'Your weakest column was <b>logic</b>. Nearly always that means a missing warrant — the sentence starting with "because" that connects your evidence to your claim. Write that sentence first next round.',
+    evidence: 'Your weakest column was <b>evidence</b>. Put a number, a year or a named case in every argument. "Studies show" costs nothing to say and nothing to dismiss.',
+    clarity: 'Your weakest column was <b>clarity</b>. Number your points out loud, keep sentences short, and replace every filler with silence.',
+    rebuttal: 'Your weakest column was <b>rebuttal</b>. Name their argument before you answer it — "They say X, but…" — and never let one go unanswered. Dropped is conceded.'
+  }[weakest];
+
+  ARENA.log.push('<div class="speech judge"><div class="av">⚖️</div><div class="bub" style="width:100%">' +
+    '<div class="nm">The ballot</div>' +
+    '<div class="verdict" style="padding:8px 0 4px"><div class="big" style="color:' + (won ? 'var(--pro)' : 'var(--con)') + '">' +
+      (won ? 'You win' : o.n + ' wins') + '</div>' +
+      '<div class="dim" style="font-size:.9rem;margin-top:3px">' + mine + ' — ' + opp + '</div></div>' +
+    scoreRow('Logic', avg.logic) + scoreRow('Evidence', avg.evidence) + scoreRow('Clarity', avg.clarity) + scoreRow('Rebuttal', avg.rebuttal) +
+    '<div class="ex" style="margin-top:14px">' + advice + '</div>' +
+    '<div class="fb-line"><span class="m">' + o.av + '</span><span><i>' + esc(pick(won ? o.lose : o.win)) + '</i></span></div>' +
+    '</div></div>');
+
+  ARENA.live = false;
+  ARENA.step = 99;
+  drawFloor(
+    '<div class="card"><div class="row" style="justify-content:center">' +
+      '<button class="btn" id="vAgain">🔁 Same motion, other side</button>' +
+      '<button class="btn ghost" id="vNew">🎲 New debate</button>' +
+      '<button class="btn ghost" id="vHome">🏠 Home</button>' +
+    '</div></div>');
+
+  var topic = ARENA.topic, side = ARENA.side, opId = o.id;
+  $('#vAgain').onclick = function () { ARENA.presetTopic = topic; ARENA.presetSide = side === 'pro' ? 'con' : 'pro'; ARENA.presetOpp = byId(CLUB, opId); paintArena(); };
+  $('#vNew').onclick = function () { paintArena(); };
+  $('#vHome').onclick = function () { go('home'); };
+
+  addXp(xp, won ? 'debate won' : 'debate finished');
+  pushFeed(o.av + ' ' + (won ? 'You beat <b>' + esc(o.n) + '</b> ' : 'You lost to <b>' + esc(o.n) + '</b> ') + mine + '–' + opp + ' on ' + esc(topic.tag.toLowerCase()) + '.');
+  dm(opId, pick(won ? o.lose : o.win), true);
+  paintMe();
+}
+
+/* =========================================================================
+   8. FALLACY HUNT
+   ========================================================================= */
+var HUNTG = { on: false, left: 60, score: 0, best: 0, combo: 0, missed: [], t: null, cur: null };
+
+function paintFallacy() {
+  if (HUNTG.on) return;
+  $('#fallacyBody').innerHTML =
+    '<div class="head"><h2 class="title">🕵️ Fallacy Hunt</h2>' +
+    '<p class="lede">Sixty seconds. Each card is something somebody might actually say in a round. Name what is broken about it — or say it is sound, because some of them are.</p></div>' +
+    '<div class="card"><div class="grid g3">' +
+      '<div class="pill-stat"><b>' + S.huntBest + '</b><span>Your best</span></div>' +
+      '<div class="pill-stat"><b>60s</b><span>On the clock</span></div>' +
+      '<div class="pill-stat"><b>' + FALLACIES.length + '</b><span>Fallacies</span></div>' +
+    '</div><button class="btn" id="hStart" style="margin-top:16px;width:100%;justify-content:center">▶ Start the hunt</button></div>' +
+    '<div class="card"><b>📖 The list</b><p class="dim" style="font-size:.84rem;margin:6px 0 12px">Read these first if you want. It is not cheating, it is prep.</p>' +
+      FALLACIES.map(function (f) {
+        return '<div class="fb-line"><span class="m">•</span><span><b>' + esc(f.n) + '</b> — ' + esc(f.d) + '<br><span class="dim">“' + esc(f.ex[0]) + '”</span></span></div>';
+      }).join('') + '</div>';
+  $('#hStart').onclick = startHunt;
+}
+
+function startHunt() {
+  HUNTG.on = true; HUNTG.left = 60; HUNTG.score = 0; HUNTG.combo = 0; HUNTG.missed = [];
+  HUNTG.pool = shuffle(HUNT);
+  HUNTG.i = 0;
+  clearInterval(HUNTG.t);
+  HUNTG.t = setInterval(function () {
+    HUNTG.left--;
+    var el = $('#hTime');
+    if (el) { el.textContent = HUNTG.left + 's'; el.classList.toggle('low', HUNTG.left <= 10); }
+    if (HUNTG.left <= 0) endHunt();
+  }, 1000);
+  nextHunt();
+}
+
+function nextHunt() {
+  if (!HUNTG.on) return;
+  if (HUNTG.i >= HUNTG.pool.length) HUNTG.pool = shuffle(HUNT), HUNTG.i = 0;
+  var item = HUNTG.pool[HUNTG.i++];
+  HUNTG.cur = item;
+  var right = item.f ? byId(FALLACIES, item.f).n : 'Sound reasoning';
+  var others = shuffle(FALLACIES.filter(function (f) { return f.id !== item.f; })).slice(0, item.f ? 2 : 3).map(function (f) { return f.n; });
+  if (item.f) others.push('Sound reasoning');
+  var opts = shuffle(others.concat([right]));
+
+  $('#fallacyBody').innerHTML =
+    '<div class="card">' +
+      '<div class="row" style="justify-content:space-between">' +
+        '<span class="chip">Score <b style="color:var(--ink)">' + HUNTG.score + '</b></span>' +
+        (HUNTG.combo > 1 ? '<span class="chip on">🔥 ' + HUNTG.combo + ' in a row</span>' : '<span class="chip">🕵️ Hunt</span>') +
+        '<span class="timer" id="hTime">' + HUNTG.left + 's</span>' +
+      '</div>' +
+      '<div class="res-banner" style="margin:16px 0"><small>Somebody says</small><p>' + esc(item.s) + '</p></div>' +
+      '<div id="hOpts">' + opts.map(function (o) { return '<button class="qopt" data-o="' + esc(o) + '">' + esc(o) + '</button>'; }).join('') + '</div>' +
+      '<button class="btn ghost sm" id="hQuit" style="margin-top:14px">End hunt</button>' +
+    '</div>';
+  $('#hQuit').onclick = endHunt;
+  $$('#hOpts .qopt').forEach(function (b) {
+    b.onclick = function () {
+      var ok = b.dataset.o === right;
+      $$('#hOpts .qopt').forEach(function (x) {
+        if (x.dataset.o === right) x.classList.add('right');
+        else if (x === b) x.classList.add('wrong');
+        x.onclick = null;
+      });
+      if (ok) { HUNTG.score++; HUNTG.combo++; if (HUNTG.combo >= 3) HUNTG.score++; }
+      else { HUNTG.combo = 0; HUNTG.missed.push({ s: item.s, right: right, why: item.f ? byId(FALLACIES, item.f).d : 'The reasoning is careful — it names its limits and does not overclaim.' }); }
+      setTimeout(nextHunt, ok ? 380 : 1300);
+    };
+  });
+}
+
+function endHunt() {
+  if (!HUNTG.on) return;
+  HUNTG.on = false;
+  clearInterval(HUNTG.t);
+  if (HUNTG.score > S.huntBest) S.huntBest = HUNTG.score;
+  if (HUNTG.score >= 8) award('hunt');
+  if (HUNTG.score >= 15) award('hunt15');
+  addXp(10 + HUNTG.score * 5, 'Fallacy Hunt');
+  pushFeed('🕵️ You scored <b>' + HUNTG.score + '</b> in the Fallacy Hunt.');
+  $('#fallacyBody').innerHTML =
+    '<div class="card verdict"><div style="font-size:3rem">🕵️</div>' +
+      '<div class="big">' + HUNTG.score + '</div>' +
+      '<p class="lede">' + (HUNTG.score >= 15 ? 'That is tournament-level pattern recognition.' :
+        HUNTG.score >= 8 ? 'Good eye. You are catching the common ones fast.' :
+        'Slow down and read the reasoning, not the topic. The trick is always in the join.') + '</p>' +
+      '<div class="row" style="justify-content:center;margin-top:16px">' +
+        '<button class="btn" id="hAgain">▶ Again</button>' +
+        '<button class="btn ghost" id="hBack">Back</button></div></div>' +
+    (HUNTG.missed.length ? '<div class="card"><b>📌 What you missed</b>' + HUNTG.missed.slice(0, 6).map(function (x) {
+      return '<div class="fb-line"><span class="m">•</span><span>“' + esc(x.s) + '”<br><b style="color:var(--gold)">' + esc(x.right) + '</b> — ' + esc(x.why) + '</span></div>';
+    }).join('') + '</div>' : '');
+  $('#hAgain').onclick = startHunt;
+  $('#hBack').onclick = paintFallacy;
+}
+
+/* =========================================================================
+   9. FRIENDS + CHAT
+   ========================================================================= */
+function threadOf(id) { if (!S.chats[id]) S.chats[id] = []; return S.chats[id]; }
+
+function dm(id, text, fromThem, quiet) {
+  threadOf(id).push({ t: text, them: !!fromThem, at: Date.now() });
+  if (fromThem && !quiet) {
+    if (!(VIEW === 'friends' && CHAT.open === id)) { S.unread++; paintPips(); }
+  }
+  if (VIEW === 'friends' && CHAT.open === id) paintThread();
+  else if (VIEW === 'friends') paintFriends();
+}
+
+var CHAT = { open: null };
+
+function paintFriends() {
+  if (CHAT.open) return paintThread();
+  $('#friendsBody').innerHTML =
+    '<div class="head"><h2 class="title">👥 The Club</h2>' +
+    '<p class="lede">Ten practice opponents who all argue differently. Message them, take their challenges, and find out which style beats you.</p></div>' +
+    '<div class="card" style="padding:8px">' +
+      CLUB.map(function (f) {
+        var th = threadOf(f.id);
+        var last = th.length ? (th[th.length - 1].them ? '' : 'You: ') + th[th.length - 1].t : f.bio;
+        var un = th.filter(function (m) { return m.them && !m.seen; }).length;
+        return '<button class="friend-row" data-fr="' + f.id + '">' +
+          '<span class="av">' + f.av + '<span class="dot ' + (Math.random() < 0.6 ? 'on' : '') + '"></span></span>' +
+          '<span class="tx"><b>' + esc(f.n) + '</b><small>' + esc(last) + '</small></span>' +
+          (un ? '<span class="un">' + un + '</span>' : '<span class="chip">' + (S.faced[f.id] ? 'faced' : 'new') + '</span>') +
+          '</button>';
+      }).join('') +
+    '</div>';
+  $$('#friendsBody [data-fr]').forEach(function (b) {
+    b.onclick = function () { openChat(b.dataset.fr); };
+  });
+}
+
+function openChat(id) {
+  CHAT.open = id;
+  threadOf(id).forEach(function (m) { m.seen = true; });
+  var f = byId(CLUB, id);
+  if (!threadOf(id).length) {
+    dm(id, pick([
+      'hey — you are the new one right? welcome to the club',
+      'saw your name on the sign-up sheet. what side do you usually prefer?',
+      'if you want a practice round I am free most of this week'
+    ]), true, true);
+  }
+  paintThread();
+}
+
+function paintThread() {
+  var id = CHAT.open, f = byId(CLUB, id), th = threadOf(id);
+  th.forEach(function (m) { m.seen = true; });
+  $('#friendsBody').innerHTML =
+    '<div class="row" style="justify-content:space-between;margin-bottom:12px">' +
+      '<button class="btn ghost sm" id="cBack">← Club</button>' +
+      '<span class="chip">' + f.av + ' ' + esc(f.n) + ' · ' + esc(f.tag) + '</span>' +
+    '</div>' +
+    '<div class="card">' +
+      '<div id="thread">' + th.map(function (m) {
+        return '<div class="msg ' + (m.them ? 'them' : 'me') + '">' + esc(m.t) + '</div>';
+      }).join('') + '</div>' +
+      '<div class="qr" id="qrOpts">' +
+        '<button data-q="challenge">⚔️ Debate me</button>' +
+        '<button data-q="tip">💡 Any advice?</button>' +
+        '<button data-q="style">🎭 How do you argue?</button>' +
+        '<button data-q="topic">🎲 Pick a motion for me</button>' +
+      '</div>' +
+      '<div class="composer"><input type="text" id="cIn" placeholder="Message ' + esc(f.n) + '…" maxlength="180"><button class="btn sm" id="cSend">Send</button></div>' +
+    '</div>';
+  $('#cBack').onclick = function () { CHAT.open = null; paintFriends(); };
+  $$('#qrOpts button').forEach(function (b) { b.onclick = function () { sendChat(quickText(b.dataset.q), b.dataset.q); }; });
+  $('#cSend').onclick = function () { var v = $('#cIn').value.trim(); if (v) { $('#cIn').value = ''; sendChat(v, null); } };
+  $('#cIn').onkeydown = function (e) { if (e.key === 'Enter') $('#cSend').click(); };
+  var t = $('#thread'); if (t && t.lastElementChild) t.lastElementChild.scrollIntoView({ block: 'nearest' });
+}
+
+function quickText(k) {
+  return { challenge: 'want to run a round?', tip: 'got any advice for me?',
+           style: 'how do you actually argue?', topic: 'pick a motion for me' }[k];
+}
+
+function sendChat(text, kind) {
+  var id = CHAT.open, f = byId(CLUB, id);
+  dm(id, text, false);
+  S.replies++;
+  if (S.replies >= 5) award('social');
+  setTimeout(function () { dm(id, replyOf(f, text, kind), true); }, 700 + Math.random() * 700);
+}
+
+var TIPS = [
+  'write your impact sentence before your evidence. if you cannot say why it matters, the evidence is decoration',
+  'the word "because" is worth more than any statistic you will ever find',
+  'never say "studies show". say who, when, and how many, or do not say it',
+  'when you are losing, weigh. "even if they are right, ours matters more" has saved me twice this month',
+  'number your points out loud. judges write in columns and you want to control which one you land in',
+  'silence beats "um" every single time. count to two and then keep going',
+  'restate their argument stronger than they did, then break it. it makes the judge trust you',
+  'if they drop something, say the words "they dropped this" out loud. judges do not always notice on their own',
+  'do not argue in cross-ex. get the admission and sit down',
+  'your last speech should not contain new arguments. it should contain comparisons'
+];
+
+function replyOf(f, text, kind) {
+  var low = text.toLowerCase();
+  if (kind === 'challenge' || /\b(debate|round|challenge|face|versus|vs)\b/.test(low)) {
+    S.pendingChallenge = { opp: f.id, topic: pick(TOPICS).id };
+    setTimeout(function () {
+      dm(f.id, '⚔️ motion: ' + byId(TOPICS, S.pendingChallenge.topic).res + ' — head to the Arena when you are ready, I will take whichever side you leave me', true);
+    }, 1200);
+    return pick(['yes. give me a second to pick something', 'always. let me find a motion', 'go on then. one round.']);
+  }
+  if (kind === 'tip' || /\b(advice|tip|help|how do i|improve|better|stuck|nervous|scared)\b/.test(low)) {
+    return pick(TIPS);
+  }
+  if (kind === 'style' || /\b(style|how do you|your approach)\b/.test(low)) {
+    return { evidence: 'files. everything is files. i would rather have one good source than three good instincts',
+             attack: 'i barely build a case. i let you build yours and then i find the seam',
+             values: 'i argue about what is right first. once the framework is agreed the facts mostly sort themselves',
+             story: 'one person, then the number. people remember the person and vote on the number',
+             speed: 'coverage. i would rather answer six things briefly than one thing beautifully' }[f.style];
+  }
+  if (kind === 'topic' || /\b(motion|topic|resolution|what should)\b/.test(low)) {
+    var t = pick(TOPICS);
+    ARENA.presetTopic = t;
+    return 'try this one — ' + t.res + '. it is harder than it looks on the ' + (Math.random() < 0.5 ? 'pro' : 'con');
+  }
+  if (/\b(hi|hey|hello|yo|sup)\b/.test(low)) return pick(['hey', 'hi — you free for a round later?', 'hello. i am flowing something, one sec']);
+  if (/\b(lost|lose|losing|beat me|bad)\b/.test(low)) return pick(['everyone loses. what did the judge write on the ballot?', 'losing on the flow teaches more than winning on delivery. what did you drop?', 'which column was lowest? fix that one only']);
+  if (/\b(won|win|beat)\b/.test(low)) return pick(['nice. now run the other side of the same motion', 'good. do it again against sable, she is meaner than me', 'saw the ballot. the rebuttal column carried you']);
+  if (/\bfallac/.test(low)) return pick(['name it in plain english, not latin. judges hate latin', 'my favourite is shifting the burden. people do it constantly and never notice']);
+  if (/\?$/.test(text.trim())) return pick(['honestly? depends on the judge', 'short answer yes. long answer also yes but with a caveat i will explain in the round', 'ask me that in cross-ex and watch me squirm']);
+  return pick(['fair', 'noted. bring that to the round', 'ha. okay', 'say more — i am flowing this conversation', 'agreed, mostly']);
+}
+
+/* ambient club activity */
+function ambient() {
+  var f = pick(CLUB);
+  var roll = Math.random();
+  var msg;
+  if (roll < 0.3) msg = pick(TIPS);
+  else if (roll < 0.55) msg = 'hot take: ' + pick(TOPICS).res.replace(/\.$/, '') + ' — and i would win it on the ' + (Math.random() < 0.5 ? 'pro' : 'con');
+  else if (roll < 0.75) msg = pick(['free later? i want a round', 'someone practise cross-ex with me, i am rusty', 'i need a rebuttal partner, my last one dropped everything']);
+  else msg = pick(['flowing practice rounds all evening if anyone wants feedback', 'reminder that "everyone knows" is not evidence. that is it, that is the message', 'read your own last speech out loud. it is always longer than you think']);
+  dm(f.id, msg, true);
+}
+
+/* =========================================================================
+   10. TROPHY CASE
+   ========================================================================= */
+function paintProfile() {
+  var r = rankOf(S.xp), nx = nextRank(S.xp);
+  $('#profileBody').innerHTML =
+    '<div class="head"><h2 class="title">🏆 Trophy Case</h2><p class="lede">Everything you have earned this session.</p></div>' +
+    '<div class="card"><div class="row" style="gap:14px">' +
+      '<button class="av" id="pAv" style="width:62px;height:62px;border-radius:18px;background:var(--panel2);font-size:30px">' + S.av + '</button>' +
+      '<div><div style="font-size:1.25rem;font-weight:800">' + esc(S.name) + '</div>' +
+      '<div style="color:var(--gold);font-weight:700;font-size:.9rem">' + r.e + ' ' + r.name + '</div></div>' +
+    '</div>' +
+    '<div class="bar" style="margin-top:13px"><span style="width:' + clamp(nx ? ((S.xp - r.at) / (nx.at - r.at)) * 100 : 100, 3, 100) + '%"></span></div>' +
+    '<small class="dim">' + (nx ? (nx.at - S.xp) + ' XP to ' + nx.name : 'Top rank reached.') + '</small>' +
+    '<div class="grid g3" style="margin-top:16px">' +
+      '<div class="pill-stat"><b>' + S.wins + '–' + S.losses + '</b><span>Record</span></div>' +
+      '<div class="pill-stat"><b>' + S.bestStreak + '</b><span>Best streak</span></div>' +
+      '<div class="pill-stat"><b>' + S.labBest + '</b><span>Best lab score</span></div>' +
+      '<div class="pill-stat"><b>' + S.huntBest + '</b><span>Best hunt</span></div>' +
+    '</div></div>' +
+
+    '<div class="sec-h">Badges · ' + Object.keys(S.badges).length + ' / ' + BADGES.length + '</div>' +
+    '<div class="grid g3">' + BADGES.map(function (b) {
+      var got = S.badges[b.id];
+      return '<div class="badge-chip' + (got ? '' : ' locked') + '"><span class="e">' + b.e + '</span><b>' + esc(b.n) + '</b><small>' + esc(b.d) + '</small></div>';
+    }).join('') + '</div>' +
+
+    '<div class="sec-h">Lessons</div><div class="card">' +
+      LESSONS.map(function (l) {
+        return '<div class="fb-line"><span class="m">' + (S.lessonsDone[l.id] ? '✅' : '⬜') + '</span><span>' + esc(l.t) + '</span></div>';
+      }).join('') + '</div>' +
+
+    '<div class="sec-h">Opponents faced</div><div class="card">' +
+      CLUB.map(function (f) {
+        return '<div class="fb-line"><span class="m">' + f.av + '</span><span><b>' + esc(f.n) + '</b> — ' +
+          (S.faced[f.id] ? 'faced on the floor' : '<span class="dim">not yet</span>') + '</span></div>';
+      }).join('') + '</div>' +
+    '<p class="dim" style="font-size:.78rem;margin-top:18px;line-height:1.5">Clash keeps nothing. Everything here lives in this tab and disappears when you close it.</p>';
+  $('#pAv').onclick = function () {
+    openModal('<b>Pick an avatar</b><div class="avpick" id="mAv">' +
+      AVATARS.map(function (a) { return '<button data-a="' + a + '"' + (a === S.av ? ' class="on"' : '') + '>' + a + '</button>'; }).join('') + '</div>' +
+      '<button class="btn" id="mClose" style="width:100%;justify-content:center;margin-top:14px">Done</button>');
+    $$('#mAv button').forEach(function (b) {
+      b.onclick = function () { S.av = b.dataset.a; paintMe(); closeModal(); paintProfile(); };
+    });
+  };
+}
+
+/* =========================================================================
+   11. MODAL + DAILY DRILL + BOOT
+   ========================================================================= */
+function openModal(html) {
+  $('#modalBox').innerHTML = html;
+  $('#modal').classList.add('on');
+  if ($('#mClose')) $('#mClose').onclick = closeModal;
+}
+function closeModal() { $('#modal').classList.remove('on'); }
+$('#modal').addEventListener('click', function (e) { if (e.target === $('#modal')) closeModal(); });
+
+var DRILLS = [
+  { q: 'Turn this into a real argument. What is missing?<br><br><i>"Schools should recycle. Recycling is good."</i>',
+    o: ['A warrant and an impact', 'A louder delivery', 'A second claim', 'A conclusion'], a: 0,
+    why: 'There is a claim and a restatement of the claim. Nothing explains why, and nothing says what changes if it happens.' },
+  { q: 'Your opponent makes five arguments. You have time for four. What do you do?',
+    o: ['Answer the four you like best and hope', 'Answer four fully and give the fifth one sentence', 'Answer one perfectly', 'Skip rebuttal and extend your own case'], a: 1,
+    why: 'A one-line answer keeps it alive on the flow. Silence hands it to them as conceded.' },
+  { q: 'Which sentence is doing the most work in a round?',
+    o: ['"According to a 2021 study…"', '"This matters because…"', '"My opponent is wrong."', '"As everybody knows…"'], a: 1,
+    why: 'The impact sentence. Facts do not vote — consequences do.' },
+  { q: 'You are handed the side you think is morally wrong. The best use of that round is:',
+    o: ['Throw it and stay honest', 'Find the strongest real case for it', 'Argue your own side quietly', 'Attack the format'], a: 1,
+    why: 'Steelmanning the other side is how you learn what actually holds it up — and what does not.' },
+  { q: 'Your evidence is correlational. Before an opponent gets to it, you should:',
+    o: ['Say it louder', 'Name the mechanism and admit the limit', 'Add three more correlations', 'Move on quickly'], a: 1,
+    why: 'Conceding a limit yourself costs almost nothing and makes everything else you say more credible.' }
+];
+
+function dailyDrill() {
+  var d = pick(DRILLS);
+  openModal('<b>🎯 Daily drill</b><p style="margin:10px 0 4px;line-height:1.6">' + d.q + '</p><div id="dOpt">' +
+    d.o.map(function (o, i) { return '<button class="qopt" data-i="' + i + '">' + esc(o) + '</button>'; }).join('') + '</div><div id="dWhy"></div>');
+  $$('#dOpt .qopt').forEach(function (b) {
+    b.onclick = function () {
+      var ok = +b.dataset.i === d.a;
+      $$('#dOpt .qopt').forEach(function (x, xi) {
+        if (xi === d.a) x.classList.add('right'); else if (x === b) x.classList.add('wrong');
+        x.onclick = null;
+      });
+      $('#dWhy').innerHTML = '<div class="ex" style="margin-top:14px"><b>' + (ok ? '✓ ' : '✗ ') + '</b>' + esc(d.why) + '</div>' +
+        '<button class="btn" id="mClose" style="width:100%;justify-content:center;margin-top:14px">Done</button>';
+      $('#mClose').onclick = closeModal;
+      if (!S.dailyDone) { S.dailyDone = true; addXp(ok ? 35 : 12, 'daily drill'); }
+    };
+  });
+}
+
+/* ---------- boot ---------- */
+var setupAv = '🦉';
+function boot() {
+  $('#avPick').innerHTML = AVATARS.map(function (a) {
+    return '<button data-a="' + a + '"' + (a === setupAv ? ' class="on"' : '') + '>' + a + '</button>';
+  }).join('');
+  $$('#avPick button').forEach(function (b) {
+    b.onclick = function () {
+      setupAv = b.dataset.a;
+      $$('#avPick button').forEach(function (x) { x.classList.toggle('on', x === b); });
+    };
+  });
+  $('#setupName').onkeydown = function (e) { if (e.key === 'Enter') $('#setupGo').click(); };
+  $('#setupGo').onclick = function () {
+    var n = $('#setupName').value.trim();
+    S.name = n ? n.slice(0, 16) : 'Rookie';
+    S.av = setupAv;
+    $('#setup').classList.remove('on');
+    pushFeed('🎙️ ' + esc(S.name) + ' joined the club. Ten people are already arguing about something.');
+    paintHome();
+    setTimeout(function () {
+      dm(pick(CLUB).id, pick([
+        'new person! finally someone i have not lost to yet',
+        'welcome. fair warning, sable will read you like a book for about three rounds',
+        'hey — if you have never done this before, start with the lessons. i did not and it showed'
+      ]), true);
+    }, 3500);
+    setInterval(ambient, 42000 + Math.random() * 30000);
+  };
+
+  $$('[data-go]').forEach(function (b) { b.onclick = function () { go(b.dataset.go); }; });
+  $('#dailyBtn').onclick = dailyDrill;
+  paintMe();
+  paintFeed();
+}
+
+boot();
+})();
+</script>
+</body>
+</html>
