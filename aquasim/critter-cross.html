@@ -122,8 +122,17 @@
   .price{ font-weight:800; color:#2f6b21; }
   .rar{ display:inline-block; font-size:.68rem; font-weight:800; padding:2px 8px; border-radius:999px; color:#fff; }
   .r0{background:#9aa0a6;} .r1{background:#4c9b56;} .r2{background:#3d7fd6;}
-  .r3{background:#8a5cd6;} .r4{background:#d68a2c;} .r5{background:#d64c7a;}
+  .r3{background:#8a5cd6;} .r4{background:#d68a2c;} .r5{background:#d6394c;}
+  .r6{background:#17a3b8; box-shadow:0 0 8px rgba(23,163,184,.65);}
+  .r7{background:linear-gradient(135deg,#f0b429,#e0479a); box-shadow:0 0 10px rgba(240,180,41,.7);}
   .cardbtns{ display:flex; gap:6px; margin-top:auto; flex-wrap:wrap; }
+
+  /* ---------- spinner ---------- */
+  .spinbox{ background:var(--card); border-radius:18px; padding:22px; max-width:420px; width:100%; margin:auto; box-shadow:0 18px 50px rgba(0,0,0,.4); text-align:center; }
+  .spinCount{ font-weight:800; color:#6b6250; font-size:.85rem; margin-bottom:8px; }
+  .wheelWrap{ position:relative; width:100%; max-width:300px; margin:0 auto 12px; }
+  .wheelWrap canvas{ width:100%; height:auto; display:block; border-radius:50%; box-shadow:0 4px 16px rgba(0,0,0,.25); }
+  .odds{ font-size:.72rem; color:var(--muted); margin-top:6px; }
 
   /* ---------- farm scene ---------- */
   #farm{ width:100%; height:auto; display:block; border-radius:14px; box-shadow:inset 0 0 0 1px var(--line); }
@@ -171,14 +180,14 @@
 </head>
 <body>
 <header class="top">
-  <div class="brand">🧬 Critter Cross<small>breed your own animals · pay for them with math</small></div>
+  <div class="brand">🧬 Critter Cross<small>breed your own animals · spin to win · pay with math</small></div>
   <div class="hstat" id="hdrStats">Animals 0 · Breeds 0</div>
   <div class="wallet" id="money">$0</div>
 </header>
 
 <nav class="tabs">
   <button class="tab active" data-view="math">📐 Math Lab</button>
-  <button class="tab" data-view="market">🏪 Market</button>
+  <button class="tab" data-view="market">🎡 Shop</button>
   <button class="tab" data-view="barn">🚜 My Farm</button>
   <button class="tab" data-view="breed">💞 Breeding Barn</button>
   <button class="tab" data-view="codex">📖 Breed Book</button>
@@ -207,8 +216,8 @@
 
   <section id="view-market" class="view">
     <div class="panel">
-      <h2>Livestock Market</h2>
-      <div class="hint">Buy purebred animals here. You need two to start breeding — they do not have to be the same species.</div>
+      <h2>🎡 Spin Shop</h2>
+      <div class="hint">Pick an animal, then pay <b>$500</b> to spin. You get up to <b>8 spins</b> to land on it — going further without busting wins a rarer one (1st–2nd spin = Uncommon, all the way to the 8th = Divine). Land on 💀 <b>FAIL</b> and the run ends with nothing. You need two animals to start breeding — they do not have to be the same species.</div>
     </div>
     <div class="grid" id="marketGrid"></div>
   </section>
@@ -266,6 +275,21 @@
     <button class="btn" id="mSave">Save name ✓</button>
     <button class="mini" id="mDice">🎲 Suggest names</button>
   </div>
+</div></div>
+
+<div class="modal" id="spinModal"><div class="spinbox">
+  <div class="row" style="justify-content:space-between; margin-bottom:4px">
+    <h2 id="spinTitle" style="margin:0; font-size:1.1rem">🎡 Spinning!</h2>
+    <button class="mini" id="spinGiveUp">✕</button>
+  </div>
+  <div class="spinCount" id="spinCount">Spin 1 of 8</div>
+  <div class="wheelWrap"><canvas id="wheelCanvas" width="300" height="300"></canvas></div>
+  <div class="feedback" id="spinResult"></div>
+  <div class="row" style="justify-content:center; margin-top:12px">
+    <button class="btn alt" id="spinGo">🎡 SPIN!</button>
+    <button class="btn" id="spinClose" style="display:none">Close</button>
+  </div>
+  <div class="odds">Landing on your animal gets rarer with every spin — but so does the risk of a bust.</div>
 </div></div>
 
 <div class="toast" id="toast"></div>
@@ -354,7 +378,7 @@ const GENE_KEYS = [
   'size','bodyLen','bodyDepth','legLen','legThick','neckLen','headSize',
   'snout','beak','earSize','earDroop','hornSize','hornCurl',
   'tailLen','tailFluff','tailCurl','wool','mane','spots','stripes',
-  'hump','comb','plume','whisk'
+  'hump','comb','plume','whisk','blaze','socks'
 ];
 
 function G(o){
@@ -374,10 +398,20 @@ const SPECIES = [
              snout:.20,earSize:.92,earDroop:.10,tailLen:.06,tailFluff:1,whisk:.9,wool:.25}),
     palette:[['#d9d2c6','#b8ae9d','#f0e7dc'],['#8a7461','#6b5747','#d8cfc2'],['#3c3a3a','#242323','#d7d2cb'],['#f4f1ec','#ddd6cb','#ffffff']] },
 
+  { key:'guinea', name:'Guinea Fowl', price:85,
+    genes:G({size:.14,bodyLen:.24,bodyDepth:.40,legLen:.20,legThick:.10,neckLen:.22,headSize:.20,
+             beak:.55,earSize:.02,tailLen:.16,tailFluff:.4,comb:.25,spots:.85}),
+    palette:[['#2e2f3a','#1c1d24','#e8e6de'],['#4a4a52','#302f36','#e8e6de'],['#8a3a3a','#5c2626','#e8dcc8']] },
+
   { key:'duck', name:'Duck', price:95,
     genes:G({size:.18,bodyLen:.36,bodyDepth:.48,legLen:.14,legThick:.16,neckLen:.34,headSize:.28,
              beak:.75,earSize:.03,tailLen:.20,tailFluff:.5,plume:.1}),
     palette:[['#f6f4ee','#ded8c9','#f0a83a'],['#4a6b4a','#33502f','#e8a63a'],['#8a6f4e','#6a5238','#e0983a'],['#2f3b4a','#1f2833','#e5b23c']] },
+
+  { key:'turkey', name:'Turkey', price:115,
+    genes:G({size:.22,bodyLen:.30,bodyDepth:.48,legLen:.22,legThick:.14,neckLen:.30,headSize:.24,
+             beak:.6,earSize:.02,tailLen:.34,tailFluff:.9,comb:.6,plume:.55}),
+    palette:[['#5a4632','#3c3020','#8a6a46'],['#2e2a26','#1c1916','#6b5b46'],['#8a6a46','#6b5238','#c9a86c'],['#3c3a30','#242220','#a3854f']] },
 
   { key:'goat', name:'Goat', price:140,
     genes:G({size:.30,bodyLen:.44,bodyDepth:.40,legLen:.46,legThick:.24,neckLen:.30,headSize:.30,
@@ -388,6 +422,11 @@ const SPECIES = [
     genes:G({size:.30,bodyLen:.46,bodyDepth:.50,legLen:.34,legThick:.24,neckLen:.16,headSize:.28,
              snout:.42,earSize:.36,earDroop:.75,hornSize:.22,hornCurl:.85,tailLen:.12,tailFluff:.9,wool:.95}),
     palette:[['#f4f1e8','#ddd6c6','#3a352f'],['#3a352f','#242019','#dcd4c4'],['#d8c9ae','#bda98a','#4a4239'],['#efe7d6','#d2c6ae','#6b5b46']] },
+
+  { key:'pony', name:'Pony', price:195,
+    genes:G({size:.34,bodyLen:.46,bodyDepth:.38,legLen:.46,legThick:.22,neckLen:.42,headSize:.34,
+             snout:.55,earSize:.30,earDroop:.04,tailLen:.55,tailFluff:.7,mane:.75}),
+    palette:[['#8a5a34','#66401f','#2e241c'],['#33302c','#1c1a17','#5a5049'],['#d9cdbb','#bcae98','#6b5f4e'],['#a8724a','#7e5231','#f0e7d6']] },
 
   { key:'pig', name:'Pig', price:210,
     genes:G({size:.34,bodyLen:.62,bodyDepth:.56,legLen:.26,legThick:.34,neckLen:.10,headSize:.30,
@@ -404,10 +443,25 @@ const SPECIES = [
              snout:.62,earSize:.85,earDroop:.14,tailLen:.46,tailFluff:.55,mane:.55}),
     palette:[['#a09a92','#7d766d','#5a534c'],['#7a6b5c','#5c5044','#463d33'],['#c4bbae','#a0968a','#6b6156']] },
 
+  { key:'mule', name:'Mule', price:380,
+    genes:G({size:.50,bodyLen:.58,bodyDepth:.46,legLen:.64,legThick:.26,neckLen:.50,headSize:.30,
+             snout:.64,earSize:.68,earDroop:.10,tailLen:.52,tailFluff:.5,mane:.35}),
+    palette:[['#8a6a4a','#6a4f36','#3a332c'],['#4a4038','#332b26','#6b6156'],['#c4bbae','#a0968a','#6b6156']] },
+
+  { key:'llama', name:'Llama', price:420,
+    genes:G({size:.46,bodyLen:.46,bodyDepth:.42,legLen:.66,legThick:.20,neckLen:.92,headSize:.24,
+             snout:.42,earSize:.62,earDroop:.04,tailLen:.10,tailFluff:.4,wool:.62}),
+    palette:[['#efe4d0','#d4c5aa','#6b5b46'],['#8a6a4a','#6a4f36','#e0d2ba'],['#3a332c','#241f19','#d8ccb8'],['#c9a985','#a88a68','#efe4d0'],['#e8e2d3','#c8bda6','#3a352f']] },
+
   { key:'cow', name:'Cow', price:480,
     genes:G({size:.62,bodyLen:.74,bodyDepth:.62,legLen:.50,legThick:.34,neckLen:.28,headSize:.34,
              snout:.66,earSize:.44,earDroop:.62,hornSize:.34,hornCurl:.40,tailLen:.62,tailFluff:.7,spots:.80}),
     palette:[['#f6f3ec','#d9d3c6','#2e2a26'],['#7a4a2c','#5c351d','#e6dccb'],['#3a3430','#211d1a','#efe7d8'],['#c9a06a','#a37e4c','#f0e7d6']] },
+
+  { key:'buffalo', name:'Water Buffalo', price:560,
+    genes:G({size:.72,bodyLen:.70,bodyDepth:.64,legLen:.42,legThick:.38,neckLen:.22,headSize:.36,
+             snout:.60,earSize:.36,earDroop:.30,hornSize:.78,hornCurl:.55,tailLen:.50,tailFluff:.5}),
+    palette:[['#3a3430','#211d1a','#5a534c'],['#2a2622','#171512','#4a423a'],['#4a4038','#332b26','#6b6156']] },
 
   { key:'horse', name:'Horse', price:620,
     genes:G({size:.60,bodyLen:.66,bodyDepth:.50,legLen:.78,legThick:.28,neckLen:.62,headSize:.32,
@@ -445,14 +499,22 @@ const SPECIES = [
     palette:[['#2e2b28','#1a1817','#e8dfcc'],['#6b6156','#4a423a','#efe7d6'],['#c9bda8','#a3907a','#3a332c']] }
 ];
 
-const RARITY = ['Common','Uncommon','Rare','Epic','Legendary','Mythic'];
-function rarityOf(value){
-  if(value < 200) return 0;
-  if(value < 500) return 1;
-  if(value < 1100) return 2;
-  if(value < 2400) return 3;
-  if(value < 5000) return 4;
-  return 5;
+const RARITY = ['Common','Uncommon','Rare','Epic','Legendary','Ultra','Mega','Divine'];
+function valueTier(value){
+  if(value < 150) return 0;
+  if(value < 350) return 1;
+  if(value < 700) return 2;
+  if(value < 1400) return 3;
+  if(value < 2800) return 4;
+  if(value < 5500) return 5;
+  if(value < 11000) return 6;
+  return 7;
+}
+/* spin wins carry an explicit tier (set by which spin they landed on);
+   everything else — market previews, bred animals — falls back to value */
+function tierIndex(an){
+  if(an && an.tier !== undefined && an.tier !== null) return an.tier;
+  return valueTier(an ? an.value : 0);
 }
 
 const FIRST_NAMES = ['Pepper','Biscuit','Clover','Moose','Waffles','Daisy','Turnip','Bandit','Mochi','Olive',
@@ -463,7 +525,11 @@ function makeSeed(){ return randint(1, 2000000000); }
 
 function speciesAnimal(sp){
   const g = {};
-  for(const k of GENE_KEYS) g[k] = clamp(sp.genes[k] + rand(-0.035,0.035), 0, 1);
+  for(const k of GENE_KEYS) g[k] = clamp((sp.genes[k]||0) + rand(-0.035,0.035), 0, 1);
+  /* realistic individual markings — not part of any species preset, so every
+     purebred still comes out looking a little different from the next */
+  g.blaze = Math.random() < 0.35 ? rand(0.4,1) : 0;
+  g.socks = Math.random() < 0.4 ? rand(0.4,1) : 0;
   const pal = pick(sp.palette);
   return {
     id: state.nextId++,
@@ -471,10 +537,11 @@ function speciesAnimal(sp){
     breed: sp.name,
     species: sp.key,
     genes: g,
-    colors: { base: jitterHex(pal[0],10), belly: jitterHex(pal[1],10), patch: jitterHex(pal[2],10), horn:'#e0d6bd' },
+    colors: { base: jitterHex(pal[0],14), belly: jitterHex(pal[1],14), patch: jitterHex(pal[2],14), horn:'#e0d6bd' },
     value: sp.price,
     gen: 1,
     parents: null,
+    tier: null,
     seed: makeSeed(),
     quirks: []
   };
@@ -543,6 +610,8 @@ function describeQuirks(an, mutated){
   if(g.mane > 0.65) out.push('Flowing mane');
   if(g.tailCurl > 0.7) out.push('Curly tail');
   if(g.beak > 0.5) out.push('Beaked');
+  if(g.blaze > 0.55) out.push('Blazed face');
+  if(g.socks > 0.55) out.push('White socks');
   if(mutated && mutated.length >= 2) out.push('Mutant');
   return out.slice(0, 4);
 }
@@ -606,6 +675,16 @@ function drawCritter(ctx, an, cx, groundY, S, phase){
     const endX = x + Math.sin(ang)*legL*0.62, endY = groundY;
     ctx.strokeStyle = col; ctx.lineWidth = legW;
     ctx.beginPath(); ctx.moveTo(x, topY); ctx.lineTo(midX, midY); ctx.lineTo(endX, endY); ctx.stroke();
+    /* white sock marking on the lower leg, real horses/cows/goats get these */
+    if(g.socks > 0.35 && !twoLegs){
+      ctx.strokeStyle = shade('#f4f1ec', -8);
+      ctx.lineWidth = legW * 0.9;
+      const sockT = 0.42 + g.socks*0.3;
+      ctx.beginPath();
+      ctx.moveTo(midX + (endX-midX)*(1-sockT), midY + (endY-midY)*(1-sockT));
+      ctx.lineTo(endX, endY);
+      ctx.stroke();
+    }
     ctx.fillStyle = shade(col, -34);
     ctx.beginPath(); ctx.ellipse(endX, endY-legW*0.35, legW*0.85, legW*0.62, 0, 0, Math.PI*2); ctx.fill();
   }
@@ -743,16 +822,16 @@ function drawCritter(ctx, an, cx, groundY, S, phase){
   ctx.stroke();
 
   if(g.mane > 0.3){
-    ctx.strokeStyle = shade(C.patch, -10);
-    ctx.lineWidth = Math.max(1.5, 2.4*scale);
-    const steps = 6;
+    /* soft fluffy tufts along the neck instead of hard spiky hair-lines */
+    const maneCol = shade(C.patch, -6), maneDark = shade(C.patch, -22);
+    const steps = 7;
     for(let i=0;i<steps;i++){
       const t = i/(steps-1);
-      const mx = nbx + (hx-nbx)*t - 3*scale, my = nby + (hy-nby)*t;
-      ctx.beginPath();
-      ctx.moveTo(mx, my);
-      ctx.quadraticCurveTo(mx - 8*scale*g.mane, my + 4*scale, mx - 5*scale*g.mane, my + 12*scale*g.mane);
-      ctx.stroke();
+      const mx = nbx + (hx-nbx)*t - 2*scale, my = nby + (hy-nby)*t - 1*scale;
+      const pr = (2.2 + g.mane*5) * scale;
+      ctx.fillStyle = i%2 ? maneCol : maneDark;
+      ctx.beginPath(); ctx.ellipse(mx - pr*0.5, my + pr*0.3, pr*0.85, pr*0.7, -0.3, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(mx - pr*0.15, my + pr*0.8, pr*0.6, pr*0.5, -0.2, 0, Math.PI*2); ctx.fill();
     }
   }
 
@@ -793,16 +872,24 @@ function drawCritter(ctx, an, cx, groundY, S, phase){
     }
   }
 
-  /* comb / crest */
+  /* comb / crest — rounded scalloped lobes instead of a jagged zigzag */
   if(g.comb > 0.3){
     ctx.fillStyle = '#d94a3d';
-    ctx.beginPath();
-    ctx.moveTo(hx - hR*0.55, hy - hR*0.85);
-    for(let i=0;i<3;i++){
-      ctx.lineTo(hx - hR*0.35 + i*hR*0.4, hy - hR*(0.85 + g.comb*0.75));
-      ctx.lineTo(hx - hR*0.15 + i*hR*0.4, hy - hR*0.9);
+    const lobes = 3, lr = hR*(0.22 + g.comb*0.18);
+    for(let i=0;i<lobes;i++){
+      const lx = hx - hR*0.5 + i*hR*0.38;
+      const ly = hy - hR*(0.78 + g.comb*0.55) + Math.abs(i-1)*hR*0.12;
+      ctx.beginPath(); ctx.ellipse(lx, ly, lr, lr*1.15, -0.15, 0, Math.PI*2); ctx.fill();
     }
-    ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(hx - hR*0.15, hy - hR*0.7, lr*0.9, lr*0.7, 0, 0, Math.PI*2); ctx.fill();
+  }
+
+  /* blaze — a lighter marking down the face, a classic realistic touch */
+  if(g.blaze > 0.4){
+    ctx.fillStyle = 'rgba(255,250,240,' + (0.35 + g.blaze*0.4) + ')';
+    ctx.beginPath();
+    ctx.ellipse(hx + hR*0.15, hy + hR*0.05, hR*0.16, hR*0.62, 0.15, 0, Math.PI*2);
+    ctx.fill();
   }
 
   /* snout / muzzle or beak */
@@ -1551,13 +1638,33 @@ $('nextQ').addEventListener('click', newQuestion);
 $('skipQ').addEventListener('click', () => { state.streak = 0; refreshHeader(); newQuestion(); });
 
 /* ============================================================
-   7. MARKET
+   7. SHOP + SPINNER
+   Pay $500, get up to 8 spins at one target species. Landing on it
+   early wins a low tier; surviving longer without busting wins a
+   higher one. Land on FAIL and the run ends with nothing.
    ============================================================ */
 const marketSamples = {};
 function sampleFor(sp){
   if(!marketSamples[sp.key]) marketSamples[sp.key] = speciesAnimal(sp);
   return marketSamples[sp.key];
 }
+
+const SPIN_FEE = 500;
+/* spin index (0-based) -> rarity tier awarded if you land on your target */
+const SPIN_TIER = [1,1,2,3,4,5,6,7];
+/* spin index -> odds this attempt; the rest of the wheel is harmless "miss" */
+const SPIN_ODDS = [
+  { target:.32, fail:.03 },
+  { target:.28, fail:.05 },
+  { target:.24, fail:.07 },
+  { target:.20, fail:.09 },
+  { target:.17, fail:.12 },
+  { target:.14, fail:.15 },
+  { target:.11, fail:.19 },
+  { target:.09, fail:.24 }
+];
+/* how much a spin-won animal is worth, by tier */
+const TIER_VALUE_MULT = [1, 1.6, 2.6, 4.2, 7, 11, 18, 30];
 
 function renderMarket(){
   const grid = $('marketGrid');
@@ -1572,37 +1679,173 @@ function renderMarket(){
     card.appendChild(cv);
     const info = document.createElement('div');
     info.innerHTML = '<div class="nm">' + sp.name + '</div>' +
-      '<div class="meta">purebred · starter stock</div>' +
-      '<div class="price">' + cash(sp.price) + '</div>';
+      '<div class="meta">win it on the wheel</div>';
     card.appendChild(info);
     const btns = document.createElement('div');
     btns.className = 'cardbtns';
-    const buy = document.createElement('button');
-    buy.className = 'btn';
-    buy.style.fontSize = '.85rem';
-    buy.style.padding = '7px 14px';
-    buy.textContent = state.money >= sp.price ? 'Buy' : 'Need ' + cash(sp.price - state.money);
-    buy.disabled = state.money < sp.price;
-    buy.addEventListener('click', () => buyAnimal(sp));
-    btns.appendChild(buy);
+    const spin = document.createElement('button');
+    spin.className = 'btn alt';
+    spin.style.fontSize = '.85rem';
+    spin.style.padding = '7px 14px';
+    spin.textContent = state.money >= SPIN_FEE ? '🎡 Spin — ' + cash(SPIN_FEE) : 'Need ' + cash(SPIN_FEE - state.money);
+    spin.disabled = state.money < SPIN_FEE;
+    spin.addEventListener('click', () => openSpinner(sp));
+    btns.appendChild(spin);
     card.appendChild(btns);
     grid.appendChild(card);
     paintCard(cv, an, 0);
   });
 }
 
-function buyAnimal(sp){
-  if(state.money < sp.price){ toast('Not enough money — back to the Math Lab!'); return; }
-  state.money -= sp.price;
-  const an = speciesAnimal(sp);
-  state.animals.push(an);
-  codexAdd(an);
-  marketSamples[sp.key] = speciesAnimal(sp);   // new stock on the shelf
+function mod(a, n){ return ((a % n) + n) % n; }
+
+function buildWedges(sp, spinIndex){
+  const odds = SPIN_ODDS[spinIndex];
+  const missCount = 4;
+  const missEach = Math.max(0, (1 - odds.target - odds.fail)) / missCount;
+  const decoys = shuffle(SPECIES.filter(s => s.key !== sp.key)).slice(0, missCount);
+  const wedges = [];
+  let a = 0;
+  wedges.push({ type:'target', label:'★ ' + sp.name, color:'#f0b429', start:a, end:a + odds.target });
+  a += odds.target;
+  decoys.forEach((d, i) => {
+    wedges.push({ type:'miss', label:d.name, color: i%2 ? '#8fd0a0' : '#7fb8e0', start:a, end:a + missEach });
+    a += missEach;
+  });
+  wedges.push({ type:'fail', label:'FAIL', color:'#2a2422', start:a, end:1 });
+  return wedges;
+}
+
+function drawWheel(angle, wedges){
+  const cv = $('wheelCanvas'), ctx = cv.getContext('2d');
+  const w = cv.width, h = cv.height, cx = w/2, cy = h/2, R = Math.min(w,h)/2 - 6;
+  ctx.clearRect(0,0,w,h);
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(angle);
+  wedges.forEach(wd => {
+    const a0 = wd.start*2*Math.PI - Math.PI/2, a1 = wd.end*2*Math.PI - Math.PI/2;
+    ctx.beginPath(); ctx.moveTo(0,0); ctx.arc(0,0,R,a0,a1); ctx.closePath();
+    ctx.fillStyle = wd.color; ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,.65)'; ctx.lineWidth = 2; ctx.stroke();
+    ctx.save();
+    ctx.rotate((a0+a1)/2);
+    ctx.textAlign = 'right';
+    ctx.font = 'bold 11px Segoe UI, sans-serif';
+    ctx.fillStyle = wd.type === 'fail' ? '#fff' : '#2b2317';
+    ctx.fillText(wd.type === 'fail' ? '💀' : wd.label, R - 10, 4);
+    ctx.restore();
+  });
+  ctx.restore();
+  ctx.fillStyle = '#3a2d1a';
+  ctx.beginPath(); ctx.moveTo(cx-11,4); ctx.lineTo(cx+11,4); ctx.lineTo(cx,26); ctx.closePath(); ctx.fill();
+}
+
+let spinState = null;
+
+function openSpinner(sp){
+  if(state.money < SPIN_FEE){ toast('You need ' + cash(SPIN_FEE) + ' for the spinner.'); return; }
+  state.money -= SPIN_FEE;
   refreshHeader();
   renderMarket();
-  toast('You bought ' + an.name + ' the ' + sp.name + '!');
-  openNaming(an, 'buy');
+  spinState = { sp, spinIndex:0, angle:0, busy:false, done:false, wedges:buildWedges(sp,0) };
+  $('spinTitle').textContent = '🎡 Spinning for a ' + sp.name + '!';
+  $('spinCount').textContent = 'Spin 1 of 8';
+  $('spinResult').className = 'feedback';
+  $('spinResult').innerHTML = '';
+  $('spinGo').style.display = 'inline-block';
+  $('spinGo').disabled = false;
+  $('spinGo').textContent = '🎡 SPIN!';
+  $('spinClose').style.display = 'none';
+  drawWheel(0, spinState.wedges);
+  $('spinModal').classList.add('show');
 }
+
+function animateSpinTo(targetAngle, onDone){
+  const start = spinState.angle, startT = performance.now(), dur = 2300;
+  const ease = t => 1 - Math.pow(1-t, 3);
+  function frame(now){
+    const t = Math.min(1, (now-startT)/dur);
+    drawWheel(start + (targetAngle-start)*ease(t), spinState.wedges);
+    if(t < 1) requestAnimationFrame(frame);
+    else { spinState.angle = targetAngle; onDone(); }
+  }
+  requestAnimationFrame(frame);
+}
+
+$('spinGo').addEventListener('click', () => {
+  if(!spinState || spinState.busy || spinState.done) return;
+  spinState.busy = true;
+  $('spinGo').disabled = true;
+  const i = spinState.spinIndex;
+  const wedges = buildWedges(spinState.sp, i);
+  spinState.wedges = wedges;
+  $('spinCount').textContent = 'Spin ' + (i+1) + ' of 8';
+
+  const odds = SPIN_ODDS[i], r = Math.random();
+  const outcome = r < odds.target ? 'target' : (r < odds.target+odds.fail ? 'fail' : 'miss');
+  let chosen;
+  if(outcome === 'target') chosen = wedges.find(w => w.type === 'target');
+  else if(outcome === 'fail') chosen = wedges.find(w => w.type === 'fail');
+  else chosen = pick(wedges.filter(w => w.type === 'miss'));
+
+  const span = chosen.end - chosen.start;
+  const u = chosen.start + span*0.15 + Math.random()*span*0.7;
+  const delta = mod(-(u*2*Math.PI) - spinState.angle, 2*Math.PI);
+  const target = spinState.angle + delta + 2*Math.PI*5;
+  animateSpinTo(target, () => finishSpin(outcome, i));
+});
+
+function finishSpin(outcome, i){
+  spinState.busy = false;
+  if(outcome === 'target'){
+    spinState.done = true;
+    const tier = SPIN_TIER[i];
+    const an = speciesAnimal(spinState.sp);
+    an.tier = tier;
+    an.value = Math.round(spinState.sp.price * TIER_VALUE_MULT[tier] * rand(0.9,1.1));
+    state.animals.push(an);
+    codexAdd(an);
+    refreshHeader();
+    $('spinResult').className = 'feedback show ok';
+    $('spinResult').innerHTML = '<div class="payout">🎉 Landed on ' + esc(spinState.sp.name) + '! You win a <b>' + RARITY[tier] + '</b> one.</div>';
+    $('spinGo').style.display = 'none';
+    $('spinClose').style.display = 'inline-block';
+    $('spinClose').textContent = 'Name it! →';
+    $('spinClose').onclick = () => { $('spinModal').classList.remove('show'); openNaming(an, 'spin'); };
+  }else if(outcome === 'fail'){
+    spinState.done = true;
+    $('spinResult').className = 'feedback show no';
+    $('spinResult').innerHTML = '<div style="font-weight:800;color:#a83a32">💀 BUSTED! The wheel landed on FAIL — the run is over.</div>';
+    $('spinGo').style.display = 'none';
+    $('spinClose').style.display = 'inline-block';
+    $('spinClose').textContent = 'Close';
+    $('spinClose').onclick = () => { $('spinModal').classList.remove('show'); renderMarket(); };
+  }else{
+    spinState.spinIndex++;
+    if(spinState.spinIndex >= 8){
+      spinState.done = true;
+      $('spinResult').className = 'feedback show no';
+      $('spinResult').innerHTML = '<div style="font-weight:800;color:#a83a32">Out of spins — no animal this time.</div>';
+      $('spinGo').style.display = 'none';
+      $('spinClose').style.display = 'inline-block';
+      $('spinClose').textContent = 'Close';
+      $('spinClose').onclick = () => { $('spinModal').classList.remove('show'); renderMarket(); };
+    }else{
+      spinState.wedges = buildWedges(spinState.sp, spinState.spinIndex);
+      drawWheel(spinState.angle, spinState.wedges);
+      $('spinResult').className = 'feedback show';
+      $('spinResult').innerHTML = '<div class="hint">Miss — ' + (8 - spinState.spinIndex) + ' spins left. Go again for a better rarity.</div>';
+      $('spinGo').disabled = false;
+    }
+  }
+}
+
+$('spinGiveUp').addEventListener('click', () => {
+  if(spinState && spinState.busy) return;
+  $('spinModal').classList.remove('show');
+  renderMarket();
+});
 
 /* ============================================================
    8. BARN
@@ -1614,7 +1857,7 @@ function animalCard(an, opts){
   const cv = document.createElement('canvas');
   cv.width = 380; cv.height = 236;
   card.appendChild(cv);
-  const r = rarityOf(an.value);
+  const r = tierIndex(an);
   const info = document.createElement('div');
   info.innerHTML =
     '<div class="nm">' + esc(an.name) + '</div>' +
@@ -1674,8 +1917,8 @@ function renderBarn(){
   const grid = $('barnGrid');
   grid.innerHTML = '';
   if(!state.animals.length){
-    grid.innerHTML = '<div class="empty">No animals yet. Earn money in the <b>Math Lab</b>, then buy your first two at the <b>Market</b>.</div>';
-    $('farmHint').textContent = 'Empty pasture — buy an animal to get started.';
+    grid.innerHTML = '<div class="empty">No animals yet. Earn money in the <b>Math Lab</b>, then spin for your first two in the <b>Shop</b>.</div>';
+    $('farmHint').textContent = 'Empty pasture — spin for an animal to get started.';
     return;
   }
   const worth = state.animals.reduce((s,a) => s + a.value, 0);
@@ -1874,13 +2117,16 @@ function openNaming(an, mode){
   namingMode = mode;
   oldBreed = an.breed;
   const isNew = mode === 'newborn';
-  $('mTitle').textContent = isNew ? '🎉 A baby was born!' : (mode === 'buy' ? '🏷️ Name your new animal' : '✏️ Rename');
-  const r = rarityOf(an.value);
+  const isSpin = mode === 'spin';
+  $('mTitle').textContent = isNew ? '🎉 A baby was born!' : (isSpin ? '🎡 You won it!' : (mode === 'buy' ? '🏷️ Name your new animal' : '✏️ Rename'));
+  const r = tierIndex(an);
   $('mSub').innerHTML = isNew
     ? 'Parents: ' + esc(an.parents[0]) + ' + ' + esc(an.parents[1]) +
       '<br><b>' + RARITY[r] + '</b> · generation ' + an.gen + ' · worth <b>' + cash(an.value) + '</b>' +
       '<br>Give it a name — and name the brand-new breed you just created.'
-    : '<b>' + RARITY[r] + '</b> · worth ' + cash(an.value) + ' · you can change both names any time.';
+    : isSpin
+      ? '<b>' + RARITY[r] + '</b> ' + esc(an.breed) + ' · worth <b>' + cash(an.value) + '</b>' + '<br>Give your new animal a name!'
+      : '<b>' + RARITY[r] + '</b> · worth ' + cash(an.value) + ' · you can change both names any time.';
   const cv = $('mCanvas');
   paintCard(cv, an, 0);
   const tr = $('mTraits');
@@ -1926,10 +2172,10 @@ $('mBreed').addEventListener('keydown', e => { if(e.key === 'Enter') saveNaming(
    ============================================================ */
 function codexAdd(an){
   const key = an.breed;
-  if(!state.codex[key]) state.codex[key] = { count:0, best:0, sample:null, gen:an.gen };
+  if(!state.codex[key]) state.codex[key] = { count:0, best:0, sample:null, gen:an.gen, tier:0 };
   const e = state.codex[key];
   e.count++;
-  if(an.value >= e.best){ e.best = an.value; e.sample = JSON.parse(JSON.stringify(an)); e.gen = an.gen; }
+  if(an.value >= e.best){ e.best = an.value; e.sample = JSON.parse(JSON.stringify(an)); e.gen = an.gen; e.tier = tierIndex(an); }
   refreshHeader();
 }
 function codexRemove(an){
@@ -1954,7 +2200,7 @@ function renderCodex(){
     const cv = document.createElement('canvas');
     cv.width = 380; cv.height = 236;
     card.appendChild(cv);
-    const r = rarityOf(e.best);
+    const r = e.tier;
     card.insertAdjacentHTML('beforeend',
       '<div class="nm">' + esc(k) + '</div>' +
       '<div class="br"><span class="rar r' + r + '">' + RARITY[r] + '</span></div>' +
@@ -1973,7 +2219,7 @@ refreshHeader();
 renderMarket();
 renderBarn();
 rebuildFarm();
-toast('Answer math questions to earn money, then buy your first animals!');
+toast('Answer math questions to earn money, then spin for your first animals!');
 
 })();
 </script>
