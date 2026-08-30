@@ -354,7 +354,7 @@ function toast(msg){
    1. GAME STATE
    ============================================================ */
 const state = {
-  money: 0,
+  money: 1000000000,
   animals: [],
   codex: {},          // breedName -> {count, best, sample}
   nextId: 1,
@@ -2219,7 +2219,7 @@ refreshHeader();
 renderMarket();
 renderBarn();
 rebuildFarm();
-toast('Answer math questions to earn money, then spin for your first animals!');
+toast('You start with $1,000,000,000 — head to the Shop and start spinning!');
 
 })();
 </script>
