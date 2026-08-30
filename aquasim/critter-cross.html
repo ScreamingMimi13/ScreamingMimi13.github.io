@@ -217,7 +217,7 @@
   <section id="view-market" class="view">
     <div class="panel">
       <h2>🎡 Spin Shop</h2>
-      <div class="hint">Pick an animal, then pay <b>$500</b> to spin. You get up to <b>8 spins</b> to land on it — going further without busting wins a rarer one (1st–2nd spin = Uncommon, all the way to the 8th = Divine). Land on 💀 <b>FAIL</b> and the run ends with nothing. You need two animals to start breeding — they do not have to be the same species.</div>
+      <div class="hint">Pick an animal, then pay <b>$500</b> to spin. Only <b>¼ of the wheel</b> is your animal — the rest is blue. Miss and it's free to spin again: keep going and the rarity climbs (1st–2nd spin = Uncommon, all the way up to Divine). You need two animals to start breeding — they do not have to be the same species.</div>
     </div>
     <div class="grid" id="marketGrid"></div>
   </section>
@@ -282,14 +282,14 @@
     <h2 id="spinTitle" style="margin:0; font-size:1.1rem">🎡 Spinning!</h2>
     <button class="mini" id="spinGiveUp">✕</button>
   </div>
-  <div class="spinCount" id="spinCount">Spin 1 of 8</div>
+  <div class="spinCount" id="spinCount">Spin 1</div>
   <div class="wheelWrap"><canvas id="wheelCanvas" width="300" height="300"></canvas></div>
   <div class="feedback" id="spinResult"></div>
   <div class="row" style="justify-content:center; margin-top:12px">
     <button class="btn alt" id="spinGo">🎡 SPIN!</button>
     <button class="btn" id="spinClose" style="display:none">Close</button>
   </div>
-  <div class="odds">Landing on your animal gets rarer with every spin — but so does the risk of a bust.</div>
+  <div class="odds">A flat 1-in-4 chance every spin. Keep spinning to climb toward a better rarity.</div>
 </div></div>
 
 <div class="toast" id="toast"></div>
@@ -1639,9 +1639,10 @@ $('skipQ').addEventListener('click', () => { state.streak = 0; refreshHeader(); 
 
 /* ============================================================
    7. SHOP + SPINNER
-   Pay $500, get up to 8 spins at one target species. Landing on it
-   early wins a low tier; surviving longer without busting wins a
-   higher one. Land on FAIL and the run ends with nothing.
+   Pay $500 once, then spin as many times as you like at one target
+   species. Only 1/4 of the wheel is your animal — the rest is a
+   harmless blue miss. Keep spinning and the tier you win climbs the
+   longer it takes to land on it.
    ============================================================ */
 const marketSamples = {};
 function sampleFor(sp){
@@ -1650,19 +1651,11 @@ function sampleFor(sp){
 }
 
 const SPIN_FEE = 500;
-/* spin index (0-based) -> rarity tier awarded if you land on your target */
+const TARGET_PROB = 0.25;
+/* spin index (0-based) -> rarity tier awarded if you land on your target;
+   spinning past the end of this list still awards the top tier */
 const SPIN_TIER = [1,1,2,3,4,5,6,7];
-/* spin index -> odds this attempt; the rest of the wheel is harmless "miss" */
-const SPIN_ODDS = [
-  { target:.32, fail:.03 },
-  { target:.28, fail:.05 },
-  { target:.24, fail:.07 },
-  { target:.20, fail:.09 },
-  { target:.17, fail:.12 },
-  { target:.14, fail:.15 },
-  { target:.11, fail:.19 },
-  { target:.09, fail:.24 }
-];
+function spinTierFor(i){ return SPIN_TIER[Math.min(i, SPIN_TIER.length - 1)]; }
 /* how much a spin-won animal is worth, by tier */
 const TIER_VALUE_MULT = [1, 1.6, 2.6, 4.2, 7, 11, 18, 30];
 
@@ -1699,21 +1692,12 @@ function renderMarket(){
 
 function mod(a, n){ return ((a % n) + n) % n; }
 
-function buildWedges(sp, spinIndex){
-  const odds = SPIN_ODDS[spinIndex];
-  const missCount = 4;
-  const missEach = Math.max(0, (1 - odds.target - odds.fail)) / missCount;
-  const decoys = shuffle(SPECIES.filter(s => s.key !== sp.key)).slice(0, missCount);
-  const wedges = [];
-  let a = 0;
-  wedges.push({ type:'target', label:'★ ' + sp.name, color:'#f0b429', start:a, end:a + odds.target });
-  a += odds.target;
-  decoys.forEach((d, i) => {
-    wedges.push({ type:'miss', label:d.name, color: i%2 ? '#8fd0a0' : '#7fb8e0', start:a, end:a + missEach });
-    a += missEach;
-  });
-  wedges.push({ type:'fail', label:'FAIL', color:'#2a2422', start:a, end:1 });
-  return wedges;
+/* exactly 1/4 of the circle is the target animal; the rest is blue */
+function buildWedges(sp){
+  return [
+    { type:'target', label:'★ ' + sp.name, color:'#f0b429', start:0, end:TARGET_PROB },
+    { type:'miss', label:'', color:'#4f9fe0', start:TARGET_PROB, end:1 }
+  ];
 }
 
 function drawWheel(angle, wedges){
@@ -1728,13 +1712,15 @@ function drawWheel(angle, wedges){
     ctx.beginPath(); ctx.moveTo(0,0); ctx.arc(0,0,R,a0,a1); ctx.closePath();
     ctx.fillStyle = wd.color; ctx.fill();
     ctx.strokeStyle = 'rgba(255,255,255,.65)'; ctx.lineWidth = 2; ctx.stroke();
-    ctx.save();
-    ctx.rotate((a0+a1)/2);
-    ctx.textAlign = 'right';
-    ctx.font = 'bold 11px Segoe UI, sans-serif';
-    ctx.fillStyle = wd.type === 'fail' ? '#fff' : '#2b2317';
-    ctx.fillText(wd.type === 'fail' ? '💀' : wd.label, R - 10, 4);
-    ctx.restore();
+    if(wd.label){
+      ctx.save();
+      ctx.rotate((a0+a1)/2);
+      ctx.textAlign = 'right';
+      ctx.font = 'bold 12px Segoe UI, sans-serif';
+      ctx.fillStyle = '#2b2317';
+      ctx.fillText(wd.label, R - 10, 4);
+      ctx.restore();
+    }
   });
   ctx.restore();
   ctx.fillStyle = '#3a2d1a';
@@ -1748,9 +1734,9 @@ function openSpinner(sp){
   state.money -= SPIN_FEE;
   refreshHeader();
   renderMarket();
-  spinState = { sp, spinIndex:0, angle:0, busy:false, done:false, wedges:buildWedges(sp,0) };
+  spinState = { sp, spinIndex:0, angle:0, busy:false, done:false, wedges:buildWedges(sp) };
   $('spinTitle').textContent = '🎡 Spinning for a ' + sp.name + '!';
-  $('spinCount').textContent = 'Spin 1 of 8';
+  $('spinCount').textContent = 'Spin 1';
   $('spinResult').className = 'feedback';
   $('spinResult').innerHTML = '';
   $('spinGo').style.display = 'inline-block';
@@ -1778,17 +1764,10 @@ $('spinGo').addEventListener('click', () => {
   spinState.busy = true;
   $('spinGo').disabled = true;
   const i = spinState.spinIndex;
-  const wedges = buildWedges(spinState.sp, i);
-  spinState.wedges = wedges;
-  $('spinCount').textContent = 'Spin ' + (i+1) + ' of 8';
+  $('spinCount').textContent = 'Spin ' + (i+1);
 
-  const odds = SPIN_ODDS[i], r = Math.random();
-  const outcome = r < odds.target ? 'target' : (r < odds.target+odds.fail ? 'fail' : 'miss');
-  let chosen;
-  if(outcome === 'target') chosen = wedges.find(w => w.type === 'target');
-  else if(outcome === 'fail') chosen = wedges.find(w => w.type === 'fail');
-  else chosen = pick(wedges.filter(w => w.type === 'miss'));
-
+  const outcome = Math.random() < TARGET_PROB ? 'target' : 'miss';
+  const chosen = spinState.wedges.find(w => w.type === outcome);
   const span = chosen.end - chosen.start;
   const u = chosen.start + span*0.15 + Math.random()*span*0.7;
   const delta = mod(-(u*2*Math.PI) - spinState.angle, 2*Math.PI);
@@ -1800,7 +1779,7 @@ function finishSpin(outcome, i){
   spinState.busy = false;
   if(outcome === 'target'){
     spinState.done = true;
-    const tier = SPIN_TIER[i];
+    const tier = spinTierFor(i);
     const an = speciesAnimal(spinState.sp);
     an.tier = tier;
     an.value = Math.round(spinState.sp.price * TIER_VALUE_MULT[tier] * rand(0.9,1.1));
@@ -1813,31 +1792,12 @@ function finishSpin(outcome, i){
     $('spinClose').style.display = 'inline-block';
     $('spinClose').textContent = 'Name it! →';
     $('spinClose').onclick = () => { $('spinModal').classList.remove('show'); openNaming(an, 'spin'); };
-  }else if(outcome === 'fail'){
-    spinState.done = true;
-    $('spinResult').className = 'feedback show no';
-    $('spinResult').innerHTML = '<div style="font-weight:800;color:#a83a32">💀 BUSTED! The wheel landed on FAIL — the run is over.</div>';
-    $('spinGo').style.display = 'none';
-    $('spinClose').style.display = 'inline-block';
-    $('spinClose').textContent = 'Close';
-    $('spinClose').onclick = () => { $('spinModal').classList.remove('show'); renderMarket(); };
   }else{
     spinState.spinIndex++;
-    if(spinState.spinIndex >= 8){
-      spinState.done = true;
-      $('spinResult').className = 'feedback show no';
-      $('spinResult').innerHTML = '<div style="font-weight:800;color:#a83a32">Out of spins — no animal this time.</div>';
-      $('spinGo').style.display = 'none';
-      $('spinClose').style.display = 'inline-block';
-      $('spinClose').textContent = 'Close';
-      $('spinClose').onclick = () => { $('spinModal').classList.remove('show'); renderMarket(); };
-    }else{
-      spinState.wedges = buildWedges(spinState.sp, spinState.spinIndex);
-      drawWheel(spinState.angle, spinState.wedges);
-      $('spinResult').className = 'feedback show';
-      $('spinResult').innerHTML = '<div class="hint">Miss — ' + (8 - spinState.spinIndex) + ' spins left. Go again for a better rarity.</div>';
-      $('spinGo').disabled = false;
-    }
+    $('spinResult').className = 'feedback show';
+    $('spinResult').innerHTML = '<div class="hint">Miss — next tier up is <b>' + RARITY[spinTierFor(spinState.spinIndex)] + '</b>. Spin again?</div>';
+    $('spinGo').disabled = false;
+    $('spinGo').textContent = '🎡 Spin Again';
   }
 }
 
