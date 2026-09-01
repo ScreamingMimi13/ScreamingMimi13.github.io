@@ -217,7 +217,7 @@
   <section id="view-market" class="view">
     <div class="panel">
       <h2>🎡 Spin Shop</h2>
-      <div class="hint">Pick an animal, then pay <b>$500</b> to spin. Only <b>¼ of the wheel</b> is your animal — the rest is blue. Miss and it's free to spin again: keep going and the rarity climbs (1st–2nd spin = Uncommon, all the way up to Divine). You need two animals to start breeding — they do not have to be the same species.</div>
+      <div class="hint">Pick an animal, then pay <b>$500</b> to spin. Only <b>¼ of the wheel</b> is your animal — the rest is blue. Miss and it's free to spin again: keep going and the rarity climbs (1st–2nd spin = Uncommon, all the way up to Divine) — but you only get <b>one shot</b> at Divine, so miss that and the run's over. Every breed you create in the Breeding Barn shows up here too, so you can spin for more of it. You need two animals to start breeding — they do not have to be the same species.</div>
     </div>
     <div class="grid" id="marketGrid"></div>
   </section>
@@ -289,7 +289,7 @@
     <button class="btn alt" id="spinGo">🎡 SPIN!</button>
     <button class="btn" id="spinClose" style="display:none">Close</button>
   </div>
-  <div class="odds">A flat 1-in-4 chance every spin. Keep spinning to climb toward a better rarity.</div>
+  <div class="odds">A flat 1-in-4 chance every spin. Keep spinning to climb toward a better rarity — but you only get one shot at Divine.</div>
 </div></div>
 
 <div class="toast" id="toast"></div>
@@ -490,13 +490,219 @@ const SPECIES = [
 
   { key:'camel', name:'Camel', price:1700,
     genes:G({size:.66,bodyLen:.66,bodyDepth:.52,legLen:.80,legThick:.26,neckLen:.80,headSize:.28,
-             snout:.72,earSize:.24,earDroop:.35,tailLen:.42,tailFluff:.5,hump:1,wool:.30}),
+             snout:.72,earSize:.24,earDroop:.35,tailLen:.42,tailFluff:.5,hump:.55,wool:.30}),
     palette:[['#d3a86a','#b0854a','#6b5232'],['#c49a68','#9e7546','#5e4a2e'],['#e6c894','#c0a06c','#7a6040']] },
 
   { key:'ostrich', name:'Ostrich', price:2100,
     genes:G({size:.52,bodyLen:.44,bodyDepth:.62,legLen:.95,legThick:.18,neckLen:.95,headSize:.18,
              beak:.70,earSize:.02,tailLen:.30,tailFluff:.95,plume:.45}),
-    palette:[['#2e2b28','#1a1817','#e8dfcc'],['#6b6156','#4a423a','#efe7d6'],['#c9bda8','#a3907a','#3a332c']] }
+    palette:[['#2e2b28','#1a1817','#e8dfcc'],['#6b6156','#4a423a','#efe7d6'],['#c9bda8','#a3907a','#3a332c']] },
+
+  /* ---- way more animals: small critters, birds, wild grazers, canines, exotics ---- */
+  { key:'hamster', name:'Hamster', price:35,
+    genes:G({size:.05,bodyLen:.14,bodyDepth:.34,legLen:.06,legThick:.10,neckLen:.02,headSize:.40,
+             snout:.30,earSize:.30,earDroop:.05,tailLen:0,whisk:.9,wool:.15}),
+    palette:[['#e8c48a','#c9a05c','#fff8ec'],['#f4ecd8','#d8c8a8','#8a6a46'],['#4a3a2c','#2e2218','#c9a05c']] },
+
+  { key:'guineapig', name:'Guinea Pig', price:50,
+    genes:G({size:.09,bodyLen:.24,bodyDepth:.40,legLen:.05,legThick:.14,neckLen:.02,headSize:.30,
+             snout:.25,earSize:.16,earDroop:.10,tailLen:0,whisk:.7,wool:.35,spots:.4}),
+    palette:[['#f2e2c8','#d9c4a0','#8a5a34'],['#3a332c','#241f19','#e8dcc8'],['#c9784a','#a35a30','#f2e2c8']] },
+
+  { key:'quail', name:'Quail', price:55,
+    genes:G({size:.06,bodyLen:.16,bodyDepth:.30,legLen:.10,legThick:.06,neckLen:.10,headSize:.16,
+             beak:.5,earSize:.02,tailLen:.10,tailFluff:.3,comb:.1,spots:.6,plume:.15}),
+    palette:[['#8a7458','#5c4c38','#e8dcc0'],['#6b5a42','#463a2a','#d8c8a4']] },
+
+  { key:'hedgehog', name:'Hedgehog', price:65,
+    genes:G({size:.07,bodyLen:.18,bodyDepth:.36,legLen:.06,legThick:.08,neckLen:.02,headSize:.28,
+             snout:.5,earSize:.10,tailLen:.02,whisk:.4,wool:.55}),
+    palette:[['#8a7a64','#5c4f3e','#e8ddc8'],['#4a4038','#2e2822','#c9bda8']] },
+
+  { key:'squirrel', name:'Squirrel', price:90,
+    genes:G({size:.10,bodyLen:.22,bodyDepth:.30,legLen:.16,legThick:.10,neckLen:.10,headSize:.26,
+             snout:.20,earSize:.30,earDroop:.02,tailLen:.55,tailFluff:1,tailCurl:.85,whisk:.6}),
+    palette:[['#a3592c','#7a3f1c','#f0e4d0'],['#5c4a38','#382c20','#c9bfae'],['#3a3630','#221f1a','#8a8378']] },
+
+  { key:'chinchilla', name:'Chinchilla', price:150,
+    genes:G({size:.13,bodyLen:.24,bodyDepth:.42,legLen:.14,legThick:.12,neckLen:.06,headSize:.32,
+             snout:.18,earSize:.40,earDroop:.15,tailLen:.20,tailFluff:.9,whisk:.7,wool:.9}),
+    palette:[['#8a8478','#5c584e','#e8e6e0'],['#3a3832','#232220','#d4d0c6']] },
+
+  { key:'goose', name:'Goose', price:165,
+    genes:G({size:.24,bodyLen:.40,bodyDepth:.46,legLen:.20,legThick:.16,neckLen:.55,headSize:.24,
+             beak:.7,earSize:.02,tailLen:.18,tailFluff:.4,plume:.1}),
+    palette:[['#f6f4ee','#ded8c9','#e8a63a'],['#5c584e','#3a372f','#e8a63a']] },
+
+  { key:'skunk', name:'Skunk', price:180,
+    genes:G({size:.16,bodyLen:.30,bodyDepth:.34,legLen:.14,legThick:.14,neckLen:.10,headSize:.24,
+             snout:.35,earSize:.18,tailLen:.42,tailFluff:.9,stripes:.85,whisk:.5}),
+    palette:[['#232220','#121110','#f2f0ec']] },
+
+  { key:'raccoon', name:'Raccoon', price:220,
+    genes:G({size:.20,bodyLen:.34,bodyDepth:.38,legLen:.18,legThick:.16,neckLen:.14,headSize:.28,
+             snout:.35,earSize:.22,tailLen:.44,tailFluff:.75,stripes:.7,blaze:.9,whisk:.6}),
+    palette:[['#5c5850','#3a3732','#e8e4dc'],['#3a3833','#232220','#c9c4ba']] },
+
+  { key:'beaver', name:'Beaver', price:250,
+    genes:G({size:.26,bodyLen:.38,bodyDepth:.44,legLen:.10,legThick:.20,neckLen:.10,headSize:.28,
+             snout:.5,earSize:.10,tailLen:.28,tailFluff:.1,whisk:.5}),
+    palette:[['#5c452e','#3a2c1c','#8a6a46'],['#4a3626','#2e2018','#7a5c3c']] },
+
+  { key:'otter', name:'Otter', price:255,
+    genes:G({size:.24,bodyLen:.52,bodyDepth:.30,legLen:.10,legThick:.14,neckLen:.20,headSize:.24,
+             snout:.4,earSize:.14,tailLen:.36,tailFluff:.3,whisk:.8}),
+    palette:[['#5c4a38','#3a2e22','#c9b89e'],['#4a3c2e','#2e241a','#b3a088']] },
+
+  { key:'warthog', name:'Warthog', price:265,
+    genes:G({size:.30,bodyLen:.50,bodyDepth:.44,legLen:.24,legThick:.22,neckLen:.14,headSize:.40,
+             snout:.95,earSize:.30,earDroop:.2,tailLen:.30,tailCurl:.7,hornSize:.20,hornCurl:.15}),
+    palette:[['#5c4f42','#3a3128','#8a7a64'],['#4a3f34','#2e261f','#6b5c4a']] },
+
+  { key:'pheasant', name:'Pheasant', price:275,
+    genes:G({size:.18,bodyLen:.26,bodyDepth:.36,legLen:.18,legThick:.10,neckLen:.28,headSize:.20,
+             beak:.55,earSize:.02,tailLen:.55,tailFluff:.3,tailCurl:.1,comb:.3,plume:.55,spots:.5}),
+    palette:[['#8a3a2e','#5c2620','#2f6b3a'],['#3a5c2a','#243a1a','#c9a02c']] },
+
+  { key:'zebu', name:'Miniature Zebu', price:260,
+    genes:G({size:.20,bodyLen:.34,bodyDepth:.34,legLen:.24,legThick:.16,neckLen:.16,headSize:.26,
+             snout:.50,earSize:.30,earDroop:.4,hornSize:.20,hornCurl:.2,tailLen:.40,tailFluff:.5,hump:.55,spots:.5}),
+    palette:[['#e8dcc0','#c9b48a','#4a3020'],['#8a5a34','#5c3c1e','#e8dcc0']] },
+
+  { key:'capybara', name:'Capybara', price:380,
+    genes:G({size:.36,bodyLen:.50,bodyDepth:.46,legLen:.12,legThick:.20,neckLen:.06,headSize:.28,
+             snout:.4,earSize:.10,tailLen:.02,whisk:.6}),
+    palette:[['#8a7458','#5c4c38','#c9b89e']] },
+
+  { key:'fox', name:'Fox', price:340,
+    genes:G({size:.16,bodyLen:.34,bodyDepth:.24,legLen:.30,legThick:.10,neckLen:.16,headSize:.24,
+             snout:.55,earSize:.5,tailLen:.55,tailFluff:.9,tailCurl:.2,blaze:.6}),
+    palette:[['#c9642c','#9c481c','#f2ece0'],['#3a3833','#242220','#e8e2d4']] },
+
+  { key:'swan', name:'Swan', price:480,
+    genes:G({size:.34,bodyLen:.42,bodyDepth:.42,legLen:.14,legThick:.10,neckLen:.9,headSize:.16,
+             beak:.55,earSize:.02,tailLen:.14,tailFluff:.4}),
+    palette:[['#f8f6f0','#e0dcd0','#e0a02e'],['#232220','#121110','#e0a02e']] },
+
+  { key:'redpanda', name:'Red Panda', price:520,
+    genes:G({size:.18,bodyLen:.30,bodyDepth:.32,legLen:.16,legThick:.12,neckLen:.14,headSize:.30,
+             snout:.3,earSize:.4,tailLen:.5,tailFluff:.9,tailCurl:.3,stripes:.4,blaze:.7}),
+    palette:[['#a3502c','#7a381c','#e8dcc0'],['#3a2c1e','#241a10','#c9a068']] },
+
+  { key:'antelope', name:'Antelope', price:520,
+    genes:G({size:.28,bodyLen:.42,bodyDepth:.32,legLen:.68,legThick:.12,neckLen:.36,headSize:.20,
+             snout:.4,earSize:.30,hornSize:.55,hornCurl:.25,tailLen:.20,tailFluff:.4,spots:.3}),
+    palette:[['#c9985c','#a37438','#f0e4d0'],['#a37438','#7a5426','#e0d0b0']] },
+
+  { key:'springbok', name:'Springbok', price:460,
+    genes:G({size:.22,bodyLen:.34,bodyDepth:.28,legLen:.65,legThick:.10,neckLen:.30,headSize:.18,
+             snout:.35,earSize:.30,hornSize:.5,hornCurl:.3,tailLen:.14,blaze:.6,stripes:.4}),
+    palette:[['#c9a06c','#9e7940','#f4ecd8']] },
+
+  { key:'gazelle', name:'Gazelle', price:440,
+    genes:G({size:.20,bodyLen:.34,bodyDepth:.26,legLen:.70,legThick:.09,neckLen:.34,headSize:.18,
+             snout:.35,earSize:.32,hornSize:.40,hornCurl:.2,tailLen:.16,blaze:.7}),
+    palette:[['#d4a86c','#ac7f42','#f4ecd8'],['#b3865a','#8a6238','#f0e4d0']] },
+
+  { key:'impala', name:'Impala', price:500,
+    genes:G({size:.26,bodyLen:.38,bodyDepth:.30,legLen:.68,legThick:.11,neckLen:.32,headSize:.19,
+             snout:.38,earSize:.34,hornSize:.65,hornCurl:.15,tailLen:.18,blaze:.6}),
+    palette:[['#c68a4a','#9c6830','#f0e4d0']] },
+
+  { key:'wolf', name:'Wolf', price:620,
+    genes:G({size:.34,bodyLen:.44,bodyDepth:.30,legLen:.42,legThick:.16,neckLen:.20,headSize:.26,
+             snout:.6,earSize:.4,tailLen:.42,tailFluff:.7,mane:.3}),
+    palette:[['#6b6156','#453f38','#c9c4ba'],['#3a3833','#242220','#8a8378']] },
+
+  { key:'highlandcow', name:'Highland Cow', price:640,
+    genes:G({size:.50,bodyLen:.58,bodyDepth:.52,legLen:.36,legThick:.28,neckLen:.22,headSize:.32,
+             snout:.55,earSize:.30,earDroop:.3,hornSize:.55,hornCurl:.2,tailLen:.40,tailFluff:.6,wool:.75,mane:.5}),
+    palette:[['#a3652c','#7a481c','#e0c090'],['#8a5a24','#5c3c18','#c9a068']] },
+
+  { key:'bighorn', name:'Bighorn Sheep', price:640,
+    genes:G({size:.32,bodyLen:.44,bodyDepth:.42,legLen:.30,legThick:.20,neckLen:.16,headSize:.28,
+             snout:.4,earSize:.24,hornSize:.85,hornCurl:.95,tailLen:.10,wool:.5}),
+    palette:[['#c9bda4','#a3987e','#5c5142']] },
+
+  { key:'koala', name:'Koala', price:680,
+    genes:G({size:.16,bodyLen:.24,bodyDepth:.36,legLen:.12,legThick:.16,neckLen:.06,headSize:.40,
+             snout:.45,earSize:.7,earDroop:.1,tailLen:0,wool:.4}),
+    palette:[['#a3a094','#7a7768','#e8e6de']] },
+
+  { key:'longhorn', name:'Longhorn Cattle', price:700,
+    genes:G({size:.58,bodyLen:.68,bodyDepth:.56,legLen:.46,legThick:.30,neckLen:.24,headSize:.30,
+             snout:.60,earSize:.34,earDroop:.4,hornSize:.95,hornCurl:.1,tailLen:.55,tailFluff:.55,spots:.5}),
+    palette:[['#8a5a34','#5c3c1e','#e8dcc0'],['#4a3020','#2e1c12','#c9a068']] },
+
+  { key:'crane', name:'Crane', price:700,
+    genes:G({size:.34,bodyLen:.30,bodyDepth:.30,legLen:.85,legThick:.08,neckLen:.85,headSize:.16,
+             beak:.6,earSize:.02,tailLen:.16,tailFluff:.3,plume:.2,blaze:.6}),
+    palette:[['#e8e6e0','#c9c4b8','#3a3833'],['#4a4a4a','#2e2e2e','#e8e6e0']] },
+
+  { key:'ibex', name:'Ibex', price:780,
+    genes:G({size:.30,bodyLen:.40,bodyDepth:.36,legLen:.42,legThick:.18,neckLen:.22,headSize:.24,
+             snout:.5,earSize:.24,hornSize:.9,hornCurl:.9,tailLen:.12}),
+    palette:[['#c9b89c','#a3937a','#5c5142']] },
+
+  { key:'markhor', name:'Markhor', price:820,
+    genes:G({size:.30,bodyLen:.40,bodyDepth:.34,legLen:.42,legThick:.16,neckLen:.24,headSize:.24,
+             snout:.5,earSize:.28,earDroop:.4,hornSize:.9,hornCurl:.7,tailLen:.14,mane:.3}),
+    palette:[['#8a7a5c','#5c4f38','#e0d8c0']] },
+
+  { key:'wildebeest', name:'Wildebeest', price:880,
+    genes:G({size:.44,bodyLen:.48,bodyDepth:.40,legLen:.44,legThick:.18,neckLen:.22,headSize:.28,
+             snout:.5,earSize:.30,hornSize:.6,hornCurl:.35,tailLen:.44,tailFluff:.6,mane:.55,stripes:.3}),
+    palette:[['#4a4038','#2e2822','#7a6f60']] },
+
+  { key:'reindeer', name:'Reindeer', price:980,
+    genes:G({size:.40,bodyLen:.50,bodyDepth:.44,legLen:.55,legThick:.20,neckLen:.32,headSize:.26,
+             snout:.5,earSize:.30,hornSize:.75,hornCurl:.05,tailLen:.10,tailFluff:.4,wool:.4}),
+    palette:[['#8a7a66','#5c4f40','#e8e2d4'],['#5c5044','#3a332a','#c9c0ac']] },
+
+  { key:'elk', name:'Elk', price:1250,
+    genes:G({size:.56,bodyLen:.56,bodyDepth:.46,legLen:.68,legThick:.22,neckLen:.40,headSize:.28,
+             snout:.55,earSize:.34,hornSize:.85,hornCurl:.05,tailLen:.12,tailFluff:.3,mane:.4}),
+    palette:[['#7a6248','#523f2c','#3a3025'],['#8a7256','#5c4a34','#e0d8c4']] },
+
+  { key:'bison', name:'Bison', price:1300,
+    genes:G({size:.66,bodyLen:.66,bodyDepth:.68,legLen:.34,legThick:.36,neckLen:.16,headSize:.38,
+             snout:.65,earSize:.24,earDroop:.4,hornSize:.30,hornCurl:.35,tailLen:.40,tailFluff:.5,wool:.6,mane:.7,hump:.55}),
+    palette:[['#4a3d33','#2e251e','#241f1a'],['#3a3028','#211b16','#5c4d3e']] },
+
+  { key:'muskox', name:'Musk Ox', price:1450,
+    genes:G({size:.54,bodyLen:.58,bodyDepth:.56,legLen:.18,legThick:.30,neckLen:.10,headSize:.32,
+             snout:.45,earSize:.16,hornSize:.7,hornCurl:.6,tailLen:.12,wool:1}),
+    palette:[['#3a3028','#211b16','#5c4d3e']] },
+
+  { key:'panda', name:'Panda', price:1600,
+    genes:G({size:.44,bodyLen:.46,bodyDepth:.48,legLen:.22,legThick:.24,neckLen:.14,headSize:.36,
+             snout:.45,earSize:.30,tailLen:.06,spots:.8}),
+    palette:[['#f4f2ec','#dedad0','#232220']] },
+
+  { key:'emu', name:'Emu', price:1500,
+    genes:G({size:.46,bodyLen:.40,bodyDepth:.56,legLen:.85,legThick:.16,neckLen:.85,headSize:.16,
+             beak:.55,earSize:.02,tailLen:.20,tailFluff:.8}),
+    palette:[['#4a4438','#302c24','#8a8272'],['#5c5648','#3a362c','#a39c88']] },
+
+  { key:'rhea', name:'Rhea', price:1600,
+    genes:G({size:.44,bodyLen:.38,bodyDepth:.54,legLen:.80,legThick:.16,neckLen:.80,headSize:.16,
+             beak:.5,earSize:.02,tailLen:.18,tailFluff:.75}),
+    palette:[['#8a8272','#5c5648','#dedad0'],['#5c5648','#3a362c','#a39c88']] },
+
+  { key:'bactrian', name:'Bactrian Camel', price:1850,
+    genes:G({size:.68,bodyLen:.68,bodyDepth:.54,legLen:.78,legThick:.28,neckLen:.75,headSize:.28,
+             snout:.68,earSize:.22,tailLen:.36,tailFluff:.4,hump:1,wool:.55}),
+    palette:[['#8a7050','#5c4a32','#e0d0b0'],['#a3855c','#7a6038','#e8dcc4']] },
+
+  { key:'flamingo', name:'Flamingo', price:950,
+    genes:G({size:.30,bodyLen:.28,bodyDepth:.26,legLen:.95,legThick:.06,neckLen:.95,headSize:.14,
+             beak:.65,earSize:.02,tailLen:.10,tailFluff:.2}),
+    palette:[['#e88ab0','#c96a90','#f4c0d6'],['#e06a94','#b8496e','#f4c0d6']] },
+
+  { key:'moose', name:'Moose', price:1900,
+    genes:G({size:.78,bodyLen:.62,bodyDepth:.48,legLen:.70,legThick:.24,neckLen:.22,headSize:.36,
+             snout:.85,earSize:.30,hornSize:1,hornCurl:0,tailLen:.08,tailFluff:.2}),
+    palette:[['#3a2f24','#231b14','#5c4d3a'],['#4a3c2c','#2e2318','#7a6650']] }
 ];
 
 const RARITY = ['Common','Uncommon','Rare','Epic','Legendary','Ultra','Mega','Divine'];
@@ -1640,14 +1846,37 @@ $('skipQ').addEventListener('click', () => { state.streak = 0; refreshHeader(); 
 /* ============================================================
    7. SHOP + SPINNER
    Pay $500 once, then spin as many times as you like at one target
-   species. Only 1/4 of the wheel is your animal — the rest is a
-   harmless blue miss. Keep spinning and the tier you win climbs the
-   longer it takes to land on it.
+   species (or a breed you've created — those show up here too). Only
+   1/4 of the wheel is your animal — the rest is a harmless blue miss.
+   Keep spinning and the tier you win climbs the longer it takes to
+   land on it — but the shot at Divine is your last: miss it and the
+   run ends with nothing.
    ============================================================ */
 const marketSamples = {};
 function sampleFor(sp){
   if(!marketSamples[sp.key]) marketSamples[sp.key] = speciesAnimal(sp);
   return marketSamples[sp.key];
+}
+
+/* breeds you've created through breeding show up here too, so you can
+   spin for more of the same breed instead of only breeding it again */
+function hybridShopEntries(){
+  const baseNames = new Set(SPECIES.map(sp => sp.name));
+  return Object.keys(state.codex)
+    .filter(k => !baseNames.has(k) && state.codex[k].sample)
+    .sort()
+    .map(k => {
+      const e = state.codex[k], s = e.sample;
+      return {
+        key: 'breed:' + k,
+        name: k,
+        price: Math.max(40, Math.round(e.best)),
+        genes: s.genes,
+        palette: [[s.colors.base, s.colors.belly, s.colors.patch]],
+        isBreed: true,
+        gen: e.gen
+      };
+    });
 }
 
 const SPIN_FEE = 500;
@@ -1663,7 +1892,7 @@ function renderMarket(){
   const grid = $('marketGrid');
   if(!grid) return;
   grid.innerHTML = '';
-  SPECIES.forEach(sp => {
+  SPECIES.concat(hybridShopEntries()).forEach(sp => {
     const an = sampleFor(sp);
     const card = document.createElement('div');
     card.className = 'acard';
@@ -1671,7 +1900,7 @@ function renderMarket(){
     cv.width = 380; cv.height = 236;
     card.appendChild(cv);
     const info = document.createElement('div');
-    info.innerHTML = '<div class="nm">' + sp.name + '</div>' +
+    info.innerHTML = '<div class="nm">' + esc(sp.name) + (sp.isBreed ? ' <span class="rar" style="background:#8a5cd6">Your breed</span>' : '') + '</div>' +
       '<div class="meta">win it on the wheel</div>';
     card.appendChild(info);
     const btns = document.createElement('div');
@@ -1777,10 +2006,12 @@ $('spinGo').addEventListener('click', () => {
 
 function finishSpin(outcome, i){
   spinState.busy = false;
+  const topTier = RARITY.length - 1;
   if(outcome === 'target'){
     spinState.done = true;
     const tier = spinTierFor(i);
     const an = speciesAnimal(spinState.sp);
+    if(spinState.sp.isBreed) an.gen = spinState.sp.gen;
     an.tier = tier;
     an.value = Math.round(spinState.sp.price * TIER_VALUE_MULT[tier] * rand(0.9,1.1));
     state.animals.push(an);
@@ -1792,6 +2023,15 @@ function finishSpin(outcome, i){
     $('spinClose').style.display = 'inline-block';
     $('spinClose').textContent = 'Name it! →';
     $('spinClose').onclick = () => { $('spinModal').classList.remove('show'); openNaming(an, 'spin'); };
+  }else if(spinTierFor(i) === topTier){
+    /* that miss WAS the shot at Divine — no more chances this run */
+    spinState.done = true;
+    $('spinResult').className = 'feedback show no';
+    $('spinResult').innerHTML = '<div style="font-weight:800;color:#a83a32">💀 So close! You missed your shot at <b>Divine</b> — no more chances this run.</div>';
+    $('spinGo').style.display = 'none';
+    $('spinClose').style.display = 'inline-block';
+    $('spinClose').textContent = 'Close';
+    $('spinClose').onclick = () => { $('spinModal').classList.remove('show'); renderMarket(); };
   }else{
     spinState.spinIndex++;
     $('spinResult').className = 'feedback show';
