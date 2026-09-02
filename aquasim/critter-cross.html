@@ -855,6 +855,29 @@ function drawScene(ctx, w, h){
   ctx.fillStyle = sky; ctx.fillRect(0,0,w,h);
 }
 
+/* evaluate a point on a quadratic / cubic bezier at t, for building tapered shapes */
+function quadPoint(p0,p1,p2,t){ const m=1-t; return { x:m*m*p0.x+2*m*t*p1.x+t*t*p2.x, y:m*m*p0.y+2*m*t*p1.y+t*t*p2.y }; }
+function bezPoint(p0,p1,p2,p3,t){ const m=1-t; return {
+  x:m*m*m*p0.x+3*m*m*t*p1.x+3*m*t*t*p2.x+t*t*t*p3.x,
+  y:m*m*m*p0.y+3*m*m*t*p1.y+3*m*t*t*p2.y+t*t*t*p3.y }; }
+/* trace a centerline of points into a closed, tapered ribbon (wide at the base, narrow at the tip) */
+function tracedTaper(ctx, points, baseW, tipW){
+  const n = points.length, left = [], right = [];
+  for(let i=0;i<n;i++){
+    const p = points[i], p0 = points[Math.max(0,i-1)], p1 = points[Math.min(n-1,i+1)];
+    let dx = p1.x-p0.x, dy = p1.y-p0.y;
+    const len = Math.hypot(dx,dy) || 1; dx/=len; dy/=len;
+    const px = -dy, py = dx, w = (baseW + (tipW-baseW)*(i/(n-1))) / 2;
+    left.push({x:p.x+px*w, y:p.y+py*w});
+    right.push({x:p.x-px*w, y:p.y-py*w});
+  }
+  ctx.beginPath();
+  ctx.moveTo(left[0].x, left[0].y);
+  for(let i=1;i<n;i++) ctx.lineTo(left[i].x, left[i].y);
+  for(let i=n-1;i>=0;i--) ctx.lineTo(right[i].x, right[i].y);
+  ctx.closePath();
+}
+
 function drawCritter(ctx, an, cx, groundY, S, phase){
   const g = an.genes, C = an.colors;
   const rnd = mulberry32(an.seed);
@@ -872,27 +895,38 @@ function drawCritter(ctx, an, cx, groundY, S, phase){
   const swingA = Math.sin(phase) * 0.30;
   const swingB = Math.sin(phase + Math.PI) * 0.30;
 
+  const OUTLINE = 'rgba(36,28,18,.55)';
+  const outW = Math.max(0.8, scale*0.9);
+
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
+
+  /* fill the current path, then ink a thin outline around it — this one habit is
+     most of what makes a flat shape read as a drawn creature instead of a blob */
+  function fillInk(color){
+    ctx.fillStyle = color; ctx.fill();
+    ctx.lineWidth = outW; ctx.strokeStyle = OUTLINE; ctx.stroke();
+  }
 
   function leg(x, ang, col){
     const topY = cy + bodyRy*0.55;
     const midX = x + Math.sin(ang)*legL*0.35, midY = topY + legL*0.52;
     const endX = x + Math.sin(ang)*legL*0.62, endY = groundY;
-    ctx.strokeStyle = col; ctx.lineWidth = legW;
-    ctx.beginPath(); ctx.moveTo(x, topY); ctx.lineTo(midX, midY); ctx.lineTo(endX, endY); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x, topY); ctx.lineTo(midX, midY); ctx.lineTo(endX, endY);
+    ctx.lineWidth = legW + outW*2; ctx.strokeStyle = OUTLINE; ctx.stroke();
+    ctx.lineWidth = legW; ctx.strokeStyle = col; ctx.stroke();
     /* white sock marking on the lower leg, real horses/cows/goats get these */
     if(g.socks > 0.35 && !twoLegs){
       ctx.strokeStyle = shade('#f4f1ec', -8);
-      ctx.lineWidth = legW * 0.9;
+      ctx.lineWidth = legW * 0.86;
       const sockT = 0.42 + g.socks*0.3;
       ctx.beginPath();
       ctx.moveTo(midX + (endX-midX)*(1-sockT), midY + (endY-midY)*(1-sockT));
       ctx.lineTo(endX, endY);
       ctx.stroke();
     }
-    ctx.fillStyle = shade(col, -34);
-    ctx.beginPath(); ctx.ellipse(endX, endY-legW*0.35, legW*0.85, legW*0.62, 0, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(endX, endY-legW*0.35, legW*0.85, legW*0.62, 0, 0, Math.PI*2);
+    fillInk(shade(col, -34));
   }
 
   const frontX = cx + bodyRx*0.52, backX = cx - bodyRx*0.58;
@@ -903,16 +937,14 @@ function drawCritter(ctx, an, cx, groundY, S, phase){
     const R = (18 + g.plume*54) * scale;
     for(let i=0;i<n;i++){
       const a0 = -0.15 - (i/(n-1))*1.5;
-      ctx.strokeStyle = i%2 ? C.patch : shade(C.patch, -22);
-      ctx.lineWidth = 3*scale;
+      const fx = backX - R*Math.cos(a0*0.6), fy = cy + Math.sin(a0)*R;
+      const q0 = {x:backX,y:cy}, q1 = {x:backX-R*0.7,y:cy+Math.sin(a0)*R*0.9}, q2 = {x:fx,y:fy};
+      const quillPts = []; for(let s=0;s<=6;s++) quillPts.push(quadPoint(q0,q1,q2,s/6));
+      tracedTaper(ctx, quillPts, 2.6*scale, 0.6*scale);
+      fillInk(i%2 ? C.patch : shade(C.patch, -22));
       ctx.beginPath();
-      ctx.moveTo(backX, cy);
-      ctx.quadraticCurveTo(backX - R*0.7, cy + Math.sin(a0)*R*0.9, backX - R*Math.cos(a0*0.6), cy + Math.sin(a0)*R);
-      ctx.stroke();
-      ctx.fillStyle = C.belly;
-      ctx.beginPath();
-      ctx.ellipse(backX - R*Math.cos(a0*0.6), cy + Math.sin(a0)*R, 4.4*scale, 3*scale, a0, 0, Math.PI*2);
-      ctx.fill();
+      ctx.ellipse(fx, fy, 4.6*scale, 3.2*scale, a0, 0, Math.PI*2);
+      fillInk(C.belly);
     }
   }
 
@@ -920,7 +952,7 @@ function drawCritter(ctx, an, cx, groundY, S, phase){
   if(g.tailLen > 0.04 && g.plume < 0.7){
     const tl = (5 + g.tailLen*42) * scale;
     const tx = backX - bodyRx*0.35, ty = cy - bodyRy*0.35;
-    ctx.strokeStyle = dark; ctx.lineWidth = Math.max(1.4, (1.6 + g.tailLen*4)*scale);
+    const tailW = Math.max(1.4, (1.6 + g.tailLen*4)*scale);
     ctx.beginPath();
     ctx.moveTo(tx, ty);
     if(g.tailCurl > 0.55){
@@ -928,16 +960,16 @@ function drawCritter(ctx, an, cx, groundY, S, phase){
     }else{
       ctx.quadraticCurveTo(tx - tl*0.8, ty + tl*0.25, tx - tl*0.75, ty + tl*0.95);
     }
-    ctx.stroke();
+    ctx.lineWidth = tailW + outW*2; ctx.strokeStyle = OUTLINE; ctx.stroke();
+    ctx.lineWidth = tailW; ctx.strokeStyle = dark; ctx.stroke();
     if(g.tailFluff > 0.35){
       const fx = g.tailCurl > 0.55 ? tx - tl*0.6 : tx - tl*0.75;
       const fy = g.tailCurl > 0.55 ? ty - tl*0.25 : ty + tl*0.95;
-      ctx.fillStyle = light;
       const fr = (2.5 + g.tailFluff*8)*scale;
       for(let i=0;i<4;i++){
         ctx.beginPath();
         ctx.ellipse(fx + (rnd()-0.5)*fr, fy + (rnd()-0.5)*fr, fr*0.72, fr*0.62, 0, 0, Math.PI*2);
-        ctx.fill();
+        fillInk(light);
       }
     }
   }
@@ -948,8 +980,8 @@ function drawCritter(ctx, an, cx, groundY, S, phase){
   leg(backX + 5*scale, swingA, farCol);
 
   /* ---- body ---- */
-  ctx.fillStyle = C.base;
-  ctx.beginPath(); ctx.ellipse(cx, cy, bodyRx, bodyRy, 0, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(cx, cy, bodyRx, bodyRy, 0, 0, Math.PI*2);
+  fillInk(C.base);
 
   /* belly */
   ctx.fillStyle = C.belly;
@@ -957,11 +989,12 @@ function drawCritter(ctx, an, cx, groundY, S, phase){
 
   /* hump */
   if(g.hump > 0.25){
-    ctx.fillStyle = C.base;
     const hh = (4 + g.hump*22)*scale;
-    ctx.beginPath(); ctx.ellipse(cx - bodyRx*0.1, cy - bodyRy*0.75, bodyRx*0.42, hh, 0, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(cx - bodyRx*0.1, cy - bodyRy*0.75, bodyRx*0.42, hh, 0, 0, Math.PI*2);
+    fillInk(C.base);
     if(g.hump > 0.75){
-      ctx.beginPath(); ctx.ellipse(cx + bodyRx*0.42, cy - bodyRy*0.7, bodyRx*0.3, hh*0.8, 0, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(cx + bodyRx*0.42, cy - bodyRy*0.7, bodyRx*0.3, hh*0.8, 0, 0, Math.PI*2);
+      fillInk(C.base);
     }
   }
 
@@ -992,22 +1025,24 @@ function drawCritter(ctx, an, cx, groundY, S, phase){
     ctx.restore();
   }
 
-  /* wool overlay */
+  /* wool overlay — small clustered puffs clipped to the body so it reads as a
+     fleecy texture, not a ring of blobs escaping the silhouette */
   if(g.wool > 0.25){
-    ctx.fillStyle = shade(C.base, 20);
-    const puffs = 7 + Math.round(g.wool*9);
+    ctx.save();
+    ctx.beginPath(); ctx.ellipse(cx, cy, bodyRx*1.1, bodyRy*1.14, 0, 0, Math.PI*2); ctx.clip();
+    const puffs = 20 + Math.round(g.wool*16);
     for(let i=0;i<puffs;i++){
-      const a = (i/puffs)*Math.PI*2;
-      const px = cx + Math.cos(a)*bodyRx*0.92, py = cy + Math.sin(a)*bodyRy*0.92;
-      const pr = (3 + g.wool*8)*scale;
-      ctx.beginPath(); ctx.arc(px, py, pr, 0, Math.PI*2); ctx.fill();
-    }
-    ctx.fillStyle = shade(C.base, 10);
-    for(let i=0;i<5;i++){
-      ctx.beginPath();
-      ctx.arc(cx + (rnd()-0.5)*bodyRx, cy + (rnd()-0.5)*bodyRy, (3+g.wool*7)*scale, 0, Math.PI*2);
+      const a = rnd()*Math.PI*2, rr = 0.5 + rnd()*0.55;
+      const px = cx + Math.cos(a)*bodyRx*rr, py = cy + Math.sin(a)*bodyRy*rr;
+      const pr = (1.8 + g.wool*3.4)*scale;
+      ctx.beginPath(); ctx.arc(px, py, pr, 0, Math.PI*2);
+      ctx.fillStyle = (i%3===0) ? shade(C.base,22) : shade(C.base,10);
       ctx.fill();
     }
+    ctx.restore();
+    /* re-ink the body silhouette on top so the fluff never blurs the outline */
+    ctx.beginPath(); ctx.ellipse(cx, cy, bodyRx, bodyRy, 0, 0, Math.PI*2);
+    ctx.lineWidth = outW; ctx.strokeStyle = OUTLINE; ctx.stroke();
   }
 
   /* ---- near legs ---- */
@@ -1019,13 +1054,17 @@ function drawCritter(ctx, an, cx, groundY, S, phase){
   const neckL = (5 + g.neckLen*52) * scale;
   const nbx = cx + bodyRx*0.72, nby = cy - bodyRy*0.42;
   const hx = nbx + neckL*0.48, hy = nby - neckL*0.86;
-  const hR = (7 + g.headSize*12) * scale;
+  const hR = (8 + g.headSize*13) * scale;
+  const neckW = Math.max(3, (5 + g.headSize*10) * scale);
 
-  ctx.strokeStyle = C.base;
-  ctx.lineWidth = Math.max(3, (5 + g.headSize*10) * scale);
-  ctx.beginPath(); ctx.moveTo(nbx - 2*scale, nby + 3*scale);
-  ctx.quadraticCurveTo(nbx + neckL*0.12, nby - neckL*0.5, hx, hy);
-  ctx.stroke();
+  {
+    /* a tapered neck (wide at the shoulder, narrower at the head) reads as an
+       actual neck instead of a constant-width rod with a kink where it meets the head */
+    const n0 = {x:nbx - 2*scale, y:nby + 3*scale}, n1 = {x:nbx + neckL*0.12, y:nby - neckL*0.5}, n2 = {x:hx, y:hy};
+    const neckPts = []; for(let s=0;s<=8;s++) neckPts.push(quadPoint(n0,n1,n2,s/8));
+    tracedTaper(ctx, neckPts, neckW*1.2, neckW*0.8);
+    fillInk(C.base);
+  }
 
   if(g.mane > 0.3){
     /* soft fluffy tufts along the neck instead of hard spiky hair-lines */
@@ -1035,59 +1074,73 @@ function drawCritter(ctx, an, cx, groundY, S, phase){
       const t = i/(steps-1);
       const mx = nbx + (hx-nbx)*t - 2*scale, my = nby + (hy-nby)*t - 1*scale;
       const pr = (2.2 + g.mane*5) * scale;
-      ctx.fillStyle = i%2 ? maneCol : maneDark;
-      ctx.beginPath(); ctx.ellipse(mx - pr*0.5, my + pr*0.3, pr*0.85, pr*0.7, -0.3, 0, Math.PI*2); ctx.fill();
-      ctx.beginPath(); ctx.ellipse(mx - pr*0.15, my + pr*0.8, pr*0.6, pr*0.5, -0.2, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(mx - pr*0.5, my + pr*0.3, pr*0.85, pr*0.7, -0.3, 0, Math.PI*2);
+      fillInk(i%2 ? maneCol : maneDark);
+      ctx.beginPath(); ctx.ellipse(mx - pr*0.15, my + pr*0.8, pr*0.6, pr*0.5, -0.2, 0, Math.PI*2);
+      fillInk(i%2 ? maneCol : maneDark);
     }
   }
 
-  ctx.fillStyle = C.base;
-  ctx.beginPath(); ctx.ellipse(hx, hy, hR*1.06, hR, -0.12, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(hx, hy, hR*1.06, hR, -0.12, 0, Math.PI*2);
+  fillInk(C.base);
 
-  /* ears */
+  /* ears — rooted right at the head's edge so the base reads as attached, not floating */
   if(g.earSize > 0.06){
     const eL = (3 + g.earSize*22) * scale;
     const eW = eL * (0.34 + g.earSize*0.22);
     const ang = -1.15 + g.earDroop*2.3;
     for(const side of [-1, 0.35]){
-      const ex = hx - hR*0.35 + side*hR*0.35;
-      const ey = hy - hR*0.72;
+      const ex = hx - hR*0.30 + side*hR*0.42;
+      const ey = hy - hR*0.58;
       ctx.save(); ctx.translate(ex, ey); ctx.rotate(ang + (side<0 ? -0.22 : 0.14));
-      ctx.fillStyle = side<0 ? shade(C.base,-24) : C.base;
-      ctx.beginPath(); ctx.ellipse(0, -eL*0.45, eW, eL*0.55, 0, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(0, -eL*0.45, eW, eL*0.55, 0, 0, Math.PI*2);
+      fillInk(side<0 ? shade(C.base,-24) : C.base);
       ctx.fillStyle = shade(C.belly, 12);
       ctx.beginPath(); ctx.ellipse(0, -eL*0.45, eW*0.5, eL*0.36, 0, 0, Math.PI*2); ctx.fill();
       ctx.restore();
     }
   }
 
-  /* horns */
+  /* horns — a solid tapered shape instead of a thin wire, so they read as horns */
   if(g.hornSize > 0.10){
     const hl = (4 + g.hornSize*26) * scale;
-    ctx.strokeStyle = C.horn;
-    ctx.lineWidth = Math.max(1.8, (1.6 + g.hornSize*5) * scale);
+    const baseW = Math.max(1.6, (1.8 + g.hornSize*5) * scale);
     for(const side of [-1, 1]){
       const bx = hx - hR*0.35 + side*hR*0.28, by = hy - hR*0.82;
-      ctx.beginPath(); ctx.moveTo(bx, by);
+      const p0 = {x:bx, y:by};
+      let p1, p2, p3;
+      const pts = [];
       if(g.hornCurl > 0.5){
-        ctx.bezierCurveTo(bx + side*hl*0.7, by - hl*0.6, bx + side*hl*1.15, by + hl*0.15, bx + side*hl*0.45, by + hl*0.5);
+        p1 = {x:bx + side*hl*0.7, y:by - hl*0.6}; p2 = {x:bx + side*hl*1.15, y:by + hl*0.15}; p3 = {x:bx + side*hl*0.45, y:by + hl*0.5};
+        for(let s=0;s<=8;s++) pts.push(bezPoint(p0,p1,p2,p3,s/8));
       }else{
-        ctx.quadraticCurveTo(bx + side*hl*0.35, by - hl*0.8, bx + side*hl*0.85, by - hl*1.05);
+        p1 = {x:bx + side*hl*0.35, y:by - hl*0.8}; p2 = {x:bx + side*hl*0.85, y:by - hl*1.05};
+        for(let s=0;s<=8;s++) pts.push(quadPoint(p0,p1,p2,s/8));
       }
-      ctx.stroke();
+      tracedTaper(ctx, pts, baseW, Math.max(0.7, baseW*0.14));
+      fillInk(C.horn);
+      /* a couple of ridge ticks for texture */
+      ctx.strokeStyle = shade(C.horn,-35); ctx.lineWidth = Math.max(0.5, scale*0.35);
+      for(const t of [0.35,0.6]){
+        const p = pts[Math.round(t*8)], pn = pts[Math.max(0,Math.round(t*8)-1)];
+        let dx=p.x-pn.x, dy=p.y-pn.y; const len=Math.hypot(dx,dy)||1;
+        const px=-dy/len, py=dx/len, w=baseW*(1-t)*0.4;
+        ctx.beginPath(); ctx.moveTo(p.x+px*w,p.y+py*w); ctx.lineTo(p.x-px*w,p.y-py*w); ctx.stroke();
+      }
     }
   }
 
   /* comb / crest — rounded scalloped lobes instead of a jagged zigzag */
   if(g.comb > 0.3){
-    ctx.fillStyle = '#d94a3d';
     const lobes = 3, lr = hR*(0.22 + g.comb*0.18);
     for(let i=0;i<lobes;i++){
       const lx = hx - hR*0.5 + i*hR*0.38;
       const ly = hy - hR*(0.78 + g.comb*0.55) + Math.abs(i-1)*hR*0.12;
-      ctx.beginPath(); ctx.ellipse(lx, ly, lr, lr*1.15, -0.15, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(lx, ly, lr, lr*1.15, -0.15, 0, Math.PI*2);
+      fillInk('#d94a3d');
     }
-    ctx.beginPath(); ctx.ellipse(hx - hR*0.15, hy - hR*0.7, lr*0.9, lr*0.7, 0, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(hx - hR*0.15, hy - hR*0.7, lr*0.9, lr*0.7, 0, 0, Math.PI*2);
+    fillInk('#d94a3d');
   }
 
   /* blaze — a lighter marking down the face, a classic realistic touch */
@@ -1100,20 +1153,25 @@ function drawCritter(ctx, an, cx, groundY, S, phase){
 
   /* snout / muzzle or beak */
   if(g.beak > 0.35){
-    ctx.fillStyle = C.patch;
     const bl = (5 + g.beak*15) * scale;
     const bw = (2 + g.beak*7) * scale * (0.6 + g.snout*0.8);
+    const bx0 = hx + hR*0.55;
     ctx.beginPath();
-    ctx.moveTo(hx + hR*0.6, hy - bw*0.4);
-    ctx.lineTo(hx + hR*0.6 + bl, hy + bw*0.1);
-    ctx.lineTo(hx + hR*0.6, hy + bw*0.9);
-    ctx.closePath(); ctx.fill();
+    ctx.moveTo(bx0, hy - bw*0.4);
+    ctx.quadraticCurveTo(bx0 + bl*0.7, hy - bw*0.15, bx0 + bl, hy + bw*0.1);
+    ctx.quadraticCurveTo(bx0 + bl*0.6, hy + bw*0.55, bx0, hy + bw*0.85);
+    ctx.closePath();
+    fillInk(C.patch);
+    ctx.strokeStyle = shade(C.patch, -35); ctx.lineWidth = Math.max(0.6, scale*0.4);
+    ctx.beginPath(); ctx.moveTo(bx0 + bl*0.15, hy + bw*0.05); ctx.lineTo(bx0 + bl*0.75, hy + bw*0.12); ctx.stroke();
   }else if(g.snout > 0.12){
-    const sl = (2 + g.snout*15) * scale;
-    ctx.fillStyle = shade(C.base, 18);
-    ctx.beginPath(); ctx.ellipse(hx + hR*0.72, hy + hR*0.24, sl*0.8, sl*0.6 + hR*0.22, -0.1, 0, Math.PI*2); ctx.fill();
-    ctx.fillStyle = shade(C.base, -52);
-    ctx.beginPath(); ctx.ellipse(hx + hR*0.72 + sl*0.42, hy + hR*0.2, sl*0.24, sl*0.2, 0, 0, Math.PI*2); ctx.fill();
+    const sl = (2 + g.snout*13) * scale;
+    ctx.beginPath();
+    ctx.ellipse(hx + hR*0.58, hy + hR*0.26, sl*0.85 + hR*0.14, sl*0.55 + hR*0.2, -0.08, 0, Math.PI*2);
+    fillInk(shade(C.base, 16));
+    ctx.beginPath();
+    ctx.ellipse(hx + hR*0.58 + sl*0.5, hy + hR*0.22, sl*0.24, sl*0.19, 0, 0, Math.PI*2);
+    fillInk(shade(C.base, -52));
   }
 
   /* whiskers */
@@ -1121,19 +1179,23 @@ function drawCritter(ctx, an, cx, groundY, S, phase){
     ctx.strokeStyle = 'rgba(60,50,40,.55)'; ctx.lineWidth = Math.max(0.7, 0.9*scale);
     for(let i=-1;i<=1;i++){
       ctx.beginPath();
-      ctx.moveTo(hx + hR*0.7, hy + hR*0.25);
-      ctx.lineTo(hx + hR*0.7 + 14*scale, hy + hR*0.25 + i*5*scale);
+      ctx.moveTo(hx + hR*0.62, hy + hR*0.26);
+      ctx.lineTo(hx + hR*0.62 + 14*scale, hy + hR*0.26 + i*5*scale);
       ctx.stroke();
     }
   }
 
-  /* eye */
-  ctx.fillStyle = '#fff';
-  ctx.beginPath(); ctx.arc(hx + hR*0.28, hy - hR*0.16, hR*0.28, 0, Math.PI*2); ctx.fill();
+  /* eye — a clear, expressive cartoon eye anchored to the face */
+  const ex = hx + hR*0.24, ey = hy - hR*0.14;
+  ctx.beginPath(); ctx.arc(ex, ey, hR*0.30, 0, Math.PI*2);
+  fillInk('#fff');
   ctx.fillStyle = '#221c16';
-  ctx.beginPath(); ctx.arc(hx + hR*0.33, hy - hR*0.16, hR*0.16, 0, Math.PI*2); ctx.fill();
-  ctx.fillStyle = 'rgba(255,255,255,.85)';
-  ctx.beginPath(); ctx.arc(hx + hR*0.38, hy - hR*0.23, hR*0.06, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(ex + hR*0.05, ey, hR*0.16, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,.9)';
+  ctx.beginPath(); ctx.arc(ex + hR*0.09, ey - hR*0.07, hR*0.06, 0, Math.PI*2); ctx.fill();
+  /* a small lid arc gives it a bit of expression instead of a blank stare */
+  ctx.strokeStyle = shade(C.base, -55); ctx.lineWidth = Math.max(0.6, hR*0.09);
+  ctx.beginPath(); ctx.arc(ex, ey, hR*0.36, Math.PI*1.08, Math.PI*1.62); ctx.stroke();
 }
 
 /* how tall and wide this animal draws, in un-scaled units */
