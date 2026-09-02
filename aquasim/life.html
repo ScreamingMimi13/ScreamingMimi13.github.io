@@ -1,0 +1,1750 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+<title>Life — Birth to 100</title>
+<meta name="description" content="Start as a newborn baby and live one year at a time all the way to 100.">
+<meta name="theme-color" content="#4a3f7a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Life">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='40' fill='%234a3f7a'/%3E%3Ctext x='90' y='125' font-size='96' text-anchor='middle'%3E%F0%9F%91%B6%3C/text%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ctext y='52' font-size='52'%3E%F0%9F%91%B6%3C/text%3E%3C/svg%3E">
+<style>
+  *,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  :root {
+    --bg:#efeaf6; --frame:#ffffff; --ink:#241f36; --muted:#6f6790; --line:#e2dcef;
+    --accent:#6d4fc4; --accent2:#8a6ee0; --soft:#f6f3fc;
+    --health:#e05a6b; --happy:#f0a52e; --smarts:#3f9ad6; --looks:#c25aa8;
+    --good:#2e9e6b; --bad:#d0413f; --gold:#c99a2e;
+    --safe-b: env(safe-area-inset-bottom, 0px);
+    --safe-t: env(safe-area-inset-top, 0px);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg:#100d1c; --frame:#1a1630; --ink:#efeafc; --muted:#a79edc; --line:#2c2650;
+      --accent:#9d84f0; --accent2:#b79dff; --soft:#221c40;
+      --health:#f2707f; --happy:#ffc158; --smarts:#63b6ee; --looks:#e07dc2;
+      --good:#4fd39a; --bad:#ff6f6b; --gold:#f0c65a;
+    }
+  }
+  html,body { height:100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", system-ui, sans-serif;
+    background: var(--bg); color: var(--ink);
+    display: flex; justify-content: center; align-items: stretch;
+    overflow: hidden; overscroll-behavior: none;
+  }
+  #app {
+    width: 100%; max-width: 480px; height: 100dvh;
+    background: var(--frame); display: flex; flex-direction: column;
+    position: relative; overflow: hidden;
+    box-shadow: 0 0 60px rgba(0,0,0,.18);
+  }
+  @media (min-width: 500px) and (min-height: 720px) {
+    body { align-items: center; padding: 16px 0; }
+    #app { height: min(880px, calc(100dvh - 32px)); border-radius: 26px; border: 1px solid var(--line); }
+  }
+
+  /* ---------- Top bar ---------- */
+  #top { padding: calc(10px + var(--safe-t)) 14px 10px; background: linear-gradient(150deg, var(--accent), var(--accent2)); color:#fff; flex: 0 0 auto; }
+  #topRow { display:flex; align-items:center; gap:10px; }
+  #avatar { width:44px; height:44px; border-radius:14px; background:rgba(255,255,255,.2); display:grid; place-items:center; font-size:26px; flex:0 0 auto; }
+  #whoWrap { flex:1 1 auto; min-width:0; }
+  #who { font-weight:700; font-size:1.02rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #sub { font-size:.76rem; opacity:.88; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #cash { font-weight:800; font-size:.95rem; text-align:right; flex:0 0 auto; }
+  #cash small { display:block; font-weight:500; opacity:.8; font-size:.66rem; }
+  #installBtn { background:rgba(255,255,255,.22); border:0; color:#fff; font:inherit; font-size:.72rem; font-weight:700;
+    padding:7px 11px; border-radius:999px; cursor:pointer; flex:0 0 auto; }
+  #installBtn:active { transform:scale(.94); }
+  .hide { display:none !important; }
+
+  #bars { display:grid; grid-template-columns:repeat(4,1fr); gap:7px; margin-top:11px; }
+  .bar { }
+  .bar b { display:block; font-size:.6rem; letter-spacing:.06em; text-transform:uppercase; opacity:.85; margin-bottom:3px; font-weight:600; }
+  .track { height:7px; border-radius:99px; background:rgba(0,0,0,.22); overflow:hidden; }
+  .fill { display:block; height:100%; width:0; border-radius:99px; transition:width .4s cubic-bezier(.3,1.3,.5,1); }
+
+  /* ---------- Screen ---------- */
+  #screen { flex:1 1 auto; overflow-y:auto; overflow-x:hidden; -webkit-overflow-scrolling:touch; padding:14px 14px 18px; }
+  h2.sec { font-size:.72rem; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin:16px 2px 8px; font-weight:700; }
+  h2.sec:first-child { margin-top:2px; }
+
+  /* Life log */
+  .yr { display:flex; align-items:center; gap:9px; margin:16px 0 8px; }
+  .yr span { font-size:.7rem; font-weight:800; letter-spacing:.08em; color:var(--accent); background:var(--soft); padding:4px 10px; border-radius:99px; }
+  .yr i { flex:1; height:1px; background:var(--line); }
+  .ev { display:flex; gap:9px; padding:8px 10px; border-radius:12px; margin-bottom:5px; font-size:.9rem; line-height:1.45; background:var(--soft); }
+  .ev .ic { flex:0 0 auto; font-size:1rem; line-height:1.4; }
+  .ev.good { background:color-mix(in srgb, var(--good) 13%, transparent); }
+  .ev.bad  { background:color-mix(in srgb, var(--bad) 13%, transparent); }
+  .ev.big  { background:color-mix(in srgb, var(--gold) 16%, transparent); font-weight:600; }
+
+  /* Generic card / row */
+  .card { background:var(--soft); border-radius:16px; padding:13px; margin-bottom:9px; }
+  .row { display:flex; align-items:center; gap:11px; background:var(--soft); border-radius:14px; padding:11px 12px; margin-bottom:7px;
+         border:0; width:100%; text-align:left; font:inherit; color:inherit; cursor:pointer; }
+  .row:active { transform:scale(.985); }
+  .row .ic { width:38px; height:38px; border-radius:12px; background:var(--frame); display:grid; place-items:center; font-size:20px; flex:0 0 auto; }
+  .row .tx { flex:1 1 auto; min-width:0; display:block; }
+  .row .t1 { display:block; font-weight:650; font-size:.92rem; }
+  .row .t2 { display:block; font-size:.76rem; color:var(--muted); margin-top:2px; line-height:1.35; }
+  .row .rt { font-size:.8rem; font-weight:700; text-align:right; flex:0 0 auto; }
+  .row[disabled] { opacity:.42; cursor:default; }
+  .mini { display:block; height:5px; border-radius:99px; background:rgba(128,110,180,.25); overflow:hidden; margin-top:5px; }
+  .mini i { display:block; height:100%; border-radius:99px; background:var(--accent); }
+
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .tile { background:var(--soft); border:0; border-radius:15px; padding:13px 10px; text-align:center; font:inherit; color:inherit; cursor:pointer; }
+  .tile:active { transform:scale(.96); }
+  .tile .e { font-size:24px; display:block; margin-bottom:5px; }
+  .tile .n { display:block; font-size:.83rem; font-weight:650; line-height:1.25; }
+  .tile .d { display:block; font-size:.7rem; color:var(--muted); margin-top:3px; line-height:1.3; }
+  .tile[disabled] { opacity:.4; }
+
+  .empty { text-align:center; color:var(--muted); font-size:.87rem; padding:34px 20px; line-height:1.6; }
+
+  /* ---------- Bottom nav ---------- */
+  #bottom { flex:0 0 auto; border-top:1px solid var(--line); background:var(--frame); padding-bottom:var(--safe-b); }
+  #ageWrap { padding:9px 14px 4px; }
+  #ageBtn { width:100%; border:0; border-radius:15px; padding:14px; font:inherit; font-weight:800; font-size:1rem; letter-spacing:.02em;
+    color:#fff; background:linear-gradient(150deg,var(--accent),var(--accent2)); cursor:pointer; box-shadow:0 5px 16px rgba(109,79,196,.34); }
+  #ageBtn:active { transform:scale(.985); box-shadow:0 2px 8px rgba(109,79,196,.3); }
+  #nav { display:grid; grid-template-columns:repeat(5,1fr); padding:2px 4px 6px; }
+  .nb { border:0; background:none; font:inherit; color:var(--muted); padding:7px 2px; cursor:pointer; border-radius:11px; }
+  .nb .e { font-size:19px; display:block; line-height:1.15; filter:grayscale(.55) opacity(.75); }
+  .nb .l { font-size:.62rem; font-weight:600; margin-top:2px; letter-spacing:.01em; }
+  .nb.on { color:var(--accent); }
+  .nb.on .e { filter:none; }
+
+  /* ---------- Modal ---------- */
+  #veil { position:absolute; inset:0; background:rgba(15,10,35,.62); backdrop-filter:blur(3px); display:none; align-items:flex-end; z-index:50; }
+  #veil.on { display:flex; }
+  #sheet { width:100%; background:var(--frame); border-radius:24px 24px 0 0; padding:20px 18px calc(20px + var(--safe-b));
+    max-height:88%; overflow-y:auto; animation:rise .26s cubic-bezier(.2,.9,.3,1); }
+  @keyframes rise { from { transform:translateY(100%); } }
+  #sheet .hd { font-size:38px; text-align:center; margin-bottom:8px; }
+  #sheet h3 { font-size:1.16rem; text-align:center; margin-bottom:8px; line-height:1.3; }
+  #sheet p.body { font-size:.93rem; line-height:1.55; color:var(--muted); text-align:center; margin-bottom:15px; white-space:pre-wrap; }
+  .opt { display:block; width:100%; border:0; background:var(--soft); border-radius:14px; padding:13px 14px; margin-bottom:8px;
+    font:inherit; font-size:.92rem; font-weight:600; color:inherit; text-align:left; cursor:pointer; }
+  .opt:active { transform:scale(.985); }
+  .opt.pri { background:linear-gradient(150deg,var(--accent),var(--accent2)); color:#fff; text-align:center; }
+  .opt small { display:block; font-weight:400; font-size:.76rem; color:var(--muted); margin-top:3px; }
+  .opt.pri small { color:rgba(255,255,255,.85); }
+
+  /* ---------- Start / Death screens ---------- */
+  .full { position:absolute; inset:0; z-index:60; background:linear-gradient(165deg,var(--accent),#3b2d6b); color:#fff;
+    display:none; flex-direction:column; padding:calc(24px + var(--safe-t)) 22px calc(22px + var(--safe-b)); overflow-y:auto; }
+  .full.on { display:flex; }
+  .full h1 { font-size:2.5rem; font-weight:850; letter-spacing:-.02em; }
+  .full .tag { opacity:.85; margin:6px 0 22px; font-size:.94rem; line-height:1.5; }
+  .fld { margin-bottom:12px; }
+  .fld label { display:block; font-size:.68rem; text-transform:uppercase; letter-spacing:.09em; opacity:.8; margin-bottom:5px; font-weight:700; }
+  .fld input, .fld select {
+    width:100%; padding:12px 13px; border-radius:13px; border:1px solid rgba(255,255,255,.22);
+    background:rgba(255,255,255,.13); color:#fff; font:inherit; font-size:.95rem; -webkit-appearance:none; appearance:none; }
+  .fld input::placeholder { color:rgba(255,255,255,.55); }
+  .fld select option { color:#241f36; }
+  .seg { display:flex; gap:7px; }
+  .seg button { flex:1; padding:11px 4px; border-radius:12px; border:1px solid rgba(255,255,255,.22); background:rgba(255,255,255,.1);
+    color:#fff; font:inherit; font-size:.85rem; font-weight:650; cursor:pointer; }
+  .seg button.on { background:#fff; color:var(--accent); border-color:#fff; }
+  .bigBtn { width:100%; border:0; border-radius:16px; padding:16px; font:inherit; font-weight:800; font-size:1.02rem;
+    background:#fff; color:var(--accent); cursor:pointer; margin-top:6px; }
+  .bigBtn:active { transform:scale(.985); }
+  .ghost { background:rgba(255,255,255,.16); color:#fff; }
+  .push { margin-top:auto; }
+  .stone { background:rgba(0,0,0,.24); border-radius:20px; padding:22px 18px; text-align:center; margin:10px 0 18px; }
+  .stone .rip { font-size:.72rem; letter-spacing:.3em; opacity:.7; }
+  .stone .nm { font-size:1.5rem; font-weight:800; margin:7px 0 3px; }
+  .stone .dt { opacity:.8; font-size:.9rem; }
+  .stone .cz { margin-top:12px; font-size:.9rem; line-height:1.5; opacity:.92; }
+  .sumGrid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:16px; }
+  .sumGrid div { background:rgba(255,255,255,.12); border-radius:13px; padding:11px; }
+  .sumGrid b { display:block; font-size:1.1rem; }
+  .sumGrid span { font-size:.68rem; opacity:.8; text-transform:uppercase; letter-spacing:.07em; }
+  .badge { display:inline-block; background:rgba(255,255,255,.16); border-radius:99px; padding:6px 12px; font-size:.78rem; margin:0 5px 6px 0; }
+
+  /* ---------- Toast ---------- */
+  #toast { position:absolute; left:50%; bottom:118px; transform:translateX(-50%) translateY(14px); z-index:70;
+    background:var(--ink); color:var(--frame); padding:10px 16px; border-radius:99px; font-size:.85rem; font-weight:600;
+    opacity:0; pointer-events:none; transition:.25s; max-width:88%; text-align:center; }
+  #toast.on { opacity:.96; transform:translateX(-50%) translateY(0); }
+
+  .fadein { animation:fi .3s ease; }
+  @keyframes fi { from { opacity:0; transform:translateY(6px); } }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div id="top">
+    <div id="topRow">
+      <div id="avatar">👶</div>
+      <div id="whoWrap">
+        <div id="who">—</div>
+        <div id="sub">—</div>
+      </div>
+      <button id="installBtn" class="hide">📱 App</button>
+      <div id="cash"><span id="cashN">$0</span><small id="cashS">Piggy bank</small></div>
+    </div>
+    <div id="bars">
+      <div class="bar"><b>Health</b><div class="track"><i class="fill" id="bH" style="background:var(--health)"></i></div></div>
+      <div class="bar"><b>Happy</b><div class="track"><i class="fill" id="bP" style="background:var(--happy)"></i></div></div>
+      <div class="bar"><b>Smarts</b><div class="track"><i class="fill" id="bS" style="background:var(--smarts)"></i></div></div>
+      <div class="bar"><b>Looks</b><div class="track"><i class="fill" id="bL" style="background:var(--looks)"></i></div></div>
+    </div>
+  </div>
+
+  <div id="screen"></div>
+
+  <div id="bottom">
+    <div id="ageWrap"><button id="ageBtn">🎂 Age Up</button></div>
+    <div id="nav">
+      <button class="nb on" data-tab="life"><span class="e">📜</span><span class="l">Life</span></button>
+      <button class="nb" data-tab="people"><span class="e">👨‍👩‍👧</span><span class="l">People</span></button>
+      <button class="nb" data-tab="do"><span class="e">✨</span><span class="l">Activities</span></button>
+      <button class="nb" data-tab="assets"><span class="e">🏦</span><span class="l">Assets</span></button>
+      <button class="nb" data-tab="shop"><span class="e">🛍️</span><span class="l">Shop</span></button>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+
+  <div id="veil"><div id="sheet"></div></div>
+
+  <!-- Start screen -->
+  <div class="full on" id="startScreen">
+    <h1>Life</h1>
+    <div class="tag">You are about to be born. Live one year at a time — all the way to a hundred, if you can manage it.</div>
+    <div class="fld"><label>Your name</label><input id="inName" placeholder="Leave blank for a random one" autocomplete="off" maxlength="22"></div>
+    <div class="fld"><label>Gender</label>
+      <div class="seg" id="segSex">
+        <button data-v="f" class="on">Girl</button>
+        <button data-v="m">Boy</button>
+        <button data-v="r">Surprise me</button>
+      </div>
+    </div>
+    <div class="fld"><label>Where you're born</label><select id="inPlace"></select></div>
+    <div class="fld"><label>Difficulty</label>
+      <div class="seg" id="segDiff">
+        <button data-v="rich">Silver spoon</button>
+        <button data-v="normal" class="on">Ordinary</button>
+        <button data-v="hard">Rough start</button>
+      </div>
+    </div>
+    <div class="push">
+      <button class="bigBtn" id="beginBtn">👶 Be Born</button>
+      <button class="bigBtn ghost hide" id="startInstall" style="margin-top:8px">📱 Install as an App</button>
+    </div>
+  </div>
+
+  <!-- Death screen -->
+  <div class="full" id="endScreen"></div>
+</div>
+
+<script>
+(function(){
+'use strict';
+
+/* ============================================================
+   0.  Tiny helpers
+   ============================================================ */
+const $ = id => document.getElementById(id);
+const R = (a,b) => a + Math.random()*(b-a);
+const RI = (a,b) => Math.floor(R(a,b+1));
+const pick = a => a[Math.floor(Math.random()*a.length)];
+const chance = p => Math.random() < p;
+const clamp = (v,a=0,b=100) => v<a?a:v>b?b:v;
+function shuffle(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){const j=RI(0,i);[a[i],a[j]]=[a[j],a[i]];} return a; }
+function money(n){
+  const neg = n<0; n = Math.abs(Math.round(n));
+  let s;
+  if (n >= 1e9) s = '$'+(n/1e9).toFixed(n<1e10?2:1)+'B';
+  else if (n >= 1e6) s = '$'+(n/1e6).toFixed(n<1e7?2:1)+'M';
+  else if (n >= 1e4) s = '$'+Math.round(n/1e3)+'k';
+  else s = '$'+n.toLocaleString('en-US');
+  return neg ? '−'+s : s;
+}
+function moneyFull(n){ return (n<0?'−$':'$') + Math.abs(Math.round(n)).toLocaleString('en-US'); }
+function ordinal(n){ const s=['th','st','nd','rd'], v=n%100; return n+(s[(v-20)%10]||s[v]||s[0]); }
+
+/* ============================================================
+   1.  Name & place data
+   ============================================================ */
+const F_NAMES = ['Ava','Mia','Nora','Lily','Emma','Zoe','Iris','Ruby','Hazel','Luna','Clara','Maya','Elsa','June','Willa','Sadie','Freya','Ivy','Rosa','Nina','Astrid','Delia','Margot','Opal','Wren','Cleo','Thea','Alma','Birdie','Juniper','Colette','Sylvie','Marisol','Anya','Petra','Noor','Amara','Leila','Sana','Keiko','Mei','Priya','Zara','Isla','Bee','Etta','Greta','Odette','Frida','Tallulah','Winona'];
+const M_NAMES = ['Leo','Milo','Otto','Finn','Ezra','Kai','Jonah','Silas','Arlo','Felix','Hugo','Theo','Rafael','Desmond','Oscar','Miles','Bruno','Ivan','Casper','Dmitri','Amos','Cyrus','Elias','Gus','Hank','Idris','Jasper','Knox','Lorenzo','Malik','Nico','Omar','Pablo','Quincy','Rowan','Soren','Tobias','Ulysses','Viktor','Wesley','Xavier','Yusuf','Zane','Abel','Bodhi','Callum','Dashiell','Emmett','Ferris','Gideon'];
+const SURNAMES = ['Alvarez','Bennett','Castellano','Delgado','Eriksen','Falk','Grimaldi','Hollis','Ibarra','Jansen','Kowalski','Lindqvist','Moreau','Nakamura','Okonkwo','Petrov','Quintero','Rasmussen','Solberg','Tanaka','Ustinov','Vasquez','Whitaker','Yamamoto','Zielinski','Barlow','Crane','Dunmore','Ellery','Fairbanks','Gallagher','Hargrove','Ives','Jericho','Kingsley','Lowell','Marchetti','Novak','Ó Briain','Prescott','Ravenna','Sandoval','Thorne','Underwood','Voss','Wexler','Ximenes','Yardley','Zamora','Ashworth'];
+const PLACES = [
+  {n:'Portland, Oregon',c:'USA',cost:1.0,econ:1.0},
+  {n:'Brooklyn, New York',c:'USA',cost:1.55,econ:1.25},
+  {n:'Austin, Texas',c:'USA',cost:1.05,econ:1.12},
+  {n:'Duluth, Minnesota',c:'USA',cost:.78,econ:.86},
+  {n:'Baton Rouge, Louisiana',c:'USA',cost:.74,econ:.8},
+  {n:'San Francisco, California',c:'USA',cost:1.85,econ:1.4},
+  {n:'Toronto, Canada',c:'Canada',cost:1.25,econ:1.05},
+  {n:'Dublin, Ireland',c:'Ireland',cost:1.2,econ:1.02},
+  {n:'Manchester, England',c:'England',cost:1.0,econ:.95},
+  {n:'Lisbon, Portugal',c:'Portugal',cost:.8,econ:.72},
+  {n:'Kraków, Poland',c:'Poland',cost:.62,econ:.66},
+  {n:'Naples, Italy',c:'Italy',cost:.82,econ:.75},
+  {n:'Gothenburg, Sweden',c:'Sweden',cost:1.18,econ:1.06},
+  {n:'Osaka, Japan',c:'Japan',cost:1.1,econ:1.0},
+  {n:'Mumbai, India',c:'India',cost:.5,econ:.55},
+  {n:'Lagos, Nigeria',c:'Nigeria',cost:.45,econ:.5},
+  {n:'Medellín, Colombia',c:'Colombia',cost:.55,econ:.58},
+  {n:'Auckland, New Zealand',c:'New Zealand',cost:1.15,econ:1.0},
+  {n:'a very small town',c:'somewhere quiet',cost:.65,econ:.7},
+];
+
+/* ============================================================
+   2.  Careers
+   ============================================================ */
+// edu: 0 none, 1 high school, 2 associate, 3 bachelor, 4 master, 5 doctorate
+const CAREERS = [
+  {id:'fastfood', e:'🍔', n:'Fast Food',        edu:0, sm:0,  pay:23000, ladder:['Crew Member','Shift Lead','Assistant Manager','Store Manager','Franchise Owner']},
+  {id:'retail',   e:'🛒', n:'Retail',           edu:0, sm:0,  pay:26000, ladder:['Sales Associate','Key Holder','Department Lead','Store Manager','Regional Director']},
+  {id:'delivery', e:'📦', n:'Delivery Driver',  edu:0, sm:0,  pay:34000, ladder:['Courier','Route Driver','Dispatcher','Depot Supervisor','Logistics Manager']},
+  {id:'barista',  e:'☕', n:'Coffee Shop',      edu:0, sm:0,  pay:25000, ladder:['Barista','Head Barista','Shop Manager','Roastery Buyer','Café Owner']},
+  {id:'janitor',  e:'🧹', n:'Custodial',        edu:0, sm:0,  pay:29000, ladder:['Custodian','Lead Custodian','Facilities Tech','Facilities Supervisor','Building Manager']},
+  {id:'landscape',e:'🌳', n:'Landscaping',      edu:0, sm:0,  pay:31000, ladder:['Crew Hand','Crew Chief','Estimator','Operations Manager','Company Owner']},
+  {id:'trucker',  e:'🚛', n:'Trucking',         edu:1, sm:0,  pay:52000, ladder:['Regional Driver','Long Haul Driver','Owner-Operator','Fleet Trainer','Fleet Owner']},
+  {id:'plumber',  e:'🔧', n:'Plumbing',         edu:1, sm:25, pay:48000, ladder:['Apprentice','Journeyman','Master Plumber','Shop Foreman','Contractor']},
+  {id:'electric', e:'⚡', n:'Electrician',      edu:1, sm:35, pay:53000, ladder:['Apprentice','Journeyman','Master Electrician','Site Supervisor','Contractor']},
+  {id:'chef',     e:'👨‍🍳', n:'Kitchen',          edu:1, sm:20, pay:36000, ladder:['Line Cook','Sous Chef','Head Chef','Executive Chef','Restaurateur']},
+  {id:'mechanic', e:'🔩', n:'Auto Repair',      edu:1, sm:25, pay:45000, ladder:['Lube Tech','Mechanic','Master Tech','Service Manager','Garage Owner']},
+  {id:'police',   e:'🚓', n:'Police',           edu:1, sm:35, pay:58000, ladder:['Cadet','Officer','Detective','Sergeant','Chief of Police']},
+  {id:'fire',     e:'🚒', n:'Fire Service',     edu:1, sm:30, pay:55000, ladder:['Probationary','Firefighter','Lieutenant','Battalion Chief','Fire Chief']},
+  {id:'military', e:'🎖️', n:'Military',         edu:1, sm:30, pay:44000, ladder:['Private','Sergeant','Lieutenant','Major','General']},
+  {id:'nurse',    e:'💉', n:'Nursing',          edu:2, sm:55, pay:72000, ladder:['LPN','Registered Nurse','Charge Nurse','Nurse Practitioner','Director of Nursing']},
+  {id:'teacher',  e:'🍎', n:'Teaching',         edu:3, sm:55, pay:54000, ladder:['Substitute','Teacher','Department Head','Vice Principal','Principal']},
+  {id:'account',  e:'📊', n:'Accounting',       edu:3, sm:60, pay:66000, ladder:['Junior Accountant','Accountant','Senior Accountant','Controller','CFO']},
+  {id:'market',   e:'📣', n:'Marketing',        edu:3, sm:50, pay:60000, ladder:['Coordinator','Specialist','Manager','Director','CMO']},
+  {id:'engineer', e:'🏗️', n:'Engineering',      edu:3, sm:70, pay:88000, ladder:['Junior Engineer','Engineer','Senior Engineer','Principal Engineer','VP of Engineering']},
+  {id:'software', e:'💻', n:'Software',         edu:3, sm:70, pay:95000, ladder:['Junior Dev','Developer','Senior Dev','Staff Engineer','CTO']},
+  {id:'pilot',    e:'✈️', n:'Aviation',         edu:2, sm:65, pay:82000, ladder:['Flight Instructor','First Officer','Captain','Chief Pilot','Director of Flight Ops']},
+  {id:'journal',  e:'📰', n:'Journalism',       edu:3, sm:60, pay:47000, ladder:['Stringer','Staff Writer','Senior Reporter','Editor','Editor-in-Chief']},
+  {id:'architect',e:'📐', n:'Architecture',     edu:4, sm:70, pay:79000, ladder:['Intern Architect','Architect','Project Architect','Design Principal','Firm Partner']},
+  {id:'lawyer',   e:'⚖️', n:'Law',              edu:5, sm:80, pay:112000,ladder:['Associate','Senior Associate','Junior Partner','Partner','Managing Partner']},
+  {id:'doctor',   e:'🩺', n:'Medicine',         edu:5, sm:85, pay:145000,ladder:['Resident','Attending Physician','Specialist','Department Chief','Hospital Director']},
+  {id:'prof',     e:'🎓', n:'Academia',         edu:5, sm:80, pay:74000, ladder:['Adjunct','Assistant Professor','Associate Professor','Full Professor','Dean']},
+  {id:'sci',      e:'🔬', n:'Research Science',  edu:5, sm:82, pay:86000, ladder:['Lab Assistant','Research Scientist','Senior Scientist','Lab Director','Institute Head']},
+  {id:'finance',  e:'💹', n:'Finance',          edu:3, sm:72, pay:105000,ladder:['Analyst','Associate','VP','Managing Director','Fund Partner']},
+  {id:'actor',    e:'🎭', n:'Acting',           edu:0, sm:20, pay:19000, ladder:['Extra','Bit Player','Working Actor','Lead Actor','Movie Star'], luck:true, look:60},
+  {id:'music',    e:'🎸', n:'Music',            edu:0, sm:20, pay:17000, ladder:['Open Mic Act','Gigging Musician','Signed Artist','Headliner','Legend'], luck:true},
+  {id:'athlete',  e:'🏅', n:'Pro Sports',       edu:1, sm:20, pay:64000, ladder:['Practice Squad','Rookie','Starter','All-Star','Hall of Famer'], luck:true, hp:80},
+  {id:'artist',   e:'🎨', n:'Fine Art',         edu:0, sm:35, pay:21000, ladder:['Unknown','Local Favourite','Gallery Artist','Collected Artist','Master'], luck:true},
+];
+const MAJORS = [
+  {id:'cs',   n:'Computer Science',   sm:8, jobs:['software','engineer','sci']},
+  {id:'bio',  n:'Biology',            sm:7, jobs:['doctor','sci','nurse']},
+  {id:'eng',  n:'Engineering',        sm:8, jobs:['engineer','architect','pilot']},
+  {id:'bus',  n:'Business',           sm:5, jobs:['finance','market','account']},
+  {id:'psy',  n:'Psychology',         sm:5, jobs:['teacher','journal','market']},
+  {id:'eco',  n:'Economics',          sm:6, jobs:['finance','account','market']},
+  {id:'lit',  n:'English Literature', sm:5, jobs:['journal','teacher','prof']},
+  {id:'art',  n:'Fine Arts',          sm:3, jobs:['artist','actor','market']},
+  {id:'edu',  n:'Education',          sm:4, jobs:['teacher','prof']},
+  {id:'nur',  n:'Nursing',            sm:6, jobs:['nurse','doctor']},
+  {id:'phi',  n:'Philosophy',         sm:6, jobs:['lawyer','prof','journal']},
+  {id:'his',  n:'History',            sm:5, jobs:['prof','teacher','journal']},
+];
+const EDU_NAME = ['no diploma','a high school diploma','an associate degree','a bachelor\'s degree','a master\'s degree','a doctorate'];
+
+/* ============================================================
+   3.  Shop catalogue
+   ============================================================ */
+// cat: toy | tech | pet | ride | home | lux ; minA/maxA age window
+const SHOP = [
+  // --- Baby & toddler ---
+  {id:'rattle',  e:'🪇', n:'Rattle',            cat:'toy', p:8,    minA:0, maxA:3,  h:0, hp:4,  d:'Shake it. Endlessly.'},
+  {id:'teddy',   e:'🧸', n:'Teddy Bear',        cat:'toy', p:18,   minA:0, maxA:9,  hp:8,  d:'A friend who never leaves.'},
+  {id:'blocks',  e:'🟦', n:'Wooden Blocks',     cat:'toy', p:24,   minA:1, maxA:7,  hp:6, sm:3, d:'Stack, topple, repeat.'},
+  {id:'plush',   e:'🦄', n:'Giant Plush Unicorn',cat:'toy',p:45,   minA:1, maxA:11, hp:9,  d:'Bigger than you are.'},
+  {id:'trike',   e:'🚲', n:'Tricycle',          cat:'toy', p:70,   minA:2, maxA:6,  hp:9, hl:2, d:'Three wheels of freedom.'},
+  {id:'crayons', e:'🖍️', n:'Crayon Mega Pack',  cat:'toy', p:12,   minA:2, maxA:10, hp:5, sm:2, d:'120 colours. Walls beware.'},
+  // --- Kid ---
+  {id:'lego',    e:'🧱', n:'Brick Set',         cat:'toy', p:60,   minA:4, maxA:14, hp:10, sm:5, d:'Instructions optional.'},
+  {id:'bike',    e:'🚴', n:'Bicycle',           cat:'toy', p:160,  minA:5, maxA:17, hp:11, hl:5, d:'The whole neighbourhood opens up.'},
+  {id:'scooter', e:'🛴', n:'Scooter',           cat:'toy', p:90,   minA:5, maxA:16, hp:8,  hl:3, d:'Fast, loud, slightly dangerous.'},
+  {id:'console', e:'🎮', n:'Game Console',      cat:'tech',p:400,  minA:5, maxA:99, hp:16, sm:-2, d:'Just one more level.'},
+  {id:'dollhs',  e:'🏠', n:'Dollhouse',         cat:'toy', p:130,  minA:3, maxA:12, hp:11, sm:3, d:'A whole tiny world.'},
+  {id:'trampo',  e:'🤸', n:'Trampoline',        cat:'toy', p:520,  minA:4, maxA:18, hp:14, hl:6, d:'Bounce now, sprain later.'},
+  {id:'rc',      e:'🚗', n:'RC Car',            cat:'toy', p:85,   minA:4, maxA:14, hp:9,  d:'Zero to too-fast instantly.'},
+  {id:'chemset', e:'⚗️', n:'Chemistry Set',     cat:'toy', p:75,   minA:7, maxA:16, hp:6, sm:8, d:'Mild explosions included.'},
+  {id:'telescope',e:'🔭',n:'Telescope',         cat:'toy', p:280,  minA:7, maxA:99, hp:7, sm:9, d:'Saturn has rings. You checked.'},
+  // --- Teen / tech ---
+  {id:'phone',   e:'📱', n:'Smartphone',        cat:'tech',p:900,  minA:9, maxA:99, hp:12, d:'Suddenly everyone can reach you.'},
+  {id:'laptop',  e:'💻', n:'Laptop',            cat:'tech',p:1300, minA:11,maxA:99, hp:8, sm:8, d:'Homework machine. Allegedly.'},
+  {id:'guitar',  e:'🎸', n:'Electric Guitar',   cat:'toy', p:650,  minA:10,maxA:99, hp:13, d:'The neighbours will adjust.'},
+  {id:'skate',   e:'🛹', n:'Skateboard',        cat:'toy', p:130,  minA:8, maxA:40, hp:10, hl:4, d:'You will land it eventually.'},
+  {id:'camera',  e:'📷', n:'Camera',            cat:'tech',p:1100, minA:10,maxA:99, hp:10, sm:4, d:'Everything looks better framed.'},
+  {id:'gamingpc',e:'🖥️', n:'Gaming Rig',        cat:'tech',p:3200, minA:12,maxA:99, hp:18, d:'It glows. It hums. It is loved.'},
+  // --- Pets ---
+  {id:'fish',    e:'🐠', n:'Goldfish',          cat:'pet', p:15,   minA:3, maxA:99, hp:5,  d:'Low maintenance. Low lifespan.'},
+  {id:'hamster', e:'🐹', n:'Hamster',           cat:'pet', p:40,   minA:5, maxA:99, hp:8,  d:'Nocturnal. Squeaky wheel.'},
+  {id:'cat',     e:'🐱', n:'Cat',               cat:'pet', p:180,  minA:5, maxA:99, hp:14, hh:3, d:'You do not own a cat.'},
+  {id:'dog',     e:'🐶', n:'Dog',               cat:'pet', p:900,  minA:5, maxA:99, hp:18, hh:6, d:'Unreasonably happy to see you.'},
+  {id:'horse',   e:'🐴', n:'Horse',             cat:'pet', p:12000,minA:10,maxA:99, hp:16, hh:8, d:'A large expensive friend.'},
+  // --- Vehicles ---
+  {id:'beater',  e:'🚙', n:'Used Beater Car',   cat:'ride',p:3500, minA:16,maxA:99, hp:8,  d:'It starts. Usually.', dep:.14},
+  {id:'sedan',   e:'🚗', n:'Reliable Sedan',    cat:'ride',p:24000,minA:16,maxA:99, hp:11, d:'Sensible. Boring. Correct.', dep:.11},
+  {id:'suv',     e:'🚐', n:'Family SUV',        cat:'ride',p:42000,minA:18,maxA:99, hp:12, d:'Room for everyone and the dog.', dep:.11},
+  {id:'moto',    e:'🏍️', n:'Motorcycle',        cat:'ride',p:11000,minA:17,maxA:99, hp:15, hl:4, risk:.05, d:'Fast. Loud. Statistically unwise.', dep:.1},
+  {id:'sports',  e:'🏎️', n:'Sports Car',        cat:'ride',p:96000,minA:18,maxA:99, hp:20, hl:8, risk:.03, d:'A mid-life crisis you can drive.', dep:.09},
+  {id:'boat',    e:'⛵', n:'Sailboat',          cat:'ride',p:88000,minA:20,maxA:99, hp:18, d:'A hole in the water you pour money into.', dep:.07},
+  {id:'jet',     e:'🛩️', n:'Private Jet',       cat:'lux', p:6500000,minA:25,maxA:99,hp:28, d:'Never queue again.', dep:.08},
+  // --- Homes (appreciate) ---
+  {id:'studio',  e:'🏢', n:'Studio Apartment',  cat:'home',p:145000, minA:18,maxA:99, hp:12, d:'Yours. All 400 square feet.', dep:-.035},
+  {id:'condo',   e:'🏬', n:'Two-Bed Condo',     cat:'home',p:290000, minA:20,maxA:99, hp:15, d:'A door that locks and a balcony.', dep:-.035},
+  {id:'house',   e:'🏡', n:'Family House',      cat:'home',p:520000, minA:22,maxA:99, hp:20, d:'A yard, a porch, a mortgage.', dep:-.04},
+  {id:'farm',    e:'🚜', n:'Small Farm',        cat:'home',p:780000, minA:24,maxA:99, hp:22, hh:6, d:'Land, animals, endless chores.', dep:-.03},
+  {id:'mansion', e:'🏰', n:'Mansion',           cat:'home',p:4200000,minA:25,maxA:99, hp:28, d:'Nine bedrooms. You use two.', dep:-.035},
+  // --- Luxury ---
+  {id:'watch',   e:'⌚', n:'Luxury Watch',      cat:'lux', p:14000, minA:18,maxA:99, hp:9, hl:5, d:'It tells the time beautifully.', dep:-.01},
+  {id:'ring',    e:'💍', n:'Fine Jewellery',    cat:'lux', p:26000, minA:18,maxA:99, hp:10, hl:8, d:'Sparkles under any light.', dep:-.015},
+  {id:'art',     e:'🖼️', n:'Original Painting', cat:'lux', p:120000,minA:22,maxA:99, hp:11, sm:3, d:'You bought it because you liked it.', dep:-.05},
+  {id:'wine',    e:'🍷', n:'Wine Cellar',       cat:'lux', p:65000, minA:25,maxA:99, hp:12, d:'It gets better while you sleep.', dep:-.06},
+  {id:'island',  e:'🏝️', n:'Private Island',    cat:'lux', p:24000000,minA:30,maxA:99,hp:35, d:'No neighbours. At all.', dep:-.02},
+];
+
+/* ============================================================
+   4.  State
+   ============================================================ */
+let S = null;
+let tab = 'life';
+let deferredPrompt = null;
+
+function newState(opts){
+  const place = opts.place;
+  const sex = opts.sex === 'r' ? (chance(.5)?'f':'m') : opts.sex;
+  const first = opts.name || pick(sex==='f' ? F_NAMES : M_NAMES);
+  const last = pick(SURNAMES);
+  const diff = opts.diff;
+  const wealth = diff==='rich' ? R(1.8,3.4) : diff==='hard' ? R(.25,.6) : R(.7,1.3);
+
+  const s = {
+    first, last, sex, place, diff,
+    born: 2000 + RI(0,25),
+    age: 0,
+    health: clamp(RI(70,96) + (diff==='hard'?-10:diff==='rich'?4:0)),
+    happy:  clamp(RI(72,96)),
+    smarts: clamp(RI(28,78) + (diff==='rich'?6:0)),
+    looks:  clamp(RI(25,85)),
+    cash: 0,
+    debt: 0,
+    wealth,
+    people: [],
+    assets: [],
+    job: null, rank: 0, yearsInRank: 0, perf: 50,
+    edu: 0, school: 'daycare', major: null, uniYear: 0, gpa: 0,
+    grades: 0,
+    log: [],
+    flags: {},
+    doneThisYear: {},
+    achievements: [],
+    alive: true, cause: '', causeIcon: '⚰️',
+    stress: 0, addiction: 0, karma: 50, fame: 0,
+    kidsCount: 0,
+    peakCash: 0,
+    nid: 1,
+  };
+
+  // --- Family ---
+  const momName = pick(F_NAMES), dadName = pick(M_NAMES);
+  const twoParents = chance(diff==='hard' ? .55 : .84);
+  s.people.push(mkPerson(s,{name:momName+' '+last, rel:'Mother', emoji:'👩', bond:RI(72,96), age:RI(20,40)}));
+  if (twoParents) s.people.push(mkPerson(s,{name:dadName+' '+last, rel:'Father', emoji:'👨', bond:RI(64,94), age:RI(21,45)}));
+  else s.flags.noDad = true;
+  const sibs = RI(0, diff==='rich'?2:3);
+  for (let i=0;i<sibs;i++){
+    const bs = chance(.5)?'f':'m';
+    s.people.push(mkPerson(s,{
+      name: pick(bs==='f'?F_NAMES:M_NAMES)+' '+last,
+      rel: bs==='f' ? 'Sister' : 'Brother', emoji: bs==='f'?'👧':'👦',
+      bond: RI(40,88), age: RI(1,9)          // siblings already here are older than you
+    }));
+  }
+  if (chance(.7)) s.people.push(mkPerson(s,{name:pick(F_NAMES)+' '+pick(SURNAMES), rel:'Grandmother', emoji:'👵', bond:RI(70,98), age:RI(58,80)}));
+  if (chance(.5)) s.people.push(mkPerson(s,{name:pick(M_NAMES)+' '+last, rel:'Grandfather', emoji:'👴', bond:RI(66,96), age:RI(60,84)}));
+  return s;
+}
+function mkPerson(s,o){
+  return { id: s.nid++, name:o.name, rel:o.rel, emoji:o.emoji, bond:clamp(o.bond),
+           age:o.age|0, alive:true, dead:false, note:o.note||'', met:s.age };
+}
+
+/* ============================================================
+   5.  Logging
+   ============================================================ */
+function log(icon, text, kind){
+  const yr = S.age;
+  const last = S.log[S.log.length-1];
+  if (!last || last.year !== yr) S.log.push({year:yr, items:[]});
+  S.log[S.log.length-1].items.push({icon, text, kind:kind||''});
+}
+let toastT = null;
+function toast(msg){
+  const t = $('toast'); t.textContent = msg; t.classList.add('on');
+  clearTimeout(toastT); toastT = setTimeout(()=>t.classList.remove('on'), 1900);
+}
+
+/* ============================================================
+   6.  Stat & money mutation
+   ============================================================ */
+function stat(k, d){
+  if (d === 0) return;
+  S[k] = clamp(S[k] + d);
+}
+function apply(o){
+  if (!o) return;
+  if (o.health) stat('health', o.health);
+  if (o.happy)  stat('happy',  o.happy);
+  if (o.smarts) stat('smarts', o.smarts);
+  if (o.looks)  stat('looks',  o.looks);
+  if (o.cash)   S.cash += o.cash;
+  if (o.karma)  S.karma = clamp(S.karma + o.karma);
+  if (o.fame)   S.fame  = clamp(S.fame  + o.fame);
+  if (o.stress) S.stress = clamp(S.stress + o.stress);
+}
+function fmtDelta(o){
+  const p = [];
+  if (o.health) p.push((o.health>0?'+':'')+o.health+' health');
+  if (o.happy)  p.push((o.happy>0?'+':'')+o.happy+' happiness');
+  if (o.smarts) p.push((o.smarts>0?'+':'')+o.smarts+' smarts');
+  if (o.looks)  p.push((o.looks>0?'+':'')+o.looks+' looks');
+  if (o.cash)   p.push((o.cash>0?'+':'−')+moneyFull(Math.abs(o.cash)).replace('−',''));
+  return p.join(', ');
+}
+
+/* ============================================================
+   7.  People helpers
+   ============================================================ */
+const byRel = r => S.people.filter(p=>p.alive && p.rel===r);
+const anyRel = (...rs) => S.people.filter(p=>p.alive && rs.includes(p.rel));
+const partner = () => S.people.find(p=>p.alive && (p.rel==='Spouse'||p.rel==='Partner'));
+const kids = () => S.people.filter(p=>p.alive && (p.rel==='Son'||p.rel==='Daughter'));
+const friends = () => S.people.filter(p=>p.alive && p.rel==='Friend');
+const parents = () => anyRel('Mother','Father');
+
+function killPerson(p, why){
+  p.alive = false; p.dead = true; p.cause = why;
+  log('🕯️', `${p.name}, your ${p.rel.toLowerCase()}, passed away${why?' — '+why:''}.`, 'bad');
+  stat('happy', -Math.round(p.bond/5));
+}
+
+/* ============================================================
+   8.  Money / year finance
+   ============================================================ */
+function salary(){
+  if (!S.job) return 0;
+  const c = CAREERS.find(c=>c.id===S.job);
+  if (!c) return 0;
+  let base = c.pay * Math.pow(1.42, S.rank) * S.place.econ;
+  if (c.luck) base *= (1 + S.fame/45);
+  base *= 1 + (S.smarts-50)/450;
+  return Math.round(base/100)*100;
+}
+function livingCost(){
+  if (S.age < 18) return 0;
+  let c = 11000 * S.place.cost;
+  c *= 1 + kids().length * 0.42;
+  if (partner()) c *= 1.25;
+  const owned = S.assets.filter(a=>a.cat==='home').length;
+  if (!owned) c += 12000 * S.place.cost;             // rent
+  else c += 4200 * S.place.cost * owned;             // upkeep + tax
+  c += S.assets.filter(a=>a.cat==='ride').length * 2400;
+  c += S.assets.filter(a=>a.cat==='pet').length * 900;
+  c += S.assets.filter(a=>a.cat==='lux').length * 1800;
+  // out of work and no property: you downsize, move in with people, go without
+  if (!S.job && !S.flags.pension && S.age < 67 && !owned) c *= 0.6;
+  return Math.round(c);
+}
+function netWorth(){
+  return Math.round(S.cash + S.assets.reduce((t,a)=>t+a.value,0) - S.debt);
+}
+// Debt cannot spiral forever — at some point the courts step in.
+function maybeBankrupt(){
+  const ceiling = Math.max(45000, livingCost()*3) * S.place.cost;
+  if (S.debt < ceiling) return;
+  if (S.age - (S.flags.bankruptAt || -99) < 6) return;   // no repeat filings
+  const sold = S.assets.reduce((t,a)=>t+a.value,0);
+  const kept = S.assets.filter(a=>a.cat==='pet');        // they don't take the dog
+  S.assets = kept;
+  S.debt = 0; S.cash = 0;
+  S.flags.bankruptAt = S.age;
+  log('⚖️', `You declared bankruptcy. The debt was wiped and ${sold>0?'everything you owned ('+moneyFull(sold)+' worth) went with it':'there was nothing left to take'}.`, 'bad');
+  apply({happy:-18, stress:22, health:-4});
+  earn('Went bankrupt');
+}
+
+/* ============================================================
+   9.  Random life events   (bracketed by age)
+   ============================================================ */
+/* Each event: {min,max,w?,cond?,ic,txt, auto?:fn, choices?:[{l,sub?,go:fn}]}
+   `txt` may contain %N% (a random person's name) tokens resolved at fire time. */
+const EVENTS = [];
+function EV(o){ EVENTS.push(o); }
+
+/* ---------- 0–2  Babyhood (very realistic) ---------- */
+EV({min:0,max:0,ic:'👃',txt:'Your mother smelled the top of your head for eleven straight minutes and declared it the best smell on earth.',auto:()=>apply({happy:3})});
+EV({min:0,max:0,ic:'😴',txt:'You slept in twenty-minute bursts for six weeks. Nobody in the house was okay.',auto:()=>{apply({happy:-1});}});
+EV({min:0,max:1,ic:'🤱',txt:'Feeding went well. You gained weight steadily and the doctor used the word "thriving".',auto:()=>apply({health:4})});
+EV({min:0,max:1,ic:'🧷',txt:'A diaper failed catastrophically in a public place. Your family still tells this story.',auto:()=>apply({happy:2})});
+EV({min:0,max:0,ic:'😊',txt:'You smiled — a real one, not gas. Everyone in the room lost their minds.',auto:()=>apply({happy:5})});
+EV({min:0,max:1,ic:'🔄',txt:'You rolled over. Then you did it again, immediately, to prove it was not an accident.',auto:()=>apply({health:2,smarts:1})});
+EV({min:0,max:1,ic:'🦷',txt:'Teething. Two bottom teeth arrived, and with them, three weeks of misery for the whole household.',auto:()=>apply({health:-2,happy:-3})});
+EV({min:0,max:1,ic:'🗣️',txt:()=>`Your first word was "${pick(['dada','mama','ball','no','dog','light','more','uh-oh','cat','hi'])}". It was repeated four hundred times that week.`,auto:()=>apply({smarts:3,happy:3})});
+EV({min:1,max:1,ic:'👣',txt:'You took your first steps — three of them, then a sit-down landing. It counted.',auto:()=>apply({health:3,happy:5})});
+EV({min:0,max:2,ic:'🤒',w:.6,txt:'You caught your first proper fever. Everyone panicked. You were fine in two days.',auto:()=>apply({health:-4})});
+EV({min:1,max:2,ic:'🥄',txt:'You discovered solid food and immediately developed strong opinions about it.',auto:()=>apply({health:2,happy:2})});
+EV({min:1,max:2,ic:'😾',txt:'A tantrum in a supermarket aisle. Full floor. Full volume. A stranger applauded.',auto:()=>apply({happy:-2})});
+EV({min:1,max:2,ic:'📚',txt:'Someone read you the same picture book eleven nights in a row. You knew when they skipped a page.',auto:()=>apply({smarts:4,happy:3})});
+EV({min:2,max:3,ic:'🚽',txt:'Potty training. It went about as well as these things go.',auto:()=>apply({happy:1,smarts:2})});
+EV({min:2,max:3,ic:'🎨',txt:'You drew on a wall. It was, honestly, quite good for a two-year-old.',auto:()=>apply({happy:4,smarts:2})});
+EV({min:1,max:3,ic:'🐕',w:.5,cond:()=>true,txt:'A neighbour\'s dog licked your entire face. You laughed so hard you fell over.',auto:()=>apply({happy:5})});
+
+/* ---------- 3–5 Toddler / preschool ---------- */
+EV({min:1,max:8,w:.7,ic:'🤰',cond:()=>anyRel('Brother','Sister').length<4&&byRel('Mother').length>0&&!S.flags.noMoreSibs,
+  txt:'Your mother is pregnant.',
+  auto:()=>{
+    const bs = chance(.5)?'f':'m';
+    S.people.push(mkPerson(S,{name:pick(bs==='f'?F_NAMES:M_NAMES)+' '+S.last,
+      rel:bs==='f'?'Sister':'Brother', emoji:'👶', bond:RI(55,90), age:0}));
+    if (anyRel('Brother','Sister').length>=3) S.flags.noMoreSibs = true;
+    log('👶','You got a new baby sibling. The attention split in two overnight.');
+    apply({happy:RI(-4,7)});
+  }});
+EV({min:3,max:5,ic:'🏫',txt:'You started preschool. Day one involved a great deal of crying, most of it from your parents.',auto:()=>apply({smarts:3,happy:2})});
+EV({min:3,max:6,ic:'🧩',txt:'You completed a 24-piece puzzle unassisted and demanded witnesses.',auto:()=>apply({smarts:4,happy:3})});
+EV({min:3,max:6,ic:'🩹',txt:'You fell off something you had been explicitly told not to climb.',auto:()=>apply({health:-3,happy:-2})});
+EV({min:3,max:6,ic:'👫',txt:'You made a best friend over a shared interest in a specific rock.',
+  auto:()=>{ addFriend(RI(60,90)); apply({happy:6}); }});
+EV({min:3,max:7,ic:'🎂',txt:()=>`Your birthday party had a ${pick(['dinosaur','space','pirate','mermaid','superhero','farm animal','construction vehicle'])} theme. You have not stopped talking about it.`,auto:()=>apply({happy:6})});
+EV({min:4,max:7,ic:'🦖',txt:'You became an expert on one very specific subject and would not be stopped.',auto:()=>apply({smarts:5,happy:3})});
+EV({min:3,max:6,ic:'😱',w:.5,txt:'You became convinced something lived under the bed. Sleep suffered for months.',auto:()=>apply({happy:-4,health:-2})});
+
+/* ---------- 6–12 Childhood, with choices ---------- */
+EV({min:6,max:12,ic:'🏆',txt:'The school held a talent show and you were signed up without being asked.',
+  choices:[
+    {l:'Go for it', go:()=>{ if(chance(.55)){log('🏆','You brought the house down. People still bring it up.','good');apply({happy:9,looks:2});} else {log('😬','You froze on stage. It was long. It was quiet.','bad');apply({happy:-7});} }},
+    {l:'Fake a stomach ache', go:()=>{ log('🤒','You spent the show in the nurse\'s office, safe and slightly ashamed.'); apply({happy:-2}); }},
+  ]});
+EV({min:7,max:12,ic:'💰',txt:'A neighbour offers you money to walk their dog every day after school.',
+  choices:[
+    {l:'Take the job', sub:'Earn a little, lose some free time', go:()=>{ const m=RI(120,340); S.cash+=m; log('🐕',`You walked the dog all year and made ${moneyFull(m)}.`,'good'); apply({health:3,happy:-1}); }},
+    {l:'Politely decline', go:()=>{ log('🙅','You said no. Your afternoons stayed gloriously empty.'); apply({happy:3}); }},
+  ]});
+EV({min:6,max:12,ic:'📖',txt:'You found a book series that swallowed your entire year.',auto:()=>apply({smarts:7,happy:5})});
+EV({min:6,max:12,ic:'🥋',txt:'Your parents sign you up for an activity you did not choose.',
+  choices:[
+    {l:'Stick with it', go:()=>{ log('🥋','You stuck it out and got surprisingly good.','good'); apply({health:6,happy:3,smarts:2}); }},
+    {l:'Quit after a month', go:()=>{ log('🚪','You quit. Your parents were mildly disappointed and mostly relieved about the fees.'); apply({happy:2}); }},
+  ]});
+EV({min:7,max:13,ic:'😠',txt:'A kid at school has decided to make your life difficult.',
+  choices:[
+    {l:'Stand up to them', go:()=>{ if(chance(.6)){log('💪','You stood your ground and they backed off for good.','good');apply({happy:6,looks:1});} else {log('🤕','It went badly. You got hurt and so did your pride.','bad');apply({health:-7,happy:-8});} }},
+    {l:'Tell a teacher', go:()=>{ if(chance(.65)){log('🧑‍🏫','The school actually handled it. It stopped.','good');apply({happy:4});} else {log('😑','Nothing much happened. It continued for a while.','bad');apply({happy:-5});} }},
+    {l:'Avoid them entirely', go:()=>{ log('🚶','You changed your routes and your routines. It mostly worked.'); apply({happy:-2,smarts:1}); }},
+  ]});
+EV({min:8,max:14,ic:'🎺',txt:'Band tryouts. You could learn an instrument.',
+  choices:[
+    {l:'Join the band', go:()=>{ log('🎺','You joined. The first six months were rough on everyone.','good'); apply({smarts:5,happy:4}); S.flags.music=true; addFriend(RI(50,80)); }},
+    {l:'Skip it', go:()=>{ log('🎧','You skipped it and listened to music instead, which is arguably the better deal.'); apply({happy:2}); }},
+  ]});
+EV({min:6,max:12,ic:'🦴',w:.5,txt:'You broke a bone doing something that seemed reasonable at the time.',auto:()=>{apply({health:-10,happy:-5});log('🩻','Six weeks in a cast. Everyone signed it.');}});
+EV({min:6,max:13,ic:'✈️',w:.5,cond:()=>S.wealth>.9,txt:'The family went on a real holiday — plane and everything.',auto:()=>apply({happy:10,smarts:3})});
+EV({min:9,max:13,ic:'🥇',txt:'You entered the science fair.',
+  choices:[
+    {l:'Do a serious project', sub:'Needs smarts', go:()=>{ if(S.smarts>60&&chance(.7)){log('🥇','You won. A local paper printed your photo.','good');apply({smarts:8,happy:8});} else {log('🌋','Volcano. Baking soda. Third place in a field of four.');apply({smarts:3,happy:1});} }},
+    {l:'Do it the night before', go:()=>{ log('🌙','You did it at 11pm the night before. It showed.'); apply({smarts:1,happy:-2}); }},
+  ]});
+
+/* ---------- 13–17 Teenage ---------- */
+EV({min:13,max:17,ic:'💔',txt:'Your first real crush.',
+  choices:[
+    {l:'Say something', go:()=>{ if(chance(.42)){const n=addDate(RI(55,85));log('💘',`${n} said yes. You were unbearable about it for months.`,'good');apply({happy:12,looks:2});} else {log('💔','It did not go well. You survived, eventually.','bad');apply({happy:-9});} }},
+    {l:'Say nothing, ever', go:()=>{ log('🤐','You said nothing and thought about it constantly for two years.'); apply({happy:-3,smarts:1}); }},
+  ]});
+EV({min:14,max:17,ic:'🚗',txt:'You are old enough to learn to drive.',
+  cond:()=>!S.flags.licence,
+  choices:[
+    {l:'Take the test', go:()=>{ if(chance(.6+S.smarts/400)){S.flags.licence=true;log('🪪','You passed. First try. Insufferable about it.','good');apply({happy:8});} else {log('🚧','You failed. A cone did not survive.','bad');apply({happy:-5});} }},
+    {l:'Not yet', go:()=>{ log('🚌','You stuck with the bus. Cheaper, honestly.'); }},
+  ]});
+EV({min:14,max:17,ic:'🍺',txt:'There is a party this weekend and your parents are away.',
+  choices:[
+    {l:'Go, and go hard', go:()=>{ if(chance(.62)){log('🎉','Legendary night. You were briefly the most popular person in school.','good');apply({happy:12,looks:2,health:-3});S.karma-=3;} else {log('🚔','It got broken up. You were the one holding something you shouldn\'t.','bad');apply({happy:-8,health:-4,karma:-8});S.flags.trouble=true;} }},
+    {l:'Go, stay sensible', go:()=>{ log('🥤','You went, drank soda, drove three people home. They still thank you.','good'); apply({happy:5,karma:6}); }},
+    {l:'Stay home', go:()=>{ log('📺','You stayed in. It was, quietly, a very good night.'); apply({happy:2,smarts:2}); }},
+  ]});
+EV({min:15,max:17,ic:'💼',txt:'A part-time job is available at a place in town.',
+  cond:()=>!S.flags.ptJob,
+  choices:[
+    {l:'Take it', sub:'Money now, less free time', go:()=>{ S.flags.ptJob=true; const m=RI(2400,6800); S.cash+=m; log('💵',`You worked weekends and made ${moneyFull(m)} over the year.`,'good'); apply({happy:-2,smarts:2}); }},
+    {l:'Focus on school', go:()=>{ log('📚','You skipped the job and hit the books.'); apply({smarts:5}); }},
+  ]});
+EV({min:13,max:17,ic:'📱',txt:'Something you posted got a great deal more attention than intended.',
+  choices:[
+    {l:'Lean into it', go:()=>{ if(chance(.5)){log('🌟','You rode the wave. Briefly semi-famous at school.','good');apply({happy:8,fame:6,looks:2});} else {log('😖','It curdled fast. The comments were brutal.','bad');apply({happy:-10});} }},
+    {l:'Delete everything', go:()=>{ log('🗑️','You deleted it all and went quiet for a while. Wise.'); apply({happy:-2,smarts:2}); }},
+  ]});
+EV({min:13,max:17,ic:'🏃',txt:'Tryouts for a school team.',
+  choices:[
+    {l:'Try out', go:()=>{ if(S.health>60&&chance(.6)){S.flags.sport=true;log('🏅','You made the team. Practices ate your life and you loved it.','good');apply({health:9,happy:7});addFriend(RI(55,85));} else {log('✂️','You got cut in the final round.','bad');apply({happy:-6});} }},
+    {l:'Don\'t bother', go:()=>{ log('🛋️','You did not try out. Your knees thank you in advance.'); }},
+  ]});
+EV({min:16,max:17,ic:'📝',txt:'College applications are due.',
+  cond:()=>!S.flags.applied,
+  choices:[
+    {l:'Apply everywhere', go:()=>{ S.flags.applied=true; log('📮','You applied to eleven schools and waited.','good'); apply({smarts:2,happy:-2}); }},
+    {l:'Apply to one safe school', go:()=>{ S.flags.applied=true; log('📮','One application. One outcome. Efficient.'); }},
+    {l:'Skip college', go:()=>{ S.flags.noUni=true; log('🛠️','You decided college was not the plan.'); }},
+  ]});
+EV({min:13,max:17,ic:'😔',w:.6,txt:'A rough stretch. Nothing dramatic — just heavy for a while.',
+  choices:[
+    {l:'Talk to someone', go:()=>{ log('💬','You told someone. It helped more than you expected.','good'); apply({happy:8,health:3,smarts:2}); }},
+    {l:'Handle it alone', go:()=>{ log('🌑','You handled it alone. It took longer.','bad'); apply({happy:-6,health:-3}); }},
+  ]});
+
+/* ---------- 18–29 ---------- */
+EV({min:18,max:29,ic:'🏠',txt:'Your parents mention, gently, that the spare room could be an office.',
+  cond:()=>!S.assets.some(a=>a.cat==='home')&&S.age>19,
+  auto:()=>{ log('📦','You got the hint. Rent is a whole thing now.'); apply({happy:-3,smarts:3}); }});
+EV({min:18,max:35,ic:'💕',w:1.3,cond:()=>!partner(),txt:'You met someone.',
+  choices:[
+    {l:'Ask them out', go:()=>{ if(chance(.35+S.looks/260+S.happy/500)){const n=addDate(RI(58,88));log('💞',`You and ${n} started seeing each other.`,'good');apply({happy:12});} else {log('🙃','They were flattered but not interested.','bad');apply({happy:-5});} }},
+    {l:'Play it cool', go:()=>{ log('🧊','You played it so cool that nothing happened at all.'); apply({happy:-2}); }},
+  ]});
+EV({min:18,max:40,ic:'🌍',txt:'A chance to travel somewhere far away.',
+  choices:[
+    {l:'Go', sub:()=>'Costs '+moneyFull(3200), go:()=>{ if(S.cash>=3200){S.cash-=3200;log('🌏',`You went to ${pick(['Japan','Peru','Iceland','Morocco','Vietnam','Portugal','Kenya','New Zealand','Greece','Chile'])} and came back different.`,'good');apply({happy:14,smarts:6,looks:2});} else {toast('You cannot afford it.');log('💸','You wanted to go. You could not afford it.','bad');apply({happy:-4});} }},
+    {l:'Stay home and save', go:()=>{ log('🏦','You stayed home and put the money away.'); apply({happy:-2}); }},
+  ]});
+EV({min:20,max:45,ic:'📈',txt:'A friend has an investment opportunity. It sounds good. It sounds very good.',
+  choices:[
+    {l:'Put in 10% of your cash', go:()=>{ const amt=Math.round(S.cash*.1); if(amt<100){toast('You have nothing to invest.');return;} S.cash-=amt;
+      if(chance(.42)){const g=Math.round(amt*R(1.8,4.5));S.cash+=g;log('💹',`It paid off. You turned ${moneyFull(amt)} into ${moneyFull(g)}.`,'good');apply({happy:9});}
+      else {log('📉',`It collapsed. You lost ${moneyFull(amt)}.`,'bad');apply({happy:-9});} }},
+    {l:'Pass', go:()=>{ log('🚫','You passed. You will never know.'); apply({smarts:2}); }},
+  ]});
+EV({min:22,max:55,ic:'🤝',w:.8,cond:()=>!!S.job,txt:'A rival company is quietly asking whether you would move.',
+  choices:[
+    {l:'Take the meeting', go:()=>{ if(chance(.55)){const b=Math.round(salary()*R(.12,.3));log('💼',`You used the offer to negotiate. Your pay went up about ${moneyFull(b)}.`,'good');S.perf+=6;S.cash+=b;apply({happy:6});} else {log('😬','Word got back to your boss. That was uncomfortable.','bad');S.perf-=15;apply({happy:-6,stress:10});} }},
+    {l:'Stay loyal', go:()=>{ log('🤞','You stayed put. Your manager noticed.'); S.perf+=8; }},
+  ]});
+EV({min:24,max:44,ic:'👶',cond:()=>!!partner()&&kids().length<5,txt:()=>`You and ${partner().name.split(' ')[0]} have been talking about children.`,
+  choices:[
+    {l:'Try for a baby', go:()=>{ if(chance(.72)){ haveBaby(); } else { log('🕰️','Not this year. You keep hoping.','bad'); apply({happy:-5,stress:8}); } }},
+    {l:'Not right now', go:()=>{ log('⏳','You agreed to wait. There is time.'); }},
+  ]});
+EV({min:18,max:60,ic:'🎰',w:.5,txt:'You are handed a lottery ticket as a joke.',
+  auto:()=>{ if(chance(.012)){const w=RI(80000,3200000);S.cash+=w;log('🎉',`It won. ${moneyFull(w)}. Nobody believed you at first.`,'big');apply({happy:22});}
+             else if(chance(.06)){const w=RI(100,900);S.cash+=w;log('🎟️',`Small win — ${moneyFull(w)}.`,'good');apply({happy:3});}
+             else log('🗑️','It was worth nothing, as tickets are.'); }});
+EV({min:18,max:70,ic:'🚑',w:.5,txt:'',auto:()=>{
+  const bad = pick([
+    ['🚗','A car accident. Not your fault, which helps almost not at all.',-16],
+    ['🦠','A serious infection put you in hospital for a week.',-13],
+    ['🪜','You fell from something you should have paid someone else to climb.',-12],
+    ['🥴','Food poisoning that will never be spoken of again.',-6],
+  ]);
+  log(bad[0], bad[1], 'bad'); apply({health:bad[2], happy:-5});
+}});
+
+/* ---------- 30–64 ---------- */
+EV({min:30,max:60,ic:'⚖️',cond:()=>!!partner()&&S.age>28,w:.7,txt:()=>`Things with ${partner().name.split(' ')[0]} have been strained for a while now.`,
+  choices:[
+    {l:'Work on it', sub:'Costs time and money', go:()=>{ const p=partner(); if(!p)return; S.cash-=2400; if(chance(.6)){p.bond=clamp(p.bond+22);log('❤️‍🩹','Counselling helped. You came out stronger.','good');apply({happy:9});} else {p.bond=clamp(p.bond-10);log('😔','You tried. It did not take.','bad');apply({happy:-7});} }},
+    {l:'Separate', go:()=>{ const p=partner(); if(!p)return; const cost=p.rel==='Spouse'?Math.round(Math.max(S.cash,0)*.42):0; S.cash-=cost; p.rel='Ex'; p.emoji='💔';
+      log('💔',`You and ${p.name.split(' ')[0]} separated${cost>0?', and the divorce cost you '+moneyFull(cost):''}.`,'bad'); apply({happy:-16,stress:20}); }},
+    {l:'Ignore it', go:()=>{ const p=partner(); if(p)p.bond=clamp(p.bond-14); log('🙈','You said nothing and hoped. It got quieter.','bad'); apply({happy:-5}); }},
+  ]});
+EV({min:35,max:60,ic:'🏋️',txt:'The doctor says the word "cholesterol" in a tone you do not like.',
+  choices:[
+    {l:'Overhaul everything', go:()=>{ log('🥗','You changed how you eat and started moving. It was miserable and it worked.','good'); apply({health:14,happy:-3,looks:5}); }},
+    {l:'Nod and change nothing', go:()=>{ log('🍟','You nodded seriously and changed nothing.','bad'); apply({health:-9}); }},
+  ]});
+EV({min:32,max:58,ic:'🧑‍💼',w:.8,cond:()=>!!S.job,txt:'Layoffs are being announced.',
+  auto:()=>{ if(S.perf<38&&chance(.6)){ log('📉',`You were let go from your job. Fifteen years and a cardboard box.`,'bad'); S.job=null;S.rank=0;apply({happy:-16,stress:20}); }
+             else log('😮‍💨','The layoffs missed you. The office felt strange for months.'); }});
+EV({min:30,max:65,ic:'🏡',w:.6,cond:()=>S.assets.some(a=>a.cat==='home'),txt:'Something in the house has gone badly wrong.',
+  auto:()=>{ const c=RI(3000,26000); S.cash-=c; log('🔨',`${pick(['The roof','The foundation','A burst pipe','The furnace','Termites','The wiring'])} — ${moneyFull(c)} gone.`,'bad'); apply({happy:-7,stress:10}); }});
+EV({min:38,max:62,ic:'🎓',cond:()=>kids().some(k=>k.age>=17&&k.age<=19),txt:'One of your children is leaving for college.',
+  auto:()=>{ const k=pick(kids().filter(k=>k.age>=17&&k.age<=19)); const c=RI(24000,120000); S.cash-=c; log('🎓',`${k.name.split(' ')[0]} left for college. Tuition: ${moneyFull(c)}. The house is very quiet.`); apply({happy:-4,karma:5}); }});
+EV({min:40,max:70,ic:'🕯️',w:.9,cond:()=>parents().length>0,txt:'',
+  auto:()=>{ const ps=parents(); const p=pick(ps); if(p.age+S.age>72||chance(.35)) killPerson(p, pick(['heart failure','a long illness','a stroke','age'])); else log('🏥',`${p.name.split(' ')[0]} had a health scare. They pulled through.`,'bad'); }});
+EV({min:35,max:65,ic:'🎨',txt:'You start something new purely because you want to.',
+  auto:()=>{ const h=pick(['pottery','long-distance running','learning Italian','beekeeping','woodworking','birdwatching','open-water swimming','oil painting','baking sourdough','sailing']); S.flags.hobby=h; log('🌿',`You took up ${h}. It became the best part of your week.`,'good'); apply({happy:11,smarts:3,health:3}); }});
+EV({min:45,max:64,ic:'💭',txt:'You catch yourself wondering whether this is it.',
+  choices:[
+    {l:'Change something big', go:()=>{ if(chance(.55)){log('🦋','You blew it all up and started over. Best decision you ever made.','good');apply({happy:16,stress:-20});S.job&&(S.perf=55);} else {log('🌪️','You blew it all up. It did not work out the way you pictured.','bad');apply({happy:-12,cash:-Math.round(Math.max(S.cash,0)*.2)});} }},
+    {l:'Sit with it', go:()=>{ log('🪑','You sat with it. The feeling passed, mostly.'); apply({happy:-3,smarts:4}); }},
+  ]});
+
+/* ---------- 65+ ---------- */
+EV({min:63,max:75,ic:'🎣',cond:()=>!!S.job,txt:'You could retire.',
+  choices:[
+    {l:'Retire', go:()=>{ retire(); }},
+    {l:'Keep working', go:()=>{ log('💼','You kept working. You are not done yet.'); apply({happy:-2,smarts:2}); }},
+  ]});
+EV({min:60,max:99,ic:'👵',w:1.1,cond:()=>kids().length>0&&!S.flags.grandkid,txt:'',
+  auto:()=>{ S.flags.grandkid=true; const k=pick(kids()); const gs=chance(.5)?'f':'m';
+    S.people.push(mkPerson(S,{name:pick(gs==='f'?F_NAMES:M_NAMES)+' '+S.last, rel:gs==='f'?'Granddaughter':'Grandson', emoji:'👶', bond:RI(70,95), age:0}));
+    log('🍼',`${k.name.split(' ')[0]} had a baby. You are a grandparent.`,'big'); apply({happy:18}); }});
+EV({min:66,max:99,ic:'🧓',txt:'',auto:()=>{
+  const g = pick([
+    ['📻','You spent the afternoon listening to music you loved forty years ago.',{happy:6}],
+    ['🌻','The garden had its best year yet.',{happy:7,health:2}],
+    ['♟️','You beat someone half your age at chess and were graceless about it.',{happy:8,smarts:3}],
+    ['📖','You finally read the book you had been meaning to read since 1998.',{happy:6,smarts:4}],
+    ['🚶','You walk every morning now. It is the fixed point of your day.',{health:5,happy:4}],
+    ['📞','An old friend called out of nowhere. You talked for two hours.',{happy:10}],
+  ]);
+  log(g[0], g[1], 'good'); apply(g[2]);
+}});
+EV({min:68,max:99,ic:'🏥',w:.75,txt:'',auto:()=>{
+  const c = pick([
+    ['🦴','You fell. Nothing broke, but it took a long time to feel steady again.',-6],
+    ['❤️','A cardiac event. They caught it in time.',-10],
+    ['👁️','Your eyesight got noticeably worse this year.',-4],
+    ['🦻','You gave in and got hearing aids. Everything is much louder now.',-2],
+    ['🧠','Names started slipping. You laugh it off in company.',-4],
+  ]);
+  log(c[0], c[1], 'bad'); apply({health:c[2], happy:-3});
+}});
+EV({min:70,max:99,ic:'📜',cond:()=>netWorth()>50000&&!S.flags.will,txt:'Someone raises the subject of a will.',
+  choices:[
+    {l:'Write it properly', go:()=>{ S.flags.will=true; log('📜','You wrote it all down. A weight came off.','good'); apply({happy:7,karma:5}); }},
+    {l:'"There\'s time"', go:()=>{ log('🤷','You said there was time.'); }},
+  ]});
+
+/* ============================================================
+   10.  Event helpers
+   ============================================================ */
+function addFriend(bond){
+  const fs = chance(.5)?'f':'m';
+  const n = pick(fs==='f'?F_NAMES:M_NAMES)+' '+pick(SURNAMES);
+  S.people.push(mkPerson(S,{name:n, rel:'Friend', emoji:fs==='f'?'👩‍🦰':'🧑', bond:bond||RI(45,80), age:S.age}));
+  return n.split(' ')[0];
+}
+function addDate(bond){
+  const ds = chance(.72) ? (S.sex==='f'?'m':'f') : S.sex;
+  const n = pick(ds==='f'?F_NAMES:M_NAMES)+' '+pick(SURNAMES);
+  const p = mkPerson(S,{name:n, rel:'Partner', emoji:ds==='f'?'👩':'👨', bond:bond||RI(55,85), age:S.age+RI(-4,4)});
+  S.people.push(p);
+  return n.split(' ')[0];
+}
+function haveBaby(){
+  const ks = chance(.5)?'f':'m';
+  const nm = pick(ks==='f'?F_NAMES:M_NAMES)+' '+S.last;
+  S.people.push(mkPerson(S,{name:nm, rel:ks==='f'?'Daughter':'Son', emoji:'👶', bond:RI(80,99), age:0}));
+  S.kidsCount++;
+  log('👶', `${nm.split(' ')[0]} was born. ${RI(6,9)} lb ${RI(0,15)} oz. You did not sleep for a year.`, 'big');
+  apply({happy:20, health:-4, karma:4});
+}
+function retire(){
+  if (!S.job) return;
+  const c = CAREERS.find(c=>c.id===S.job);
+  const years = S.age - (S.flags.careerStart||22);
+  S.flags.pension = Math.round(salary()*0.42*Math.min(1, years/30));
+  S.flags.retiredAt = S.age;
+  log('🎣', `You retired after ${years} years in ${c?c.n.toLowerCase():'work'}. There was a cake and a speech.`, 'big');
+  S.job = null; S.rank = 0;
+  apply({happy:14, stress:-30});
+  earn('Retired');
+}
+function earn(name){ if (!S.achievements.includes(name)) S.achievements.push(name); }
+
+/* ============================================================
+   11.  The year tick
+   ============================================================ */
+function ageUp(){
+  if (!S.alive) return;
+  if (busy()) { drainQueue(); return; }   // finish this year's decisions first
+  S.age++;
+  S.doneThisYear = {};
+
+  // people age
+  S.people.forEach(p=>{ if(p.alive) p.age++; });
+
+  // --- money in / out ---
+  if (S.age >= 18){
+    let income = 0;
+    if (S.job){
+      const gross = salary();
+      const tax = gross * (gross>120000?.33:gross>60000?.26:.18);
+      income = gross - tax;
+      S.perf = clamp(S.perf + RI(-6,9) + Math.round((S.smarts-50)/16) + (S.happy>70?3:S.happy<35?-5:0));
+      S.yearsInRank++;
+    } else if (S.flags.pension){
+      income = S.flags.pension;
+    }
+    // safety nets: state pension at 67, and a modest benefit if out of work
+    if (S.age >= 67 && income < 18000*S.place.cost) income = Math.round(18000*S.place.cost);
+    else if (!S.job && !S.flags.pension && income === 0) income = Math.round(9000*S.place.cost);
+
+    const cost = livingCost();
+    const net = income - cost;
+    S.cash += net;
+    if (S.cash < 0){ S.debt += -S.cash; S.cash = 0; }
+    if (S.debt > 0) S.debt = Math.round(S.debt * 1.05);
+    if (income>0 || cost>0){
+      log('🏦', `Income ${moneyFull(income)} · living costs ${moneyFull(cost)} · net ${net>=0?'+':''}${moneyFull(net)}.`, net>=0?'':'bad');
+    }
+    if (S.debt > 0) log('💳', `You are ${moneyFull(S.debt)} in debt.`, 'bad');
+    maybeBankrupt();
+  } else if (S.age >= 5 && S.age < 18){
+    const allowance = Math.round(RI(30,260) * S.wealth);
+    S.cash += allowance;
+  }
+  S.peakCash = Math.max(S.peakCash, netWorth());
+
+  // --- assets drift ---
+  S.assets.forEach(a=>{
+    const d = a.dep !== undefined ? a.dep : .12;
+    a.value = Math.max(0, Math.round(a.value * (1 - d) * (1 + R(-.03,.03))));
+  });
+
+  // --- school / career progression ---
+  progressSchool();
+  progressCareer();
+
+  // --- natural drift ---
+  driftStats();
+
+  // --- relationships drift ---
+  const CLOSE = ['Mother','Father','Spouse','Son','Daughter','Brother','Sister','Grandmother','Grandfather'];
+  S.people.forEach(p=>{
+    if (!p.alive) return;
+    // babies grow up — keep their icon honest
+    if (p.emoji === '👶' && p.age >= 4)
+      p.emoji = ['Daughter','Sister','Granddaughter'].includes(p.rel) ? '👧' : '👦';
+    if (p.age >= 20 && (p.emoji === '👧' || p.emoji === '👦'))
+      p.emoji = p.emoji === '👧' ? '👩' : '👨';
+    // Neglect cools a relationship but family doesn't rot away to nothing.
+    const floor = CLOSE.includes(p.rel) ? 30 : 0;
+    p.bond = Math.max(floor, clamp(p.bond - RI(0,3)));
+    if (p.rel!=='Mother'&&p.rel!=='Father'&&p.bond<8&&chance(.4)&&['Friend','Partner','Ex'].includes(p.rel)){
+      p.alive=false; p.dead=false; p.gone=true;
+      if (p.rel==='Friend') log('👋', `You and ${p.name.split(' ')[0]} drifted apart completely.`);
+    }
+    // elderly relatives can die
+    if (p.alive && p.age > 70 && chance((p.age-70)/230)) killPerson(p, pick(['old age','a stroke','heart failure','pneumonia']));
+  });
+
+  // --- fire events ---
+  const n = S.age<3 ? RI(2,3) : S.age<13 ? RI(1,3) : RI(1,3);
+  fireEvents(n);
+
+  // --- death check ---
+  checkDeath();
+
+  render();
+  if (S.alive) $('screen').scrollTop = $('screen').scrollHeight;
+  if (S.alive && queue.length) setTimeout(drainQueue, 240);
+}
+
+function driftStats(){
+  const a = S.age;
+  if (a < 18) { stat('health', RI(0,2)); stat('smarts', RI(0,3)); }
+  else if (a < 30) { stat('health', RI(-1,1)); }
+  else if (a < 45) { stat('health', RI(-1,1)); stat('looks', RI(-2,0)); }
+  else if (a < 60) { stat('health', RI(-3,0)); stat('looks', RI(-3,-1)); }
+  else if (a < 75) { stat('health', RI(-3,-1)); stat('looks', RI(-3,-1)); stat('smarts', RI(-1,0)); }
+  else { stat('health', RI(-4,-1)); stat('looks', RI(-3,-1)); stat('smarts', RI(-2,0)); }
+  // bodies recover — you don't stay wrecked forever after an injury, and modern
+  // medicine keeps the very frail going for a long while
+  if (a < 55 && S.health < 62) stat('health', RI(2,5));
+  else if (a < 70 && S.health < 50) stat('health', RI(1,4));
+  else if (S.health < 38) stat('health', RI(1,3));
+  if (S.stress > 60) stat('health', -2);
+  S.stress = clamp(S.stress - 4);
+  if (S.happy < 25) stat('health', -2);
+  if (S.assets.some(a2=>a2.cat==='pet')) stat('happy', 1);
+  if (partner()) stat('happy', 1);
+}
+
+function fireEvents(count){
+  const pool = EVENTS.filter(e =>
+    S.age >= e.min && S.age <= e.max &&
+    (!e.cond || safeCond(e)) &&
+    !(e.once && S.flags['ev'+EVENTS.indexOf(e)])
+  );
+  if (!pool.length) return;
+  const weighted = [];
+  pool.forEach(e => { const w = Math.round((e.w===undefined?1:e.w)*10); for(let i=0;i<w;i++) weighted.push(e); });
+  const chosen = [];
+  for (let i=0;i<count && weighted.length;i++){
+    let e = pick(weighted);
+    let guard=0;
+    while (chosen.includes(e) && guard++<14) e = pick(weighted);
+    if (chosen.includes(e)) break;
+    chosen.push(e);
+  }
+  // auto events resolve now; choice events queue for the sheet
+  chosen.forEach(e=>{
+    S.flags['ev'+EVENTS.indexOf(e)] = true;
+    if (e.choices) queue.push(e);
+    else {
+      const t = typeof e.txt === 'function' ? e.txt() : e.txt;
+      if (t) log(e.ic, t);
+      if (e.auto) e.auto();
+    }
+  });
+}
+function safeCond(e){ try { return !!e.cond(); } catch(_){ return false; } }
+
+/* A single queue of things that must be shown to the player before the year can
+   advance again. Entries are either an event object or a plain function that
+   opens its own sheet. Nothing else may open a sheet while this is draining. */
+let queue = [];
+function drainQueue(){
+  if (!S.alive){ queue = []; closeSheet(); render(); return; }
+  if (!queue.length){ closeSheet(); render(); return; }
+  const item = queue.shift();
+  if (typeof item === 'function'){ item(); render(); return; }
+  // Conditions were checked when the event was queued. An earlier event in the
+  // same year can invalidate them (a divorce before the "shall we have a baby"
+  // moment), so re-check here and drop the moment if it no longer applies.
+  if (item.cond && !safeCond(item)){ drainQueue(); return; }
+  let t;
+  try { t = typeof item.txt === 'function' ? item.txt() : item.txt; }
+  catch(_){ drainQueue(); return; }
+  openSheet({
+    icon: item.ic, title: 'A moment in your life', body: t,
+    options: item.choices.map(c=>({
+      label: c.l,
+      sub: typeof c.sub==='function' ? c.sub() : c.sub,
+      // Close immediately so an answered moment can never be shown twice, then
+      // let the timer bring up the next one. The Age Up button is the fallback
+      // if that timer is delayed (background tabs throttle timers hard).
+      run: ()=>{
+        try { c.go(); } catch(err){ log('🌫️','The year passed without much happening.'); }
+        closeSheet(); render(); setTimeout(drainQueue, 180);
+      }
+    })),
+    noClose: true
+  });
+  render();
+}
+// True while the player still owes the game a decision.
+function busy(){ return queue.length > 0 || $('veil').classList.contains('on'); }
+
+/* ---------- school ---------- */
+function progressSchool(){
+  const a = S.age;
+  if (a === 5){ S.school='elementary'; log('🎒','You started elementary school.','big'); }
+  if (a === 11){ S.school='middle'; log('🏫','Middle school. A confusing time for everyone.'); }
+  if (a === 14){ S.school='high'; log('🏫','You started high school.','big'); }
+  if (a === 18 && S.school==='high'){
+    S.edu = Math.max(S.edu, S.smarts>32 ? 1 : 0);
+    if (S.edu>=1){ log('🎓','You graduated high school.','big'); earn('High school graduate'); }
+    else { log('📄','You did not graduate. You left school and got on with it.','bad'); }
+    S.school = 'none';
+    if (!S.flags.noUni && S.edu >= 1) queue.push(offerUniversity);
+  }
+  if (S.school==='uni'){
+    S.uniYear++;
+    stat('smarts', RI(3,7) + (S.major?MAJORS.find(m=>m.id===S.major).sm:0)/2|0);
+    S.cash -= Math.round(11000*S.place.cost);
+    if (S.cash<0){ S.debt += -S.cash; S.cash=0; }
+    if (S.uniYear>=4){
+      S.school='none'; S.edu=Math.max(S.edu,3);
+      const m = MAJORS.find(m=>m.id===S.major);
+      log('🎓',`You graduated with a bachelor's degree in ${m?m.n:'something'}.`,'big');
+      earn('College graduate');
+    } else {
+      log('📚',`Year ${S.uniYear} of college. Tuition, ramen, and one very good professor.`);
+    }
+  }
+  if (S.school==='grad'){
+    S.uniYear++;
+    stat('smarts', RI(4,8));
+    S.cash -= Math.round(16000*S.place.cost);
+    if (S.cash<0){ S.debt += -S.cash; S.cash=0; }
+    const need = S.flags.gradTarget===5 ? 4 : 2;
+    if (S.uniYear>=need){
+      S.school='none'; S.edu=S.flags.gradTarget;
+      log('🎓',`You earned ${EDU_NAME[S.edu]}.`,'big');
+      earn(S.edu===5?'Doctorate':'Master\'s degree');
+    } else log('📚','Graduate school. Sleep is a rumour.');
+  }
+}
+function offerUniversity(){
+  openSheet({
+    icon:'🎓', title:'College?', body:'You have your diploma. Four years and a great deal of money could buy you a degree.',
+    options:[
+      {label:'Go to college', sub:'4 years · roughly '+moneyFull(11000*S.place.cost)+'/yr', run:()=>{ pickMajor(); }},
+      {label:'Skip it and find work', run:()=>{ log('🛠️','You skipped college and went looking for work.'); drainQueue(); }},
+    ], noClose:true
+  });
+}
+function pickMajor(){
+  const opts = shuffle(MAJORS).slice(0,6);
+  openSheet({
+    icon:'📚', title:'Pick a major', body:'This will shape what jobs open up later.',
+    options: opts.map(m=>({label:m.n, sub:'Leads toward: '+m.jobs.map(j=>CAREERS.find(c=>c.id===j).n).join(', '),
+      run:()=>{ S.school='uni'; S.uniYear=0; S.major=m.id; log('🎓',`You enrolled in college to study ${m.n}.`,'big'); drainQueue(); }})),
+    noClose:true
+  });
+}
+
+/* ---------- career ---------- */
+function progressCareer(){
+  if (!S.job) return;
+  const c = CAREERS.find(c=>c.id===S.job);
+  if (!c) return;
+  if (S.rank < c.ladder.length-1 && S.yearsInRank >= (c.luck?3:2)){
+    let odds = (S.perf-40)/100 + S.smarts/380 + (c.luck ? (S.fame/220 + S.looks/500) : 0);
+    odds -= S.rank*0.07;
+    if (chance(clamp(odds,0.02,0.7))){
+      S.rank++; S.yearsInRank=0; S.perf=clamp(S.perf-8);
+      log('📈', `Promoted to ${c.ladder[S.rank]}. New salary: ${moneyFull(salary())}.`, 'big');
+      apply({happy:9, fame: c.luck?9:0});
+      if (S.rank===c.ladder.length-1) earn('Reached the top of a career');
+    }
+  }
+  if (S.perf < 20 && chance(.3)){
+    log('📉', `You were fired from your job as ${c.ladder[S.rank]}.`, 'bad');
+    S.job=null; S.rank=0; apply({happy:-14,stress:14});
+  }
+}
+
+/* ---------- death ---------- */
+function checkDeath(){
+  if (S.age >= 100){
+    die('old age, comfortably, in your sleep', '🕊️'); return;
+  }
+  // The game promises you a life. Nobody dies in the cot.
+  if (S.age < 6){ if (S.health < 15) S.health = 15; return; }
+  if (S.health <= 0){
+    die(pick(['organ failure','a long illness','complications after surgery']), '🕊️'); return;
+  }
+  let p = 0;
+  const a = S.age;
+  // Tuned so an ordinary life lands in the mid-70s to 80s and a well-kept one
+  // has a genuine shot at 100 — reaching the century is the point of the game.
+  if (a > 58) p += Math.pow((a-58)/67, 3.4);
+  p += (100 - S.health)/100 * 0.020;
+  if (S.health > 75) p *= 0.72;          // staying healthy actually buys you years
+  if (a < 45) p *= 0.5;                  // dying young should be rare and shocking
+  if (S.age < 18) p *= .25;
+  if (S.addiction > 50) p += .012;
+  if (chance(p)){
+    const cause = a>78 ? pick(['old age','heart failure','pneumonia','a stroke','a quiet night'])
+                : a>50 ? pick(['a heart attack','cancer','a stroke','an aneurysm'])
+                : pick(['a car accident','a sudden illness','a freak accident','an undiagnosed condition']);
+    die(cause, a>75?'🕊️':'⚰️');
+  }
+}
+function die(cause, icon){
+  S.alive = false; S.cause = cause; S.causeIcon = icon;
+  queue = [];
+  closeSheet();
+  // achievements
+  if (S.age >= 100) earn('Century Club');
+  if (netWorth() >= 1000000) earn('Millionaire');
+  if (netWorth() >= 100000000) earn('Absurdly rich');
+  if (S.kidsCount >= 3) earn('Big family');
+  if (S.happy >= 85) earn('Died happy');
+  if (S.smarts >= 90) earn('Brilliant mind');
+  if (S.karma >= 80) earn('Genuinely good person');
+  if (S.assets.length >= 12) earn('Collector');
+  if (friends().length >= 5) earn('Beloved');
+  showEnd();
+}
+
+/* ============================================================
+   12.  Activities
+   ============================================================ */
+function activities(){
+  const a = S.age, out = [];
+  const once = (k) => S.doneThisYear[k];
+  const mark = (k) => { S.doneThisYear[k] = true; };
+
+  // ---- Baby ----
+  if (a <= 2){
+    out.push({e:'😭',n:'Cry',d:'The only tool you have',go:()=>{
+      const r = pick([['Someone fed you.',{happy:5,health:2}],['Someone changed you. Relief.',{happy:4}],['Someone picked you up and swayed. Bliss.',{happy:6}],['Nobody came for four minutes. Four whole minutes.',{happy:-2}]]);
+      log('😭', r[0]); apply(r[1]); }});
+    out.push({e:'👀',n:'Stare',d:'At a ceiling fan, mostly',go:()=>{ log('👀', pick(['You stared at a ceiling fan for twenty minutes. Riveting.','You watched a shadow move across the wall and learned something about time.','You made unbroken eye contact with a stranger until they left.'])); apply({smarts:3,happy:2}); }});
+    out.push({e:'🤲',n:'Grab something',d:'Anything within reach',go:()=>{ if(chance(.3)){log('💇','You grabbed a fistful of someone\'s hair and would not let go.','bad');apply({happy:4,karma:-1});} else {log('🤲',pick(['You grabbed a spoon and considered it deeply.','You seized a set of car keys and put them straight in your mouth.','You caught a finger and squeezed. Someone got emotional.']));apply({smarts:2,happy:3});} }});
+    out.push({e:'😴',n:'Nap',d:'Restores health',go:()=>{ log('😴', pick(['You slept for three hours and woke up a new person.','You fell asleep mid-feed, which is the highest form of trust.','You napped in a car seat and screamed the moment it stopped moving.'])); apply({health:5,happy:4}); }});
+    out.push({e:'🗣️',n:'Babble',d:'Practise the mouth',go:()=>{ log('🗣️', `You said "${pick(['ba-ba-ba','ga','mmmma','doh','ah-boo','nnnng','ta-ta-ta'])}" with total conviction.`); apply({smarts:4,happy:3}); }});
+    if (a>=1) out.push({e:'🚶',n:'Practise walking',d:'Falling, with ambition',go:()=>{ if(chance(.6)){log('👣','You made it across the whole rug. Standing ovation.','good');apply({health:4,happy:6});} else {log('💥','You went down hard on your bottom. You looked around before deciding whether to cry.');apply({happy:-1,health:1});} }});
+  }
+
+  // ---- Child ----
+  if (a >= 3 && a <= 12){
+    out.push({e:'📚',n:'Study',d:'+smarts',go:()=>{ if(once('study'))return toast('Already studied this year.'); mark('study'); log('📚','You worked on your reading and it stuck.'); apply({smarts:RI(4,9),happy:-1}); }});
+    out.push({e:'🏃',n:'Play outside',d:'+health +happy',go:()=>{ if(once('play'))return toast('Already played out this year.'); mark('play'); log('🏃',pick(['You were outside until the streetlights came on.','You built something in the woods that would not pass any inspection.','You rode your bike in circles for two hours, happily.'])); apply({health:RI(3,7),happy:RI(4,9)}); }});
+    out.push({e:'🧑‍🤝‍🧑',n:'Make a friend',d:'Meet someone new',go:()=>{ if(once('friend'))return toast('Once a year.'); mark('friend');
+      if(chance(.7)){const n=addFriend(RI(45,80));log('🤝',`You made friends with ${n}.`,'good');apply({happy:6});} else {log('😐','You tried. It did not take.');apply({happy:-3});} }});
+    out.push({e:'💬',n:'Ask for something',d:'Pester your parents',go:()=>{ if(once('ask'))return toast('You have used your one ask.'); mark('ask');
+      const p = pick(parents()); if(!p) return toast('Nobody to ask.');
+      if (chance(p.bond/130)){ const m=Math.round(RI(15,140)*S.wealth); S.cash+=m; log('💵',`${p.name.split(' ')[0]} gave you ${moneyFull(m)}.`,'good'); }
+      else { log('🙅','You were told no, and then told why, at length.'); apply({happy:-2}); p.bond=clamp(p.bond-3); } }});
+    out.push({e:'🎭',n:'Misbehave',d:'Risky',go:()=>{ if(once('bad'))return toast('Once a year is plenty.'); mark('bad');
+      if(chance(.5)){log('😈',pick(['You got away with it completely.','Nobody ever found out about the thing with the paint.']),'good');apply({happy:8,karma:-4});}
+      else {log('😬',pick(['You were caught immediately and grounded for a month.','Your parents did the disappointed voice. It was worse than shouting.']),'bad');apply({happy:-7,karma:-3});parents().forEach(p=>p.bond=clamp(p.bond-6));} }});
+  }
+
+  // ---- Teen ----
+  if (a >= 13 && a <= 17){
+    out.push({e:'📚',n:'Study hard',d:'+smarts, −happy',go:()=>{ if(once('study'))return toast('Already studied this year.'); mark('study'); log('📖','You actually studied. Properly.'); apply({smarts:RI(5,11),happy:-3}); }});
+    out.push({e:'🏋️',n:'Work out',d:'+health +looks',go:()=>{ if(once('gym'))return toast('Once a year.'); mark('gym'); log('🏋️','You started lifting things and putting them down.'); apply({health:RI(4,9),looks:RI(2,5),happy:2}); }});
+    out.push({e:'🎉',n:'Hang out',d:'+happy',go:()=>{ if(once('hang'))return toast('Once a year.'); mark('hang'); log('🛼',pick(['You spent the whole weekend doing nothing with people you liked.','You and your friends drove around with nowhere to be.','You stayed up until 4am talking about nothing important.'])); apply({happy:RI(6,12),smarts:-1}); }});
+    out.push({e:'💘',n:'Ask someone out',d:'Depends on looks',go:()=>{ if(once('date'))return toast('Once a year.'); mark('date');
+      if (partner()) return toast('You are already seeing someone.');
+      if(chance(.28+S.looks/240+S.happy/600)){const n=addDate(RI(50,82));log('💞',`${n} said yes.`,'good');apply({happy:11});} else {log('💔','A gentle, devastating no.','bad');apply({happy:-7});} }});
+    out.push({e:'🧑‍🤝‍🧑',n:'Make a friend',d:'Meet someone new',go:()=>{ if(once('friend'))return toast('Once a year.'); mark('friend');
+      if(chance(.62)){const n=addFriend(RI(45,82));log('🤝',`You got close with ${n}.`,'good');apply({happy:5});} else {log('😐','Did not click.');apply({happy:-2});} }});
+  }
+
+  // ---- Adult ----
+  if (a >= 18){
+    if (!S.job && S.school==='none') out.push({e:'💼',n:'Find a job',d:'Browse the listings',go:jobBoard});
+    if (S.job) out.push({e:'💪',n:'Work hard',d:'+performance, −happy',go:()=>{ if(once('grind'))return toast('Once a year.'); mark('grind'); S.perf=clamp(S.perf+RI(9,20)); log('💼','You put in long weeks. Your manager noticed.'); apply({happy:-5,stress:12,health:-2}); }});
+    if (S.job) out.push({e:'🗣️',n:'Ask for a raise',d:'Risky',go:()=>{ if(once('raise'))return toast('Once a year.'); mark('raise');
+      if(chance(.28+S.perf/260)){const b=Math.round(salary()*R(.06,.16));S.cash+=b;S.perf+=4;log('💵',`You got the raise — about ${moneyFull(b)} more.`,'good');apply({happy:8});}
+      else {log('😐','You were told about "budget cycles". No raise.','bad');S.perf-=4;apply({happy:-5});} }});
+    if (S.job) out.push({e:'🚪',n:'Quit',d:'Walk away',go:()=>{ const c=CAREERS.find(c=>c.id===S.job); log('🚪',`You quit your job as ${c.ladder[S.rank]}.`); S.job=null;S.rank=0;S.perf=50; apply({happy:6,stress:-15}); render(); }});
+    out.push({e:'🏋️',n:'Gym',d:'+health +looks',go:()=>{ if(once('gym'))return toast('Once a year.'); mark('gym'); if(S.cash<400)return toast('You cannot afford a membership.'); S.cash-=400; log('🏋️','A year of gym membership, mostly used.'); apply({health:RI(5,11),looks:RI(2,6),happy:2}); }});
+    out.push({e:'🩺',n:'See a doctor',d:'Costs money, finds problems',go:()=>{ if(once('doc'))return toast('Once a year.'); mark('doc');
+      const cost=Math.round(RI(120,900)*S.place.cost); if(S.cash<cost)return toast('You cannot afford it right now.');
+      S.cash-=cost;
+      if(S.health<55){ const gain=RI(8,18); apply({health:gain}); log('🩺',`Treatment cost ${moneyFull(cost)} and got you back on your feet.`,'good'); }
+      else { apply({health:3}); log('🩺',`A clean bill of health for ${moneyFull(cost)}.`); } }});
+    out.push({e:'📖',n:'Take a course',d:'+smarts',go:()=>{ if(once('course'))return toast('Once a year.'); mark('course'); const cost=RI(300,1800); if(S.cash<cost)return toast('Too expensive.'); S.cash-=cost; log('📖','You took a course in the evenings and finished it.','good'); apply({smarts:RI(5,11),happy:2}); }});
+    if (S.edu>=1&&S.edu<5&&S.school==='none'&&a<58) out.push({e:'🎓',n:'Go back to school',d:'Higher degree',go:gradSchool});
+    if (!partner() ) out.push({e:'💘',n:'Look for love',d:'Put yourself out there',go:()=>{ if(once('love'))return toast('Once a year.'); mark('love');
+      if(chance(.3+S.looks/280+S.happy/700)){const n=addDate(RI(52,85));log('💞',`You started seeing ${n}.`,'good');apply({happy:12});} else {log('🫠','Several dates. No sparks.','bad');apply({happy:-4});} }});
+    const pt = partner();
+    if (pt && pt.rel==='Partner' && pt.bond>68 && a>=19) out.push({e:'💍',n:'Propose',d:'The big one',go:()=>{
+      const cost = Math.round(RI(1500,14000)); if(S.cash<cost) return toast('You cannot afford a ring.');
+      if (chance(pt.bond/115)){ S.cash-=cost; pt.rel='Spouse'; pt.bond=clamp(pt.bond+12); log('💍',`${pt.name.split(' ')[0]} said yes. The wedding cost more than the ring.`,'big'); S.cash-=Math.round(RI(6000,45000)); apply({happy:24}); earn('Married'); }
+      else { pt.bond=clamp(pt.bond-25); log('😶',`${pt.name.split(' ')[0]} said they were not ready. It was very quiet afterward.`,'bad'); apply({happy:-18}); }
+      render(); }});
+    if (pt && pt.rel==='Spouse' && kids().length<6 && a<=48) out.push({e:'👶',n:'Try for a baby',d:'Life changes',go:()=>{ if(once('baby'))return toast('Once a year.'); mark('baby');
+      const odds = a<32?.7:a<38?.5:a<43?.3:.12;
+      if(chance(odds)) haveBaby(); else { log('🕰️','Not this year.','bad'); apply({happy:-5,stress:8}); } render(); }});
+    if (S.job && a>=60) out.push({e:'🎣',n:'Retire',d:'Collect your pension',go:()=>{ retire(); render(); }});
+    if (S.debt>0) out.push({e:'💳',n:'Pay down debt',d:'You owe '+moneyFull(S.debt),go:()=>{
+      const p=Math.min(S.cash, S.debt); if(p<1) return toast('No cash to pay with.'); S.cash-=p; S.debt-=p; log('💳',`Paid ${moneyFull(p)} off your debt.`,'good'); render(); }});
+    out.push({e:'🎲',n:'Gamble',d:'Bet 10% of your cash',go:()=>{ if(once('gamble'))return toast('Once a year.'); mark('gamble');
+      const bet=Math.round(S.cash*.1); if(bet<20)return toast('Not enough to bet.'); S.cash-=bet;
+      if(chance(.44)){const w=Math.round(bet*R(1.6,3.2));S.cash+=w;log('🎰',`You won ${moneyFull(w)}.`,'good');apply({happy:8});}
+      else {log('🎰',`You lost ${moneyFull(bet)}.`,'bad');apply({happy:-7});S.addiction=clamp(S.addiction+8);} render(); }});
+    out.push({e:'🙌',n:'Volunteer',d:'+karma +happy',go:()=>{ if(once('vol'))return toast('Once a year.'); mark('vol'); log('🙌',pick(['You gave your Saturdays to a food bank all year.','You spent the year reading to people who could not.','You coached a kids\' team badly and lovingly.']),'good'); apply({happy:7,karma:12,health:2}); }});
+    out.push({e:'💸',n:'Donate',d:'Give money away',go:()=>{ const amt=Math.round(Math.max(S.cash,0)*.1); if(amt<50)return toast('You have nothing to give.'); S.cash-=amt; log('💝',`You gave away ${moneyFull(amt)}.`,'good'); apply({happy:9,karma:16}); render(); }});
+  }
+  return out;
+}
+
+function jobBoard(){
+  const open = CAREERS.filter(c => S.edu >= c.edu && S.smarts >= (c.sm||0) - 8
+      && (!c.hp || S.health>=c.hp) && (!c.look || S.looks>=c.look-10));
+  let list = shuffle(open).slice(0,7);
+  if (S.major){
+    const m = MAJORS.find(x=>x.id===S.major);
+    m.jobs.forEach(j=>{ const c=CAREERS.find(c=>c.id===j); if(c && S.edu>=c.edu && !list.includes(c)) list.unshift(c); });
+    list = list.slice(0,8);
+  }
+  if (!list.length){ openSheet({icon:'😕',title:'No openings',body:'Nothing you qualify for right now. Get some education, or wait a year.',options:[{label:'Okay',primary:true,run:closeSheet}]}); return; }
+  openSheet({
+    icon:'💼', title:'Job listings', body:'You have '+EDU_NAME[S.edu]+'.',
+    options: list.map(c=>{
+      const est = Math.round(c.pay*S.place.econ/100)*100;
+      return { label:c.e+'  '+c.ladder[0], sub:c.n+' · about '+moneyFull(est)+'/yr',
+        run:()=>{
+          let odds = .5 + (S.smarts - (c.sm||0))/160 + (S.edu - c.edu)*.12;
+          if (c.luck) odds -= .28;
+          if (chance(clamp(odds,.12,.94))){
+            S.job=c.id; S.rank=0; S.yearsInRank=0; S.perf=50; S.flags.careerStart = S.flags.careerStart||S.age;
+            log('💼', `You were hired as a ${c.ladder[0]}. Starting salary ${moneyFull(salary())}.`, 'big');
+            apply({happy:10}); earn('Got a job');
+          } else {
+            log('📪', `You applied to be a ${c.ladder[0]} and were rejected.`, 'bad'); apply({happy:-5});
+          }
+          closeSheet(); render();
+        }};
+    })
+  });
+}
+function gradSchool(){
+  const target = S.edu<3 ? 3 : S.edu===3 ? 4 : 5;
+  const label = target===3?'a bachelor\'s':target===4?'a master\'s':'a doctorate';
+  const yrs = target===5?4:2;
+  openSheet({icon:'🎓',title:'Back to school',body:`You could go back for ${label}. ${yrs} years, roughly ${moneyFull(16000*S.place.cost)} a year, and you cannot work full time.`,
+    options:[
+      {label:'Enroll', primary:true, run:()=>{ S.school='grad'; S.uniYear=0; S.flags.gradTarget=target;
+        if(S.job){ const c=CAREERS.find(c=>c.id===S.job); log('🚪',`You left your job as ${c.ladder[S.rank]} to study.`); S.job=null;S.rank=0; }
+        log('🎓','You enrolled in graduate school.','big'); closeSheet(); render(); }},
+      {label:'Not now', run:closeSheet}
+    ]});
+}
+
+/* ============================================================
+   13.  Shop
+   ============================================================ */
+function buy(item){
+  if (S.assets.some(a=>a.id===item.id)) { toast('You already have one.'); return; }
+  if (S.cash < item.p) { toast('You cannot afford that.'); return; }
+  S.cash -= item.p;
+  S.assets.push({id:item.id, e:item.e, n:item.n, cat:item.cat, value:Math.round(item.p*(item.dep<0?1:.78)), dep:item.dep, bought:S.age});
+  apply({happy:item.hp||0, smarts:item.sm||0, looks:item.hl||0, health:item.hh||0});
+  log(item.e, `You bought ${item.n === 'Rattle' || item.n.startsWith('A ') ? 'a '+item.n.toLowerCase() : 'a '+item.n.toLowerCase()} for ${moneyFull(item.p)}.`, 'good');
+  if (item.risk && chance(item.risk)){ apply({health:-RI(10,28)}); log('🚨',`You crashed the ${item.n.toLowerCase()}. It was bad.`,'bad'); }
+  if (S.assets.length>=12) earn('Collector');
+  render();
+}
+function sellAsset(i){
+  const a = S.assets[i];
+  openSheet({icon:a.e,title:'Sell '+a.n,body:`It is worth about ${moneyFull(a.value)} now.`,
+    options:[
+      {label:'Sell for '+moneyFull(a.value), primary:true, run:()=>{ S.cash+=a.value; S.assets.splice(i,1); log('💵',`You sold your ${a.n.toLowerCase()} for ${moneyFull(a.value)}.`); apply({happy:-3}); closeSheet(); render(); }},
+      {label:'Keep it', run:closeSheet}
+    ]});
+}
+
+/* ============================================================
+   14.  People interactions
+   ============================================================ */
+function openPerson(p){
+  const opts = [];
+  opts.push({label:'💬 Spend time together', sub:'Improves your bond', run:()=>{
+    if (S.doneThisYear['p'+p.id]) { toast('You already did that this year.'); return; }
+    S.doneThisYear['p'+p.id]=true;
+    const up = RI(6,16); p.bond = clamp(p.bond+up);
+    log('💬', pick([`You spent a proper afternoon with ${p.name.split(' ')[0]}.`,`You and ${p.name.split(' ')[0]} talked for hours about nothing.`,`You took ${p.name.split(' ')[0]} out. It was easy and good.`]), 'good');
+    apply({happy:RI(3,7)}); closeSheet(); render();
+  }});
+  opts.push({label:'🎁 Give a gift', sub:'Costs money, big bond boost', run:()=>{
+    const cost = Math.round(Math.max(60, Math.min(2500, S.cash*.06)));
+    if (S.cash < cost) { toast('You cannot afford a gift.'); return; }
+    S.cash -= cost; p.bond = clamp(p.bond + RI(12,26));
+    log('🎁', `You gave ${p.name.split(' ')[0]} a gift worth ${moneyFull(cost)}. They were genuinely touched.`, 'good');
+    apply({happy:4, karma:3}); closeSheet(); render();
+  }});
+  if (['Mother','Father','Grandmother','Grandfather'].includes(p.rel) && S.age<26){
+    opts.push({label:'🙏 Ask for money', run:()=>{
+      if (S.doneThisYear['m'+p.id]) { toast('Not twice in one year.'); return; }
+      S.doneThisYear['m'+p.id]=true;
+      if (chance(p.bond/140)){ const m=Math.round(RI(50,900)*S.wealth); S.cash+=m; p.bond=clamp(p.bond-5); log('💵',`${p.name.split(' ')[0]} lent you ${moneyFull(m)} — "lent".`,'good'); }
+      else { p.bond=clamp(p.bond-7); log('🙅',`${p.name.split(' ')[0]} said no, and gave you a lecture about budgeting.`); apply({happy:-3}); }
+      closeSheet(); render();
+    }});
+  }
+  if (p.rel==='Partner' || p.rel==='Spouse'){
+    opts.push({label:'💔 Break it off', run:()=>{
+      const cost = p.rel==='Spouse' ? Math.round(Math.max(S.cash,0)*.42) : 0;
+      S.cash -= cost; p.rel='Ex'; p.emoji='💔';
+      log('💔', `You ended things with ${p.name.split(' ')[0]}${cost>0?'. The divorce cost you '+moneyFull(cost):'.'}`, 'bad');
+      apply({happy:-14, stress:14}); closeSheet(); render();
+    }});
+  }
+  opts.push({label:'😤 Pick a fight', run:()=>{
+    p.bond = clamp(p.bond - RI(10,25));
+    log('😤', `You had it out with ${p.name.split(' ')[0]}. Things were said.`, 'bad');
+    apply({happy:-5, stress:8}); closeSheet(); render();
+  }});
+  openSheet({
+    icon: p.emoji, title: p.name,
+    body: `Your ${p.rel.toLowerCase()}${p.age?', age '+p.age:''}.\nRelationship: ${p.bond}/100`,
+    options: opts
+  });
+}
+
+/* ============================================================
+   15.  Rendering
+   ============================================================ */
+function render(){
+  if (!S) return;
+  $('avatar').textContent = S.age<2?'👶':S.age<12?(S.sex==='f'?'👧':'👦'):S.age<19?(S.sex==='f'?'👱‍♀️':'👱'):S.age<60?(S.sex==='f'?'👩':'👨'):(S.sex==='f'?'👵':'👴');
+  $('who').textContent = `${S.first} ${S.last}, ${S.age}`;
+  const role = S.job ? CAREERS.find(c=>c.id===S.job).ladder[S.rank]
+    : S.school==='uni' ? 'College student'
+    : S.school==='grad' ? 'Grad student'
+    : S.school==='high' ? 'High schooler'
+    : S.school==='middle' ? 'Middle schooler'
+    : S.school==='elementary' ? 'Student'
+    : S.flags.retiredAt ? 'Retired'
+    : S.age<3 ? 'Baby' : S.age<6 ? 'Toddler' : 'Unemployed';
+  $('sub').textContent = `${role} · ${S.place.n}`;
+  $('cashN').textContent = money(netWorth());
+  $('cashS').textContent = S.age<13 ? 'Piggy bank' : 'Net worth';
+  $('bH').style.width = S.health+'%';
+  $('bP').style.width = S.happy+'%';
+  $('bS').style.width = S.smarts+'%';
+  $('bL').style.width = S.looks+'%';
+  // While a sheet is up, the sheet is the only way forward. With sheets queued
+  // but none showing, the button carries you on instead of advancing a year.
+  const ab = $('ageBtn');
+  const sheetUp = $('veil').classList.contains('on');
+  ab.textContent = sheetUp ? '⏳ Decide first'
+    : queue.length ? '⏭️ Continue'
+    : S.age===0 ? '🎂 Turn 1' : `🎂 Age Up to ${S.age+1}`;
+  ab.disabled = sheetUp;
+  ab.style.opacity = sheetUp ? '.5' : '';
+  document.querySelectorAll('.nb').forEach(b=>b.classList.toggle('on', b.dataset.tab===tab));
+  const sc = $('screen');
+  const keep = tab==='life' ? sc.scrollTop : 0;
+  sc.innerHTML = ({life:vLife, people:vPeople, do:vDo, assets:vAssets, shop:vShop})[tab]();
+  wire();
+  if (tab==='life') sc.scrollTop = keep;
+  save();
+}
+
+function vLife(){
+  let h = '';
+  S.log.forEach(y=>{
+    h += `<div class="yr"><span>Age ${y.year}</span><i></i></div>`;
+    y.items.forEach(it=>{
+      h += `<div class="ev ${it.kind}"><span class="ic">${it.icon}</span><span>${esc(it.text)}</span></div>`;
+    });
+  });
+  if (!h) h = '<div class="empty">Your story starts here.</div>';
+  return h;
+}
+function esc(s){ return String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+
+function vPeople(){
+  const groups = [
+    ['Family', ['Mother','Father','Brother','Sister','Grandmother','Grandfather']],
+    ['Love',   ['Spouse','Partner','Ex']],
+    ['Children',['Son','Daughter','Grandson','Granddaughter']],
+    ['Friends',['Friend']],
+  ];
+  let h = '';
+  groups.forEach(([title, rels])=>{
+    const list = S.people.filter(p=>p.alive && rels.includes(p.rel));
+    if (!list.length) return;
+    h += `<h2 class="sec">${title}</h2>`;
+    list.forEach(p=>{
+      h += `<button class="row" data-person="${p.id}">
+        <span class="ic">${p.emoji}</span>
+        <span class="tx"><span class="t1">${esc(p.name)}</span>
+          <span class="t2">${p.rel}${p.age?' · '+p.age:''}</span>
+          <span class="mini"><i style="width:${p.bond}%"></i></span></span>
+        <span class="rt">${p.bond}</span></button>`;
+    });
+  });
+  const gone = S.people.filter(p=>p.dead);
+  if (gone.length){
+    h += `<h2 class="sec">In memory</h2>`;
+    gone.forEach(p=>{ h += `<div class="row" style="opacity:.55;cursor:default"><span class="ic">🕯️</span><span class="tx"><span class="t1">${esc(p.name)}</span><span class="t2">${p.rel} · ${esc(p.cause||'passed away')}</span></span></div>`; });
+  }
+  if (!h) h = '<div class="empty">There is nobody in your life right now.</div>';
+  return h;
+}
+
+function vDo(){
+  const acts = activities();
+  let h = '<h2 class="sec">Things you can do</h2><div class="grid2">';
+  acts.forEach((a,i)=>{
+    h += `<button class="tile" data-act="${i}"><span class="e">${a.e}</span><span class="n">${a.n}</span><span class="d">${a.d}</span></button>`;
+  });
+  h += '</div>';
+  if (S.school==='uni'||S.school==='grad')
+    h += `<div class="card" style="margin-top:12px"><b>📚 In school</b><div style="font-size:.83rem;color:var(--muted);margin-top:4px">Year ${S.uniYear} — keep aging up to finish your degree.</div></div>`;
+  if (!acts.length) h = '<div class="empty">Nothing to do at this age but grow.</div>';
+  return h;
+}
+
+function vAssets(){
+  let h = '<h2 class="sec">Finances</h2>';
+  h += `<div class="card">
+    <div style="display:flex;justify-content:space-between;font-size:.9rem;padding:3px 0"><span>Cash</span><b>${moneyFull(S.cash)}</b></div>
+    <div style="display:flex;justify-content:space-between;font-size:.9rem;padding:3px 0"><span>Possessions</span><b>${moneyFull(S.assets.reduce((t,a)=>t+a.value,0))}</b></div>
+    <div style="display:flex;justify-content:space-between;font-size:.9rem;padding:3px 0;color:var(--bad)"><span>Debt</span><b>${moneyFull(-S.debt)}</b></div>
+    <div style="display:flex;justify-content:space-between;font-size:1rem;padding:8px 0 2px;border-top:1px solid var(--line);margin-top:6px"><span><b>Net worth</b></span><b>${moneyFull(netWorth())}</b></div>
+  </div>`;
+  if (S.age>=18){
+    h += `<div class="card"><div style="display:flex;justify-content:space-between;font-size:.88rem;padding:3px 0"><span>Salary</span><b>${S.job?moneyFull(salary())+'/yr':'—'}</b></div>
+      <div style="display:flex;justify-content:space-between;font-size:.88rem;padding:3px 0"><span>Living costs</span><b>${moneyFull(livingCost())}/yr</b></div>
+      ${S.flags.pension?`<div style="display:flex;justify-content:space-between;font-size:.88rem;padding:3px 0"><span>Pension</span><b>${moneyFull(S.flags.pension)}/yr</b></div>`:''}
+      ${S.job?`<div style="display:flex;justify-content:space-between;font-size:.88rem;padding:3px 0"><span>Job performance</span><b>${S.perf}/100</b></div>`:''}
+    </div>`;
+  }
+  h += '<h2 class="sec">What you own</h2>';
+  if (!S.assets.length) h += '<div class="empty">You own nothing yet. Try the shop.</div>';
+  S.assets.forEach((a,i)=>{
+    h += `<button class="row" data-sell="${i}"><span class="ic">${a.e}</span>
+      <span class="tx"><span class="t1">${esc(a.n)}</span><span class="t2">Bought at ${a.bought} · ${a.cat}</span></span>
+      <span class="rt">${money(a.value)}</span></button>`;
+  });
+  h += '<h2 class="sec">Life so far</h2>';
+  h += `<div class="card" style="font-size:.86rem;line-height:1.7;color:var(--muted)">
+    Education: <b style="color:var(--ink)">${EDU_NAME[S.edu]}</b><br>
+    Karma: <b style="color:var(--ink)">${S.karma}/100</b> · Fame: <b style="color:var(--ink)">${S.fame}/100</b><br>
+    Stress: <b style="color:var(--ink)">${S.stress}/100</b>${S.flags.hobby?`<br>Hobby: <b style="color:var(--ink)">${S.flags.hobby}</b>`:''}
+    ${S.achievements.length?`<br>Achievements: <b style="color:var(--ink)">${S.achievements.join(', ')}</b>`:''}
+  </div>`;
+  return h;
+}
+
+function vShop(){
+  const cats = [['toy','🧸 Toys & fun'],['tech','💻 Tech'],['pet','🐾 Pets'],['ride','🚗 Vehicles'],['home','🏡 Property'],['lux','💎 Luxury']];
+  let h = '';
+  let any = false;
+  cats.forEach(([c,label])=>{
+    const items = SHOP.filter(i=>i.cat===c && S.age>=i.minA && S.age<=i.maxA);
+    if (!items.length) return;
+    any = true;
+    h += `<h2 class="sec">${label}</h2>`;
+    items.forEach(i=>{
+      const owned = S.assets.some(a=>a.id===i.id);
+      const can = !owned && S.cash >= i.p;
+      h += `<button class="row" data-buy="${i.id}" ${can?'':'disabled'}>
+        <span class="ic">${i.e}</span>
+        <span class="tx"><span class="t1">${esc(i.n)}</span><span class="t2">${esc(i.d)}</span></span>
+        <span class="rt" style="color:${owned?'var(--accent)':can?'var(--good)':'var(--muted)'}">${owned?'Owned':money(i.p)}</span></button>`;
+    });
+  });
+  if (!any) h = '<div class="empty">Nothing here you could use yet.</div>';
+  return h;
+}
+
+function wire(){
+  const sc = $('screen');
+  sc.querySelectorAll('[data-person]').forEach(b=>b.onclick=()=>{
+    const p = S.people.find(x=>x.id===+b.dataset.person); if(p) openPerson(p);
+  });
+  sc.querySelectorAll('[data-act]').forEach(b=>b.onclick=()=>{
+    const a = activities()[+b.dataset.act]; if(!a) return;
+    a.go(); render();
+    if (tab==='do' && !$('veil').classList.contains('on')) toast('Done — check the Life tab');
+  });
+  sc.querySelectorAll('[data-buy]').forEach(b=>b.onclick=()=>{
+    const it = SHOP.find(i=>i.id===b.dataset.buy); if(it) buy(it);
+  });
+  sc.querySelectorAll('[data-sell]').forEach(b=>b.onclick=()=>sellAsset(+b.dataset.sell));
+}
+
+/* ============================================================
+   16.  Sheet (modal)
+   ============================================================ */
+function openSheet(cfg){
+  const sh = $('sheet');
+  sh.innerHTML = `<div class="hd">${cfg.icon||'✨'}</div><h3>${esc(cfg.title||'')}</h3>` +
+    (cfg.body?`<p class="body">${esc(cfg.body)}</p>`:'') +
+    cfg.options.map((o,i)=>`<button class="opt ${o.primary?'pri':''}" data-o="${i}">${esc(o.label)}${o.sub?`<small>${esc(o.sub)}</small>`:''}</button>`).join('');
+  let used = false;   // one choice per sheet — a fast double-tap must not fire twice
+  sh.querySelectorAll('[data-o]').forEach(b=>b.onclick=()=>{
+    if (used) return;
+    used = true;
+    sh.querySelectorAll('[data-o]').forEach(x=>{ x.disabled = true; x.style.opacity = '.5'; });
+    const o = cfg.options[+b.dataset.o];
+    if (!o.keepOpen && !cfg.noClose) closeSheet();
+    o.run();
+  });
+  $('veil').classList.add('on');
+  $('veil').onclick = e => { if (e.target===$('veil') && !cfg.noClose) closeSheet(); };
+}
+// Always re-render on close: the Age Up button's enabled state is derived from
+// whether a sheet is showing, so closing without a render leaves it dead.
+function closeSheet(){ $('veil').classList.remove('on'); if (S) render(); }
+
+/* ============================================================
+   17.  Start & end screens
+   ============================================================ */
+function buildStart(){
+  const sel = $('inPlace');
+  sel.innerHTML = PLACES.map((p,i)=>`<option value="${i}">${p.n}</option>`).join('');
+  sel.value = 0;
+  segWire('segSex'); segWire('segDiff');
+  $('beginBtn').onclick = begin;
+}
+function segWire(id){
+  const el = $(id);
+  el.onclick = e => { const b = e.target.closest('button'); if(!b) return;
+    el.querySelectorAll('button').forEach(x=>x.classList.remove('on')); b.classList.add('on'); };
+}
+function segVal(id){ const b = $(id).querySelector('button.on'); return b?b.dataset.v:''; }
+
+function begin(){
+  const name = $('inName').value.trim();
+  S = newState({
+    name, sex: segVal('segSex'),
+    place: PLACES[+$('inPlace').value] || PLACES[0],
+    diff: segVal('segDiff') || 'normal'
+  });
+  $('startScreen').classList.remove('on');
+  $('endScreen').classList.remove('on');
+  queue = [];
+  closeSheet();
+  tab = 'life';
+  const mom = byRel('Mother')[0];
+  log('🎉', `${S.first} ${S.last} was born in ${S.place.n}${mom?' to '+mom.name:''}.`, 'big');
+  log('🍼', `You arrived at ${RI(2,10)}:${String(RI(0,59)).padStart(2,'0')} ${chance(.5)?'a.m.':'p.m.'}, weighing ${RI(5,9)} lb ${RI(0,15)} oz. You cried immediately, which everyone found reassuring.`);
+  const dad = byRel('Father')[0];
+  if (!dad) log('👤', 'It was just you and your mother from the start.');
+  const sibs = anyRel('Brother','Sister');
+  if (sibs.length) log('👧', `You were born into a house that already had ${sibs.length===1?'a '+sibs[0].rel.toLowerCase():sibs.length+' older siblings'} in it.`);
+  fireEvents(2);
+  render();
+  if (queue.length) setTimeout(drainQueue, 400);
+}
+
+function showEnd(){
+  const nw = netWorth();
+  const el = $('endScreen');
+  el.innerHTML = `
+    <h1 style="font-size:1.9rem">${S.age>=100?'A full hundred years':'The end'}</h1>
+    <div class="stone">
+      <div class="rip">R I P</div>
+      <div class="nm">${esc(S.first+' '+S.last)}</div>
+      <div class="dt">${S.born} — ${S.born + S.age} · aged ${S.age}</div>
+      <div class="cz">${S.causeIcon} Died of ${esc(S.cause)}.</div>
+    </div>
+    <div class="sumGrid">
+      <div><b>${S.age}</b><span>Years lived</span></div>
+      <div><b>${money(nw)}</b><span>Net worth</span></div>
+      <div><b>${money(S.peakCash)}</b><span>Peak worth</span></div>
+      <div><b>${S.kidsCount}</b><span>Children</span></div>
+      <div><b>${S.happy}</b><span>Final happiness</span></div>
+      <div><b>${S.assets.length}</b><span>Things owned</span></div>
+    </div>
+    ${S.achievements.length?`<div style="margin-bottom:16px">${S.achievements.map(a=>`<span class="badge">🏅 ${esc(a)}</span>`).join('')}</div>`:''}
+    <div style="font-size:.9rem;line-height:1.6;opacity:.9;margin-bottom:6px">${esc(eulogy())}</div>
+    <div class="push">
+      <button class="bigBtn" id="againBtn">👶 Live Another Life</button>
+      <button class="bigBtn ghost" id="reviewBtn" style="margin-top:8px">📜 Read the whole story</button>
+    </div>`;
+  el.classList.add('on');
+  $('againBtn').onclick = ()=>{ clearSave(); el.classList.remove('on'); $('startScreen').classList.add('on'); };
+  $('reviewBtn').onclick = ()=>{ el.classList.remove('on'); tab='life'; render(); $('ageBtn').textContent='⚰️ Your life is over'; $('ageBtn').onclick=()=>el.classList.add('on'); };
+  clearSave();
+}
+function eulogy(){
+  const bits = [];
+  if (S.flags.retiredAt) bits.push(`You retired at ${S.flags.retiredAt}.`);
+  const sp = S.people.find(p=>p.rel==='Spouse');
+  if (sp) bits.push(`You were married to ${sp.name.split(' ')[0]}${sp.alive?'':' until they died'}.`);
+  if (S.kidsCount) bits.push(`You had ${S.kidsCount} ${S.kidsCount===1?'child':'children'}.`);
+  if (S.flags.hobby) bits.push(`You never did stop with the ${S.flags.hobby}.`);
+  if (S.karma>=75) bits.push('People will remember you as kind.');
+  else if (S.karma<=25) bits.push('People will remember you, at least.');
+  if (nwGrade()) bits.push(nwGrade());
+  return bits.join(' ') || 'A quiet life, all told.';
+}
+function nwGrade(){
+  const n = netWorth();
+  if (n >= 10000000) return 'You died extremely rich.';
+  if (n >= 1000000) return 'You died a millionaire.';
+  if (n <= 0) return 'You died with nothing but the story.';
+  return '';
+}
+
+/* ============================================================
+   18.  Save / restore (silently skipped where unavailable)
+   ============================================================ */
+const KEY = 'life-sim-v1';
+function save(){
+  try { if (S && S.alive) localStorage.setItem(KEY, JSON.stringify(S)); } catch(_){}
+}
+function clearSave(){ try { localStorage.removeItem(KEY); } catch(_){} }
+function loadSave(){
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (!raw) return false;
+    const o = JSON.parse(raw);
+    if (!o || !o.alive || typeof o.age !== 'number') return false;
+    S = o;
+    S.doneThisYear = S.doneThisYear || {};
+    return true;
+  } catch(_){ return false; }
+}
+
+/* ============================================================
+   19.  Install-as-app
+   ============================================================ */
+function setupInstall(){
+  // A manifest built entirely in-page so this stays one file.
+  const icon = "data:image/svg+xml," + encodeURIComponent(
+    "<svg xmlns='http://www.w3.org/2000/svg' width='512' height='512'><rect width='512' height='512' rx='96' fill='#4a3f7a'/><text x='256' y='360' font-size='280' text-anchor='middle'>👶</text></svg>");
+  const manifest = {
+    name: 'Life — Birth to 100', short_name: 'Life',
+    start_url: location.pathname.split('/').pop() || './',
+    scope: './', display: 'standalone', orientation: 'portrait',
+    background_color: '#4a3f7a', theme_color: '#4a3f7a',
+    description: 'Start as a newborn and live one year at a time to 100.',
+    icons: [
+      {src: icon, sizes: '192x192', type: 'image/svg+xml', purpose: 'any'},
+      {src: icon, sizes: '512x512', type: 'image/svg+xml', purpose: 'any maskable'}
+    ]
+  };
+  try {
+    const link = document.createElement('link');
+    link.rel = 'manifest';
+    link.href = URL.createObjectURL(new Blob([JSON.stringify(manifest)], {type:'application/manifest+json'}));
+    document.head.appendChild(link);
+  } catch(_){}
+
+  const ua = navigator.userAgent;
+  const isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1);
+  const isAndroid = /Android/.test(ua);
+  const standalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+  const isMobile = isIOS || isAndroid || window.matchMedia('(pointer: coarse)').matches;
+
+  const btns = [$('installBtn'), $('startInstall')].filter(Boolean);
+  const show = () => btns.forEach(b => b.classList.remove('hide'));
+
+  if (standalone) return;              // already installed — nothing to offer
+  if (isMobile) show();                // phones always get the button
+
+  window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault(); deferredPrompt = e; show();
+  });
+  window.addEventListener('appinstalled', () => {
+    deferredPrompt = null;
+    btns.forEach(b => b.classList.add('hide'));
+    toast('Installed. Look for Life on your home screen.');
+  });
+
+  const doInstall = async () => {
+    if (deferredPrompt){
+      deferredPrompt.prompt();
+      try { await deferredPrompt.userChoice; } catch(_){}
+      deferredPrompt = null;
+      return;
+    }
+    openSheet({
+      icon: '📱', title: 'Add Life to your home screen',
+      body: isIOS
+        ? 'In Safari, tap the Share button at the bottom of the screen (the square with an arrow), scroll down, and tap "Add to Home Screen".\n\nIt will open full screen with no browser bars, exactly like a normal app.'
+        : isAndroid
+        ? 'Tap the ⋮ menu in the top right of your browser, then tap "Add to Home screen" or "Install app".\n\nIt will open full screen, exactly like a normal app.'
+        : 'In Chrome or Edge, open the ⋮ menu and choose "Install page as app". In Safari, use File → Add to Dock.',
+      options: [{label:'Got it', primary:true, run:closeSheet}]
+    });
+  };
+  btns.forEach(b => { if(b) b.onclick = doInstall; });
+}
+
+/* ============================================================
+   20.  Boot
+   ============================================================ */
+document.querySelectorAll('.nb').forEach(b=>b.onclick=()=>{ tab=b.dataset.tab; $('screen').scrollTop=0; render(); });
+$('ageBtn').onclick = ()=>{ if (S && S.alive) ageUp(); };
+buildStart();
+setupInstall();
+
+if (loadSave()){
+  $('startScreen').classList.remove('on');
+  render();
+  setTimeout(()=>toast('Picked up where you left off — age '+S.age), 600);
+}
+
+// keep the layout honest on mobile keyboards / rotation
+window.addEventListener('resize', ()=>{ document.documentElement.style.setProperty('--vh', window.innerHeight+'px'); });
+
+})();
+</script>
+</body>
+</html>
