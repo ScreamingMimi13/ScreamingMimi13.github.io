@@ -833,7 +833,7 @@ function addFriend(bond){
   return n.split(' ')[0];
 }
 function addDate(bond){
-  const ds = chance(.72) ? (S.sex==='f'?'m':'f') : S.sex;
+  const ds = S.sex === 'f' ? 'm' : 'f';   // partners are always the opposite sex
   const n = pick(ds==='f'?F_NAMES:M_NAMES)+' '+pick(SURNAMES);
   const p = mkPerson(S,{name:n, rel:'Partner', emoji:ds==='f'?'👩':'👨', bond:bond||RI(55,85), age:S.age+RI(-4,4)});
   S.people.push(p);
