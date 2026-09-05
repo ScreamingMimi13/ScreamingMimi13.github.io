@@ -3,6 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Critter Cross">
+<meta name="theme-color" content="#442e1e">
 <title>Critter Cross — Breed Your Own Animals</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -34,6 +39,12 @@
     box-shadow:inset 0 -2px 0 rgba(0,0,0,.15);
   }
   .hstat{ font-size:.78rem; opacity:.85; }
+  .installBtn{
+    font:inherit; font-weight:700; font-size:.8rem; cursor:pointer;
+    background:var(--accent); color:#fff; border:none;
+    padding:7px 13px; border-radius:999px; box-shadow:0 3px 0 #33621f;
+  }
+  .installBtn:active{ transform:translateY(1px); box-shadow:0 2px 0 #33621f; }
   nav.tabs{
     display:flex; gap:6px; flex-wrap:wrap; justify-content:center;
     padding:10px 12px 4px;
@@ -136,6 +147,18 @@
 
   /* ---------- farm scene ---------- */
   #farm{ width:100%; height:auto; display:block; border-radius:14px; box-shadow:inset 0 0 0 1px var(--line); }
+  .farmtab{
+    font:inherit; font-weight:700; font-size:.82rem; cursor:pointer;
+    background:#fff; border:2px solid var(--line); color:#5a5344;
+    padding:6px 12px; border-radius:999px;
+  }
+  .farmtab.on{ border-color:var(--accent); background:#eef7e6; color:#2f6b21; }
+  .farmUpgrade{
+    margin-top:12px; padding:12px 14px; border-radius:12px;
+    background:#f1ecdb; display:flex; gap:12px; align-items:center; flex-wrap:wrap; justify-content:space-between;
+  }
+  .farmUpgrade .info{ font-size:.86rem; color:#5a4a2c; }
+  .farmUpgrade .info b{ color:#3d5a2b; }
 
   /* ---------- breeding ---------- */
   .pens{ display:grid; grid-template-columns:1fr auto 1fr; gap:12px; align-items:center; }
@@ -181,6 +204,7 @@
 <body>
 <header class="top">
   <div class="brand">🧬 Critter Cross<small>breed your own animals · spin to win · pay with math</small></div>
+  <button class="installBtn" id="installBtn" style="display:none">📲 Get the App</button>
   <div class="hstat" id="hdrStats">Animals 0 · Breeds 0</div>
   <div class="wallet" id="money">$0</div>
 </header>
@@ -225,8 +249,10 @@
   <section id="view-barn" class="view">
     <div class="panel">
       <h2>My Farm</h2>
+      <div class="row" id="farmTabs" style="margin-bottom:10px"></div>
       <canvas id="farm" width="960" height="300"></canvas>
       <div class="hint" style="margin-top:8px" id="farmHint">Your animals graze here.</div>
+      <div class="farmUpgrade" id="farmUpgradeRow"></div>
     </div>
     <div class="grid" id="barnGrid"></div>
   </section>
@@ -364,10 +390,27 @@ const state = {
   asked: 0,
   correct: 0,
   earned: 0,
-  bred: 0
+  bred: 0,
+  farmsOwned: 1,      // how many farms on the upgrade ladder you've bought
+  viewFarm: 0         // which owned farm's theme is currently shown
 };
 
 const BREED_FEE = 15;
+
+/* ============================================================
+   1b. FARMS — buy more land to raise the animal cap, each with
+   its own look for the pasture scene.
+   ============================================================ */
+const FARMS = [
+  { name:'Green Meadow',   cost:0,      capacity:14, sky:['#a9dcff','#dcefff'], grass:['#9fce78','#79b45c'] },
+  { name:'Sunny Pasture',  cost:3000,   capacity:20, sky:['#bfe3ff','#eaf6ff'], grass:['#b7d66a','#8fae48'] },
+  { name:'Desert Ranch',   cost:12000,  capacity:28, sky:['#ffe3b0','#fff3d8'], grass:['#e0c078','#c2a058'] },
+  { name:'Snowy Tundra',   cost:40000,  capacity:38, sky:['#dfeeff','#f4faff'], grass:['#e8f0f5','#c9d8e0'] },
+  { name:'Tropical Grove', cost:150000, capacity:50, sky:['#8fd8e8','#c9f0e0'], grass:['#4fae5a','#2f8a3a'] },
+  { name:'Golden Ranch',   cost:600000, capacity:70, sky:['#ffe08a','#fff4cc'], grass:['#d4af37','#a8862a'] }
+];
+function farmCapacity(){ return FARMS[state.farmsOwned - 1].capacity; }
+function farmIsFull(){ return state.animals.length >= farmCapacity(); }
 
 /* ============================================================
    2. GENETICS
@@ -1971,8 +2014,11 @@ function renderMarket(){
     spin.className = 'btn alt';
     spin.style.fontSize = '.85rem';
     spin.style.padding = '7px 14px';
-    spin.textContent = state.money >= SPIN_FEE ? '🎡 Spin — ' + cash(SPIN_FEE) : 'Need ' + cash(SPIN_FEE - state.money);
-    spin.disabled = state.money < SPIN_FEE;
+    if(farmIsFull()){ spin.textContent = '🏚️ Farm Full'; spin.disabled = true; }
+    else{
+      spin.textContent = state.money >= SPIN_FEE ? '🎡 Spin — ' + cash(SPIN_FEE) : 'Need ' + cash(SPIN_FEE - state.money);
+      spin.disabled = state.money < SPIN_FEE;
+    }
     spin.addEventListener('click', () => openSpinner(sp));
     btns.appendChild(spin);
     card.appendChild(btns);
@@ -2021,6 +2067,7 @@ function drawWheel(angle, wedges){
 let spinState = null;
 
 function openSpinner(sp){
+  if(farmIsFull()){ toast('🏚️ Your farm is full! Buy a new one in My Farm.'); return; }
   if(state.money < SPIN_FEE){ toast('You need ' + cash(SPIN_FEE) + ' for the spinner.'); return; }
   state.money -= SPIN_FEE;
   refreshHeader();
@@ -2176,17 +2223,61 @@ function sellAnimal(an, price){
 }
 
 function renderBarn(){
+  renderFarmsPanel();
   const grid = $('barnGrid');
   grid.innerHTML = '';
+  const cap = farmCapacity();
   if(!state.animals.length){
     grid.innerHTML = '<div class="empty">No animals yet. Earn money in the <b>Math Lab</b>, then spin for your first two in the <b>Shop</b>.</div>';
-    $('farmHint').textContent = 'Empty pasture — spin for an animal to get started.';
+    $('farmHint').textContent = 'Empty pasture — spin for an animal to get started. Room for ' + cap + '.';
     return;
   }
   const worth = state.animals.reduce((s,a) => s + a.value, 0);
-  $('farmHint').textContent = state.animals.length + ' animals grazing · herd value ' + cash(worth) +
-    ' · ' + state.bred + ' babies bred so far';
+  $('farmHint').textContent = state.animals.length + '/' + cap + ' animals grazing · herd value ' + cash(worth) +
+    ' · ' + state.bred + ' babies bred so far' + (farmIsFull() ? ' · 🏚️ farm is full!' : '');
   state.animals.slice().sort((a,b) => b.value - a.value).forEach(an => grid.appendChild(animalCard(an)));
+}
+
+/* ---- farm upgrade ladder ---- */
+function renderFarmsPanel(){
+  const tabs = $('farmTabs');
+  tabs.innerHTML = '';
+  for(let i=0;i<state.farmsOwned;i++){
+    const b = document.createElement('button');
+    b.className = 'farmtab' + (i === state.viewFarm ? ' on' : '');
+    b.textContent = FARMS[i].name;
+    b.addEventListener('click', () => { state.viewFarm = i; renderFarmsPanel(); renderFarm(0); });
+    tabs.appendChild(b);
+  }
+
+  const row = $('farmUpgradeRow');
+  if(state.farmsOwned >= FARMS.length){
+    row.innerHTML = '<div class="info">🎉 Every farm is unlocked — <b>' + farmCapacity() + '</b> animals of room, as big as this ranch gets!</div>';
+    return;
+  }
+  const next = FARMS[state.farmsOwned];
+  const afford = state.money >= next.cost;
+  row.innerHTML = '<div class="info">Next: <b>' + esc(next.name) + '</b> — room for <b>' + next.capacity + '</b> animals (up from ' + farmCapacity() + ')</div>';
+  const buy = document.createElement('button');
+  buy.className = 'btn alt';
+  buy.style.fontSize = '.85rem';
+  buy.style.padding = '8px 16px';
+  buy.textContent = afford ? '🏡 Buy — ' + cash(next.cost) : 'Need ' + cash(next.cost - state.money);
+  buy.disabled = !afford;
+  buy.addEventListener('click', buyFarm);
+  row.appendChild(buy);
+}
+
+function buyFarm(){
+  const next = FARMS[state.farmsOwned];
+  if(!next || state.money < next.cost) return;
+  state.money -= next.cost;
+  state.farmsOwned++;
+  state.viewFarm = state.farmsOwned - 1;
+  refreshHeader();
+  renderMarket();
+  renderBarn();
+  toast('🏡 Welcome to ' + next.name + '! Room for ' + next.capacity + ' animals now.');
 }
 
 /* ---- animated pasture ---- */
@@ -2219,8 +2310,9 @@ function renderFarm(dt){
   const cv = $('farm'), ctx = cv.getContext('2d');
   const w = cv.width, h = cv.height;
 
+  const theme = FARMS[state.viewFarm] || FARMS[0];
   const sky = ctx.createLinearGradient(0,0,0,h);
-  sky.addColorStop(0,'#a9dcff'); sky.addColorStop(0.52,'#dcefff'); sky.addColorStop(0.53,'#9fce78'); sky.addColorStop(1,'#79b45c');
+  sky.addColorStop(0,theme.sky[0]); sky.addColorStop(0.52,theme.sky[1]); sky.addColorStop(0.53,theme.grass[0]); sky.addColorStop(1,theme.grass[1]);
   ctx.fillStyle = sky; ctx.fillRect(0,0,w,h);
 
   ctx.fillStyle = '#fff'; ctx.globalAlpha = 0.85;
@@ -2241,7 +2333,7 @@ function renderFarm(dt){
   for(let x=20; x<w; x+=110){ ctx.beginPath(); ctx.moveTo(x, h*0.50); ctx.lineTo(x, h*0.68); ctx.stroke(); }
 
   /* grass tufts */
-  ctx.strokeStyle = '#5f9b45'; ctx.lineWidth = 2;
+  ctx.strokeStyle = shade(theme.grass[1], -20); ctx.lineWidth = 2;
   for(let i=0;i<26;i++){
     const gx = (i*79) % w, gy = h*0.72 + (i%5)*22;
     ctx.beginPath(); ctx.moveTo(gx, gy); ctx.lineTo(gx-4, gy-8); ctx.moveTo(gx, gy); ctx.lineTo(gx+4, gy-7); ctx.stroke();
@@ -2318,10 +2410,12 @@ function penMarkup(slot, an){
 function renderPens(){
   penMarkup('A', penA);
   penMarkup('B', penB);
-  const ok = penA && penB && penA !== penB && state.money >= BREED_FEE;
+  const full = farmIsFull();
+  const ok = penA && penB && penA !== penB && state.money >= BREED_FEE && !full;
   const btn = $('doBreed');
   btn.disabled = !ok;
-  btn.textContent = (penA && penB && state.money < BREED_FEE) ? 'Need ' + cash(BREED_FEE) + ' for the vet' : 'Breed them! (' + cash(BREED_FEE) + ')';
+  btn.textContent = full ? '🏚️ Farm is full' :
+    (penA && penB && state.money < BREED_FEE) ? 'Need ' + cash(BREED_FEE) + ' for the vet' : 'Breed them! (' + cash(BREED_FEE) + ')';
 }
 
 function sendToPen(an){
@@ -2360,6 +2454,7 @@ $('picker').addEventListener('click', e => { if(e.target.id === 'picker') $('pic
 
 $('doBreed').addEventListener('click', () => {
   if(!penA || !penB || penA === penB) return;
+  if(farmIsFull()){ toast('🏚️ Your farm is full! Buy a new one in My Farm.'); return; }
   if(state.money < BREED_FEE){ toast('You need ' + cash(BREED_FEE) + ' for the vet.'); return; }
   state.money -= BREED_FEE;
   const baby = breedAnimals(penA, penB);
@@ -2473,7 +2568,69 @@ function renderCodex(){
 }
 
 /* ============================================================
-   12. START
+   12. INSTALL AS APP (mobile PWA)
+   Builds a manifest + icon on the fly so the game stays one file,
+   and shows a "Get the App" button on phones/tablets.
+   ============================================================ */
+(function setupInstall(){
+  const btn = $('installBtn');
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  const isMobile = isIOS || /Android|Mobile/i.test(navigator.userAgent) || matchMedia('(max-width:820px)').matches;
+  if(isStandalone || !isMobile) return;
+
+  function makeIcon(size){
+    const c = document.createElement('canvas'); c.width = size; c.height = size;
+    const ctx = c.getContext('2d');
+    const g = ctx.createLinearGradient(0,0,size,size);
+    g.addColorStop(0,'#8ed0f5'); g.addColorStop(1,'#b8dfa2');
+    ctx.fillStyle = g; ctx.fillRect(0,0,size,size);
+    const sample = speciesAnimal(SPECIES.find(s => s.key === 'chicken'));
+    drawCritter(ctx, sample, size*0.5, size*0.88, size/190, 0);
+    return c.toDataURL('image/png');
+  }
+  try{
+    const icon192 = makeIcon(192), icon512 = makeIcon(512);
+    const manifest = {
+      name:'Critter Cross', short_name:'Critter Cross',
+      start_url: location.href.split('#')[0], display:'standalone',
+      background_color:'#8ed0f5', theme_color:'#442e1e',
+      icons:[{ src:icon192, sizes:'192x192', type:'image/png' }, { src:icon512, sizes:'512x512', type:'image/png' }]
+    };
+    const blob = new Blob([JSON.stringify(manifest)], { type:'application/manifest+json' });
+    const link = document.createElement('link');
+    link.rel = 'manifest'; link.href = URL.createObjectURL(blob);
+    document.head.appendChild(link);
+    const touchIcon = document.createElement('link');
+    touchIcon.rel = 'apple-touch-icon'; touchIcon.href = icon192;
+    document.head.appendChild(touchIcon);
+  }catch(e){ /* manifest is a nice-to-have — a failure here shouldn't block the button */ }
+
+  btn.style.display = 'inline-block';
+
+  let deferredPrompt = null;
+  window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();
+    deferredPrompt = e;
+  });
+  window.addEventListener('appinstalled', () => { btn.style.display = 'none'; deferredPrompt = null; });
+
+  btn.addEventListener('click', async () => {
+    if(deferredPrompt){
+      deferredPrompt.prompt();
+      const choice = await deferredPrompt.userChoice;
+      if(choice.outcome === 'accepted') btn.style.display = 'none';
+      deferredPrompt = null;
+    }else if(isIOS){
+      toast('Tap the Share icon below, then "Add to Home Screen"! 📲');
+    }else{
+      toast('Open your browser menu and choose "Add to Home screen" or "Install app"! 📲');
+    }
+  });
+})();
+
+/* ============================================================
+   13. START
    ============================================================ */
 renderTiers();
 newQuestion();
