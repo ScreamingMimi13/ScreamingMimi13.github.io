@@ -737,7 +737,7 @@ EV({min:22,max:55,ic:'🤝',w:.8,cond:()=>!!S.job,txt:'A rival company is quietl
     {l:'Take the meeting', go:()=>{ if(chance(.55)){const b=Math.round(salary()*R(.12,.3));log('💼',`You used the offer to negotiate. Your pay went up about ${moneyFull(b)}.`,'good');S.perf+=6;S.cash+=b;apply({happy:6});} else {log('😬','Word got back to your boss. That was uncomfortable.','bad');S.perf-=15;apply({happy:-6,stress:10});} }},
     {l:'Stay loyal', go:()=>{ log('🤞','You stayed put. Your manager noticed.'); S.perf+=8; }},
   ]});
-EV({min:24,max:44,ic:'👶',cond:()=>!!partner()&&kids().length<5,txt:()=>`You and ${partner().name.split(' ')[0]} have been talking about children.`,
+EV({min:24,max:44,ic:'👶',w:.45,cool:8,cond:()=>!!partner()&&kids().length<3,txt:()=>`You and ${partner().name.split(' ')[0]} have been talking about children.`,
   choices:[
     {l:'Try for a baby', go:()=>{ if(chance(.72)){ haveBaby(); } else { log('🕰️','Not this year. You keep hoping.','bad'); apply({happy:-5,stress:8}); } }},
     {l:'Not right now', go:()=>{ log('⏳','You agreed to wait. There is time.'); }},
@@ -973,7 +973,8 @@ function fireEvents(count){
   const pool = EVENTS.filter(e =>
     S.age >= e.min && S.age <= e.max &&
     (!e.cond || safeCond(e)) &&
-    !(e.once && S.flags['ev'+EVENTS.indexOf(e)])
+    !(e.once && S.flags['ev'+EVENTS.indexOf(e)]) &&
+    !(e.cool && S.age - (S.flags['cd'+EVENTS.indexOf(e)] || -999) < e.cool)
   );
   if (!pool.length) return;
   const weighted = [];
@@ -988,7 +989,9 @@ function fireEvents(count){
   }
   // auto events resolve now; choice events queue for the sheet
   chosen.forEach(e=>{
-    S.flags['ev'+EVENTS.indexOf(e)] = true;
+    const ei = EVENTS.indexOf(e);
+    S.flags['ev'+ei] = true;
+    if (e.cool) S.flags['cd'+ei] = S.age;   // don't ask this again for e.cool years
     if (e.choices) queue.push(e);
     else {
       const t = typeof e.txt === 'function' ? e.txt() : e.txt;
