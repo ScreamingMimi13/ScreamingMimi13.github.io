@@ -670,7 +670,7 @@ EV({min:13,max:17,ic:'💔',txt:'Your first real crush.',
     {l:'Say something', go:()=>{ if(chance(.42)){const n=addDate(RI(55,85));log('💘',`${n} said yes. You were unbearable about it for months.`,'good');apply({happy:12,looks:2});} else {log('💔','It did not go well. You survived, eventually.','bad');apply({happy:-9});} }},
     {l:'Say nothing, ever', go:()=>{ log('🤐','You said nothing and thought about it constantly for two years.'); apply({happy:-3,smarts:1}); }},
   ]});
-EV({min:14,max:17,ic:'🚗',txt:'You are old enough to learn to drive.',
+EV({min:14,max:17,ic:'🚗',must:true,txt:'You are old enough to learn to drive.',
   cond:()=>!S.flags.licence,
   choices:[
     {l:'Take the test', go:()=>{ if(chance(.6+S.smarts/400)){S.flags.licence=true;log('🪪','You passed. First try. Insufferable about it.','good');apply({happy:8});} else {log('🚧','You failed. A cone did not survive.','bad');apply({happy:-5});} }},
@@ -698,7 +698,7 @@ EV({min:13,max:17,ic:'🏃',txt:'Tryouts for a school team.',
     {l:'Try out', go:()=>{ if(S.health>60&&chance(.6)){S.flags.sport=true;log('🏅','You made the team. Practices ate your life and you loved it.','good');apply({health:9,happy:7});addFriend(RI(55,85));} else {log('✂️','You got cut in the final round.','bad');apply({happy:-6});} }},
     {l:'Don\'t bother', go:()=>{ log('🛋️','You did not try out. Your knees thank you in advance.'); }},
   ]});
-EV({min:16,max:17,ic:'📝',txt:'College applications are due.',
+EV({min:16,max:17,ic:'📝',must:true,txt:'College applications are due.',
   cond:()=>!S.flags.applied,
   choices:[
     {l:'Apply everywhere', go:()=>{ S.flags.applied=true; log('📮','You applied to eleven schools and waited.','good'); apply({smarts:2,happy:-2}); }},
@@ -987,12 +987,16 @@ function fireEvents(count){
     if (chosen.includes(e)) break;
     chosen.push(e);
   }
-  // auto events resolve now; choice events queue for the sheet
+  // Auto events just narrate into the log. Choice events interrupt with a modal,
+  // so allow at most one of those a year - the rest stay eligible for later.
+  let asked = 0;
+  chosen.sort((a,b)=>(b.must?1:0)-(a.must?1:0));   // milestones get the slot first
   chosen.forEach(e=>{
+    if (e.choices && (asked || (!e.must && !chance(.45)))) return;
     const ei = EVENTS.indexOf(e);
     S.flags['ev'+ei] = true;
     if (e.cool) S.flags['cd'+ei] = S.age;   // don't ask this again for e.cool years
-    if (e.choices) queue.push(e);
+    if (e.choices) { asked++; queue.push(e); }
     else {
       const t = typeof e.txt === 'function' ? e.txt() : e.txt;
       if (t) log(e.ic, t);
@@ -1521,7 +1525,6 @@ function wire(){
   sc.querySelectorAll('[data-act]').forEach(b=>b.onclick=()=>{
     const a = activities()[+b.dataset.act]; if(!a) return;
     a.go(); render();
-    if (tab==='do' && !$('veil').classList.contains('on')) toast('Done — check the Life tab');
   });
   sc.querySelectorAll('[data-buy]').forEach(b=>b.onclick=()=>{
     const it = SHOP.find(i=>i.id===b.dataset.buy); if(it) buy(it);
