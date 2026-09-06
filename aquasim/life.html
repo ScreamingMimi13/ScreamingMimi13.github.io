@@ -737,11 +737,6 @@ EV({min:22,max:55,ic:'🤝',w:.8,cond:()=>!!S.job,txt:'A rival company is quietl
     {l:'Take the meeting', go:()=>{ if(chance(.55)){const b=Math.round(salary()*R(.12,.3));log('💼',`You used the offer to negotiate. Your pay went up about ${moneyFull(b)}.`,'good');S.perf+=6;S.cash+=b;apply({happy:6});} else {log('😬','Word got back to your boss. That was uncomfortable.','bad');S.perf-=15;apply({happy:-6,stress:10});} }},
     {l:'Stay loyal', go:()=>{ log('🤞','You stayed put. Your manager noticed.'); S.perf+=8; }},
   ]});
-EV({min:24,max:44,ic:'👶',w:.45,cool:8,cond:()=>!!partner()&&kids().length<3,txt:()=>`You and ${partner().name.split(' ')[0]} have been talking about children.`,
-  choices:[
-    {l:'Try for a baby', go:()=>{ if(chance(.72)){ haveBaby(); } else { log('🕰️','Not this year. You keep hoping.','bad'); apply({happy:-5,stress:8}); } }},
-    {l:'Not right now', go:()=>{ log('⏳','You agreed to wait. There is time.'); }},
-  ]});
 EV({min:18,max:60,ic:'🎰',w:.5,txt:'You are handed a lottery ticket as a joke.',
   auto:()=>{ if(chance(.012)){const w=RI(80000,3200000);S.cash+=w;log('🎉',`It won. ${moneyFull(w)}. Nobody believed you at first.`,'big');apply({happy:22});}
              else if(chance(.06)){const w=RI(100,900);S.cash+=w;log('🎟️',`Small win — ${moneyFull(w)}.`,'good');apply({happy:3});}
@@ -1237,9 +1232,6 @@ function activities(){
       if (chance(pt.bond/115)){ S.cash-=cost; pt.rel='Spouse'; pt.bond=clamp(pt.bond+12); log('💍',`${pt.name.split(' ')[0]} said yes. The wedding cost more than the ring.`,'big'); S.cash-=Math.round(RI(6000,45000)); apply({happy:24}); earn('Married'); }
       else { pt.bond=clamp(pt.bond-25); log('😶',`${pt.name.split(' ')[0]} said they were not ready. It was very quiet afterward.`,'bad'); apply({happy:-18}); }
       render(); }});
-    if (pt && pt.rel==='Spouse' && kids().length<6 && a<=48) out.push({e:'👶',n:'Try for a baby',d:'Life changes',go:()=>{ if(once('baby'))return toast('Once a year.'); mark('baby');
-      const odds = a<32?.7:a<38?.5:a<43?.3:.12;
-      if(chance(odds)) haveBaby(); else { log('🕰️','Not this year.','bad'); apply({happy:-5,stress:8}); } render(); }});
     if (S.job && a>=60) out.push({e:'🎣',n:'Retire',d:'Collect your pension',go:()=>{ retire(); render(); }});
     if (S.debt>0) out.push({e:'💳',n:'Pay down debt',d:'You owe '+moneyFull(S.debt),go:()=>{
       const p=Math.min(S.cash, S.debt); if(p<1) return toast('No cash to pay with.'); S.cash-=p; S.debt-=p; log('💳',`Paid ${moneyFull(p)} off your debt.`,'good'); render(); }});
@@ -1344,6 +1336,18 @@ function openPerson(p){
       S.doneThisYear['m'+p.id]=true;
       if (chance(p.bond/140)){ const m=Math.round(RI(50,900)*S.wealth); S.cash+=m; p.bond=clamp(p.bond-5); log('💵',`${p.name.split(' ')[0]} lent you ${moneyFull(m)} — "lent".`,'good'); }
       else { p.bond=clamp(p.bond-7); log('🙅',`${p.name.split(' ')[0]} said no, and gave you a lecture about budgeting.`); apply({happy:-3}); }
+      closeSheet(); render();
+    }});
+  }
+  // Having children is opt-in and lives with the person you'd have them with,
+  // rather than sitting in the Activities grid every year of a marriage.
+  if (p.rel==='Spouse' && kids().length<6 && S.age<=48){
+    opts.push({label:'👶 Try for a baby', sub:'Once a year', run:()=>{
+      if (S.doneThisYear['baby']) { toast('Once a year.'); return; }
+      S.doneThisYear['baby']=true;
+      const a = S.age, odds = a<32?.7:a<38?.5:a<43?.3:.12;
+      if (chance(odds)) haveBaby();
+      else { log('🕰️','Not this year.','bad'); apply({happy:-5,stress:8}); }
       closeSheet(); render();
     }});
   }
