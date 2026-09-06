@@ -947,6 +947,10 @@ function ageUp(){
   const n = S.age<3 ? RI(2,3) : S.age<13 ? RI(1,3) : RI(1,3);
   fireEvents(n);
 
+  // A silent year would have no heading in the journal at all.
+  const lastYr = S.log[S.log.length-1];
+  if (!lastYr || lastYr.year !== S.age) quietYear();
+
   // --- death check ---
   checkDeath();
 
@@ -975,6 +979,20 @@ function driftStats(){
   if (partner()) stat('happy', 1);
 }
 
+
+/* A year with nothing logged has no heading in the journal, so the ages appear
+   to jump (11 straight to 13). Every year gets at least one line. */
+function quietYear(){
+  const a = S.age;
+  const line =
+    a < 3  ? pick(['You grew. That was the whole job this year.','A year of naps, noise and being carried everywhere.','You got heavier and louder. Both on schedule.']) :
+    a < 6  ? pick(['A quiet year of playgrounds and repeated questions.','You watched the same film so many times the adults could recite it.','Nothing much happened, which at your age is a good year.']) :
+    a < 13 ? pick(['A quiet year. School, the same walk home, the same three friends.','Nothing much happened. You got taller and lost a tooth.','An unremarkable year, spent mostly outdoors.','A slow year. You were very into one thing and nobody else was.']) :
+    a < 18 ? pick(['A quiet year. School, homework, and long evenings doing nothing.','Not much happened. You mostly wanted to be somewhere else.','An uneventful year. You listened to a lot of music.']) :
+    a < 65 ? pick(['A quiet year. Work, weekends, and not much to report.','An ordinary year. Nothing broke and nothing changed.','Nothing much happened this year, which was something of a relief.','A steady year. You kept your head down.']) :
+             pick(['A quiet year. Slow mornings and a familiar routine.','Not much happened. The days were long and the year was short.','An uneventful year, spent comfortably.']);
+  log('🗓️', line);
+}
 function fireEvents(count){
   const pool = EVENTS.filter(e =>
     S.age >= e.min && S.age <= e.max &&
@@ -998,11 +1016,12 @@ function fireEvents(count){
   let asked = 0;
   chosen.sort((a,b)=>(b.must?1:0)-(a.must?1:0));   // milestones get the slot first
   chosen.forEach(e=>{
-    if (e.choices && (asked || (!e.must && !chance(.45)))) return;
+    if (e.choices && !e.must && (asked || S.age - (S.flags.lastAsk ?? -99) < 5)) return;
+    if (e.choices && e.must && asked) return;
     const ei = EVENTS.indexOf(e);
     S.flags['ev'+ei] = true;
     if (e.cool) S.flags['cd'+ei] = S.age;   // don't ask this again for e.cool years
-    if (e.choices) { asked++; queue.push(e); }
+    if (e.choices) { asked++; S.flags.lastAsk = S.age; queue.push(e); }
     else {
       const t = typeof e.txt === 'function' ? e.txt() : e.txt;
       if (t) log(e.ic, t);
