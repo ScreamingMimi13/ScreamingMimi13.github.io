@@ -51,7 +51,7 @@
   /* ---------- Top bar ---------- */
   #top { padding: calc(10px + var(--safe-t)) 14px 10px; background: linear-gradient(150deg, var(--accent), var(--accent2)); color:#fff; flex: 0 0 auto; }
   #topRow { display:flex; align-items:center; gap:10px; }
-  #avatar { width:44px; height:44px; border-radius:14px; background:rgba(255,255,255,.2); display:grid; place-items:center; font-size:26px; flex:0 0 auto; }
+  #avatar { width:44px; height:44px; border-radius:50%; background:rgba(255,255,255,.2); display:grid; place-items:center; font-size:26px; flex:0 0 auto; overflow:hidden; box-shadow:0 0 0 2px rgba(255,255,255,.35); }
   #whoWrap { flex:1 1 auto; min-width:0; }
   #who { font-weight:700; font-size:1.02rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   #sub { font-size:.76rem; opacity:.88; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
@@ -88,7 +88,7 @@
   .row { display:flex; align-items:center; gap:11px; background:var(--soft); border-radius:14px; padding:11px 12px; margin-bottom:7px;
          border:0; width:100%; text-align:left; font:inherit; color:inherit; cursor:pointer; }
   .row:active { transform:scale(.985); }
-  .row .ic { width:38px; height:38px; border-radius:12px; background:var(--frame); display:grid; place-items:center; font-size:20px; flex:0 0 auto; }
+  .row .ic { width:38px; height:38px; border-radius:50%; background:var(--frame); display:grid; place-items:center; font-size:20px; flex:0 0 auto; overflow:hidden; }
   .row .tx { flex:1 1 auto; min-width:0; display:block; }
   .row .t1 { display:block; font-weight:650; font-size:.92rem; }
   .row .t2 { display:block; font-size:.76rem; color:var(--muted); margin-top:2px; line-height:1.35; }
@@ -127,6 +127,7 @@
     max-height:88%; overflow-y:auto; animation:rise .26s cubic-bezier(.2,.9,.3,1); }
   @keyframes rise { from { transform:translateY(100%); } }
   #sheet .hd { font-size:38px; text-align:center; margin-bottom:8px; }
+  #sheet .hd svg { margin:0 auto; }
   #sheet h3 { font-size:1.16rem; text-align:center; margin-bottom:8px; line-height:1.3; }
   #sheet p.body { font-size:.93rem; line-height:1.55; color:var(--muted); text-align:center; margin-bottom:15px; white-space:pre-wrap; }
   .opt { display:block; width:100%; border:0; background:var(--soft); border-radius:14px; padding:13px 14px; margin-bottom:8px;
@@ -457,24 +458,24 @@ function newState(opts){
   // --- Family ---
   const momName = pick(F_NAMES), dadName = pick(M_NAMES);
   const twoParents = chance(diff==='hard' ? .55 : .84);
-  s.people.push(mkPerson(s,{name:momName+' '+last, rel:'Mother', emoji:'👩', bond:RI(72,96), age:RI(20,40)}));
-  if (twoParents) s.people.push(mkPerson(s,{name:dadName+' '+last, rel:'Father', emoji:'👨', bond:RI(64,94), age:RI(21,45)}));
+  s.people.push(mkPerson(s,{name:momName+' '+last, rel:'Mother', sex:'f', emoji:'👩', bond:RI(72,96), age:RI(20,40)}));
+  if (twoParents) s.people.push(mkPerson(s,{name:dadName+' '+last, rel:'Father', sex:'m', emoji:'👨', bond:RI(64,94), age:RI(21,45)}));
   else s.flags.noDad = true;
   const sibs = RI(0, diff==='rich'?2:3);
   for (let i=0;i<sibs;i++){
     const bs = chance(.5)?'f':'m';
     s.people.push(mkPerson(s,{
       name: pick(bs==='f'?F_NAMES:M_NAMES)+' '+last,
-      rel: bs==='f' ? 'Sister' : 'Brother', emoji: bs==='f'?'👧':'👦',
+      rel: bs==='f' ? 'Sister' : 'Brother', sex: bs, emoji: bs==='f'?'👧':'👦',
       bond: RI(40,88), age: RI(1,9)          // siblings already here are older than you
     }));
   }
-  if (chance(.7)) s.people.push(mkPerson(s,{name:pick(F_NAMES)+' '+pick(SURNAMES), rel:'Grandmother', emoji:'👵', bond:RI(70,98), age:RI(58,80)}));
-  if (chance(.5)) s.people.push(mkPerson(s,{name:pick(M_NAMES)+' '+last, rel:'Grandfather', emoji:'👴', bond:RI(66,96), age:RI(60,84)}));
+  if (chance(.7)) s.people.push(mkPerson(s,{name:pick(F_NAMES)+' '+pick(SURNAMES), rel:'Grandmother', sex:'f', emoji:'👵', bond:RI(70,98), age:RI(58,80)}));
+  if (chance(.5)) s.people.push(mkPerson(s,{name:pick(M_NAMES)+' '+last, rel:'Grandfather', sex:'m', emoji:'👴', bond:RI(66,96), age:RI(60,84)}));
   return s;
 }
 function mkPerson(s,o){
-  return { id: s.nid++, name:o.name, rel:o.rel, emoji:o.emoji, bond:clamp(o.bond),
+  return { id: s.nid++, name:o.name, rel:o.rel, emoji:o.emoji, sex:o.sex, bond:clamp(o.bond),
            age:o.age|0, alive:true, dead:false, note:o.note||'', met:s.age };
 }
 
@@ -526,7 +527,12 @@ function fmtDelta(o){
    ============================================================ */
 const byRel = r => S.people.filter(p=>p.alive && p.rel===r);
 const anyRel = (...rs) => S.people.filter(p=>p.alive && rs.includes(p.rel));
-const partner = () => S.people.find(p=>p.alive && (p.rel==='Spouse'||p.rel==='Partner'));
+const DATING  = ['Girlfriend','Boyfriend','Partner'];        // 'Partner' = pre-rename saves
+const MARRIED = ['Wife','Husband','Spouse'];                 // 'Spouse'  = pre-rename saves
+const EXES    = ['Ex-girlfriend','Ex-boyfriend','Ex-wife','Ex-husband','Ex'];
+const isDating  = p => DATING.includes(p.rel);
+const isMarried = p => MARRIED.includes(p.rel);
+const partner = () => S.people.find(p=>p.alive && (isMarried(p) || isDating(p)));
 const kids = () => S.people.filter(p=>p.alive && (p.rel==='Son'||p.rel==='Daughter'));
 const friends = () => S.people.filter(p=>p.alive && p.rel==='Friend');
 const parents = () => anyRel('Mother','Father');
@@ -614,7 +620,7 @@ EV({min:1,max:8,w:.7,ic:'🤰',cond:()=>anyRel('Brother','Sister').length<4&&byR
   auto:()=>{
     const bs = chance(.5)?'f':'m';
     S.people.push(mkPerson(S,{name:pick(bs==='f'?F_NAMES:M_NAMES)+' '+S.last,
-      rel:bs==='f'?'Sister':'Brother', emoji:'👶', bond:RI(55,90), age:0}));
+      rel:bs==='f'?'Sister':'Brother', sex:bs, emoji:'👶', bond:RI(55,90), age:0}));
     if (anyRel('Brother','Sister').length>=3) S.flags.noMoreSibs = true;
     log('👶','You got a new baby sibling. The attention split in two overnight.');
     apply({happy:RI(-4,7)});
@@ -755,7 +761,7 @@ EV({min:18,max:70,ic:'🚑',w:.5,txt:'',auto:()=>{
 EV({min:30,max:60,ic:'⚖️',cond:()=>!!partner()&&S.age>28,w:.7,txt:()=>`Things with ${partner().name.split(' ')[0]} have been strained for a while now.`,
   choices:[
     {l:'Work on it', sub:'Costs time and money', go:()=>{ const p=partner(); if(!p)return; S.cash-=2400; if(chance(.6)){p.bond=clamp(p.bond+22);log('❤️‍🩹','Counselling helped. You came out stronger.','good');apply({happy:9});} else {p.bond=clamp(p.bond-10);log('😔','You tried. It did not take.','bad');apply({happy:-7});} }},
-    {l:'Separate', go:()=>{ const p=partner(); if(!p)return; const cost=p.rel==='Spouse'?Math.round(Math.max(S.cash,0)*.42):0; S.cash-=cost; p.rel='Ex'; p.emoji='💔';
+    {l:'Separate', go:()=>{ const p=partner(); if(!p)return; const cost=isMarried(p)?Math.round(Math.max(S.cash,0)*.42):0; S.cash-=cost; p.rel=exLabel(p); p.emoji='💔';
       log('💔',`You and ${p.name.split(' ')[0]} separated${cost>0?', and the divorce cost you '+moneyFull(cost):''}.`,'bad'); apply({happy:-16,stress:20}); }},
     {l:'Ignore it', go:()=>{ const p=partner(); if(p)p.bond=clamp(p.bond-14); log('🙈','You said nothing and hoped. It got quieter.','bad'); apply({happy:-5}); }},
   ]});
@@ -789,7 +795,7 @@ EV({min:63,max:75,ic:'🎣',cond:()=>!!S.job,txt:'You could retire.',
   ]});
 EV({min:60,max:999,ic:'👵',w:1.1,cond:()=>kids().length>0&&!S.flags.grandkid,txt:'',
   auto:()=>{ S.flags.grandkid=true; const k=pick(kids()); const gs=chance(.5)?'f':'m';
-    S.people.push(mkPerson(S,{name:pick(gs==='f'?F_NAMES:M_NAMES)+' '+S.last, rel:gs==='f'?'Granddaughter':'Grandson', emoji:'👶', bond:RI(70,95), age:0}));
+    S.people.push(mkPerson(S,{name:pick(gs==='f'?F_NAMES:M_NAMES)+' '+S.last, rel:gs==='f'?'Granddaughter':'Grandson', sex:gs, emoji:'👶', bond:RI(70,95), age:0}));
     log('🍼',`${k.name.split(' ')[0]} had a baby. You are a grandparent.`,'big'); apply({happy:18}); }});
 EV({min:66,max:999,ic:'🧓',txt:'',auto:()=>{
   const g = pick([
@@ -824,20 +830,23 @@ EV({min:70,max:999,ic:'📜',cond:()=>netWorth()>50000&&!S.flags.will,txt:'Someo
 function addFriend(bond){
   const fs = chance(.5)?'f':'m';
   const n = pick(fs==='f'?F_NAMES:M_NAMES)+' '+pick(SURNAMES);
-  S.people.push(mkPerson(S,{name:n, rel:'Friend', emoji:fs==='f'?'👩‍🦰':'🧑', bond:bond||RI(45,80), age:S.age}));
+  S.people.push(mkPerson(S,{name:n, rel:'Friend', sex:fs, emoji:fs==='f'?'👩‍🦰':'🧑', bond:bond||RI(45,80), age:S.age}));
   return n.split(' ')[0];
 }
 function addDate(bond){
   const ds = S.sex === 'f' ? 'm' : 'f';   // partners are always the opposite sex
   const n = pick(ds==='f'?F_NAMES:M_NAMES)+' '+pick(SURNAMES);
-  const p = mkPerson(S,{name:n, rel:'Partner', emoji:ds==='f'?'👩':'👨', bond:bond||RI(55,85), age:S.age+RI(-4,4)});
+  // Teens pair off within a couple of years; adults can span a bit wider.
+  const gap = S.age < 20 ? RI(-2,2) : RI(-5,5);
+  const p = mkPerson(S,{name:n, rel:ds==='f'?'Girlfriend':'Boyfriend', sex:ds,
+                        emoji:ds==='f'?'👩':'👨', bond:bond||RI(55,85), age:Math.max(1,S.age+gap)});
   S.people.push(p);
   return n.split(' ')[0];
 }
 function haveBaby(){
   const ks = chance(.5)?'f':'m';
   const nm = pick(ks==='f'?F_NAMES:M_NAMES)+' '+S.last;
-  S.people.push(mkPerson(S,{name:nm, rel:ks==='f'?'Daughter':'Son', emoji:'👶', bond:RI(80,99), age:0}));
+  S.people.push(mkPerson(S,{name:nm, rel:ks==='f'?'Daughter':'Son', sex:ks, emoji:'👶', bond:RI(80,99), age:0}));
   S.kidsCount++;
   log('👶', `${nm.split(' ')[0]} was born. ${RI(6,9)} lb ${RI(0,15)} oz. You did not sleep for a year.`, 'big');
   apply({happy:20, health:-4, karma:4});
@@ -924,7 +933,7 @@ function ageUp(){
   driftStats();
 
   // --- relationships drift ---
-  const CLOSE = ['Mother','Father','Spouse','Son','Daughter','Brother','Sister','Grandmother','Grandfather'];
+  const CLOSE = ['Mother','Father','Wife','Husband','Spouse','Son','Daughter','Brother','Sister','Grandmother','Grandfather'];
   S.people.forEach(p=>{
     if (!p.alive) return;
     // babies grow up — keep their icon honest
@@ -935,7 +944,7 @@ function ageUp(){
     // Neglect cools a relationship but family doesn't rot away to nothing.
     const floor = CLOSE.includes(p.rel) ? 30 : 0;
     p.bond = Math.max(floor, clamp(p.bond - RI(0,3)));
-    if (p.rel!=='Mother'&&p.rel!=='Father'&&p.bond<8&&chance(.4)&&['Friend','Partner','Ex'].includes(p.rel)){
+    if (p.rel!=='Mother'&&p.rel!=='Father'&&p.bond<8&&chance(.4)&&(p.rel==='Friend'||isDating(p)||EXES.includes(p.rel))){
       p.alive=false; p.dead=false; p.gone=true;
       if (p.rel==='Friend') log('👋', `You and ${p.name.split(' ')[0]} drifted apart completely.`);
     }
@@ -1259,9 +1268,9 @@ function activities(){
     if (!partner() ) out.push({e:'💘',n:'Look for love',d:'Put yourself out there',go:()=>{ if(once('love'))return toast('Once a year.'); mark('love');
       if(chance(.3+S.looks/280+S.happy/700)){const n=addDate(RI(52,85));log('💞',`You started seeing ${n}.`,'good');apply({happy:12});} else {log('🫠','Several dates. No sparks.','bad');apply({happy:-4});} }});
     const pt = partner();
-    if (pt && pt.rel==='Partner' && pt.bond>68 && a>=19) out.push({e:'💍',n:'Propose',d:'The big one',go:()=>{
+    if (pt && isDating(pt) && pt.bond>68 && a>=19) out.push({e:'💍',n:'Propose',d:'The big one',go:()=>{
       const cost = Math.round(RI(1500,14000)); if(S.cash<cost) return toast('You cannot afford a ring.');
-      if (chance(pt.bond/115)){ S.cash-=cost; pt.rel='Spouse'; pt.bond=clamp(pt.bond+12); log('💍',`${pt.name.split(' ')[0]} said yes. The wedding cost more than the ring.`,'big'); S.cash-=Math.round(RI(6000,45000)); apply({happy:24}); earn('Married'); }
+      if (chance(pt.bond/115)){ S.cash-=cost; pt.rel = personSex(pt)==='f' ? 'Wife' : 'Husband'; pt.bond=clamp(pt.bond+12); log('💍',`${pt.name.split(' ')[0]} said yes. The wedding cost more than the ring.`,'big'); S.cash-=Math.round(RI(6000,45000)); apply({happy:24}); earn('Married'); }
       else { pt.bond=clamp(pt.bond-25); log('😶',`${pt.name.split(' ')[0]} said they were not ready. It was very quiet afterward.`,'bad'); apply({happy:-18}); }
       render(); }});
     if (S.job && a>=60) out.push({e:'🎣',n:'Retire',d:'Collect your pension',go:()=>{ retire(); render(); }});
@@ -1373,7 +1382,7 @@ function openPerson(p){
   }
   // Having children is opt-in and lives with the person you'd have them with,
   // rather than sitting in the Activities grid every year of a marriage.
-  if (p.rel==='Spouse' && kids().length<6 && S.age<=48){
+  if (isMarried(p) && kids().length<6 && S.age<=48){
     opts.push({label:'👶 Try for a baby', sub:'Once a year', run:()=>{
       if (S.doneThisYear['baby']) { toast('Once a year.'); return; }
       S.doneThisYear['baby']=true;
@@ -1383,10 +1392,10 @@ function openPerson(p){
       closeSheet(); render();
     }});
   }
-  if (p.rel==='Partner' || p.rel==='Spouse'){
+  if (isDating(p) || isMarried(p)){
     opts.push({label:'💔 Break it off', run:()=>{
-      const cost = p.rel==='Spouse' ? Math.round(Math.max(S.cash,0)*.42) : 0;
-      S.cash -= cost; p.rel='Ex'; p.emoji='💔';
+      const cost = isMarried(p) ? Math.round(Math.max(S.cash,0)*.42) : 0;
+      S.cash -= cost; p.rel=exLabel(p); p.emoji='💔';
       log('💔', `You ended things with ${p.name.split(' ')[0]}${cost>0?'. The divorce cost you '+moneyFull(cost):'.'}`, 'bad');
       apply({happy:-14, stress:14}); closeSheet(); render();
     }});
@@ -1397,7 +1406,7 @@ function openPerson(p){
     apply({happy:-5, stress:8}); closeSheet(); render();
   }});
   openSheet({
-    icon: p.emoji, title: p.name,
+    icon: personFace(p, 64), title: p.name,
     body: `Your ${p.rel.toLowerCase()}${p.age?', age '+p.age:''}.\nRelationship: ${p.bond}/100`,
     options: opts
   });
@@ -1406,9 +1415,111 @@ function openPerson(p){
 /* ============================================================
    15.  Rendering
    ============================================================ */
+
+/* ============================================================
+   Portraits — small deterministic SVG faces
+   Every feature is derived from a seed hashed off the person's name and id,
+   so a face is stable across renders and across a reload, without storing
+   anything extra in the save. Ages the face as the person ages.
+   ============================================================ */
+const SKIN  = ['#f8dcc4','#f1c9a5','#e5b184','#d09566','#b5713f','#91582f','#6d3f22'];
+const HAIRC = ['#1b1310','#33211a','#5a3722','#7b4b25','#a4632c','#c9903c','#e2c88e','#3a3340'];
+const CLOTH = ['#6d4fc4','#3f9ad6','#2e9e6b','#e05a6b','#f0a52e','#c25aa8','#5a6b8c','#8a7b3f'];
+
+function hashStr(s){
+  let h = 2166136261;
+  for (let i=0;i<s.length;i++){ h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return h >>> 0;
+}
+function rngFrom(seed){
+  let x = (seed || 1) >>> 0;
+  return () => { x ^= x<<13; x>>>=0; x ^= x>>>17; x ^= x<<5; x>>>=0; return x / 4294967296; };
+}
+const REL_SEX = {Mother:'f',Sister:'f',Grandmother:'f',Daughter:'f',Granddaughter:'f',Wife:'f',
+                 Girlfriend:'f','Ex-girlfriend':'f','Ex-wife':'f',
+                 Father:'m',Brother:'m',Grandfather:'m',Son:'m',Grandson:'m',Husband:'m',
+                 Boyfriend:'m','Ex-boyfriend':'m','Ex-husband':'m'};
+function personSex(p){
+  if (p.sex === 'f' || p.sex === 'm') return p.sex;
+  if (REL_SEX[p.rel]) return REL_SEX[p.rel];
+  return /👩|👧|👵|🦰/.test(p.emoji || '') ? 'f' : 'm';   // pre-rename saves
+}
+function exLabel(p){
+  const f = personSex(p) === 'f';
+  return isMarried(p) ? (f ? 'Ex-wife' : 'Ex-husband') : (f ? 'Ex-girlfriend' : 'Ex-boyfriend');
+}
+
+function hairFor(style, hair){
+  const cap = `<path d="M11.2 15.8C11.2 8.2 28.8 8.2 28.8 15.8 27.6 12.2 24.6 10.7 20 10.7 15.4 10.7 12.4 12.2 11.2 15.8Z" fill="${hair}"/>`;
+  if (style === 1)      // long
+    return `<path d="M10.7 15C10.7 7.4 29.3 7.4 29.3 15L29.3 25.5 26.9 25.5 26.9 16.4C25.9 12.9 23.4 11.3 20 11.3 16.2 11.3 13.1 12.9 13.1 16.4L13.1 25.5 10.7 25.5Z" fill="${hair}"/>`;
+  if (style === 2) return cap + `<circle cx="20" cy="6.4" r="3.1" fill="${hair}"/>`;              // bun
+  if (style === 3) return cap + `<circle cx="28.4" cy="19.6" r="2.7" fill="${hair}"/>`;           // ponytail
+  if (style === 4)      // curls
+    return cap + [12.6,16.1,19.9,23.7,27.2].map(x=>`<circle cx="${x}" cy="10.2" r="2.6" fill="${hair}"/>`).join('');
+  if (style === 5)      // receding
+    return `<path d="M11.2 15.4C11.3 10.9 13.9 9.2 16.8 9.3 13.8 10.9 12.7 13.5 12.6 18.6L11.2 18.6Z M28.8 15.4C28.7 10.9 26.1 9.2 23.2 9.3 26.2 10.9 27.3 13.5 27.4 18.6L28.8 18.6Z" fill="${hair}"/>`;
+  return cap;
+}
+
+/* Returns an <svg> string. `who` = {seed, sex, age, dead}. */
+function faceSVG(who, px){
+  const r = rngFrom(who.seed);
+  const age = who.age | 0, f = who.sex === 'f';
+  const skin = SKIN[Math.floor(r()*SKIN.length)];
+  const shade = darkenHex(skin, .12);
+  let hair = HAIRC[Math.floor(r()*HAIRC.length)];
+  if (age >= 75) hair = '#c2c2cc'; else if (age >= 60) hair = '#9b9ba1';
+  const cloth = CLOTH[Math.floor(r()*CLOTH.length)];
+  const bg = lightenHex(cloth, .66);
+  const baby = age < 3;
+  const style = baby ? -1
+    : (age >= 55 && !f && r() < .32) ? 5
+    : f ? [0,1,1,2,3,4][Math.floor(r()*6)]
+        : [0,0,0,4,5][Math.floor(r()*5)];
+  const glasses = r() < (age > 50 ? .35 : .18) && !baby;
+  const beard   = !f && age >= 20 && r() < .28;
+  const ry = baby ? 8.7 : 9.4, cy = baby ? 17.2 : 16;
+
+  let s = `<svg viewBox="0 0 40 40" width="${px}" height="${px}" aria-hidden="true" `
+        + `style="display:block;border-radius:50%${who.dead?';filter:grayscale(1);opacity:.55':''}">`;
+  s += `<circle cx="20" cy="20" r="20" fill="${bg}"/>`;
+  s += `<path d="M3.5 40C3.5 30.6 11.4 26.4 20 26.4 28.6 26.4 36.5 30.6 36.5 40Z" fill="${cloth}"/>`;
+  s += `<path d="M16.9 20.5h6.2v6h-6.2z" fill="${shade}"/>`;
+  s += `<ellipse cx="11.3" cy="${cy+1}" rx="1.5" ry="2" fill="${skin}"/><ellipse cx="28.7" cy="${cy+1}" rx="1.5" ry="2" fill="${skin}"/>`;
+  s += `<ellipse cx="20" cy="${cy}" rx="8.6" ry="${ry}" fill="${skin}"/>`;
+  if (baby) s += `<path d="M18.7 8.9q1.5-2.2 3 .3" stroke="${hair}" stroke-width="1.2" fill="none" stroke-linecap="round"/>`;
+  else s += hairFor(style, hair);
+  if (beard) s += `<path d="M13.9 19.4C14.5 24 17 25.7 20 25.7 23 25.7 25.5 24 26.1 19.4 24.7 22.1 22.6 23.1 20 23.1 17.4 23.1 15.3 22.1 13.9 19.4Z" fill="${hair}"/>`;
+  const ey = cy + .4;
+  if (!baby) s += `<path d="M14.9 ${ey-2.5}q1.9-1 3.8 0M21.3 ${ey-2.5}q1.9-1 3.8 0" stroke="${darkenHex(hair,.1)}" stroke-width=".85" fill="none" stroke-linecap="round"/>`;
+  s += `<circle cx="16.8" cy="${ey}" r="${baby?1.25:1.05}" fill="#2b2233"/><circle cx="23.2" cy="${ey}" r="${baby?1.25:1.05}" fill="#2b2233"/>`;
+  s += `<path d="M20 ${ey+.6}v1.5" stroke="${shade}" stroke-width=".8" fill="none" stroke-linecap="round"/>`;
+  s += `<path d="M17.5 ${ey+4}q2.5 2 5 0" stroke="#a35a60" stroke-width=".95" fill="none" stroke-linecap="round"/>`;
+  if (baby || age < 12) s += `<circle cx="14.2" cy="${ey+2.4}" r="1.5" fill="#e58a92" opacity=".35"/><circle cx="25.8" cy="${ey+2.4}" r="1.5" fill="#e58a92" opacity=".35"/>`;
+  if (glasses) s += `<g fill="none" stroke="#3a3a44" stroke-width=".75"><circle cx="16.8" cy="${ey}" r="2.5"/><circle cx="23.2" cy="${ey}" r="2.5"/><path d="M19.3 ${ey}h1.4"/></g>`;
+  return s + '</svg>';
+}
+
+function personFace(p, px){
+  return faceSVG({ seed: hashStr((p.name||'?') + '|' + (p.id||0)), sex: personSex(p),
+                   age: p.age, dead: !!p.dead }, px || 38);
+}
+function playerFace(px){
+  return faceSVG({ seed: hashStr(S.first + ' ' + S.last + '|me'), sex: S.sex, age: S.age }, px || 44);
+}
+function clampHex(v){ return v<0?0:v>255?255:Math.round(v); }
+function shiftHex(hex, fn){
+  const h = hex.replace('#','');
+  const n = parseInt(h.length===3 ? h.split('').map(c=>c+c).join('') : h, 16);
+  const r = fn((n>>16)&255), g = fn((n>>8)&255), b = fn(n&255);
+  return '#' + ((1<<24) + (clampHex(r)<<16) + (clampHex(g)<<8) + clampHex(b)).toString(16).slice(1);
+}
+function darkenHex(hex, amt){ return shiftHex(hex, c => c * (1-amt)); }
+function lightenHex(hex, amt){ return shiftHex(hex, c => c + (255-c)*amt); }
 function render(){
   if (!S) return;
-  $('avatar').textContent = S.age<2?'👶':S.age<12?(S.sex==='f'?'👧':'👦'):S.age<19?(S.sex==='f'?'👱‍♀️':'👱'):S.age<60?(S.sex==='f'?'👩':'👨'):(S.sex==='f'?'👵':'👴');
+  $('avatar').innerHTML = playerFace(44);
   $('who').textContent = `${S.first} ${S.last}, ${S.age}`;
   const role = S.job ? CAREERS.find(c=>c.id===S.job).ladder[S.rank]
     : S.school==='uni' ? 'College student'
@@ -1459,7 +1570,7 @@ function esc(s){ return String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','
 function vPeople(){
   const groups = [
     ['Family', ['Mother','Father','Brother','Sister','Grandmother','Grandfather']],
-    ['Love',   ['Spouse','Partner','Ex']],
+    ['Love',   ['Wife','Husband','Spouse','Girlfriend','Boyfriend','Partner','Ex-girlfriend','Ex-boyfriend','Ex-wife','Ex-husband','Ex']],
     ['Children',['Son','Daughter','Grandson','Granddaughter']],
     ['Friends',['Friend']],
   ];
@@ -1470,7 +1581,7 @@ function vPeople(){
     h += `<h2 class="sec">${title}</h2>`;
     list.forEach(p=>{
       h += `<button class="row" data-person="${p.id}">
-        <span class="ic">${p.emoji}</span>
+        <span class="ic">${personFace(p, 38)}</span>
         <span class="tx"><span class="t1">${esc(p.name)}</span>
           <span class="t2">${p.rel}${p.age?' · '+p.age:''}</span>
           <span class="mini"><i style="width:${p.bond}%"></i></span></span>
@@ -1480,7 +1591,7 @@ function vPeople(){
   const gone = S.people.filter(p=>p.dead);
   if (gone.length){
     h += `<h2 class="sec">In memory</h2>`;
-    gone.forEach(p=>{ h += `<div class="row" style="opacity:.55;cursor:default"><span class="ic">🕯️</span><span class="tx"><span class="t1">${esc(p.name)}</span><span class="t2">${p.rel} · ${esc(p.cause||'passed away')}</span></span></div>`; });
+    gone.forEach(p=>{ h += `<div class="row" style="cursor:default"><span class="ic">${personFace(p, 38)}</span><span class="tx"><span class="t1">${esc(p.name)}</span><span class="t2">${p.rel} · ${esc(p.cause||'passed away')}</span></span></div>`; });
   }
   if (!h) h = '<div class="empty">There is nobody in your life right now.</div>';
   return h;
@@ -1666,7 +1777,7 @@ function showEnd(){
 function eulogy(){
   const bits = [];
   if (S.flags.retiredAt) bits.push(`You retired at ${S.flags.retiredAt}.`);
-  const sp = S.people.find(p=>p.rel==='Spouse');
+  const sp = S.people.find(p=>isMarried(p));
   if (sp) bits.push(`You were married to ${sp.name.split(' ')[0]}${sp.alive?'':' until they died'}.`);
   if (S.kidsCount) bits.push(`You had ${S.kidsCount} ${S.kidsCount===1?'child':'children'}.`);
   if (S.flags.hobby) bits.push(`You never did stop with the ${S.flags.hobby}.`);
