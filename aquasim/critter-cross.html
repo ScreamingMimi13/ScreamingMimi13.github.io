@@ -250,7 +250,7 @@
     <div class="panel">
       <h2>My Farm</h2>
       <div class="row" id="farmTabs" style="margin-bottom:10px"></div>
-      <canvas id="farm" width="960" height="300"></canvas>
+      <canvas id="farm" width="960" height="340"></canvas>
       <div class="hint" style="margin-top:8px" id="farmHint">Your animals graze here.</div>
       <div class="farmUpgrade" id="farmUpgradeRow"></div>
     </div>
@@ -2362,7 +2362,7 @@ function renderFarm(dt){
     const gy = h * (0.62 + s.y * 0.36);
     /* every animal gets a sensible on-screen height: small species stay small,
        big ones stay inside the pasture instead of towering out of frame */
-    const target = (52 + s.an.genes.size * 66) * (0.86 + s.y * 0.3);
+    const target = (80 + s.an.genes.size * 100) * (0.86 + s.y * 0.3);
     const scale = scaleForHeight(s.an, target);
     ctx.save();
     if(s.dir < 0){ ctx.translate(s.x*2, 0); ctx.scale(-1, 1); }
