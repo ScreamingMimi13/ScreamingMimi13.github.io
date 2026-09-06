@@ -121,7 +121,7 @@
   .nb.on .e { filter:none; }
 
   /* ---------- Modal ---------- */
-  #veil { position:absolute; inset:0; background:rgba(15,10,35,.62); backdrop-filter:blur(3px); display:none; align-items:flex-end; z-index:50; }
+  #veil { position:absolute; inset:0; background:rgba(15,10,35,.62); backdrop-filter:blur(3px); display:none; align-items:flex-end; z-index:80; }
   #veil.on { display:flex; }
   #sheet { width:100%; background:var(--frame); border-radius:24px 24px 0 0; padding:20px 18px calc(20px + var(--safe-b));
     max-height:88%; overflow-y:auto; animation:rise .26s cubic-bezier(.2,.9,.3,1); }
@@ -171,7 +171,7 @@
   .badge { display:inline-block; background:rgba(255,255,255,.16); border-radius:99px; padding:6px 12px; font-size:.78rem; margin:0 5px 6px 0; }
 
   /* ---------- Toast ---------- */
-  #toast { position:absolute; left:50%; bottom:118px; transform:translateX(-50%) translateY(14px); z-index:70;
+  #toast { position:absolute; left:50%; bottom:118px; transform:translateX(-50%) translateY(14px); z-index:90;
     background:var(--ink); color:var(--frame); padding:10px 16px; border-radius:99px; font-size:.85rem; font-weight:600;
     opacity:0; pointer-events:none; transition:.25s; max-width:88%; text-align:center; }
   #toast.on { opacity:.96; transform:translateX(-50%) translateY(0); }
@@ -240,7 +240,7 @@
     </div>
     <div class="push">
       <button class="bigBtn" id="beginBtn">👶 Be Born</button>
-      <button class="bigBtn ghost hide" id="startInstall" style="margin-top:8px">📱 Install as an App</button>
+      <button class="bigBtn ghost hide" id="startInstall" style="margin-top:8px">📱 Add Life to my Home Screen</button>
     </div>
   </div>
 
@@ -1818,42 +1818,94 @@ function loadSave(){
    19.  Install-as-app
    ============================================================ */
 function setupInstall(){
-  // A manifest built entirely in-page so this stays one file.
-  const icon = "data:image/svg+xml," + encodeURIComponent(
-    "<svg xmlns='http://www.w3.org/2000/svg' width='512' height='512'><rect width='512' height='512' rx='96' fill='#4a3f7a'/><text x='256' y='360' font-size='280' text-anchor='middle'>👶</text></svg>");
-  const manifest = {
-    name: 'Life — Birth to 100', short_name: 'Life',
-    start_url: location.pathname.split('/').pop() || './',
-    scope: './', display: 'standalone', orientation: 'portrait',
-    background_color: '#4a3f7a', theme_color: '#4a3f7a',
-    description: 'Start as a newborn and live one year at a time to 100.',
-    icons: [
-      {src: icon, sizes: '192x192', type: 'image/svg+xml', purpose: 'any'},
-      {src: icon, sizes: '512x512', type: 'image/svg+xml', purpose: 'any maskable'}
-    ]
-  };
+  const here = location.href.split(/[?#]/)[0];
+  const dir  = here.replace(/[^/]*$/, '');
+  const httpish = /^https?:$/.test(location.protocol);
+
+  /* Icons are drawn to a canvas and exported as real PNGs. iOS ignores SVG for
+     apple-touch-icon (it would fall back to a screenshot of the page), and
+     Chrome wants PNG in the manifest, so vector is not an option here. Data
+     URIs keep the game a single file. */
+  function roundRect(x, w, h, r){
+    x.beginPath();
+    x.moveTo(r,0); x.lineTo(w-r,0); x.quadraticCurveTo(w,0,w,r);
+    x.lineTo(w,h-r); x.quadraticCurveTo(w,h,w-r,h);
+    x.lineTo(r,h); x.quadraticCurveTo(0,h,0,h-r);
+    x.lineTo(0,r); x.quadraticCurveTo(0,0,r,0); x.closePath();
+  }
+  function makeIcon(size, maskable){
+    const c = document.createElement('canvas');
+    c.width = c.height = size;
+    const x = c.getContext('2d');
+    const g = x.createLinearGradient(0, 0, size, size);
+    g.addColorStop(0, '#8a6ee0'); g.addColorStop(1, '#4a3f7a');
+    x.fillStyle = g;
+    if (maskable) x.fillRect(0, 0, size, size);        // launcher applies its own mask
+    else { roundRect(x, size, size, size*0.22); x.fill(); }
+    // A wordmark stays legible at 44px on a home screen, where a silhouette just
+    // reads as a generic contact icon.
+    x.fillStyle = '#fff';
+    x.textAlign = 'center'; x.textBaseline = 'middle';
+    x.font = '700 ' + Math.round(size * (maskable ? 0.26 : 0.34))
+          + 'px system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif';
+    x.fillText('Life', size/2, size*0.53);
+    return c.toDataURL('image/png');
+  }
+
   try {
-    const link = document.createElement('link');
-    link.rel = 'manifest';
-    link.href = URL.createObjectURL(new Blob([JSON.stringify(manifest)], {type:'application/manifest+json'}));
-    document.head.appendChild(link);
+    const png = {};
+    [180, 192, 512].forEach(s => png[s] = makeIcon(s, false));
+    const maskable = makeIcon(512, true);
+
+    // iOS reads these when you tap Add to Home Screen. Drop the SVG one first.
+    document.querySelectorAll('link[rel="apple-touch-icon"], link[rel="icon"]').forEach(l => l.remove());
+    const addLink = (rel, href, sizes, type) => {
+      const l = document.createElement('link');
+      l.rel = rel; l.href = href;
+      if (sizes) l.setAttribute('sizes', sizes);
+      if (type) l.type = type;
+      document.head.appendChild(l);
+    };
+    ['180x180','167x167','152x152','120x120'].forEach(sz => addLink('apple-touch-icon', png[180], sz));
+    addLink('icon', png[192], '192x192', 'image/png');
+    addLink('icon', png[512], '512x512', 'image/png');
+
+    // start_url/scope must be absolute: a data: manifest has nothing to resolve
+    // relative paths against.
+    if (httpish) {
+      const manifest = {
+        name: 'Life — Birth to 100', short_name: 'Life', id: here,
+        start_url: here, scope: dir,
+        display: 'standalone', orientation: 'portrait',
+        background_color: '#4a3f7a', theme_color: '#4a3f7a',
+        description: 'Start as a newborn and live one year at a time to 100.',
+        icons: [
+          {src: png[192], sizes: '192x192', type: 'image/png', purpose: 'any'},
+          {src: png[512], sizes: '512x512', type: 'image/png', purpose: 'any'},
+          {src: maskable, sizes: '512x512', type: 'image/png', purpose: 'maskable'}
+        ]
+      };
+      const link = document.createElement('link');
+      link.rel = 'manifest';
+      link.href = 'data:application/manifest+json;charset=utf-8,' + encodeURIComponent(JSON.stringify(manifest));
+      document.head.appendChild(link);
+    }
   } catch(_){}
 
   const ua = navigator.userAgent;
-  const isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1);
+  const iPadOS = navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1;
+  const isIOS = /iPad|iPhone|iPod/.test(ua) || iPadOS;
+  const isTablet = /iPad/.test(ua) || iPadOS || (/Android/.test(ua) && !/Mobile/.test(ua));
   const isAndroid = /Android/.test(ua);
   const standalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
-  const isMobile = isIOS || isAndroid || window.matchMedia('(pointer: coarse)').matches;
 
   const btns = [$('installBtn'), $('startInstall')].filter(Boolean);
   const show = () => btns.forEach(b => b.classList.remove('hide'));
 
-  if (standalone) return;              // already installed — nothing to offer
-  if (isMobile) show();                // phones always get the button
+  if (standalone) return;   // already on the home screen
+  show();                   // phone, tablet or desktop — always offer it
 
-  window.addEventListener('beforeinstallprompt', e => {
-    e.preventDefault(); deferredPrompt = e; show();
-  });
+  window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredPrompt = e; show(); });
   window.addEventListener('appinstalled', () => {
     deferredPrompt = null;
     btns.forEach(b => b.classList.add('hide'));
@@ -1867,17 +1919,23 @@ function setupInstall(){
       deferredPrompt = null;
       return;
     }
+    const body = !httpish
+      ? 'This page is open from a file rather than a web address, so it cannot be installed.\n\nOpen it from a link (or a local web server) and the button will work.'
+      : isIOS
+      ? 'You need Safari for this — Chrome on ' + (isTablet ? 'iPad' : 'iPhone') + ' cannot add to the home screen.\n\n'
+        + '1. Tap the Share button (the square with an arrow up) — ' + (isTablet ? 'top of the screen on iPad' : 'along the bottom on iPhone') + '.\n'
+        + '2. Scroll down and tap "Add to Home Screen".\n'
+        + '3. Tap Add.\n\nA Life icon appears on your home screen and opens full screen, with no browser bars.'
+      : isAndroid
+      ? '1. Tap the ⋮ menu at the top right of the browser.\n2. Tap "Install app", or "Add to Home screen".\n3. Tap Install.\n\nA Life icon appears on your home screen and opens full screen, with no browser bars.'
+      : 'In Chrome or Edge, open the ⋮ menu and choose "Install page as app" (or the install icon in the address bar).\n\nIn Safari on a Mac, use File → Add to Dock.';
     openSheet({
-      icon: '📱', title: 'Add Life to your home screen',
-      body: isIOS
-        ? 'In Safari, tap the Share button at the bottom of the screen (the square with an arrow), scroll down, and tap "Add to Home Screen".\n\nIt will open full screen with no browser bars, exactly like a normal app.'
-        : isAndroid
-        ? 'Tap the ⋮ menu in the top right of your browser, then tap "Add to Home screen" or "Install app".\n\nIt will open full screen, exactly like a normal app.'
-        : 'In Chrome or Edge, open the ⋮ menu and choose "Install page as app". In Safari, use File → Add to Dock.',
+      icon: '📱', title: 'Put Life on your home screen',
+      body: body,
       options: [{label:'Got it', primary:true, run:closeSheet}]
     });
   };
-  btns.forEach(b => { if(b) b.onclick = doInstall; });
+  btns.forEach(b => b.onclick = doInstall);
 }
 
 /* ============================================================
