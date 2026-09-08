@@ -141,7 +141,6 @@
   .phandle{ font-weight:900; font-size:.95rem; }
   .phandle .star{ color:#f0a92c; }
   .pmeta{ font-size:.74rem; color:var(--muted); }
-  .skillPips{ letter-spacing:1px; color:#e0533f; font-size:.74rem; }
   .searchRow{ display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
   input.search{
     font:inherit; flex:1; min-width:180px; border:2px solid var(--line);
@@ -237,6 +236,22 @@
     background:#fff8e8; border:2px solid #f2dca6; border-radius:13px;
   }
   .reqRow canvas{ width:36px; height:44px; flex:none; }
+  .codeBox{
+    font-family:"Consolas","SF Mono",ui-monospace,monospace;
+    font-size:clamp(1.5rem,6vw,2.6rem); font-weight:900; letter-spacing:1px;
+    color:#2b3a5c; background:#fff6d8; border:3px dashed #e0b64c;
+    border-radius:14px; padding:14px 10px; word-break:break-all;
+  }
+  #emoteRow{
+    position:absolute; right:10px; top:42px; display:flex; flex-direction:column;
+    gap:5px; align-items:flex-end; pointer-events:auto;
+  }
+  #emoteRow button{
+    font-weight:800; font-size:.74rem; cursor:pointer; border:none;
+    background:rgba(255,255,255,.86); color:#39455c;
+    padding:5px 11px; border-radius:999px; box-shadow:0 2px 6px rgba(0,0,0,.28);
+  }
+  #emoteRow button:active{ background:#ffd66b; }
   #rotate{
     position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
     display:none; background:rgba(15,22,38,.9); color:#fff; text-align:center;
@@ -311,27 +326,33 @@
   </header>
   <nav class="tabs">
     <button class="tab active" data-view="play">Play</button>
-    <button class="tab" data-view="friends">Friends<span class="badge hide" id="friendBadge">0</span></button>
+    <button class="tab" data-view="friends">Friends</button>
     <button class="tab" data-view="me">Me</button>
   </nav>
   <div class="wrap">
 
     <div class="view active" id="viewPlay">
       <div class="panel">
-        <h2>Start a game</h2>
-        <div class="hint">Four kids per game. Everyone takes a turn hitting the ball off the wall &mdash; miss it and you take a letter. Spell <b>W-A-L-L</b> and you're out.</div>
-        <div class="row" style="margin-top:12px">
-          <button class="btn" id="quickBtn">Quick game</button>
-          <button class="btn blue" id="customBtn">Pick who plays</button>
+        <h2>Play with your friends</h2>
+        <div class="hint">
+          Real kids, on real devices &mdash; nobody here is made up. One of you makes a game and
+          reads out the code; everyone else types it in. Up to four of you, on the same Wi-Fi
+          or on opposite sides of the world.
         </div>
+        <div class="row" style="margin-top:14px">
+          <button class="btn" id="makeBtn">Make a game</button>
+        </div>
+        <div class="searchRow">
+          <input class="search" id="joinCode" placeholder="code-your-friend-read-out" autocomplete="off" spellcheck="false">
+          <button class="btn blue" id="joinBtn">Join a game</button>
+        </div>
+        <div class="handleMsg" id="netHint"></div>
       </div>
-      <div class="panel" id="pickPanel" style="display:none">
-        <h2>Choose 3 kids to play against</h2>
-        <div class="hint">Friends are marked with a star. <span id="pickCount">0 of 3 picked</span></div>
-        <div class="plist" id="pickList"></div>
+      <div class="panel">
+        <h2>On your own</h2>
+        <div class="hint">No friends around right now? Rally against the wall by yourself and see how long you can keep it going.</div>
         <div class="row" style="margin-top:12px">
-          <button class="btn green" id="startCustomBtn" disabled>Play &#9654;</button>
-          <button class="btn grey" id="cancelCustomBtn">Cancel</button>
+          <button class="btn green" id="soloBtn">Practice at the wall</button>
         </div>
       </div>
       <div class="panel">
@@ -339,27 +360,16 @@
         <div class="hint">
           <b>&#8592; &#8594; &#8593; &#8595;</b> move around the blacktop &mdash; up and down walks you toward or away from the wall.<br>
           <b>SPACE</b> swings at the ball. On a phone, use the stick and the big <b>HIT</b> button.<br>
-          The ball must hit the wall above the line. You get one ground bounce to return it &mdash; two and it's your letter.
+          <b>1 2 3 4</b> shout something to the others.<br>
+          The ball must hit the wall above the line. You get one ground bounce to return it &mdash; two and it's your letter. Spell <b>W-A-L-L</b> and you're out.
         </div>
       </div>
     </div>
 
     <div class="view" id="viewFriends">
-      <div class="panel" id="reqPanel" style="display:none">
-        <h2>Friend requests</h2>
-        <div class="plist" id="reqList"></div>
-      </div>
-      <div class="panel">
-        <h2>Add a friend</h2>
-        <div class="hint">Search for someone by their @username.</div>
-        <div class="searchRow">
-          <input class="search" id="searchInput" placeholder="@username" autocomplete="off" spellcheck="false">
-          <button class="btn blue" id="searchBtn">Search</button>
-        </div>
-        <div class="plist" id="searchList"></div>
-      </div>
       <div class="panel">
         <h2>Your friends <span class="hint" id="friendCount"></span></h2>
+        <div class="hint">Everyone you have actually played a game with turns up here. Nobody is invented, and nobody gets added unless you really played them.</div>
         <div class="plist" id="friendList"></div>
       </div>
     </div>
@@ -378,6 +388,29 @@
   </div>
 </div>
 
+<!-- ============ LOBBY ============ -->
+<div class="screen" id="screenLobby">
+  <div class="wrap">
+    <div class="hero">
+      <h1>The code</h1>
+      <p id="lobbyRole"></p>
+    </div>
+    <div class="panel" style="text-align:center">
+      <div class="codeBox" id="lobbyCode">&hellip;</div>
+      <div class="hint" style="margin-top:8px">Say it out loud, or send it to them however you normally would.</div>
+    </div>
+    <div class="panel">
+      <h2>Who's here <span class="hint" id="lobbyCount"></span></h2>
+      <div class="plist" id="lobbyList"></div>
+      <div id="lobbyNotes" style="margin-top:10px"></div>
+    </div>
+    <div class="row" style="justify-content:center">
+      <button class="btn green" id="lobbyStart" disabled>Start the game &#9654;</button>
+      <button class="btn grey" id="lobbyLeave">Leave</button>
+    </div>
+  </div>
+</div>
+
 <!-- ============ GAME ============ -->
 <div class="screen" id="screenGame">
   <div id="stage"><canvas id="game" width="960" height="560"></canvas></div>
@@ -389,6 +422,12 @@
     <div class="rallyTag" id="rallyTag">Get ready&hellip;</div>
     <div id="bigMsg"></div>
     <div id="chatter"></div>
+    <div id="emoteRow">
+      <button title="1">Nice one!</button>
+      <button title="2">Aw, come on!</button>
+      <button title="3">Let&rsquo;s go!</button>
+      <button title="4">Wall ball!</button>
+    </div>
     <div id="touch">
       <div id="stick"><div id="stickNub"></div></div>
       <button id="hitBtn">HIT</button>
@@ -419,9 +458,10 @@
       <h2>You earned</h2>
       <div class="statGrid" id="rewardGrid"></div>
     </div>
-    <div class="panel" id="newReqPanel" style="display:none">
-      <h2>Someone wants to be friends</h2>
-      <div id="newReqList"></div>
+    <div class="panel" id="newFriendPanel" style="display:none">
+      <h2>Who you played</h2>
+      <div class="hint" id="newFriendNote"></div>
+      <div id="newFriendList"></div>
     </div>
     <div class="row" style="justify-content:center">
       <button class="btn" id="againBtn">Play again</button>
@@ -778,7 +818,7 @@ function paintPortrait(cv, ch, back){
 }
 
 /* ============================================================
-   4. Player state, the roster, friends
+   4. You, and the friends you have actually played with
    ============================================================ */
 const me = {
   handle: '',
@@ -791,53 +831,285 @@ const me = {
   aces: 0
 };
 const levelOf = xp => 1 + Math.floor(xp / 120);
-
 const HANDLE_RE = /^[A-Za-z0-9_]{3,15}$/;
 
-const ROSTER_SEED = [
-  ['bounce_bea',    'bea',    0.72, 'chirpy'],
-  ['kellz',         'kell',   0.55, 'chill'],
-  ['tall_marcus',   'marcus', 0.84, 'cocky'],
-  ['zoe_zooms',     'zoe',    0.63, 'chirpy'],
-  ['gum_wall_greg', 'greg',   0.41, 'goof'],
-  ['ravi_x',        'ravi',   0.77, 'chill'],
-  ['minty',         'minty',  0.50, 'chirpy'],
-  ['dodge_dylan',   'dylan',  0.66, 'goof'],
-  ['sam_no_h',      'sam',    0.59, 'chill'],
-  ['queen_priya',   'priya',  0.81, 'cocky'],
-  ['lil_owen',      'owen',   0.35, 'goof'],
-  ['jojo_bee',      'jojo',   0.69, 'chirpy'],
-  ['cass_attack',   'cass',   0.74, 'cocky'],
-  ['noodle_nate',   'nate',   0.46, 'goof'],
-  ['iris_iso',      'iris',   0.61, 'chill'],
-  ['big_ben_22',    'ben',    0.52, 'goof']
-];
+/* Friends are real people you have played against — nobody is invented.
+   The list lives in this browser only; if it can't be saved it simply
+   lasts as long as the page is open. */
+const STORE_KEY = 'wallball.friends.v1';
+let friends = [];      // { handle, charId, games, theirWins, yourWins }
 
-const roster = ROSTER_SEED.map((r, i) => ({
-  id: 'npc' + i,
-  handle: r[0],
-  name: r[1],
-  skill: r[2],
-  mood: r[3],
-  charId: CHARACTERS[i % CHARACTERS.length].id,
-  friend: false,
-  requested: false,     // you sent them a request
-  played: 0
-}));
-// spread the looks around a bit rather than a strict cycle
-roster.forEach((p, i) => { p.charId = CHARACTERS[(i * 3 + 2) % CHARACTERS.length].id; });
+function loadFriends(){
+  try {
+    const raw = window.localStorage.getItem(STORE_KEY);
+    if (!raw) return;
+    const d = JSON.parse(raw);
+    if (d && Array.isArray(d.friends)) friends = d.friends;
+    if (d && d.me){
+      me.handle = d.me.handle || '';
+      me.charId = d.me.charId || me.charId;
+      me.coins = d.me.coins | 0; me.xp = d.me.xp | 0;
+      me.wins = d.me.wins | 0; me.games = d.me.games | 0;
+      me.bestRally = d.me.bestRally | 0; me.aces = d.me.aces | 0;
+    }
+  } catch (e){ /* private window, or storage switched off — no matter */ }
+}
+function saveFriends(){
+  try {
+    window.localStorage.setItem(STORE_KEY, JSON.stringify({ friends: friends, me: me }));
+  } catch (e){ /* nothing to do; the list just won't outlive the page */ }
+}
+const friendOf = h => friends.find(f => f.handle.toLowerCase() === h.toLowerCase());
 
-const friendRequests = [];   // roster entries waiting on your answer
-
-const friendsOf = () => roster.filter(p => p.friend);
-
-function skillPips(s){
-  const n = clamp(Math.round(s * 5), 1, 5);
-  return '●'.repeat(n) + '○'.repeat(5 - n);
+function rememberPlayer(handle, charId, youWon, theyWon){
+  if (!handle || handle.toLowerCase() === me.handle.toLowerCase()) return;
+  let f = friendOf(handle);
+  if (!f){
+    f = { handle: handle, charId: charId, games: 0, yourWins: 0, theirWins: 0 };
+    friends.push(f);
+  }
+  f.charId = charId || f.charId;
+  f.games++;
+  if (youWon) f.yourWins++;
+  if (theyWon) f.theirWins++;
+  saveFriends();
 }
 
 /* ============================================================
-   5. Screens
+   5. The wire — real players, no simulated ones
+   Two ways in, both peer to peer once they are up:
+     · make a game  → you host, and read out the code
+     · join a game  → you type the code your friend read out
+   The host runs the ball and the rules; everyone else sends
+   what they are doing and draws what comes back.
+   ============================================================ */
+const MAX_PLAYERS = 4;
+const CODE_WORDS = ['ball', 'wall', 'kick', 'bounce', 'chalk', 'court', 'dodge', 'rally',
+                    'swift', 'brick', 'jump', 'spin', 'blue', 'red', 'sunny', 'quick'];
+
+const NET = {
+  role: 'solo',        // 'solo' | 'host' | 'guest'
+  peer: null,
+  code: '',
+  conns: [],           // host: a link per guest
+  conn: null,          // guest: the link to the host
+  lobby: [],           // [{ id, handle, charId, conn }] — the host's roll call
+  meId: 'me',
+  inputs: Object.create(null),   // host: the latest thing each guest sent
+  snapT: 0,
+  sendT: 0,
+  started: false
+};
+
+function loadPeerJS(){
+  if (window.Peer) return Promise.resolve();
+  const urls = [
+    'https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js',
+    'https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js'
+  ];
+  const tryOne = i => new Promise((res, rej) => {
+    if (i >= urls.length){ rej(new Error('offline')); return; }
+    const s = document.createElement('script');
+    s.src = urls[i];
+    s.onload = () => window.Peer ? res() : tryOne(i + 1).then(res, rej);
+    s.onerror = () => tryOne(i + 1).then(res, rej);
+    document.head.appendChild(s);
+  });
+  return tryOne(0);
+}
+
+const roomId = code => 'wallball-' + code;
+function newCode(){
+  return pick(CODE_WORDS) + '-' + pick(CODE_WORDS) + '-' + randi(100, 999);
+}
+
+function netSay(msg, bad){
+  const el = $('#netHint');
+  el.textContent = msg || '';
+  el.className = 'handleMsg ' + (bad ? 'no' : (msg ? 'ok' : ''));
+}
+
+function send(conn, obj){
+  try { if (conn && conn.open) conn.send(obj); } catch (e){ /* link died mid-send */ }
+}
+function broadcast(obj, except){
+  NET.conns.forEach(c => { if (c !== except) send(c, obj); });
+}
+
+/* ---------- hosting ---------- */
+function makeRoom(){
+  $('#makeBtn').disabled = true;
+  netSay('Opening a court…');
+  loadPeerJS().then(() => {
+    const code = newCode();
+    NET.peer = new window.Peer(roomId(code));
+    NET.peer.on('open', () => {
+      NET.role  = 'host';
+      NET.code  = code;
+      NET.meId  = 'host';
+      NET.conns = [];
+      NET.lobby = [{ id: 'host', handle: me.handle, charId: me.charId, conn: null }];
+      netSay('');
+      openLobby();
+    });
+    NET.peer.on('connection', c => hostHook(c));
+    NET.peer.on('error', e => netFail(e));
+  }).catch(() => {
+    $('#makeBtn').disabled = false;
+    netSay('Could not load the connector. Making a game needs the internet — practice on your own works without it.', true);
+  });
+}
+
+function hostHook(conn){
+  conn.on('open', () => { /* wait for them to say who they are */ });
+  conn.on('data', d => {
+    if (!d || typeof d !== 'object') return;
+    if (d.t === 'hello'){
+      if (NET.started){ send(conn, { t: 'no', why: 'started' }); return; }
+      if (NET.lobby.length >= MAX_PLAYERS){ send(conn, { t: 'no', why: 'full' }); return; }
+      const handle = uniqueHandle(String(d.handle || 'player').replace(/[^A-Za-z0-9_]/g, '').slice(0, 15) || 'player');
+      const charId = freeLook(String(d.charId || ''));
+      const id = 'p' + (NET.lobby.length) + '_' + randi(100, 999);
+      NET.conns.push(conn);
+      conn.__id = id;
+      NET.lobby.push({ id: id, handle: handle, charId: charId, conn: conn });
+      send(conn, { t: 'welcome', id: id, handle: handle, charId: charId, code: NET.code });
+      pushLobby();
+      lobbyNote('@' + handle + ' walked up to the wall.');
+    } else if (d.t === 'in'){
+      NET.inputs[conn.__id] = d;
+    } else if (d.t === 'emote'){
+      const who = NET.lobby.find(p => p.id === conn.__id);
+      if (who){
+        showEmote(who.handle, d.i);
+        broadcast({ t: 'emote', handle: who.handle, i: d.i }, conn);
+      }
+    }
+  });
+  conn.on('close', () => hostDrop(conn));
+  conn.on('error', () => hostDrop(conn));
+}
+
+function hostDrop(conn){
+  drop(NET.conns, conn);
+  const who = NET.lobby.find(p => p.conn === conn);
+  if (who){
+    drop(NET.lobby, who);
+    lobbyNote('@' + who.handle + ' left.');
+    if (M){
+      const p = M.players.find(x => x.id === who.id);
+      if (p && !p.out){
+        p.gone = true;
+        chatterLine('<b>@' + p.handle + '</b> left the game.', false);
+        forfeit(M.players.indexOf(p));
+      }
+    } else pushLobby();
+  }
+}
+
+function uniqueHandle(h){
+  let out = h, n = 2;
+  while (NET.lobby.some(p => p.handle.toLowerCase() === out.toLowerCase())) out = h.slice(0, 13) + n++;
+  return out;
+}
+function freeLook(want){
+  const taken = NET.lobby.map(p => p.charId);
+  if (want && !taken.includes(want) && charById(want).id === want) return want;
+  const free = CHARACTERS.filter(c => !taken.includes(c.id));
+  return (free.length ? pick(free) : pick(CHARACTERS)).id;
+}
+function pushLobby(){
+  const roll = NET.lobby.map(p => ({ id: p.id, handle: p.handle, charId: p.charId }));
+  broadcast({ t: 'lobby', roll: roll });
+  renderLobby(roll);
+}
+
+/* ---------- joining ---------- */
+function joinRoom(){
+  const code = $('#joinCode').value.trim().toLowerCase().replace(/\s+/g, '');
+  if (!code){ netSay('Type the code your friend read out.', true); return; }
+  $('#joinBtn').disabled = true;
+  netSay('Knocking…');
+  loadPeerJS().then(() => {
+    NET.peer = new window.Peer();
+    NET.peer.on('open', () => {
+      const c = NET.peer.connect(roomId(code), { reliable: true });
+      NET.conn = c;
+      c.on('open', () => {
+        send(c, { t: 'hello', handle: me.handle, charId: me.charId });
+      });
+      c.on('data', d => guestData(d));
+      c.on('close', () => {
+        netSay('Your friend closed their game.', true);
+        if (M){ chatterLine('The host left — game over.', false); leaveGame(); }
+        $('#joinBtn').disabled = false;
+      });
+      setTimeout(() => {
+        if (!NET.conn || !NET.conn.open){
+          $('#joinBtn').disabled = false;
+          netSay('No answer. Check the code, and make sure your friend still has their page open.', true);
+        }
+      }, 12000);
+    });
+    NET.peer.on('error', e => netFail(e));
+  }).catch(() => {
+    $('#joinBtn').disabled = false;
+    netSay('Could not load the connector. Joining a game needs the internet.', true);
+  });
+}
+
+function guestData(d){
+  if (!d || typeof d !== 'object') return;
+  if (d.t === 'welcome'){
+    NET.role = 'guest';
+    NET.meId = d.id;
+    NET.code = d.code;
+    me.handle = d.handle;      // the host may have nudged it to keep names apart
+    me.charId = d.charId;
+    netSay('');
+    openLobby();
+  } else if (d.t === 'no'){
+    $('#joinBtn').disabled = false;
+    netSay(d.why === 'full' ? 'That game is full — four is the most that fit.'
+                            : 'They have already started. Ask them for a new code.', true);
+  } else if (d.t === 'lobby'){
+    renderLobby(d.roll);
+  } else if (d.t === 'start'){
+    beginMatch(d.setup);
+  } else if (d.t === 'snap'){
+    applySnap(d);
+  } else if (d.t === 'ev'){
+    onEvent(d);
+  } else if (d.t === 'over'){
+    showResults(d.result);
+  } else if (d.t === 'emote'){
+    showEmote(d.handle, d.i);
+  }
+}
+
+function netFail(e){
+  const t = e && e.type;
+  netSay(t === 'peer-unavailable'
+    ? 'Nobody is waiting on that code. Check it and try again.'
+    : t === 'unavailable-id'
+      ? 'That court is taken — try making the game again.'
+      : 'The connection did not work. Some networks block this.', true);
+  $('#joinBtn').disabled = false;
+  $('#makeBtn').disabled = false;
+}
+
+function netTeardown(){
+  try { NET.conns.forEach(c => c.close()); } catch (e){}
+  try { if (NET.conn) NET.conn.close(); } catch (e){}
+  try { if (NET.peer) NET.peer.destroy(); } catch (e){}
+  NET.peer = null; NET.conn = null; NET.conns = [];
+  NET.lobby = []; NET.code = ''; NET.role = 'solo';
+  NET.inputs = Object.create(null);
+  NET.started = false;
+}
+
+/* ============================================================
+   6. Screens
    ============================================================ */
 function showScreen(id){
   $$('.screen').forEach(s => s.classList.toggle('active', s.id === id));
@@ -875,19 +1147,14 @@ const handleInput = $('#handleInput');
 const handleMsg   = $('#handleMsg');
 const startBtn    = $('#startBtn');
 
-function handleTaken(h){
-  return roster.some(p => p.handle.toLowerCase() === h.toLowerCase());
-}
 function validateHandle(){
   const v = handleInput.value.trim();
   let ok = false, msg = '', cls = '';
   if (!v){ msg = ''; }
   else if (!HANDLE_RE.test(v)){
     msg = 'Letters, numbers and _ only, 3–15 long.'; cls = 'no';
-  } else if (handleTaken(v)){
-    msg = '@' + v + ' is already on the blacktop — pick another.'; cls = 'no';
   } else {
-    msg = '@' + v + ' is free. Nice one.'; cls = 'ok'; ok = true;
+    msg = '@' + v + ' it is.'; cls = 'ok'; ok = true;
   }
   handleMsg.textContent = msg;
   handleMsg.className = 'handleMsg ' + cls;
@@ -902,31 +1169,26 @@ startBtn.addEventListener('click', () => {
   if (!validateHandle() || !pickedChar) return;
   me.handle = handleInput.value.trim();
   me.charId = pickedChar;
-  buildCharGrid($('#charGrid2'), id => { me.charId = id; refreshHome(); }, me.charId);
+  saveFriends();
+  buildCharGrid($('#charGrid2'), id => { me.charId = id; saveFriends(); refreshHome(); }, me.charId);
   refreshHome();
   showScreen('screenHome');
 });
 
 /* ---- home ---- */
+const stat = (v, l) => '<div class="stat"><b>' + v + '</b><span>' + l + '</span></div>';
+
 function refreshHome(){
   $('#meHandle').textContent = '@' + me.handle;
   $('#meTitle').textContent  = '@' + me.handle + ' — ' + charById(me.charId).name;
   $('#meSub').textContent    = 'Level ' + levelOf(me.xp) + ' · ' + me.wins + (me.wins === 1 ? ' win' : ' wins');
   $('#coinsLbl').textContent = me.coins + ' ●';
   paintPortrait($('#meAvatar'), charById(me.charId), false);
-
-  const b = $('#friendBadge');
-  b.textContent = friendRequests.length;
-  b.classList.toggle('hide', friendRequests.length === 0);
-
   $('#statGrid').innerHTML =
     stat(me.wins, 'wins') + stat(me.games, 'games') + stat(me.bestRally, 'best rally') +
-    stat(me.aces, 'clean hits') + stat(friendsOf().length, 'friends') + stat(levelOf(me.xp), 'level');
-
+    stat(me.aces, 'clean hits') + stat(friends.length, 'friends') + stat(levelOf(me.xp), 'level');
   renderFriends();
-  renderPickList();
 }
-const stat = (v, l) => '<div class="stat"><b>' + v + '</b><span>' + l + '</span></div>';
 
 $$('.tab').forEach(t => t.addEventListener('click', () => {
   $$('.tab').forEach(x => x.classList.remove('active'));
@@ -935,153 +1197,118 @@ $$('.tab').forEach(t => t.addEventListener('click', () => {
   $$('.view').forEach(x => x.classList.toggle('active', x.id === 'view' + v[0].toUpperCase() + v.slice(1)));
 }));
 
-/* Build one player row. `actions` is an array of [label, className, fn]. */
-function playerRow(p, actions, extra){
-  const row = document.createElement('div');
-  row.className = 'prow';
-  const cv = document.createElement('canvas');
-  cv.width = 76; cv.height = 94;
-  paintPortrait(cv, charById(p.charId), false);
-  row.appendChild(cv);
-  const info = document.createElement('div');
-  info.className = 'pinfo';
-  info.innerHTML =
-    '<div class="phandle">' + (p.friend ? '<span class="star">★</span> ' : '') + '@' + p.handle + '</div>' +
-    '<div class="pmeta">' + charById(p.charId).name + ' · <span class="skillPips">' + skillPips(p.skill) + '</span>' +
-    (extra ? ' · ' + extra : '') + '</div>';
-  row.appendChild(info);
-  (actions || []).forEach(a => {
-    const btn = document.createElement('button');
-    btn.className = 'mini ' + (a[1] || '');
-    btn.textContent = a[0];
-    if (a[3]) btn.disabled = true;
-    btn.addEventListener('click', e => { e.stopPropagation(); a[2](row); });
-    row.appendChild(btn);
-  });
-  return row;
-}
-
-function renderFriends(){
-  /* requests */
-  const rp = $('#reqPanel'), rl = $('#reqList');
-  rl.innerHTML = '';
-  rp.style.display = friendRequests.length ? '' : 'none';
-  friendRequests.forEach(p => {
-    rl.appendChild(playerRow(p, [
-      ['Accept', '', () => { p.friend = true; drop(friendRequests, p); chatToast('@' + p.handle + ' is your friend now.'); refreshHome(); }],
-      ['No thanks', '', () => { drop(friendRequests, p); refreshHome(); }]
-    ], 'wants to be friends'));
-  });
-
-  /* friends */
-  const fl = $('#friendList');
-  fl.innerHTML = '';
-  const fr = friendsOf();
-  $('#friendCount').textContent = fr.length ? '(' + fr.length + ')' : '';
-  if (!fr.length){
-    fl.innerHTML = '<div class="empty">No friends yet. Play some games — people you play against ask to add you.</div>';
-  } else {
-    fr.forEach(p => fl.appendChild(playerRow(p, [
-      ['Remove', '', () => { p.friend = false; refreshHome(); }]
-    ], 'played ' + p.played + 'x')));
-  }
-}
 function drop(arr, item){ const i = arr.indexOf(item); if (i >= 0) arr.splice(i, 1); }
 
-$('#searchBtn').addEventListener('click', doSearch);
-$('#searchInput').addEventListener('keydown', e => { if (e.key === 'Enter') doSearch(); });
-function doSearch(){
-  const q = $('#searchInput').value.trim().replace(/^@/, '').toLowerCase();
-  const list = $('#searchList');
-  list.innerHTML = '';
-  if (!q){ list.innerHTML = '<div class="empty">Type a name to look someone up.</div>'; return; }
-  const hits = roster.filter(p => p.handle.toLowerCase().includes(q)).slice(0, 8);
-  if (!hits.length){
-    list.innerHTML = '<div class="empty">Nobody called &ldquo;@' + q + '&rdquo; out here.</div>';
+function renderFriends(){
+  const fl = $('#friendList');
+  fl.innerHTML = '';
+  $('#friendCount').textContent = friends.length ? '(' + friends.length + ')' : '';
+  if (!friends.length){
+    fl.innerHTML = '<div class="empty">Nobody yet. Play a game with someone and they turn up here — ' +
+                   'this list is only ever people you have really played.</div>';
     return;
   }
-  hits.forEach(p => {
-    let label, dis = false;
-    if (p.friend){ label = 'Friends ★'; dis = true; }
-    else if (p.requested){ label = 'Request sent'; dis = true; }
-    else label = 'Add friend';
-    list.appendChild(playerRow(p, [[label, '', row => {
-      p.requested = true;
-      row.querySelector('button').textContent = 'Request sent';
-      row.querySelector('button').disabled = true;
-      // they answer after a moment
-      setTimeout(() => {
-        if (Math.random() < 0.72){
-          p.friend = true; p.requested = false;
-          chatToast('@' + p.handle + ' accepted your friend request.');
-        } else {
-          p.requested = false;
-          chatToast('@' + p.handle + ' hasn’t answered yet.');
-        }
-        refreshHome();
-      }, randi(1200, 3200));
-    }, dis]]));
+  friends.slice().sort((a, b) => b.games - a.games).forEach(f => {
+    const row = document.createElement('div');
+    row.className = 'prow';
+    const cv = document.createElement('canvas');
+    cv.width = 76; cv.height = 94;
+    paintPortrait(cv, charById(f.charId), false);
+    row.appendChild(cv);
+    const info = document.createElement('div');
+    info.className = 'pinfo';
+    info.innerHTML = '<div class="phandle"><span class="star">★</span> @' + f.handle + '</div>' +
+      '<div class="pmeta">' + f.games + (f.games === 1 ? ' game' : ' games') + ' together · ' +
+      'you won ' + f.yourWins + ', they won ' + f.theirWins + '</div>';
+    row.appendChild(info);
+    const btn = document.createElement('button');
+    btn.className = 'mini';
+    btn.textContent = 'Forget';
+    btn.addEventListener('click', () => { drop(friends, f); saveFriends(); refreshHome(); });
+    row.appendChild(btn);
+    fl.appendChild(row);
   });
 }
 
-/* little floating toast reused by the lobby */
-function chatToast(text){
+/* ---- the lobby ---- */
+function openLobby(){
+  $('#lobbyCode').textContent = NET.code;
+  $('#lobbyRole').textContent = NET.role === 'host'
+    ? 'Read this code out to your friends. They tap "Join a game" and type it in.'
+    : 'You are in. Waiting for the host to start.';
+  $('#lobbyStart').style.display = NET.role === 'host' ? '' : 'none';
+  $('#lobbyNotes').innerHTML = '';
+  renderLobby(NET.role === 'host'
+    ? NET.lobby.map(p => ({ id: p.id, handle: p.handle, charId: p.charId }))
+    : [{ id: NET.meId, handle: me.handle, charId: me.charId }]);
+  showScreen('screenLobby');
+}
+function renderLobby(roll){
+  const host = $('#lobbyList');
+  host.innerHTML = '';
+  roll.forEach((p, i) => {
+    const row = document.createElement('div');
+    row.className = 'prow' + (p.id === NET.meId ? ' sel' : '');
+    const cv = document.createElement('canvas');
+    cv.width = 76; cv.height = 94;
+    paintPortrait(cv, charById(p.charId), false);
+    row.appendChild(cv);
+    const info = document.createElement('div');
+    info.className = 'pinfo';
+    info.innerHTML = '<div class="phandle">@' + p.handle + (p.id === NET.meId ? ' (you)' : '') +
+      (i === 0 ? ' <span class="pmeta">· host</span>' : '') + '</div>' +
+      '<div class="pmeta">' + charById(p.charId).name +
+      (friendOf(p.handle) ? ' · played before' : '') + '</div>';
+    row.appendChild(info);
+    host.appendChild(row);
+  });
+  for (let k = roll.length; k < MAX_PLAYERS; k++){
+    const row = document.createElement('div');
+    row.className = 'prow';
+    row.innerHTML = '<div class="pinfo"><div class="pmeta">waiting for someone…</div></div>';
+    row.style.opacity = '.55';
+    host.appendChild(row);
+  }
+  const btn = $('#lobbyStart');
+  if (btn) btn.disabled = roll.length < 2;
+  $('#lobbyCount').textContent = roll.length + ' of ' + MAX_PLAYERS + ' here' +
+    (roll.length < 2 ? ' — you need one more to play' : '');
+}
+function lobbyNote(text){
   const el = document.createElement('div');
+  el.className = 'pmeta';
   el.textContent = text;
-  el.style.cssText = 'position:fixed;left:50%;bottom:22px;transform:translateX(-50%);' +
-    'background:#2b3a5c;color:#fff;font-weight:700;font-size:.86rem;padding:10px 18px;' +
-    'border-radius:999px;z-index:99;box-shadow:0 6px 18px rgba(0,0,0,.3);opacity:0;transition:opacity .2s';
-  document.body.appendChild(el);
-  requestAnimationFrame(() => { el.style.opacity = '1'; });
-  setTimeout(() => { el.style.opacity = '0'; setTimeout(() => el.remove(), 250); }, 2400);
+  $('#lobbyNotes').appendChild(el);
+  broadcast({ t: 'lobby', roll: NET.lobby.map(p => ({ id: p.id, handle: p.handle, charId: p.charId })) });
 }
 
-/* ---- choosing opponents ---- */
-let picked = [];
-function renderPickList(){
-  const list = $('#pickList');
-  if (!list) return;
-  list.innerHTML = '';
-  const sorted = roster.slice().sort((a, b) => (b.friend ? 1 : 0) - (a.friend ? 1 : 0));
-  sorted.forEach(p => {
-    const row = playerRow(p, [], p.friend ? 'friend' : 'blacktop regular');
-    if (picked.includes(p)) row.classList.add('sel');
-    row.style.cursor = 'pointer';
-    row.addEventListener('click', () => {
-      if (picked.includes(p)) drop(picked, p);
-      else if (picked.length < 3) picked.push(p);
-      renderPickList();
-    });
-    list.appendChild(row);
+$('#makeBtn').addEventListener('click', makeRoom);
+$('#joinBtn').addEventListener('click', joinRoom);
+$('#joinCode').addEventListener('keydown', e => { if (e.key === 'Enter') joinRoom(); });
+$('#soloBtn').addEventListener('click', () => {
+  NET.role = 'solo'; NET.meId = 'me';
+  beginMatch({
+    players: [{ id: 'me', handle: me.handle, charId: me.charId }],
+    server: 0, solo: true
   });
-  $('#pickCount').textContent = picked.length + ' of 3 picked';
-  $('#startCustomBtn').disabled = picked.length !== 3;
-}
-$('#customBtn').addEventListener('click', () => {
-  picked = [];
-  $('#pickPanel').style.display = '';
-  renderPickList();
-  $('#pickPanel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 });
-$('#cancelCustomBtn').addEventListener('click', () => { $('#pickPanel').style.display = 'none'; });
-$('#startCustomBtn').addEventListener('click', () => { startMatch(picked.slice()); });
-$('#quickBtn').addEventListener('click', () => {
-  const pool = roster.slice();
-  const fr = pool.filter(p => p.friend);
-  const chosen = [];
-  while (chosen.length < 3 && fr.length && Math.random() < 0.6){
-    const p = fr.splice(randi(0, fr.length - 1), 1)[0];
-    if (!chosen.includes(p)) chosen.push(p);
-  }
-  while (chosen.length < 3){
-    const p = pick(pool);
-    if (!chosen.includes(p)) chosen.push(p);
-  }
-  startMatch(chosen);
+$('#lobbyStart').addEventListener('click', () => {
+  if (NET.role !== 'host' || NET.lobby.length < 2) return;
+  NET.started = true;
+  const order = NET.lobby.slice();
+  for (let i = order.length - 1; i > 0; i--){ const j = randi(0, i); const t = order[i]; order[i] = order[j]; order[j] = t; }
+  const setup = {
+    players: order.map(p => ({ id: p.id, handle: p.handle, charId: p.charId })),
+    server: randi(0, order.length - 1),
+    solo: false
+  };
+  broadcast({ t: 'start', setup: setup });
+  beginMatch(setup);
 });
+$('#lobbyLeave').addEventListener('click', () => { netTeardown(); refreshHome(); showScreen('screenHome'); });
 
 /* ============================================================
-   6. The court — geometry and projection
+   7. The court — geometry and projection
    The world is measured in "steps". The wall is at cy = 0 and the
    camera sits behind the back line looking straight at it.
    ============================================================ */
@@ -1108,90 +1335,81 @@ function proj(cx, cy, cz){
 }
 
 /* ============================================================
-   7. Match state
+   8. Match state
+   The host (or, on your own, you) owns the ball and the rules.
    ============================================================ */
 const LETTERS = ['W', 'A', 'L', 'L'];
+const AUTH = () => NET.role !== 'guest';
 
-let M = null;              // the live match, or null
+let M = null;
 let running = false;
 let paused = false;
 let lastT = 0;
 
-function makePlayer(ref, isYou, slot){
-  const ch = charById(isYou ? me.charId : ref.charId);
-  const homeX = 2.4 + slot * (COURT_W - 4.8) / 3;
+function makePlayer(info, slot, total){
+  const ch = charById(info.charId);
+  const homeX = total <= 1
+    ? COURT_W / 2
+    : 2.4 + slot * (COURT_W - 4.8) / (total - 1);
   return {
-    ref: ref, isYou: isYou,
-    handle: isYou ? me.handle : ref.handle,
+    id: info.id,
+    handle: info.handle,
     ch: ch,
-    skill: isYou ? 1 : ref.skill,
-    mood: isYou ? 'you' : ref.mood,
+    isYou: info.id === NET.meId,
     cx: homeX, cy: 10.5, homeX: homeX, homeY: 10.5,
-    vx: 0, vy: 0,
+    tx: homeX, ty: 10.5,
     face: 1,
-    letters: 0, out: false, place: 0,
+    letters: 0, out: false, gone: false, place: 0,
     phase: 0, run: 0, swing: 0, swingT: 0,
-    react: 0, plan: null, planT: 0, freeze: false,
     hits: 0, clean: 0
   };
 }
 
-function startMatch(opponents){
-  $('#pickPanel').style.display = 'none';
-  const players = [ makePlayer(null, true, 0) ];
-  opponents.forEach((o, i) => players.push(makePlayer(o, false, i + 1)));
-  // nobody should be looking at their own twin — shuffle clashing looks
-  const used = [ players[0].ch.id ];
-  players.slice(1).forEach(p => {
-    if (used.includes(p.ch.id)){
-      const free = CHARACTERS.filter(c => !used.includes(c.id));
-      if (free.length){
-        p.ch = pick(free);
-        if (p.ref) p.ref.charId = p.ch.id;   // keep their look the same everywhere
-      }
-    }
-    used.push(p.ch.id);
-  });
-  // shuffle the standing order so you are not always first up
-  for (let i = players.length - 1; i > 0; i--){
-    const j = randi(0, i);
-    const t = players[i]; players[i] = players[j]; players[j] = t;
-  }
-  players.forEach((p, i) => {
-    p.homeX = 2.4 + i * (COURT_W - 4.8) / 3;
-    p.cx = p.homeX; p.cy = p.homeY;
-  });
+function beginMatch(setup){
+  if (!me.handle){ showScreen('screenSignup'); return; }
+  const n = setup.players.length;
+  const players = setup.players.map((info, i) => makePlayer(info, i, n));
 
   M = {
     players: players,
-    ball: { x: COURT_W / 2, y: 8, z: 1.2, vx: 0, vy: 0, vz: 0, spin: 0, live: false },
+    solo: !!setup.solo,
+    ball: { x: COURT_W / 2, y: 8, z: 1.2, vx: 0, vy: 0, vz: 0, spin: 0 },
     trail: [],
     puffs: [],
+    marks: [],
     state: 'countdown',
     timer: 1.6,
-    turn: 0,               // index of whose ball it is
-    server: 0,
+    turn: clamp(setup.server | 0, 0, n - 1),
+    server: clamp(setup.server | 0, 0, n - 1),
     lastHitter: -1,
     bounces: 0,
     wallHit: false,
     rally: 0,
     bestRally: 0,
-    ranking: [],           // filled in reverse — first out is last place
+    ranking: [],
     shake: 0,
     landing: null,
-    serveHold: 0
+    serveHold: 0,
+    planTick: 0
   };
-  M.turn = M.server = randi(0, players.length - 1);
+
+  NET.hitSeq = 0;
+  NET.lastSeq = Object.create(null);
+  NET.snapT = 0;
+  NET.sendT = 0;
 
   $('#chatter').innerHTML = '';
   $('#bigMsg').classList.remove('show');
   bigTimer = 0;
   paused = false;
   $('#pauseCover').classList.remove('show');
+  $('#emoteRow').style.display = M.solo ? 'none' : '';
   buildScoreStrip();
   showScreen('screenGame');
   fitCanvas();
-  chatterLine('Ball goes up. <b>@' + players[M.server].handle + '</b> serves.', false);
+  chatterLine(M.solo
+    ? 'Just you and the wall. Keep it going.'
+    : 'Ball goes up. <b>@' + players[M.server].handle + '</b> serves.', false);
   if (!running){ running = true; lastT = performance.now(); requestAnimationFrame(loop); }
 }
 
@@ -1204,8 +1422,17 @@ function nextAliveFrom(i){
   return i;
 }
 
+function leaveGame(){
+  paused = false;
+  $('#pauseCover').classList.remove('show');
+  M = null;
+  netTeardown();
+  refreshHome();
+  showScreen('screenHome');
+}
+
 /* ============================================================
-   8. Score strip + chatter
+   9. Score strip, chatter, emotes
    ============================================================ */
 function buildScoreStrip(){
   const strip = $('#scoreStrip');
@@ -1227,10 +1454,12 @@ function buildScoreStrip(){
   updateScoreStrip();
 }
 function updateScoreStrip(){
+  if (!M) return;
   $$('#scoreStrip .scard').forEach(card => {
     const p = M.players[+card.dataset.i];
+    if (!p) return;
     card.classList.toggle('turn', !p.out && M.players.indexOf(p) === M.turn && M.state !== 'over');
-    card.classList.toggle('out', p.out);
+    card.classList.toggle('out', p.out || p.gone);
     let s = '';
     for (let k = 0; k < 4; k++){
       s += k < p.letters ? LETTERS[k] : '<i>' + LETTERS[k] + '</i>';
@@ -1258,30 +1487,21 @@ function bigMsg(text, sub, ms){
   bigTimer = (ms || 1500) / 1000;
 }
 
-/* ============================================================
-   9. Talk — the kids say things
-   ============================================================ */
-const TAUNT = {
-  cocky:  ['Too easy.', 'That all you got?', 'My grandma hits harder.', 'Watch this one.'],
-  chirpy: ['Let’s gooo!', 'Nice rally!', 'Ooh good one!', 'Keep it up!'],
-  chill:  ['Alright.', 'Mm. Fine.', 'Sure, sure.', 'Not bad.'],
-  goof:   ['WOOOO!', 'I meant to do that.', 'Banana ball!', 'Butterfingers!']
-};
-const CHEER = ['Go @X!', 'You got this @X!', '@X for the win!', 'Let’s go @X!!'];
-
-function saySomething(p, kind){
-  if (Math.random() > 0.35) return;
-  const line = pick(TAUNT[p.mood] || TAUNT.chill);
-  chatterLine('<b>@' + p.handle + '</b> ' + line, kind === 'good');
+/* The only talking on this court comes from real players pressing a key. */
+const EMOTES = ['Nice one!', 'Aw, come on!', 'Let’s go!', 'Wall ball!'];
+function showEmote(handle, i){
+  chatterLine('<b>@' + handle + '</b> ' + EMOTES[clamp(i | 0, 0, EMOTES.length - 1)],
+              handle === me.handle);
 }
-function friendCheer(){
-  const you = M.players.find(p => p.isYou);
-  const pals = M.players.filter(p => !p.isYou && p.ref && p.ref.friend && !p.out);
-  if (!pals.length || !you || Math.random() > 0.5) return;
-  const p = pick(pals);
-  chatterLine('<b>@' + p.handle + '</b> ' + pick(CHEER).replace('@X', '@' + you.handle), true);
+function sendEmote(i){
+  if (!M || M.solo) return;
+  showEmote(me.handle, i);
+  if (NET.role === 'host') broadcast({ t: 'emote', handle: me.handle, i: i });
+  else if (NET.role === 'guest') send(NET.conn, { t: 'emote', i: i });
 }
-
+$$('#emoteRow button').forEach((b, i) => {
+  b.addEventListener('click', () => sendEmote(i));
+});
 /* ============================================================
    10. Input
    ============================================================ */
@@ -1297,6 +1517,7 @@ window.addEventListener('keydown', e => {
     e.preventDefault();
   }
   if ((k === ' ' || k === 'Spacebar') && !keys[' ']) hitPressed = true;
+  if (k >= '1' && k <= '4' && !keys[k]) sendEmote(+k - 1);
   keys[k === 'Spacebar' ? ' ' : k] = true;
   if (k === 'Escape') togglePause();
   if (k === 'p' || k === 'P') togglePause();
@@ -1366,41 +1587,36 @@ function togglePause(){
 }
 
 /* ============================================================
+/* ============================================================
    11. Hitting the ball
    ============================================================ */
-function ballAim(from, target, power, spreadRad, wallHeight){
+const HIT_REACH = 2.5;
+
+function ballAim(target, power, spreadRad, wallHeight){
   const b = M.ball;
   // Aim at the target mirrored through the wall, so the rebound
   // runs straight back at them.
   const mx = target.cx, my = -Math.max(2, target.cy);
-  let dx = mx - b.x, dy = my - b.y;
-  const L = Math.hypot(dx, dy) || 1;
-  let ang = Math.atan2(dy, dx) + rand(-spreadRad, spreadRad);
-  const sp = power;
-  b.vx = Math.cos(ang) * sp;
-  b.vy = Math.sin(ang) * sp;
+  const dx = mx - b.x, dy = my - b.y;
+  const ang = Math.atan2(dy, dx) + rand(-spreadRad, spreadRad);
+  b.vx = Math.cos(ang) * power;
+  b.vy = Math.sin(ang) * power;
   if (b.vy > -2) b.vy = -Math.max(4, Math.abs(b.vy));   // always send it wall-ward
-  // pick a vertical speed that puts it on the wall at a sensible height
   const tw = Math.max(0.18, Math.abs(b.y) / Math.abs(b.vy));
   const zw = clamp(wallHeight, LOW_LINE + 0.35, WALL_H - 1);
-  b.vz = (zw - b.z + 0.5 * GRAV * tw * tw) / tw;
-  b.vz = clamp(b.vz, -4, 17);
+  b.vz = clamp((zw - b.z + 0.5 * GRAV * tw * tw) / tw, -4, 17);
   b.spin = rand(-1, 1);
 }
 
 function doHit(i, quality){
   const p = M.players[i];
   const b = M.ball;
-  const nextI = nextAliveFrom(i);
+  const nextI = M.solo ? i : nextAliveFrom(i);
   const target = M.players[nextI];
 
-  const skill = p.isYou ? clamp(0.45 + quality * 0.55, 0.2, 1) : p.skill;
-  const spread = (1 - skill) * 0.20 + 0.02;
-  const power = rand(15, 17.5) + skill * 3;
-  const wallH = rand(2.1, 4.3);
-
+  const q = clamp(quality, 0, 1);
+  ballAim(target, 15 + q * 4.5, (1 - q) * 0.16 + 0.02, rand(2.1, 4.3));
   b.z = Math.max(b.z, 0.45);
-  ballAim(p, target, power, spread, wallH);
 
   M.lastHitter = i;
   M.bounces = 0;
@@ -1413,15 +1629,40 @@ function doHit(i, quality){
   puff(p.cx, p.cy, 0.9);
   updateScoreStrip();
 
-  if (quality > 0.82){
+  if (q > 0.82){
     p.clean++;
-    if (p.isYou){ me.aces++; bigMsg('CLEAN HIT!', '', 800); }
+    if (p.isYou) me.aces++;
+    fire({ t: 'ev', kind: 'clean', i: i });
   }
-  if (!p.isYou) saySomething(p, 'good');
 }
 
-/* Where will the ball next be reachable? Used by the AI and by the
-   landing ring the player follows. */
+/* Can this player reach the ball right now? Returns the swing quality,
+   or -1 if they have swung at thin air. */
+function swingQuality(p){
+  const b = M.ball;
+  const d = Math.hypot(b.x - p.cx, b.y - p.cy);
+  const reach = HIT_REACH + (b.z < 2.6 ? 0.35 : 0);
+  if (d > reach || b.z > 3.7 || b.z < -0.1) return -1;
+  return clamp(1 - d / reach, 0, 1) * clamp(1 - Math.abs(b.z - 1.5) / 2.6, 0.25, 1);
+}
+
+/* Somebody asked to swing. Only the host decides whether it connected. */
+function tryHit(i){
+  const p = M.players[i];
+  if (!p || p.out || M.state !== 'rally' || M.turn !== i){
+    if (p){ p.swing = 1; p.swingT = 0.3; }
+    return;
+  }
+  const q = swingQuality(p);
+  if (q < 0){
+    p.swing = 1; p.swingT = 0.3;
+    if (p.isYou) bigMsg('SWING AND A MISS', '', 550);
+    return;
+  }
+  doHit(i, q);
+}
+
+/* Where will the ball next be reachable? Drives the landing ring. */
 function predictLanding(){
   const b = M.ball;
   let x = b.x, y = b.y, z = b.z, vx = b.vx, vy = b.vy, vz = b.vz;
@@ -1444,6 +1685,32 @@ function predictLanding(){
 function puff(x, y, sz){
   M.puffs.push({ x: x, y: y, z: 0.15, r: sz, life: 0.5, max: 0.5 });
 }
+/* A scuff left on the blacktop where the ball came down. */
+function bounceMark(x, y, hard){
+  M.marks.push({ x: x, y: y, r: 0.28 + hard * 0.34, life: 2.6, max: 2.6 });
+  if (M.marks.length > 14) M.marks.shift();
+}
+
+/* Send an event to everyone else, and act on it here too. */
+function fire(ev){
+  if (NET.role === 'host') broadcast(ev);
+  onEvent(ev);
+}
+function onEvent(d){
+  if (d.kind === 'clean'){
+    const p = M && M.players[d.i];
+    if (p && p.isYou) bigMsg('CLEAN HIT!', '', 800);
+    else if (p) chatterLine('<b>@' + p.handle + '</b> — clean hit.', false);
+  } else if (d.kind === 'fault'){
+    const p = M && M.players[d.i];
+    if (!p) return;
+    const word = LETTERS.slice(0, d.letters).join('');
+    bigMsg(FAULT_TEXT[d.reason] || 'FAULT',
+           '@' + p.handle + ' — ' + word + (d.out ? '  ·  OUT!' : ''), 2000);
+    chatterLine('<b>@' + p.handle + '</b> takes a letter. ' + word + (d.out ? ' — out!' : ''), false);
+    if (M) M.shake = 0.35;
+  }
+}
 
 /* ============================================================
    12. Faults
@@ -1454,60 +1721,140 @@ const FAULT_TEXT = {
   low:    'UNDER THE LINE',
   out:    'OUT OF BOUNDS',
   over:   'OVER THE WALL',
-  short:  'NEVER REACHED THE WALL'
+  short:  'NEVER REACHED THE WALL',
+  left:   'WALKED OFF'
 };
+
 function faultOn(i, reason){
-  if (M.state === 'point' || M.state === 'over') return;
+  if (!AUTH() || M.state === 'point' || M.state === 'over') return;
   const p = M.players[i];
+  if (!p) return;
   p.letters++;
-  M.ball.live = false;
   M.state = 'point';
   M.timer = 2.0;
-  M.shake = 0.35;
   M.landing = null;
   const gotOut = p.letters >= 4;
-
-  const word = LETTERS.slice(0, p.letters).join('');
-  bigMsg(FAULT_TEXT[reason] || 'FAULT',
-         '@' + p.handle + ' — ' + word + (gotOut ? '  ·  OUT!' : ''), 2000);
-  chatterLine('<b>@' + p.handle + '</b> takes a letter. ' + word + (gotOut ? ' — out!' : ''), false);
-
   if (gotOut){
     p.out = true;
     M.ranking.unshift(p);
-    if (p.isYou) chatterLine('You are out. Stick around and watch it finish.', false);
-    else if (Math.random() < 0.5) saySomething(p, 'bad');
   }
+  fire({ t: 'ev', kind: 'fault', i: i, reason: reason, letters: p.letters, out: gotOut });
   updateScoreStrip();
 
-  const alive = alivePlayers();
-  if (alive.length <= 1){
-    if (alive.length === 1) M.ranking.unshift(alive[0]);
-    M.state = 'over';
-    M.timer = 2.4;
-    return;
-  }
+  if (checkOver(i)) return;
   M.server = p.out ? nextAliveFrom(i) : i;
   M.turn = M.server;
 }
 
+/* Someone shut their laptop. They forfeit, and play carries on. */
+function forfeit(i){
+  if (!AUTH() || !M) return;
+  const p = M.players[i];
+  if (!p || p.out) return;
+  p.out = true;
+  p.gone = true;
+  p.letters = 4;
+  M.ranking.unshift(p);
+  updateScoreStrip();
+  if (checkOver(i)) return;
+  if (M.turn === i || M.server === i){
+    M.server = nextAliveFrom(i);
+    M.turn = M.server;
+    M.state = 'point';
+    M.timer = 1.2;
+  }
+}
+
+function checkOver(i){
+  const alive = alivePlayers();
+  const done = M.solo ? alive.length === 0 : alive.length <= 1;
+  if (!done) return false;
+  if (alive.length === 1) M.ranking.unshift(alive[0]);
+  M.state = 'over';
+  M.timer = 2.4;
+  return true;
+}
 /* ============================================================
    13. Update
    ============================================================ */
-const HIT_REACH = 2.5;
 const PLAYER_SPD = 7.6;
 
 function update(dt){
   if (!M) return;
-  const b = M.ball;
 
   if (bigTimer > 0){
     bigTimer -= dt;
     if (bigTimer <= 0) $('#bigMsg').classList.remove('show');
   }
   if (M.shake > 0) M.shake = Math.max(0, M.shake - dt);
+  if (M.ball.squash > 0) M.ball.squash = Math.max(0, M.ball.squash - dt * 5);
 
-  /* ---------- state machine ---------- */
+  if (AUTH()) authState(dt);
+  else if (M.state === 'rally' || M.state === 'point' || M.state === 'over') stepBall(dt, true);
+  if (!M) return;          // the game just finished and cleared itself away
+
+  M.players.forEach((p, i) => updatePlayer(p, i, dt));
+  hitPressed = false;
+
+  /* puffs, marks and the trail */
+  for (let i = M.puffs.length - 1; i >= 0; i--){
+    const f = M.puffs[i];
+    f.life -= dt; f.r += dt * 1.4;
+    if (f.life <= 0) M.puffs.splice(i, 1);
+  }
+  for (let i = M.marks.length - 1; i >= 0; i--){
+    M.marks[i].life -= dt;
+    if (M.marks[i].life <= 0) M.marks.splice(i, 1);
+  }
+  if (M.state === 'rally'){
+    M.trail.push({ x: M.ball.x, y: M.ball.y, z: M.ball.z, life: 0.28 });
+    if (M.trail.length > 16) M.trail.shift();
+  }
+  for (let i = M.trail.length - 1; i >= 0; i--){
+    M.trail[i].life -= dt;
+    if (M.trail[i].life <= 0) M.trail.splice(i, 1);
+  }
+
+  /* the ring on the ground, refreshed a few times a second */
+  M.planTick -= dt;
+  if (M.planTick <= 0){
+    M.planTick = 0.09;
+    M.landing = (M.state === 'rally' && M.wallHit) ? predictLanding() : null;
+  }
+
+  /* traffic */
+  if (NET.role === 'host'){
+    NET.snapT -= dt;
+    if (NET.snapT <= 0){ NET.snapT = 1 / 18; broadcast(snapshot()); }
+  } else if (NET.role === 'guest'){
+    NET.sendT -= dt;
+    if (NET.sendT <= 0){ NET.sendT = 1 / 30; sendInput(); }
+  }
+
+  updateHud();
+}
+
+function updateHud(){
+  const tag = $('#rallyTag');
+  if (M.state === 'over') tag.textContent = 'Game over';
+  else if (M.state === 'serve'){
+    const s = M.players[M.server];
+    tag.textContent = s.isYou
+      ? (isTouch ? 'Your serve — tap HIT' : 'Your serve — press SPACE')
+      : '@' + s.handle + ' is serving';
+  } else if (M.state === 'countdown'){
+    tag.textContent = M.solo ? 'Get ready…' : 'Next up: @' + M.players[M.server].handle;
+  } else if (M.solo){
+    tag.textContent = 'Rally ' + M.rally + '  ·  best ' + Math.max(M.bestRally, me.bestRally);
+  } else {
+    const t = M.players[M.turn];
+    tag.textContent = (t.isYou ? 'YOUR BALL' : '@' + t.handle + '’s ball') + '  ·  rally ' + M.rally;
+  }
+}
+
+/* ---------- the host's rules clock ---------- */
+function authState(dt){
+  const b = M.ball;
   if (M.state === 'countdown'){
     M.timer -= dt;
     if (M.timer <= 0){
@@ -1515,7 +1862,7 @@ function update(dt){
       b.x = s.cx; b.y = Math.max(3, s.cy - 0.7); b.z = 1.4;
       b.vx = b.vy = b.vz = 0;
       M.state = 'serve';
-      M.serveHold = s.isYou ? 4.0 : rand(0.7, 1.5);
+      M.serveHold = s.isYou ? 4.0 : 5.0;
       M.turn = M.server;
       M.rally = 0;
       M.bounces = 0; M.wallHit = false; M.landing = null;
@@ -1528,77 +1875,29 @@ function update(dt){
     b.y = lerp(b.y, Math.max(3, s.cy - 0.7), Math.min(1, dt * 9));
     b.z = 1.35 + Math.sin(performance.now() / 220) * 0.22;
     M.serveHold -= dt;
-    const wantsToServe = s.isYou ? (hitPressed || M.serveHold <= 0) : (M.serveHold <= 0);
-    if (wantsToServe){
-      hitPressed = false;
-      doHit(M.server, s.isYou ? 0.75 : 0.8);
-      assignChase();
-    }
+    if (M.serveHold <= 0) doServe();
   } else if (M.state === 'rally'){
-    stepBall(dt);
+    stepBall(dt, false);
   } else if (M.state === 'point'){
     stepBall(dt, true);
     M.timer -= dt;
-    if (M.timer <= 0){
-      M.state = 'countdown';
-      M.timer = 1.1;
-      M.players.forEach(p => { p.plan = null; p.freeze = false; });
-    }
+    if (M.timer <= 0){ M.state = 'countdown'; M.timer = 1.1; }
   } else if (M.state === 'over'){
     stepBall(dt, true);
     M.timer -= dt;
-    if (M.timer <= 0) endMatch();
-  }
-
-  /* ---------- players ---------- */
-  M.players.forEach((p, i) => updatePlayer(p, i, dt));
-  hitPressed = false;
-
-  /* ---------- puffs + trail ---------- */
-  for (let i = M.puffs.length - 1; i >= 0; i--){
-    const f = M.puffs[i];
-    f.life -= dt;
-    f.r += dt * 1.4;
-    if (f.life <= 0) M.puffs.splice(i, 1);
-  }
-  if (M.state === 'rally'){
-    M.trail.push({ x: b.x, y: b.y, z: b.z, life: 0.28 });
-    if (M.trail.length > 16) M.trail.shift();
-  }
-  for (let i = M.trail.length - 1; i >= 0; i--){
-    M.trail[i].life -= dt;
-    if (M.trail[i].life <= 0) M.trail.splice(i, 1);
-  }
-
-  /* landing marker, refreshed a few times a second */
-  M.planTick = (M.planTick || 0) - dt;
-  if (M.planTick <= 0){
-    M.planTick = 0.09;
-    M.landing = (M.state === 'rally' && M.wallHit) ? predictLanding() : null;
-  }
-
-  /* HUD line */
-  const tag = $('#rallyTag');
-  if (M.state === 'over') tag.textContent = 'Game over';
-  else if (M.state === 'serve'){
-    const s = M.players[M.server];
-    tag.textContent = s.isYou
-      ? (isTouch ? 'Your serve — tap HIT' : 'Your serve — press SPACE')
-      : '@' + s.handle + ' is serving';
-  } else if (M.state === 'countdown') tag.textContent = 'Next up: @' + M.players[M.server].handle;
-  else {
-    const t = M.players[M.turn];
-    tag.textContent = (t.isYou ? 'YOUR BALL' : '@' + t.handle + '’s ball') + '  ·  rally ' + M.rally;
+    if (M.timer <= 0) finishMatch();
   }
 }
 
-function assignChase(){
-  const t = M.players[M.turn];
-  t.react = t.isYou ? 0 : (1 - t.skill) * 0.42 + rand(0, 0.12);
-  t.plan = null;
-  // long rallies wear them down, so nothing goes on forever
-  const tire = Math.min(0.14, M.rally * 0.013);
-  t.freeze = !t.isYou && Math.random() < (0.08 + (1 - t.skill) * 0.30 + tire);
+function doServe(){ if (M.state === 'serve') doHit(M.server, 0.8); }
+
+/* Someone pressed the swing key. Only ever called on the host or on your own. */
+function requestSwing(i){
+  if (!M) return;
+  if (M.state === 'serve' && M.server === i){ doServe(); return; }
+  if (M.state === 'rally'){ tryHit(i); return; }
+  const p = M.players[i];
+  if (p){ p.swing = 1; p.swingT = 0.3; }
 }
 
 function stepBall(dt, dead){
@@ -1612,18 +1911,17 @@ function stepBall(dt, dead){
 
   /* the wall */
   if (b.y < BALL_R && b.vy < 0){
-    if (!dead && b.z > WALL_H){
-      faultOn(M.lastHitter, 'over');
-      return;
-    }
+    if (!dead && b.z > WALL_H){ faultOn(M.lastHitter, 'over'); return; }
     if (!dead && b.z < LOW_LINE){
       b.y = BALL_R; b.vy = -b.vy * 0.55;
+      b.squash = 1; b.squashAxis = 'y';
       faultOn(M.lastHitter, 'low');
       return;
     }
     b.y = BALL_R;
     b.vy = -b.vy * 0.92;
     b.vx *= 0.97;
+    b.squash = 1; b.squashAxis = 'y';
     M.shake = Math.max(M.shake, 0.12);
     puffWall(b.x, b.z);
     if (!dead){
@@ -1631,17 +1929,18 @@ function stepBall(dt, dead){
       M.bounces = 0;
       M.rally++;
       M.bestRally = Math.max(M.bestRally, M.rally);
-      assignChase();
-      if (M.rally > 0 && M.rally % 6 === 0) friendCheer();
     }
   }
 
   /* the blacktop */
   if (b.z < BALL_R && b.vz < 0){
+    const hard = clamp(Math.abs(b.vz) / 12, 0.1, 1);
     b.z = BALL_R;
     b.vz = -b.vz * 0.7;
     b.vx *= 0.97; b.vy *= 0.97;
-    puff(b.x, b.y, 0.55);
+    b.squash = 1; b.squashAxis = 'z';
+    puff(b.x, b.y, 0.55 + hard * 0.3);
+    bounceMark(b.x, b.y, hard);
     if (!dead){
       M.bounces++;
       if (!M.wallHit && M.bounces >= 2){ faultOn(M.lastHitter, 'short'); return; }
@@ -1662,94 +1961,116 @@ function puffWall(x, z){
   M.puffs.push({ x: x, y: 0.5, z: z, r: 0.5, life: 0.35, max: 0.35, wall: true });
 }
 
-function updatePlayer(p, i, dt){
-  const b = M.ball;
-  let tx = p.homeX, ty = p.homeY, urgency = 0.55;
-  const myBall = (M.turn === i) && !p.out && (M.state === 'rally' || M.state === 'serve');
+/* ---------- players ---------- */
+const sideSpot = p => ({ x: p.homeX < COURT_W / 2 ? -2.4 : COURT_W + 2.4, y: 4.6 });
 
-  if (p.swingT > 0){
-    p.swingT -= dt;
-    p.swing = Math.sin(clamp(1 - p.swingT / 0.34, 0, 1) * Math.PI);
-  } else p.swing = 0;
-
-  if (p.out){
-    /* shuffle off to the sideline and watch */
-    tx = p.sideX || (p.sideX = p.homeX < COURT_W / 2 ? -2.4 : COURT_W + 2.4);
-    ty = 4.6;
-  } else if (p.isYou){
-    let mx = (keys.ArrowRight || keys.d || keys.D ? 1 : 0) - (keys.ArrowLeft || keys.a || keys.A ? 1 : 0);
-    let my = (keys.ArrowDown || keys.s || keys.S ? 1 : 0) - (keys.ArrowUp || keys.w || keys.W ? 1 : 0);
-    mx += stickVec.x; my += stickVec.y;
-    const m = Math.hypot(mx, my);
-    if (m > 1){ mx /= m; my /= m; }
-    p.cx += mx * PLAYER_SPD * dt;
-    p.cy += my * PLAYER_SPD * dt;
-    p.run = clamp(Math.hypot(mx, my), 0, 1);
-    if (Math.abs(mx) > 0.1) p.face = mx > 0 ? 1 : -1;
-    p.phase += dt * (5 + p.run * 9);
-
-    if (hitPressed && M.state === 'rally'){
-      if (M.turn === i){
-        const d = Math.hypot(b.x - p.cx, b.y - p.cy);
-        const reach = HIT_REACH + (b.z < 2.6 ? 0.35 : 0);
-        if (d < reach && b.z < 3.7 && b.z > -0.1){
-          const q = clamp(1 - d / reach, 0, 1) * clamp(1 - Math.abs(b.z - 1.5) / 2.6, 0.25, 1);
-          doHit(i, q);
-          assignChase();
-        } else {
-          p.swing = 1; p.swingT = 0.3;
-          if (d < reach + 1.6) bigMsg('SWING AND A MISS', '', 550);
-        }
-      } else {
-        p.swing = 1; p.swingT = 0.3;
-      }
-    }
-    p.cx = clamp(p.cx, -0.4, COURT_W + 0.4);
-    p.cy = clamp(p.cy, 2.6, COURT_D - 1.4);
-    return;
-  } else if (myBall && M.state === 'rally'){
-    if (p.react > 0) p.react -= dt;
-    p.planT -= dt;
-    if (p.planT <= 0){
-      p.planT = 0.11;
-      p.plan = M.wallHit ? predictLanding() : null;
-    }
-    if (p.plan){ tx = p.plan.x; ty = p.plan.y; }
-    else { tx = b.x; ty = clamp(b.y + 2.4, 3, COURT_D); }
-    urgency = 1;
-  } else if (M.state === 'serve' && M.server === i){
-    tx = p.homeX; ty = 8.2;
-    urgency = 0.7;
-  }
-
-  /* AI walking */
-  let dx = tx - p.cx, dy = ty - p.cy;
+function driftTo(p, spot, dt, urgency){
+  const dx = spot.x - p.cx, dy = spot.y - p.cy;
   const d = Math.hypot(dx, dy);
-  const spd = (0.35 + p.skill * 0.65) * PLAYER_SPD * (0.55 + urgency * 0.45);
   if (d > 0.12){
-    const step = Math.min(d, spd * dt);
+    const step = Math.min(d, PLAYER_SPD * urgency * dt);
     p.cx += dx / d * step;
     p.cy += dy / d * step;
     p.run = clamp(step / (PLAYER_SPD * dt), 0, 1);
     if (Math.abs(dx) > 0.15) p.face = dx > 0 ? 1 : -1;
-  } else {
-    p.run = Math.max(0, p.run - dt * 3);
-  }
+  } else p.run = Math.max(0, p.run - dt * 3);
   p.phase += dt * (5 + p.run * 9);
-  p.cx = clamp(p.cx, p.out ? -2.6 : -0.9, p.out ? COURT_W + 2.6 : COURT_W + 0.9);
-  p.cy = clamp(p.cy, 2.6, COURT_D - 1.0);
+}
 
-  /* AI swing */
-  if (myBall && M.state === 'rally' && M.wallHit && !p.freeze && p.react <= 0 && p.swingT <= 0){
-    const bd = Math.hypot(b.x - p.cx, b.y - p.cy);
-    const good = b.z < 2.9 && b.z > 0.25 && b.vz < 3.2;
-    if (bd < HIT_REACH * (0.7 + p.skill * 0.4) && good){
-      doHit(i, p.skill);
-      assignChase();
+function localMove(p, dt){
+  let mx = (keys.ArrowRight || keys.d || keys.D ? 1 : 0) - (keys.ArrowLeft || keys.a || keys.A ? 1 : 0);
+  let my = (keys.ArrowDown  || keys.s || keys.S ? 1 : 0) - (keys.ArrowUp   || keys.w || keys.W ? 1 : 0);
+  mx += stickVec.x; my += stickVec.y;
+  const m = Math.hypot(mx, my);
+  if (m > 1){ mx /= m; my /= m; }
+  p.cx += mx * PLAYER_SPD * dt;
+  p.cy += my * PLAYER_SPD * dt;
+  p.run = clamp(Math.hypot(mx, my), 0, 1);
+  if (Math.abs(mx) > 0.1) p.face = mx > 0 ? 1 : -1;
+  p.phase += dt * (5 + p.run * 9);
+  p.cx = clamp(p.cx, -0.4, COURT_W + 0.4);
+  p.cy = clamp(p.cy, 2.6, COURT_D - 1.4);
+}
+
+function updatePlayer(p, i, dt){
+  const drawnFromAfar = !AUTH() && !p.isYou;
+
+  if (!drawnFromAfar){
+    if (p.swingT > 0){
+      p.swingT -= dt;
+      p.swing = Math.sin(clamp(1 - p.swingT / 0.34, 0, 1) * Math.PI);
+    } else p.swing = 0;
+  }
+
+  if (p.isYou){
+    if (p.out){ driftTo(p, sideSpot(p), dt, 0.5); return; }
+    localMove(p, dt);
+    if (hitPressed){
+      if (AUTH()) requestSwing(i);
+      else { NET.hitSeq++; p.swing = 1; p.swingT = 0.3; sendInput(); }
     }
+    return;
+  }
+
+  if (drawnFromAfar){
+    const k = Math.min(1, dt * 14);
+    p.cx = lerp(p.cx, p.tx, k);
+    p.cy = lerp(p.cy, p.ty, k);
+    return;
+  }
+
+  /* host, drawing somebody else's kid from what they sent */
+  if (p.out || p.gone){ driftTo(p, sideSpot(p), dt, 0.5); return; }
+  const inp = NET.inputs[p.id];
+  if (!inp) return;
+  p.cx = clamp(inp.cx, -0.4, COURT_W + 0.4);
+  p.cy = clamp(inp.cy, 2.6, COURT_D - 1.4);
+  p.phase = inp.ph; p.run = inp.run; p.face = inp.f;
+  if (inp.hs !== NET.lastSeq[p.id]){
+    NET.lastSeq[p.id] = inp.hs;
+    requestSwing(i);
   }
 }
 
+/* ---------- what goes over the wire each tick ---------- */
+const r2 = v => Math.round(v * 100) / 100;
+function snapshot(){
+  const b = M.ball;
+  return {
+    t: 'snap',
+    s: M.state, tn: M.turn, sv: M.server, r: M.rally, tm: r2(M.timer),
+    wh: M.wallHit ? 1 : 0, bo: M.bounces,
+    b: [r2(b.x), r2(b.y), r2(b.z), r2(b.vx), r2(b.vy), r2(b.vz), r2(b.spin)],
+    p: M.players.map(p => [r2(p.cx), r2(p.cy), r2(p.phase % (Math.PI * 2)), r2(p.run), r2(p.swing),
+                           p.letters, p.out ? 1 : 0, p.face])
+  };
+}
+function applySnap(d){
+  if (!M) return;
+  M.state = d.s; M.turn = d.tn; M.server = d.sv; M.timer = d.tm;
+  M.wallHit = !!d.wh; M.bounces = d.bo;
+  if (d.r !== M.rally){ M.rally = d.r; M.bestRally = Math.max(M.bestRally, d.r); }
+  const b = M.ball;
+  b.x = d.b[0]; b.y = d.b[1]; b.z = d.b[2];
+  b.vx = d.b[3]; b.vy = d.b[4]; b.vz = d.b[5]; b.spin = d.b[6];
+  d.p.forEach((a, i) => {
+    const p = M.players[i];
+    if (!p) return;
+    p.letters = a[5];
+    p.out = !!a[6];
+    if (p.isYou) return;
+    p.tx = a[0]; p.ty = a[1];
+    p.phase = a[2]; p.run = a[3]; p.swing = a[4]; p.face = a[7];
+  });
+  updateScoreStrip();
+}
+function sendInput(){
+  if (!M || !NET.conn) return;
+  const p = M.players.find(x => x.isYou);
+  if (!p) return;
+  send(NET.conn, { t: 'in', cx: r2(p.cx), cy: r2(p.cy), ph: r2(p.phase),
+                   run: r2(p.run), f: p.face, hs: NET.hitSeq });
+}
 /* ============================================================
    14. Drawing the world
    ============================================================ */
@@ -1930,6 +2251,17 @@ function draw(){
     g.stroke();
   }
 
+  /* ---- scuffs where the ball came down ---- */
+  M.marks.forEach(m => {
+    const q = proj(m.x, m.y, 0);
+    const age = m.life / m.max;
+    g.strokeStyle = 'rgba(26,22,20,' + (0.34 * age) + ')';
+    g.lineWidth = Math.max(1.5, 0.06 * q.s);
+    g.beginPath();
+    g.ellipse(q.x, q.y, m.r * q.s * (1.6 - age * 0.6), m.r * q.s * 0.45 * (1.6 - age * 0.6), 0, 0, Math.PI * 2);
+    g.stroke();
+  });
+
   /* ---- ground puffs ---- */
   M.puffs.filter(f => !f.wall).forEach(f => {
     const q = proj(f.x, f.y, 0);
@@ -1980,6 +2312,29 @@ function drawFence(g){
 
 function drawBall(g){
   const b = M.ball;
+  /* once a dead ball has bowled off past the back line, let it go —
+     the perspective would blow it up to fill the screen */
+  if (b.y > COURT_D + 3) return;
+
+  /* the arc it is travelling on, dotted, so you can read the bounce coming */
+  if (M.state === 'rally'){
+    let x = b.x, y = b.y, z = b.z, vx = b.vx, vy = b.vy, vz = b.vz;
+    const dt = 1 / 40;
+    g.fillStyle = 'rgba(255,255,255,.34)';
+    for (let s = 0; s < 60; s++){
+      vz -= GRAV * dt;
+      x += vx * dt; y += vy * dt; z += vz * dt;
+      if (y < BALL_R && vy < 0){ y = BALL_R; vy = -vy * 0.9; }
+      if (z < BALL_R && vz < 0){ z = BALL_R; vz = -vz * 0.7; }
+      if (y > COURT_D + 3 || x < -5 || x > COURT_W + 5) break;
+      if (s % 4) continue;
+      const p = proj(x, y, z);
+      g.beginPath();
+      g.arc(p.x, p.y, Math.max(1, 0.055 * p.s), 0, Math.PI * 2);
+      g.fill();
+    }
+  }
+
   /* trail */
   M.trail.forEach((t, i) => {
     const q = proj(t.x, t.y, t.z);
@@ -1988,19 +2343,52 @@ function drawBall(g){
     g.arc(q.x, q.y, BALL_R * q.s * 0.8, 0, Math.PI * 2);
     g.fill();
   });
+
   const q = proj(b.x, b.y, b.z);
   const r = BALL_R * q.s;
-  const grd = g.createRadialGradient(q.x - r * 0.35, q.y - r * 0.4, r * 0.15, q.x, q.y, r);
+  /* squash on impact, stretch when it is really moving */
+  const sq = b.squash || 0;
+  const speed = Math.hypot(b.vx, b.vy, b.vz);
+  const stretch = clamp(speed / 34, 0, 0.22);
+  let rx = r, ry = r, tilt = 0;
+  if (b.squashAxis === 'y'){ rx = r * (1 - sq * 0.42); ry = r * (1 + sq * 0.34); }
+  else { rx = r * (1 + sq * 0.40); ry = r * (1 - sq * 0.44); }
+  if (sq < 0.15 && stretch > 0.02){
+    tilt = Math.atan2(-b.vz, Math.hypot(b.vx, b.vy) || 0.001);
+    rx = r * (1 + stretch); ry = r * (1 - stretch * 0.7);
+  }
+
+  g.save();
+  g.translate(q.x, q.y);
+  g.rotate(tilt);
+  const grd = g.createRadialGradient(-rx * 0.35, -ry * 0.4, r * 0.15, 0, 0, r);
   grd.addColorStop(0, '#ffd9a0');
   grd.addColorStop(0.45, '#f27d3a');
   grd.addColorStop(1, '#b8431c');
   g.fillStyle = grd;
-  g.beginPath(); g.arc(q.x, q.y, r, 0, Math.PI * 2); g.fill();
+  g.beginPath(); g.ellipse(0, 0, rx, ry, 0, 0, Math.PI * 2); g.fill();
   g.strokeStyle = 'rgba(90,30,10,.5)';
   g.lineWidth = Math.max(1, r * 0.12);
   g.beginPath();
-  g.ellipse(q.x, q.y, r * 0.92, r * 0.34, b.spin + performance.now() / 260, 0, Math.PI * 2);
+  g.ellipse(0, 0, rx * 0.92, ry * 0.34, b.spin + performance.now() / 260, 0, Math.PI * 2);
   g.stroke();
+  g.beginPath();
+  g.ellipse(0, 0, rx * 0.34, ry * 0.92, b.spin + performance.now() / 260, 0, Math.PI * 2);
+  g.stroke();
+  g.restore();
+
+  /* how many times it has come down since the wall */
+  if (M.state === 'rally' && M.wallHit && M.bounces > 0){
+    const one = M.bounces === 1;
+    g.font = 'bold ' + Math.max(11, Math.round(q.s * 0.3)) + 'px system-ui, sans-serif';
+    g.textAlign = 'center';
+    g.fillStyle = one ? '#ffd66b' : '#ff8a72';
+    g.strokeStyle = 'rgba(20,26,40,.8)';
+    g.lineWidth = 3;
+    const label = one ? 'BOUNCE 1 — hit it!' : 'BOUNCE 2';
+    g.strokeText(label, q.x, q.y - r - 10);
+    g.fillText(label, q.x, q.y - r - 10);
+  }
 }
 
 function drawPlayer(g, p, i){
@@ -2077,13 +2465,18 @@ function loop(now){
   lastT = now;
   cloudT += dt;
   if (M && !paused) update(dt);
-  if ($('#screenGame').classList.contains('active')) draw();
+  if ($('#screenGame').classList.contains('active')){
+    /* browser chrome sliding away on a phone doesn't always fire resize */
+    if (window.innerWidth !== fitW || window.innerHeight !== fitH) fitCanvas();
+    draw();
+  }
   requestAnimationFrame(loop);
 }
 
+let fitW = 0, fitH = 0;
 function fitCanvas(){
-  const pad = 0;
-  const w = window.innerWidth - pad, h = window.innerHeight - pad;
+  const w = window.innerWidth, h = window.innerHeight;
+  fitW = w; fitH = h;
   const sc = Math.min(w / VW, h / VH);
   CV.style.width  = Math.round(VW * sc) + 'px';
   CV.style.height = Math.round(VH * sc) + 'px';
@@ -2092,73 +2485,95 @@ window.addEventListener('resize', fitCanvas);
 window.addEventListener('orientationchange', () => setTimeout(fitCanvas, 200));
 
 /* ============================================================
-   16. End of a game — rewards and friend requests
+   16. End of a game
+   The host works out the result and sends it; everyone shows it
+   and files away who they just played.
    ============================================================ */
-let lastOpponents = [];
-
-function endMatch(){
-  const players = M.players;
+function finishMatch(){
+  if (!AUTH() || !M) return;
   const rank = M.ranking.slice();
-  players.forEach(p => { if (!rank.includes(p)) rank.push(p); });
-  rank.forEach((p, i) => { p.place = i + 1; });
+  M.players.forEach(p => { if (!rank.includes(p)) rank.push(p); });
+  const result = {
+    solo: M.solo,
+    bestRally: M.bestRally,
+    rows: rank.map((p, i) => ({
+      id: p.id, handle: p.handle, charId: p.ch.id, place: i + 1,
+      hits: p.hits, clean: p.clean, letters: p.letters, gone: !!p.gone
+    }))
+  };
+  if (NET.role === 'host'){ NET.started = false; broadcast({ t: 'over', result: result }); }
+  showResults(result);
+}
 
-  const you = players.find(p => p.isYou);
-  const opps = players.filter(p => !p.isYou && p.ref);
-  lastOpponents = opps.map(p => p.ref);
-  opps.forEach(p => { p.ref.played++; });
+function ordinal(n){
+  return n + (n === 1 ? 'st' : n === 2 ? 'nd' : n === 3 ? 'rd' : 'th');
+}
+
+function showResults(result){
+  M = null;
+  const rows = result.rows;
+  const mine = rows.find(r => r.handle === me.handle) || rows[0];
+  const won  = !result.solo && mine.place === 1;
 
   const placeCoins = [60, 34, 20, 12];
   const placeXp    = [45, 28, 18, 10];
-  const coins = placeCoins[you.place - 1] + Math.round(M.bestRally * 1.5);
-  const xp    = placeXp[you.place - 1] + you.clean * 3;
+  const coins = result.solo
+    ? 8 + result.bestRally * 3
+    : placeCoins[clamp(mine.place - 1, 0, 3)] + Math.round(result.bestRally * 1.5);
+  const xp = result.solo
+    ? 6 + result.bestRally * 2
+    : placeXp[clamp(mine.place - 1, 0, 3)] + mine.clean * 3;
 
   me.games++;
   me.coins += coins;
   me.xp += xp;
-  if (you.place === 1) me.wins++;
-  me.bestRally = Math.max(me.bestRally, M.bestRally);
+  if (won) me.wins++;
+  me.bestRally = Math.max(me.bestRally, result.bestRally);
 
-  /* who wants to be friends after that? */
-  const newReqs = [];
-  opps.forEach(p => {
-    if (p.ref.friend || friendRequests.includes(p.ref)) return;
-    let chance = 0.18;
-    if (you.place <= 2) chance += 0.14;
-    if (M.bestRally >= 8) chance += 0.10;
-    if (p.ref.played >= 2) chance += 0.12;
-    if (Math.random() < chance){
-      friendRequests.push(p.ref);
-      newReqs.push(p.ref);
-    }
-  });
+  /* Everyone here was a real person — file them under friends. */
+  if (!result.solo){
+    rows.forEach(r => {
+      if (r.handle === me.handle) return;
+      rememberPlayer(r.handle, r.charId, won, r.place === 1);
+    });
+  }
+  saveFriends();
 
-  /* --- results screen --- */
-  const win = you.place === 1;
-  $('#resultTitle').textContent = win ? 'You won the blacktop!' : 'Game over';
-  $('#resultSub').textContent = win
-    ? 'Last one standing. Longest rally: ' + M.bestRally + '.'
-    : 'You finished ' + ordinal(you.place) + '. @' + rank[0].handle + ' took it. Longest rally: ' + M.bestRally + '.';
+  $('#resultTitle').textContent = result.solo
+    ? (result.bestRally >= 10 ? 'Some rally!' : 'Practice done')
+    : (won ? 'You won the blacktop!' : 'Game over');
+  $('#resultSub').textContent = result.solo
+    ? 'Your longest rally was ' + result.bestRally + '.'
+    : (won
+        ? 'Last one standing. Longest rally: ' + result.bestRally + '.'
+        : 'You finished ' + ordinal(mine.place) + '. @' + rows[0].handle +
+          ' took it. Longest rally: ' + result.bestRally + '.');
 
   const pod = $('#podium');
   pod.innerHTML = '';
-  rank.forEach(p => {
+  rows.forEach(r => {
     const row = document.createElement('div');
     row.className = 'prow';
-    const place = document.createElement('div');
-    place.className = 'place';
-    place.textContent = ordinal(p.place);
-    row.appendChild(place);
+    if (!result.solo){
+      const place = document.createElement('div');
+      place.className = 'place';
+      place.textContent = ordinal(r.place);
+      row.appendChild(place);
+    }
     const cv = document.createElement('canvas');
     cv.width = 76; cv.height = 94;
-    paintPortrait(cv, p.ch, false);
+    paintPortrait(cv, charById(r.charId), false);
     row.appendChild(cv);
+    const isMe = r.handle === me.handle;
     const info = document.createElement('div');
     info.className = 'pinfo';
     info.innerHTML = '<div class="phandle">' +
-      (p.ref && p.ref.friend ? '<span class="star">★</span> ' : '') +
-      '@' + p.handle + (p.isYou ? ' (you)' : '') + '</div>' +
-      '<div class="pmeta">' + p.hits + ' returns · ' + p.clean + ' clean · ' +
-      (p.letters >= 4 ? 'spelled WALL' : 'survived with ' + (p.letters ? LETTERS.slice(0, p.letters).join('') : 'no letters')) +
+      (!isMe && friendOf(r.handle) ? '<span class="star">★</span> ' : '') +
+      '@' + r.handle + (isMe ? ' (you)' : '') + '</div>' +
+      '<div class="pmeta">' + r.hits + ' returns · ' + r.clean + ' clean · ' +
+      (r.gone ? 'left early'
+              : r.letters >= 4 ? 'spelled WALL'
+              : 'survived with ' + (r.letters ? LETTERS.slice(0, r.letters).join('') : 'no letters')) +
       '</div>';
     row.appendChild(info);
     pod.appendChild(row);
@@ -2166,58 +2581,70 @@ function endMatch(){
 
   $('#rewardGrid').innerHTML =
     stat('+' + coins, 'coins') + stat('+' + xp, 'xp') +
-    stat(M.bestRally, 'best rally') + stat(you.clean, 'clean hits');
+    stat(result.bestRally, 'best rally') + stat(mine.clean, 'clean hits');
 
-  const np = $('#newReqPanel'), nl = $('#newReqList');
+  const np = $('#newFriendPanel');
+  const nl = $('#newFriendList');
   nl.innerHTML = '';
-  np.style.display = newReqs.length ? '' : 'none';
-  newReqs.forEach(r => {
-    const row = document.createElement('div');
-    row.className = 'reqRow';
-    const cv = document.createElement('canvas');
-    cv.width = 72; cv.height = 88;
-    paintPortrait(cv, charById(r.charId), false);
-    row.appendChild(cv);
-    const info = document.createElement('div');
-    info.className = 'pinfo';
-    info.innerHTML = '<div class="phandle">@' + r.handle + '</div>' +
-                     '<div class="pmeta">sent you a friend request</div>';
-    row.appendChild(info);
-    const btn = document.createElement('button');
-    btn.className = 'mini';
-    btn.textContent = 'Accept';
-    btn.addEventListener('click', () => {
-      r.friend = true;
-      drop(friendRequests, r);
-      btn.textContent = 'Friends ★';
-      btn.disabled = true;
-      refreshHome();
+  const fresh = result.solo ? [] : rows.filter(r => r.handle !== me.handle);
+  np.style.display = fresh.length ? '' : 'none';
+  if (fresh.length){
+    $('#newFriendNote').textContent = fresh.length === 1
+      ? 'You played @' + fresh[0].handle + '. They are in your friends now.'
+      : 'You played ' + fresh.map(r => '@' + r.handle).join(', ') + '. They are all in your friends now.';
+    fresh.forEach(r => {
+      const f = friendOf(r.handle);
+      const row = document.createElement('div');
+      row.className = 'reqRow';
+      const cv = document.createElement('canvas');
+      cv.width = 72; cv.height = 88;
+      paintPortrait(cv, charById(r.charId), false);
+      row.appendChild(cv);
+      const info = document.createElement('div');
+      info.className = 'pinfo';
+      info.innerHTML = '<div class="phandle">★ @' + r.handle + '</div>' +
+        '<div class="pmeta">' + (f ? f.games + (f.games === 1 ? ' game' : ' games') + ' together' : 'first game together') + '</div>';
+      row.appendChild(info);
+      nl.appendChild(row);
     });
-    row.appendChild(btn);
-    nl.appendChild(row);
-  });
+  }
 
-  M = null;
+  /* what "play again" means depends on how you got here */
+  const again = $('#againBtn');
+  if (result.solo) again.textContent = 'Practice again';
+  else if (NET.role === 'host') again.textContent = 'Back to the lobby';
+  else again.textContent = 'Wait for the next game';
+
   refreshHome();
   showScreen('screenResult');
 }
 
-function ordinal(n){
-  return n + (n === 1 ? 'st' : n === 2 ? 'nd' : n === 3 ? 'rd' : 'th');
-}
-
 $('#againBtn').addEventListener('click', () => {
-  if (lastOpponents.length === 3) startMatch(lastOpponents.slice());
-  else $('#quickBtn').click();
+  if (NET.role === 'solo'){
+    beginMatch({ players: [{ id: 'me', handle: me.handle, charId: me.charId }], server: 0, solo: true });
+  } else if (NET.role === 'host' || NET.role === 'guest'){
+    openLobby();
+    if (NET.role === 'host') pushLobby();
+  } else {
+    refreshHome();
+    showScreen('screenHome');
+  }
 });
-$('#homeBtn').addEventListener('click', () => { refreshHome(); showScreen('screenHome'); });
-
+$('#homeBtn').addEventListener('click', () => { netTeardown(); refreshHome(); showScreen('screenHome'); });
 /* ============================================================
    17. Boot
    ============================================================ */
+loadFriends();
 fitCanvas();
-handleInput.focus();
-$('#searchList').innerHTML = '<div class="empty">Type a name to look someone up.</div>';
+if (me.handle && HANDLE_RE.test(me.handle)){
+  /* you have been here before — straight past the sign-up */
+  buildCharGrid($('#charGrid2'), id => { me.charId = id; saveFriends(); refreshHome(); }, me.charId);
+  refreshHome();
+  showScreen('screenHome');
+} else {
+  handleInput.focus();
+}
+window.addEventListener('beforeunload', () => { try { netTeardown(); } catch (e){} });
 
 })();
 </script>
