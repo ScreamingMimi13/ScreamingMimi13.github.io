@@ -1359,7 +1359,6 @@ function activities(){
       dis: !pt ? 'You need someone to propose to first.'
          : isMarried(pt) ? 'You are already married to ' + pt.name.split(' ')[0] + '.'
          : a < 19 ? 'Wait until you are 19.'
-         : pt.bond <= 68 ? pt.name.split(' ')[0] + ' is not close enough yet — ' + pt.bond + '/100, and you need 69.'
          : null,
       go:()=>{
       const cost = Math.round(RI(1500,14000)); if(S.cash<cost) return toast('You cannot afford a ring.');
