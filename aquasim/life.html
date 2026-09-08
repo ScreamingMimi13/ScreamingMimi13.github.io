@@ -1918,29 +1918,79 @@ function setupInstall(){
      apple-touch-icon (it would fall back to a screenshot of the page), and
      Chrome wants PNG in the manifest, so vector is not an option here. Data
      URIs keep the game a single file. */
-  function roundRect(x, w, h, r){
+  /* The mark: "Life" spiralling out from a candle, over faint tree rings.
+     Drawn straight onto canvas rather than via SVG, because the PNG has to be
+     produced with toDataURL and SVG-into-canvas is unreliable on iOS. All
+     drawing happens in a 200x200 space that is scaled to the icon size. */
+  function rrect(x, X, Y, W, H, R){
     x.beginPath();
-    x.moveTo(r,0); x.lineTo(w-r,0); x.quadraticCurveTo(w,0,w,r);
-    x.lineTo(w,h-r); x.quadraticCurveTo(w,h,w-r,h);
-    x.lineTo(r,h); x.quadraticCurveTo(0,h,0,h-r);
-    x.lineTo(0,r); x.quadraticCurveTo(0,0,r,0); x.closePath();
+    x.moveTo(X+R,Y); x.lineTo(X+W-R,Y); x.quadraticCurveTo(X+W,Y,X+W,Y+R);
+    x.lineTo(X+W,Y+H-R); x.quadraticCurveTo(X+W,Y+H,X+W-R,Y+H);
+    x.lineTo(X+R,Y+H); x.quadraticCurveTo(X,Y+H,X,Y+H-R);
+    x.lineTo(X,Y+R); x.quadraticCurveTo(X,Y,X+R,Y); x.closePath();
+  }
+  function spiralPath(x, r0, r1, turns){
+    const steps = Math.round(turns*80);
+    x.beginPath();
+    for (let i=0;i<=steps;i++){
+      const t=i/steps, th=t*turns*Math.PI*2 - Math.PI/2, r=r0+(r1-r0)*t;
+      const px=100+r*Math.cos(th), py=100+r*Math.sin(th);
+      i ? x.lineTo(px,py) : x.moveTo(px,py);
+    }
+  }
+  // Walk the spiral placing one glyph at a time, turning each to follow the curve.
+  function textOnSpiral(x, txt, r0, r1, turns){
+    const total = turns*Math.PI*2;
+    let th = -Math.PI/2;
+    for (let i=0;i<txt.length;i++){
+      const ch = txt.charAt(i);
+      const t = (th + Math.PI/2) / total;
+      if (t > 1) break;
+      const r = r0 + (r1-r0)*t;
+      const w = x.measureText(ch).width;
+      x.save();
+      x.translate(100 + r*Math.cos(th), 100 + r*Math.sin(th));
+      x.rotate(th + Math.PI/2);
+      x.fillText(ch, 0, 0);
+      x.restore();
+      th += w / r;
+    }
+  }
+  function drawMark(x){
+    x.lineCap = 'round'; x.lineJoin = 'round';
+    x.strokeStyle = 'rgba(255,255,255,.4)'; x.lineWidth = 4.5;
+    spiralPath(x, 28, 88, 3.2); x.stroke();                 // tree rings
+    x.fillStyle = '#fff';
+    x.font = '700 21px system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif';
+    x.textAlign = 'center'; x.textBaseline = 'middle';
+    textOnSpiral(x, 'Life \u00b7 Life \u00b7', 36, 82, 1.9); // the word winding out
+    x.save();                                                // candle in the middle
+    x.translate(100,100); x.scale(.66,.66); x.translate(-100,-100);
+    x.fillStyle = '#fff';
+    rrect(x, 87, 97, 26, 58, 8); x.fill();
+    x.strokeStyle = '#fff'; x.lineWidth = 4.5;
+    x.beginPath(); x.moveTo(100,94); x.lineTo(100,87); x.stroke();
+    x.fillStyle = '#ffd166';
+    x.beginPath(); x.moveTo(100,56);
+    x.bezierCurveTo(112,71,110,84,100,87);
+    x.bezierCurveTo(90,84,88,71,100,56);
+    x.closePath(); x.fill();
+    x.restore();
   }
   function makeIcon(size, maskable){
     const c = document.createElement('canvas');
     c.width = c.height = size;
     const x = c.getContext('2d');
     const g = x.createLinearGradient(0, 0, size, size);
-    g.addColorStop(0, '#8a6ee0'); g.addColorStop(1, '#4a3f7a');
+    g.addColorStop(0, '#21d4fd'); g.addColorStop(1, '#b721ff');   // blue raspberry
     x.fillStyle = g;
     if (maskable) x.fillRect(0, 0, size, size);        // launcher applies its own mask
-    else { roundRect(x, size, size, size*0.22); x.fill(); }
-    // A wordmark stays legible at 44px on a home screen, where a silhouette just
-    // reads as a generic contact icon.
-    x.fillStyle = '#fff';
-    x.textAlign = 'center'; x.textBaseline = 'middle';
-    x.font = '700 ' + Math.round(size * (maskable ? 0.26 : 0.34))
-          + 'px system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif';
-    x.fillText('Life', size/2, size*0.53);
+    else { rrect(x, 0, 0, size, size, size*0.22); x.fill(); }
+    x.save();
+    x.scale(size/200, size/200);
+    if (maskable){ x.translate(100,100); x.scale(.78,.78); x.translate(-100,-100); }
+    drawMark(x);
+    x.restore();
     return c.toDataURL('image/png');
   }
 
@@ -1969,7 +2019,7 @@ function setupInstall(){
         name: 'Life — Birth to 100', short_name: 'Life', id: here,
         start_url: here, scope: dir,
         display: 'standalone', orientation: 'portrait',
-        background_color: '#4a3f7a', theme_color: '#4a3f7a',
+        background_color: '#6b7cfd', theme_color: '#4a3f7a',
         description: 'Start as a newborn and live one year at a time to 100.',
         icons: [
           {src: png[192], sizes: '192x192', type: 'image/png', purpose: 'any'},
