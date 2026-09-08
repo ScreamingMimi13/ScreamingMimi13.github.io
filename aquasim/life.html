@@ -104,6 +104,8 @@
   .tile .n { display:block; font-size:.83rem; font-weight:650; line-height:1.25; }
   .tile .d { display:block; font-size:.7rem; color:var(--muted); margin-top:3px; line-height:1.3; }
   .tile[disabled] { opacity:.4; }
+  .tile.off { opacity:.5; }
+  .tile.off .d { color:var(--accent); }
 
   .empty { text-align:center; color:var(--muted); font-size:.87rem; padding:34px 20px; line-height:1.6; }
 
@@ -765,12 +767,83 @@ EV({min:18,max:70,ic:'🚑',w:.5,txt:'',auto:()=>{
 }});
 
 /* ---------- 30–64 ---------- */
-EV({min:30,max:60,ic:'⚖️',cond:()=>!!partner()&&S.age>28,w:.7,txt:()=>`Things with ${partner().name.split(' ')[0]} have been strained for a while now.`,
+/* ---------- A marriage coming apart, in three stages ----------
+   S.flags.rift walks 0 -> 1 -> 2. Repairing it at any point resets to 0, so a
+   couple can drift apart and recover more than once over a long life. Each
+   stage is a separate event, so the usual five-year spacing puts real time
+   between them instead of resolving the whole thing in one sitting. */
+function splitUp(p, why){
+  if (!p) return;
+  const married = isMarried(p);
+  const cost = married ? Math.round(Math.max(S.cash,0)*.42) : 0;
+  S.cash -= cost;
+  const first = p.name.split(' ')[0];
+  p.rel = exLabel(p); p.emoji = '💔';
+  S.flags.rift = 0;
+  log('💔', (why || (married ? 'You and ' + first + ' divorced' : 'You and ' + first + ' split up'))
+    + (cost > 0 ? ', and it cost you ' + moneyFull(cost) : '') + '.', 'bad');
+  apply({happy: married ? -18 : -13, stress:20});
+}
+function mendRift(p, amount, line){
+  if (!p) return;
+  p.bond = clamp(p.bond + amount);
+  S.flags.rift = 0;
+  log('❤️‍🩹', line, 'good');
+  apply({happy:10, stress:-14});
+}
+
+/* Stage one — something is off, but nobody has said it out loud. */
+EV({min:28,max:75,w:.8,cool:8,ic:'😶',cond:()=>!!partner() && !S.flags.rift,
+  txt:()=>`Things with ${partner().name.split(' ')[0]} have been strained for a while now. Nothing dramatic — you just talk a lot less than you used to.`,
   choices:[
-    {l:'Work on it', sub:'Costs time and money', go:()=>{ const p=partner(); if(!p)return; S.cash-=2400; if(chance(.6)){p.bond=clamp(p.bond+22);log('❤️‍🩹','Counselling helped. You came out stronger.','good');apply({happy:9});} else {p.bond=clamp(p.bond-10);log('😔','You tried. It did not take.','bad');apply({happy:-7});} }},
-    {l:'Separate', go:()=>{ const p=partner(); if(!p)return; const cost=isMarried(p)?Math.round(Math.max(S.cash,0)*.42):0; S.cash-=cost; p.rel=exLabel(p); p.emoji='💔';
-      log('💔',`You and ${p.name.split(' ')[0]} separated${cost>0?', and the divorce cost you '+moneyFull(cost):''}.`,'bad'); apply({happy:-16,stress:20}); }},
-    {l:'Ignore it', go:()=>{ const p=partner(); if(p)p.bond=clamp(p.bond-14); log('🙈','You said nothing and hoped. It got quieter.','bad'); apply({happy:-5}); }},
+    {l:'Say something about it', sub:'Honest, and uncomfortable', go:()=>{
+      const p = partner(); if (!p) return;
+      if (chance(.55)) mendRift(p, 20, `You and ${p.name.split(' ')[0]} finally talked properly. It cleared the air.`);
+      else { p.bond = clamp(p.bond-8); S.flags.rift = 1;
+        log('😐','It turned into an argument about something else entirely.','bad'); apply({happy:-6, stress:10}); }
+    }},
+    {l:'Leave it alone', sub:'Maybe it passes', go:()=>{
+      const p = partner(); if (p) p.bond = clamp(p.bond-10);
+      S.flags.rift = 1;
+      log('🤐','You said nothing. It settled into the furniture.','bad'); apply({happy:-4});
+    }},
+  ]});
+
+/* Stage two — it is now a real decision. */
+EV({min:28,max:80,w:2.6,ic:'🧊',cond:()=>!!partner() && S.flags.rift === 1,
+  txt:()=>`It has not got better. ${partner().name.split(' ')[0]} said the word "break" out loud, and neither of you pretended not to hear it.`,
+  choices:[
+    {l:'Try really hard', sub:()=>'Counselling, ' + moneyFull(3400) + ' and a lot of evenings', go:()=>{
+      const p = partner(); if (!p) return;
+      S.cash -= 3400;
+      if (chance(.6)) mendRift(p, 26, `Months of counselling, and it worked. You came out of it stronger than before.`);
+      else { p.bond = clamp(p.bond-12); S.flags.rift = 2;
+        log('😔','You did the work. It did not take.','bad'); apply({happy:-9, stress:14}); }
+    }},
+    {l:'Separate now', go:()=>{ splitUp(partner()); }},
+    {l:'Carry on as if nothing was said', go:()=>{
+      const p = partner(); if (p) p.bond = clamp(p.bond-16);
+      S.flags.rift = 2;
+      log('🙈','You both let it drop. The house got very quiet.','bad'); apply({happy:-7, stress:12});
+    }},
+  ]});
+
+/* Stage three — everyone can see it. */
+EV({min:28,max:85,w:2.6,cool:11,ic:'💔',cond:()=>!!partner() && S.flags.rift === 2,
+  txt:()=>`You and ${partner().name.split(' ')[0]} are barely speaking. Your friends have stopped asking how things are, which tells you they already know.`,
+  choices:[
+    {l:()=>isMarried(partner()||{}) ? 'File for divorce' : 'End it', sub:'Probably the honest answer', go:()=>{ splitUp(partner()); }},
+    {l:'One last attempt', sub:'It is late, but not impossible', go:()=>{
+      const p = partner(); if (!p) return;
+      if (chance(.3)) mendRift(p, 30, `Against the odds, you found your way back to each other.`);
+      else { p.bond = clamp(p.bond-10);
+        log('🌑','You tried once more. You both knew before you started.','bad'); apply({happy:-10, stress:10}); }
+    }},
+    {l:'Stay, unhappily', sub:'Plenty of people do', go:()=>{
+      const p = partner(); if (p) p.bond = clamp(p.bond-6);
+      log('🪑','You stayed. It is not what either of you wanted, but it is what happened.','bad');
+      apply({happy:-8, stress:8, health:-2});
+    }},
   ]});
 EV({min:35,max:60,ic:'🏋️',txt:'The doctor says the word "cholesterol" in a tone you do not like.',
   choices:[
@@ -848,6 +921,7 @@ function addDate(bond){
   const p = mkPerson(S,{name:n, rel:ds==='f'?'Girlfriend':'Boyfriend', sex:ds,
                         emoji:ds==='f'?'👩':'👨', bond:bond||RI(55,85), age:Math.max(1,S.age+gap)});
   S.people.push(p);
+  S.flags.rift = 0;   // a new relationship starts clean
   return n.split(' ')[0];
 }
 function haveBaby(){
@@ -1066,7 +1140,7 @@ function drainQueue(){
   openSheet({
     icon: item.ic, title: 'A moment in your life', body: t,
     options: item.choices.map(c=>({
-      label: c.l,
+      label: typeof c.l === 'function' ? c.l() : c.l,
       sub: typeof c.sub==='function' ? c.sub() : c.sub,
       // Close immediately so an answered moment can never be shown twice, then
       // let the timer bring up the next one. The Age Up button is the fallback
@@ -1272,10 +1346,22 @@ function activities(){
       else { apply({health:3}); log('🩺',`A clean bill of health for ${moneyFull(cost)}.`); } }});
     out.push({e:'📖',n:'Take a course',d:'+smarts',go:()=>{ if(once('course'))return toast('Once a year.'); mark('course'); const cost=RI(300,1800); if(S.cash<cost)return toast('Too expensive.'); S.cash-=cost; log('📖','You took a course in the evenings and finished it.','good'); apply({smarts:RI(5,11),happy:2}); }});
     if (S.edu>=1&&S.edu<5&&S.school==='none'&&a<58) out.push({e:'🎓',n:'Go back to school',d:'Higher degree',go:gradSchool});
-    if (!partner() ) out.push({e:'💘',n:'Look for love',d:'Put yourself out there',go:()=>{ if(once('love'))return toast('Once a year.'); mark('love');
-      if(chance(.3+S.looks/280+S.happy/700)){const n=addDate(RI(52,85));log('💞',`You started seeing ${n}.`,'good');apply({happy:12});} else {log('🫠','Several dates. No sparks.','bad');apply({happy:-4});} }});
+    // Both of these stay on the board at every adult age so they are easy to
+    // find; when you cannot use one it is dimmed and says why.
     const pt = partner();
-    if (pt && isDating(pt) && pt.bond>68 && a>=19) out.push({e:'💍',n:'Propose',d:'The big one',go:()=>{
+    out.push({e:'💘',n:'Look for love',d:'Put yourself out there',
+      dis: !pt ? null
+         : isMarried(pt) ? 'You are married to ' + pt.name.split(' ')[0] + '.'
+         : 'You are already seeing ' + pt.name.split(' ')[0] + '.',
+      go:()=>{ if(once('love'))return toast('Once a year.'); mark('love');
+      if(chance(.3+S.looks/280+S.happy/700)){const n=addDate(RI(52,85));log('💞',`You started seeing ${n}.`,'good');apply({happy:12});} else {log('🫠','Several dates. No sparks.','bad');apply({happy:-4});} }});
+    out.push({e:'💍',n:'Propose',d:'The big one',
+      dis: !pt ? 'You need someone to propose to first.'
+         : isMarried(pt) ? 'You are already married to ' + pt.name.split(' ')[0] + '.'
+         : a < 19 ? 'Wait until you are 19.'
+         : pt.bond <= 68 ? pt.name.split(' ')[0] + ' is not close enough yet — ' + pt.bond + '/100, and you need 69.'
+         : null,
+      go:()=>{
       const cost = Math.round(RI(1500,14000)); if(S.cash<cost) return toast('You cannot afford a ring.');
       if (chance(pt.bond/115)){ S.cash-=cost; pt.rel = personSex(pt)==='f' ? 'Wife' : 'Husband'; pt.bond=clamp(pt.bond+12); log('💍',`${pt.name.split(' ')[0]} said yes. The wedding cost more than the ring.`,'big'); S.cash-=Math.round(RI(6000,45000)); apply({happy:24}); earn('Married'); }
       else { pt.bond=clamp(pt.bond-25); log('😶',`${pt.name.split(' ')[0]} said they were not ready. It was very quiet afterward.`,'bad'); apply({happy:-18}); }
@@ -1401,10 +1487,8 @@ function openPerson(p){
   }
   if (isDating(p) || isMarried(p)){
     opts.push({label:'💔 Break it off', run:()=>{
-      const cost = isMarried(p) ? Math.round(Math.max(S.cash,0)*.42) : 0;
-      S.cash -= cost; p.rel=exLabel(p); p.emoji='💔';
-      log('💔', `You ended things with ${p.name.split(' ')[0]}${cost>0?'. The divorce cost you '+moneyFull(cost):'.'}`, 'bad');
-      apply({happy:-14, stress:14}); closeSheet(); render();
+      splitUp(p, 'You ended things with ' + p.name.split(' ')[0]);
+      closeSheet(); render();
     }});
   }
   opts.push({label:'😤 Pick a fight', run:()=>{
@@ -1608,7 +1692,7 @@ function vDo(){
   const acts = activities();
   let h = '<h2 class="sec">Things you can do</h2><div class="grid2">';
   acts.forEach((a,i)=>{
-    h += `<button class="tile" data-act="${i}"><span class="e">${a.e}</span><span class="n">${a.n}</span><span class="d">${a.d}</span></button>`;
+    h += `<button class="tile${a.dis?' off':''}" data-act="${i}"><span class="e">${a.e}</span><span class="n">${esc(a.n)}</span><span class="d">${esc(a.dis || a.d)}</span></button>`;
   });
   h += '</div>';
   if (S.school==='uni'||S.school==='grad')
@@ -1678,6 +1762,7 @@ function wire(){
   });
   sc.querySelectorAll('[data-act]').forEach(b=>b.onclick=()=>{
     const a = activities()[+b.dataset.act]; if(!a) return;
+    if (a.dis) { toast(a.dis); return; }
     a.go(); render();
   });
   sc.querySelectorAll('[data-buy]').forEach(b=>b.onclick=()=>{
