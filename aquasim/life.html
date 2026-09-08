@@ -1938,34 +1938,38 @@ function setupInstall(){
       i ? x.lineTo(px,py) : x.moveTo(px,py);
     }
   }
-  // Walk the spiral placing one glyph at a time, turning each to follow the curve.
-  function textOnSpiral(x, txt, r0, r1, turns){
-    const total = turns*Math.PI*2;
-    let th = -Math.PI/2;
-    for (let i=0;i<txt.length;i++){
-      const ch = txt.charAt(i);
-      const t = (th + Math.PI/2) / total;
-      if (t > 1) break;
-      const r = r0 + (r1-r0)*t;
-      const w = x.measureText(ch).width;
+  // Draw text along a circular arc centred on (100,100), one glyph at a time so
+  // each turns with the curve. `up` puts it across the top, otherwise across the
+  // bottom — the bottom case walks backwards so it still reads left to right.
+  function arcText(x, txt, radius, up){
+    const ch = txt.split('');
+    const w = ch.map(c => x.measureText(c).width);
+    const span = w.reduce((a,b)=>a+b, 0) / radius;
+    const mid = up ? -Math.PI/2 : Math.PI/2;
+    let th = up ? mid - span/2 : mid + span/2;
+    for (let i=0;i<ch.length;i++){
+      const step = w[i] / radius;
+      const a = th + (up ? step/2 : -step/2);
       x.save();
-      x.translate(100 + r*Math.cos(th), 100 + r*Math.sin(th));
-      x.rotate(th + Math.PI/2);
-      x.fillText(ch, 0, 0);
+      x.translate(100 + radius*Math.cos(a), 100 + radius*Math.sin(a));
+      x.rotate(up ? a + Math.PI/2 : a - Math.PI/2);
+      x.fillText(ch[i], 0, 0);
       x.restore();
-      th += w / r;
+      th += up ? step : -step;
     }
   }
   function drawMark(x){
     x.lineCap = 'round'; x.lineJoin = 'round';
     x.strokeStyle = 'rgba(255,255,255,.4)'; x.lineWidth = 4.5;
-    spiralPath(x, 28, 88, 3.2); x.stroke();                 // tree rings
-    x.fillStyle = '#fff';
-    x.font = '700 21px system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif';
+    spiralPath(x, 24, 58, 2.4); x.stroke();                  // tree rings
+    x.font = '700 29px system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif';
     x.textAlign = 'center'; x.textBaseline = 'middle';
-    textOnSpiral(x, 'Life \u00b7 Life \u00b7', 36, 82, 1.9); // the word winding out
+    x.fillStyle = '#fff';
+    arcText(x, 'Life', 75, true);                            // top, clear
+    x.fillStyle = 'rgba(255,255,255,.3)';
+    arcText(x, 'Life', 75, false);                           // bottom, an echo
     x.save();                                                // candle in the middle
-    x.translate(100,100); x.scale(.66,.66); x.translate(-100,-100);
+    x.translate(100,100); x.scale(.48,.48); x.translate(-100,-100);
     x.fillStyle = '#fff';
     rrect(x, 87, 97, 26, 58, 8); x.fill();
     x.strokeStyle = '#fff'; x.lineWidth = 4.5;
