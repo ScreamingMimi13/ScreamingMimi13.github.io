@@ -312,7 +312,7 @@
     </div>
     <div class="panel">
       <h2>Pick who you play as</h2>
-      <div class="hint">Eight kids are out on the blacktop. Tap one to play as them &mdash; and tap a name to call them something else.</div>
+      <div class="hint">Nine kids are out on the blacktop. Tap one to play as them &mdash; and tap a name to call them something else.</div>
       <div class="charGrid" id="charGrid"></div>
       <div class="row" style="margin-top:12px"><button class="mini nameReset" hidden>Put the original names back</button></div>
     </div>
@@ -513,9 +513,6 @@ const CHARACTERS = [
   { id:'piper', name:'Piper', skin:'#f3d0aa', hair:'#ecd07a', hairStyle:'bob',
     top:'#ff90c2', topStyle:'tee',  bottom:'#8ecdf0', bottomStyle:'shorts',
     desc:'Blond bob, pink tee, light blue shorts' },
-  { id:'mika',  name:'Mika',  skin:'#c98d5f', hair:'#1b1920', hairStyle:'shoulder',
-    top:'#ff90c2', topStyle:'tee',  bottom:'#8ecdf0', bottomStyle:'skirt',
-    desc:'Black shoulder hair, pink tee, light blue skirt' },
   { id:'sadie', name:'Sadie', skin:'#f0c9a0', hair:'#f0d98a', hairStyle:'long',
     top:'#26252c', topStyle:'tee',  bottom:'#2f6fd0', bottomStyle:'shorts',
     desc:'Long blond hair, black tee, blue shorts' },
@@ -525,12 +522,18 @@ const CHARACTERS = [
   { id:'rex',   name:'Rex',   skin:'#f0c9a0', hair:'#e6c96b', hairStyle:'curly',
     top:'#3f9a4e', topStyle:'vest', bottom:'#1d1c22', bottomStyle:'shorts',
     desc:'Curly blond hair, green vest, black shorts' },
-  { id:'dash',  name:'Dash',  skin:'#8a5a38', hair:'#141318', hairStyle:'short',
+  { id:'dash',  name:'Dash',  skin:'#e9c19b', hair:'#141318', hairStyle:'short',
     top:'#1f3a72', topStyle:'tee',  bottom:'#1d1c22', bottomStyle:'shorts',
     desc:'Short black hair, navy tee, black shorts' },
   { id:'finn',  name:'Finn',  skin:'#efc9a2', hair:'#ddc06a', hairStyle:'mop',
     top:'#26252c', topStyle:'tee',  bottom:'#1d1c22', bottomStyle:'pants',
-    desc:'Blond hair, black tee, black pants' }
+    desc:'Blond hair, black tee, black pants' },
+  { id:'gus',   name:'Gus',   skin:'#f0c9a0', hair:'#7a5230', hairStyle:'short',
+    top:'#3f9a4e', topStyle:'tee',  bottom:'#1d1c22', bottomStyle:'shorts', glasses:true,
+    desc:'Glasses, green tee, black shorts' },
+  { id:'milo',  name:'Milo',  skin:'#f3d0aa', hair:'#1b1920', hairStyle:'mop',
+    top:'#cf3030', topStyle:'tee',  bottom:'#1d1c22', bottomStyle:'shorts',
+    desc:'Black hair, red tee, black shorts' }
 ];
 const charById = id => CHARACTERS.find(c => c.id === id) || CHARACTERS[0];
 
@@ -831,6 +834,34 @@ function drawKid(ctx, ch, x, groundY, h, opt){
     ctx.fill();
   }
 
+  /* ---- glasses, drawn over the hair so a fringe can't swallow them ---- */
+  if (ch.glasses){
+    ctx.strokeStyle = '#39404d';
+    ctx.lineWidth = 1.5;
+    if (back){
+      // from behind you only catch the arms hooking over the ears
+      ctx.beginPath();
+      ctx.moveTo(-hr * 0.62, hy - 1.8);
+      ctx.lineTo(-hr * 1.04, hy + 0.9);
+      ctx.moveTo(hr * 0.62, hy - 1.8);
+      ctx.lineTo(hr * 1.04, hy + 0.9);
+      ctx.stroke();
+    } else {
+      ctx.fillStyle = 'rgba(222,238,250,.45)';
+      [-4.3, 4.3].forEach(dx => {
+        ctx.beginPath();
+        ctx.ellipse(dx, hy + 0.5, 3.8, 3.4, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+      });
+      ctx.beginPath();
+      ctx.moveTo(-0.5, hy + 0.1); ctx.lineTo(0.5, hy + 0.1);
+      ctx.moveTo(-8.1, hy - 0.2); ctx.lineTo(-hr * 1.0, hy - 1.3);
+      ctx.moveTo(8.1, hy - 0.2);  ctx.lineTo(hr * 1.0, hy - 1.3);
+      ctx.stroke();
+    }
+  }
+
   ctx.restore();
   return hand;
 }
@@ -883,6 +914,10 @@ function loadFriends(){
       me.wins = d.me.wins | 0; me.games = d.me.games | 0;
       me.bestRally = d.me.bestRally | 0; me.aces = d.me.aces | 0;
     }
+    /* a kid who has since left the blacktop — fall back to a real one */
+    const known = id => CHARACTERS.some(c => c.id === id);
+    if (!known(me.charId)) me.charId = CHARACTERS[0].id;
+    friends.forEach(f => { if (!known(f.charId)) f.charId = CHARACTERS[0].id; });
   } catch (e){ /* private window, or storage switched off — no matter */ }
 }
 function saveFriends(){
