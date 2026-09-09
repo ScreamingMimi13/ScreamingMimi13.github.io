@@ -94,7 +94,14 @@
   .charCard:hover{ transform:translateY(-3px); box-shadow:0 10px 20px rgba(30,45,70,.2); }
   .charCard.sel{ border-color:var(--accent); background:#fff4f1; }
   .charCard canvas{ display:block; margin:0 auto; width:106px; height:132px; }
-  .charName{ font-weight:900; font-size:1rem; margin-top:2px; }
+  input.charName{
+    font:inherit; font-weight:900; font-size:1rem; text-align:center;
+    display:block; width:100%; margin-top:4px; padding:2px 2px 1px;
+    color:var(--ink); background:transparent; border:none;
+    border-bottom:2px dashed #ccd6e6; border-radius:5px; cursor:text;
+  }
+  input.charName:hover{ border-bottom-color:var(--accent2); background:#fff; }
+  input.charName:focus{ outline:none; background:#fff; border-bottom-style:solid; border-bottom-color:var(--accent2); }
   .charDesc{ font-size:.72rem; color:var(--muted); line-height:1.35; margin-top:3px; }
 
   /* ---------- home ---------- */
@@ -305,8 +312,9 @@
     </div>
     <div class="panel">
       <h2>Pick who you play as</h2>
-      <div class="hint">Eight kids are out on the blacktop. Tap one.</div>
+      <div class="hint">Eight kids are out on the blacktop. Tap one to play as them &mdash; and tap a name to call them something else.</div>
       <div class="charGrid" id="charGrid"></div>
+      <div class="row" style="margin-top:12px"><button class="mini nameReset" hidden>Put the original names back</button></div>
     </div>
     <div class="row" style="justify-content:center">
       <button class="btn" id="startBtn" disabled>Head to the court &#9654;</button>
@@ -381,7 +389,9 @@
       </div>
       <div class="panel">
         <h2>Change who you play as</h2>
+        <div class="hint">Tap a kid to play as them. Tap their name to rename them &mdash; they keep it on this device.</div>
         <div class="charGrid" id="charGrid2"></div>
+        <div class="row" style="margin-top:12px"><button class="mini nameReset" hidden>Put the original names back</button></div>
       </div>
     </div>
 
@@ -523,6 +533,22 @@ const CHARACTERS = [
     desc:'Blond hair, black tee, black pants' }
 ];
 const charById = id => CHARACTERS.find(c => c.id === id) || CHARACTERS[0];
+
+/* The names above are only what they came called. A player can rename any of
+   them, so `name` is the live one and `baseName` is what it started as. */
+CHARACTERS.forEach(c => { c.baseName = c.name; });
+const MAX_KID_NAME = 12;
+const anyRenamed = () => CHARACTERS.some(c => c.name !== c.baseName);
+
+function renameChar(id, raw){
+  const ch = charById(id);
+  const clean = String(raw || '').replace(/\s+/g, ' ').trim().slice(0, MAX_KID_NAME);
+  ch.name = clean || ch.baseName;
+  return ch.name;
+}
+function resetCharNames(){
+  CHARACTERS.forEach(c => { c.name = c.baseName; });
+}
 
 /* ============================================================
    3. Drawing a kid
@@ -845,6 +871,11 @@ function loadFriends(){
     if (!raw) return;
     const d = JSON.parse(raw);
     if (d && Array.isArray(d.friends)) friends = d.friends;
+    if (d && d.names){
+      Object.keys(d.names).forEach(id => {
+        if (CHARACTERS.some(c => c.id === id)) renameChar(id, d.names[id]);
+      });
+    }
     if (d && d.me){
       me.handle = d.me.handle || '';
       me.charId = d.me.charId || me.charId;
@@ -856,7 +887,9 @@ function loadFriends(){
 }
 function saveFriends(){
   try {
-    window.localStorage.setItem(STORE_KEY, JSON.stringify({ friends: friends, me: me }));
+    const names = {};
+    CHARACTERS.forEach(c => { if (c.name !== c.baseName) names[c.id] = c.name; });
+    window.localStorage.setItem(STORE_KEY, JSON.stringify({ friends: friends, me: me, names: names }));
   } catch (e){ /* nothing to do; the list just won't outlive the page */ }
 }
 const friendOf = h => friends.find(f => f.handle.toLowerCase() === h.toLowerCase());
@@ -1119,7 +1152,10 @@ function showScreen(id){
 /* ---- sign-up ---- */
 let pickedChar = null;
 
+const charGrids = [];    // every picker on the page, so a rename shows up in all of them
+
 function buildCharGrid(host, onPick, current){
+  if (!charGrids.includes(host)) charGrids.push(host);
   host.innerHTML = '';
   CHARACTERS.forEach(ch => {
     const card = document.createElement('div');
@@ -1128,8 +1164,31 @@ function buildCharGrid(host, onPick, current){
     const cv = document.createElement('canvas');
     cv.width = 212; cv.height = 264;
     card.appendChild(cv);
-    const nm = document.createElement('div');
-    nm.className = 'charName'; nm.textContent = ch.name;
+
+    /* the name is an input, so a kid can just tap it and type */
+    const nm = document.createElement('input');
+    nm.className = 'charName';
+    nm.value = ch.name;
+    nm.maxLength = MAX_KID_NAME;
+    nm.spellcheck = false;
+    nm.setAttribute('aria-label', 'Name for this kid');
+    nm.title = 'Tap to rename';
+    const commit = () => {
+      nm.value = renameChar(ch.id, nm.value);
+      saveFriends();
+      syncCharNames();
+      refreshMeTitle();
+    };
+    nm.addEventListener('click', e => e.stopPropagation());
+    nm.addEventListener('focus', () => nm.select());
+    nm.addEventListener('change', commit);
+    nm.addEventListener('blur', commit);
+    nm.addEventListener('keydown', e => {
+      e.stopPropagation();
+      if (e.key === 'Enter') nm.blur();
+      if (e.key === 'Escape'){ nm.value = ch.name; nm.blur(); }
+    });
+
     const ds = document.createElement('div');
     ds.className = 'charDesc'; ds.textContent = ch.desc;
     card.appendChild(nm); card.appendChild(ds);
@@ -1141,7 +1200,30 @@ function buildCharGrid(host, onPick, current){
     });
     host.appendChild(card);
   });
+  syncCharNames();
 }
+
+/* Push the current names into every grid, and show the undo button
+   only once something has actually been renamed. */
+function syncCharNames(){
+  charGrids.forEach(host => {
+    $$('.charCard', host).forEach(card => {
+      const inp = $('.charName', card);
+      const ch = charById(card.dataset.id);
+      if (inp && document.activeElement !== inp) inp.value = ch.name;
+    });
+  });
+  $$('.nameReset').forEach(b => { b.hidden = !anyRenamed(); });
+}
+function refreshMeTitle(){
+  if (me.handle) $('#meTitle').textContent = '@' + me.handle + ' — ' + charById(me.charId).name;
+}
+$$('.nameReset').forEach(b => b.addEventListener('click', () => {
+  resetCharNames();
+  saveFriends();
+  syncCharNames();
+  refreshMeTitle();
+}));
 
 const handleInput = $('#handleInput');
 const handleMsg   = $('#handleMsg');
@@ -2635,6 +2717,7 @@ $('#homeBtn').addEventListener('click', () => { netTeardown(); refreshHome(); sh
    17. Boot
    ============================================================ */
 loadFriends();
+syncCharNames();      // the sign-up grid was built before the saved names loaded
 fitCanvas();
 if (me.handle && HANDLE_RE.test(me.handle)){
   /* you have been here before — straight past the sign-up */
