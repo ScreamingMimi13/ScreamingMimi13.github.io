@@ -337,6 +337,7 @@
   </header>
   <nav class="tabs">
     <button class="tab active" data-view="play">Play</button>
+    <button class="tab" data-view="shop">Shop</button>
     <button class="tab" data-view="friends">Friends</button>
     <button class="tab" data-view="me">Me</button>
   </nav>
@@ -361,9 +362,20 @@
       </div>
       <div class="panel">
         <h2>On your own</h2>
-        <div class="hint">No friends around right now? Rally against the wall by yourself and see how long you can keep it going.</div>
+        <div class="hint">Nobody around right now? Rally against the wall by yourself, or take on some practice opponents.</div>
         <div class="row" style="margin-top:12px">
           <button class="btn green" id="soloBtn">Practice at the wall</button>
+          <button class="btn blue" id="cpuBtn">Practice with CPUs</button>
+        </div>
+        <div id="cpuPanel" style="display:none; margin-top:14px">
+          <h3>How many?</h3>
+          <div class="row" id="cpuCount"></div>
+          <h3 style="margin-top:12px">How good?</h3>
+          <div class="row" id="cpuLevel"></div>
+          <div class="row" style="margin-top:14px">
+            <button class="btn" id="cpuStart">Play &#9654;</button>
+            <button class="btn grey" id="cpuCancel">Cancel</button>
+          </div>
         </div>
       </div>
       <div class="panel">
@@ -372,8 +384,18 @@
           <b>&#8592; &#8594; &#8593; &#8595;</b> move around the blacktop &mdash; up and down walks you toward or away from the wall.<br>
           <b>SPACE</b> swings at the ball. On a phone, use the stick and the big <b>HIT</b> button.<br>
           <b>1 2 3 4</b> shout something to the others.<br>
-          The ball must hit the wall above the line. You get one ground bounce to return it &mdash; two and it's your letter. Spell <b>W-A-L-L</b> and you're out.
+          The ball must hit the wall above the line. You get one ground bounce to return it &mdash; two and it's your letter. Spell <b>W-A-L-L</b> and you're out.<br>
+          <i>Some kids swear there are other ways to hit it. None of them will say how.</i>
         </div>
+      </div>
+    </div>
+
+    <div class="view" id="viewShop">
+      <div class="panel">
+        <h2>Shop</h2>
+        <div class="hint">Everything here costs coins <b>and</b> XP. Spending XP never costs you a level &mdash; your level is what you have earned overall.</div>
+        <div class="statGrid" id="walletGrid"></div>
+        <div class="plist" id="shopList"></div>
       </div>
     </div>
 
@@ -570,6 +592,23 @@ const HELP_LEVELS = [
 ];
 const helpF = h => (HELP_LEVELS[h] || HELP_LEVELS[0]).f;
 const helpWord = h => (HELP_LEVELS[h] || HELP_LEVELS[0]).short;
+
+/* Things to spend a season's winnings on. Bought once each, and kept. */
+const UPGRADES = [
+  { id:'grip',    name:'Steady Grip',  coins:120, xp:60,
+    desc:'Fewer of your returns stray outside the lines.' },
+  { id:'feet',    name:'Quick Feet',   coins:150, xp:70,
+    desc:'You get around the blacktop faster.' },
+  { id:'hands',   name:'Soft Hands',   coins:180, xp:90,
+    desc:'Balls scraping along the ground are much easier to dig out.' },
+  { id:'wind',    name:'Second Wind',  coins:260, xp:140,
+    desc:'The first letter you take in a game is rubbed straight back out.' },
+  { id:'pocket',  name:'Deep Pockets', coins:200, xp:60,
+    desc:'A quarter more coins from every game.' },
+  { id:'learner', name:'Fast Learner', coins:200, xp:60,
+    desc:'A quarter more XP from every game.' }
+];
+const upgradeById = id => UPGRADES.find(u => u.id === id);
 const MAX_KID_NAME = 12;
 const anyRenamed = () => CHARACTERS.some(c => c.name !== c.baseName);
 
@@ -916,9 +955,12 @@ const me = {
   games: 0,
   bestRally: 0,
   aces: 0,
-  help: 0
+  help: 0,
+  xpTotal: 0,        // lifetime, so spending XP never costs you a level
+  upgrades: []
 };
 const levelOf = xp => 1 + Math.floor(xp / 120);
+const owns = id => me.upgrades.indexOf(id) >= 0;
 const HANDLE_RE = /^[A-Za-z0-9_]{3,15}$/;
 
 /* Friends are real people you have played against — nobody is invented.
@@ -945,6 +987,8 @@ function loadFriends(){
       me.wins = d.me.wins | 0; me.games = d.me.games | 0;
       me.bestRally = d.me.bestRally | 0; me.aces = d.me.aces | 0;
       me.help = clamp(d.me.help | 0, 0, HELP_LEVELS.length - 1);
+      me.xpTotal = Math.max(d.me.xpTotal | 0, me.xp);
+      if (Array.isArray(d.me.upgrades)) me.upgrades = d.me.upgrades.filter(upgradeById);
     }
     /* a kid who has since left the blacktop — fall back to a real one */
     const known = id => CHARACTERS.some(c => c.id === id);
@@ -1048,7 +1092,7 @@ function makeRoom(){
       NET.code  = code;
       NET.meId  = 'host';
       NET.conns = [];
-      NET.lobby = [{ id: 'host', handle: me.handle, charId: me.charId, help: me.help | 0, conn: null }];
+      NET.lobby = [{ id: 'host', handle: me.handle, charId: me.charId, help: me.help | 0, ups: me.upgrades, conn: null }];
       netSay('');
       openLobby();
     });
@@ -1073,7 +1117,8 @@ function hostHook(conn){
       NET.conns.push(conn);
       conn.__id = id;
       const help = clamp(d.help | 0, 0, HELP_LEVELS.length - 1);
-      NET.lobby.push({ id: id, handle: handle, charId: charId, help: help, conn: conn });
+      const ups = Array.isArray(d.ups) ? d.ups.filter(upgradeById) : [];
+      NET.lobby.push({ id: id, handle: handle, charId: charId, help: help, ups: ups, conn: conn });
       send(conn, { t: 'welcome', id: id, handle: handle, charId: charId, code: NET.code });
       pushLobby();
       lobbyNote('@' + handle + ' walked up to the wall.');
@@ -1120,7 +1165,7 @@ function freeLook(want){
   return (free.length ? pick(free) : pick(CHARACTERS)).id;
 }
 function pushLobby(){
-  const roll = NET.lobby.map(p => ({ id: p.id, handle: p.handle, charId: p.charId, help: p.help | 0 }));
+  const roll = NET.lobby.map(p => ({ id: p.id, handle: p.handle, charId: p.charId, help: p.help | 0, ups: p.ups || [] }));
   broadcast({ t: 'lobby', roll: roll });
   renderLobby(roll);
 }
@@ -1137,7 +1182,7 @@ function joinRoom(){
       const c = NET.peer.connect(roomId(code), { reliable: true });
       NET.conn = c;
       c.on('open', () => {
-        send(c, { t: 'hello', handle: me.handle, charId: me.charId, help: me.help | 0 });
+        send(c, { t: 'hello', handle: me.handle, charId: me.charId, help: me.help | 0, ups: me.upgrades });
       });
       c.on('data', d => guestData(d));
       c.on('close', () => {
@@ -1307,6 +1352,111 @@ function buildHelpRow(){
   });
 }
 
+/* ---- shop ---- */
+function renderShop(){
+  const wallet = $('#walletGrid');
+  if (!wallet) return;
+  wallet.innerHTML = stat(me.coins, 'coins to spend') + stat(me.xp, 'xp to spend') +
+                     stat(me.upgrades.length + '/' + UPGRADES.length, 'owned');
+  const list = $('#shopList');
+  list.innerHTML = '';
+  UPGRADES.forEach(u => {
+    const got = owns(u.id);
+    const row = document.createElement('div');
+    row.className = 'prow' + (got ? ' sel' : '');
+    const info = document.createElement('div');
+    info.className = 'pinfo';
+    info.innerHTML = '<div class="phandle">' + (got ? '<span class="star">★</span> ' : '') + u.name + '</div>' +
+      '<div class="pmeta">' + u.desc + '</div>' +
+      '<div class="pmeta"><b>' + u.coins + '</b> coins &middot; <b>' + u.xp + '</b> xp</div>';
+    row.appendChild(info);
+    const btn = document.createElement('button');
+    btn.className = 'mini';
+    if (got){ btn.textContent = 'Owned'; btn.disabled = true; }
+    else {
+      const canAfford = me.coins >= u.coins && me.xp >= u.xp;
+      btn.textContent = canAfford ? 'Buy' : 'Too dear';
+      btn.disabled = !canAfford;
+      btn.addEventListener('click', () => {
+        if (me.coins < u.coins || me.xp < u.xp) return;
+        me.coins -= u.coins;
+        me.xp    -= u.xp;
+        me.upgrades.push(u.id);
+        saveFriends();
+        refreshHome();
+        chatToast(u.name + ' is yours.');
+        if (NET.role === 'host'){
+          const mine = NET.lobby.find(x => x.id === 'host');
+          if (mine){ mine.ups = me.upgrades; pushLobby(); }
+        }
+      });
+    }
+    row.appendChild(btn);
+    list.appendChild(row);
+  });
+}
+function chatToast(text){
+  const el = document.createElement('div');
+  el.textContent = text;
+  el.style.cssText = 'position:fixed;left:50%;bottom:22px;transform:translateX(-50%);' +
+    'background:#2b3a5c;color:#fff;font-weight:700;font-size:.86rem;padding:10px 18px;' +
+    'border-radius:999px;z-index:99;box-shadow:0 6px 18px rgba(0,0,0,.3);opacity:0;transition:opacity .2s';
+  document.body.appendChild(el);
+  requestAnimationFrame(() => { el.style.opacity = '1'; });
+  setTimeout(() => { el.style.opacity = '0'; setTimeout(() => el.remove(), 250); }, 2200);
+}
+
+/* ---- practice opponents ---- */
+const CPU_LEVELS = [
+  { label: 'Easy',   skill: 0.34, ease: 0.82 },
+  { label: 'Normal', skill: 0.60, ease: 0.96 },
+  { label: 'Tough',  skill: 0.86, ease: 1.10 }
+];
+let cpuHowMany = 2, cpuHowGood = 1;
+
+function buildCpuChips(){
+  const cnt = $('#cpuCount'), lvl = $('#cpuLevel');
+  if (!cnt) return;
+  cnt.innerHTML = ''; lvl.innerHTML = '';
+  [1, 2, 3].forEach(n => {
+    const b = document.createElement('button');
+    b.className = 'mini' + (n === cpuHowMany ? ' on' : '');
+    b.textContent = n;
+    b.addEventListener('click', () => { cpuHowMany = n; buildCpuChips(); });
+    cnt.appendChild(b);
+  });
+  CPU_LEVELS.forEach((l, i) => {
+    const b = document.createElement('button');
+    b.className = 'mini' + (i === cpuHowGood ? ' on' : '');
+    b.textContent = l.label;
+    b.addEventListener('click', () => { cpuHowGood = i; buildCpuChips(); });
+    lvl.appendChild(b);
+  });
+}
+
+function startCpuMatch(){
+  const lvl = CPU_LEVELS[cpuHowGood] || CPU_LEVELS[1];
+  const taken = [me.charId];
+  const players = [{ id: 'me', handle: me.handle, charId: me.charId,
+                     help: me.help | 0, ups: me.upgrades }];
+  for (let n = 0; n < cpuHowMany; n++){
+    const free = CHARACTERS.filter(c => !taken.includes(c.id));
+    const ch = free.length ? pick(free) : pick(CHARACTERS);
+    taken.push(ch.id);
+    players.push({
+      id: 'cpu' + n,
+      handle: 'CPU_' + ch.name.replace(/[^A-Za-z0-9_]/g, '').slice(0, 10),
+      charId: ch.id, cpu: true, skill: lvl.skill, ease: lvl.ease
+    });
+  }
+  for (let i = players.length - 1; i > 0; i--){
+    const j = randi(0, i); const t = players[i]; players[i] = players[j]; players[j] = t;
+  }
+  NET.role = 'solo';
+  NET.meId = 'me';
+  beginMatch({ players: players, server: randi(0, players.length - 1), solo: false, practice: true });
+}
+
 function refreshMeTitle(){
   if (me.handle) $('#meTitle').textContent = '@' + me.handle + ' — ' + charById(me.charId).name;
 }
@@ -1355,13 +1505,14 @@ const stat = (v, l) => '<div class="stat"><b>' + v + '</b><span>' + l + '</span>
 function refreshHome(){
   $('#meHandle').textContent = '@' + me.handle;
   $('#meTitle').textContent  = '@' + me.handle + ' — ' + charById(me.charId).name;
-  $('#meSub').textContent    = 'Level ' + levelOf(me.xp) + ' · ' + me.wins + (me.wins === 1 ? ' win' : ' wins');
+  $('#meSub').textContent    = 'Level ' + levelOf(me.xpTotal) + ' · ' + me.wins + (me.wins === 1 ? ' win' : ' wins');
   $('#coinsLbl').textContent = me.coins + ' ●';
   paintPortrait($('#meAvatar'), charById(me.charId), false);
   buildHelpRow();
+  renderShop();
   $('#statGrid').innerHTML =
     stat(me.wins, 'wins') + stat(me.games, 'games') + stat(me.bestRally, 'best rally') +
-    stat(me.aces, 'clean hits') + stat(friends.length, 'friends') + stat(levelOf(me.xp), 'level');
+    stat(me.aces, 'clean hits') + stat(friends.length, 'friends') + stat(levelOf(me.xpTotal), 'level');
   renderFriends();
 }
 
@@ -1414,8 +1565,8 @@ function openLobby(){
   $('#lobbyStart').style.display = NET.role === 'host' ? '' : 'none';
   $('#lobbyNotes').innerHTML = '';
   renderLobby(NET.role === 'host'
-    ? NET.lobby.map(p => ({ id: p.id, handle: p.handle, charId: p.charId, help: p.help | 0 }))
-    : [{ id: NET.meId, handle: me.handle, charId: me.charId, help: me.help | 0 }]);
+    ? NET.lobby.map(p => ({ id: p.id, handle: p.handle, charId: p.charId, help: p.help | 0, ups: p.ups || [] }))
+    : [{ id: NET.meId, handle: me.handle, charId: me.charId, help: me.help | 0, ups: me.upgrades }]);
   showScreen('screenLobby');
 }
 function renderLobby(roll){
@@ -1435,6 +1586,7 @@ function renderLobby(roll){
       '<div class="pmeta">' + charById(p.charId).name +
       ' · ' + easeWord(charById(p.charId).ease).toLowerCase() +
       ((p.help | 0) ? ' · <b>' + helpWord(p.help) + '</b>' : '') +
+      ((p.ups && p.ups.length) ? ' · ' + p.ups.length + ' upgrade' + (p.ups.length === 1 ? '' : 's') : '') +
       (friendOf(p.handle) ? ' · played before' : '') + '</div>';
     row.appendChild(info);
     host.appendChild(row);
@@ -1456,16 +1608,24 @@ function lobbyNote(text){
   el.className = 'pmeta';
   el.textContent = text;
   $('#lobbyNotes').appendChild(el);
-  broadcast({ t: 'lobby', roll: NET.lobby.map(p => ({ id: p.id, handle: p.handle, charId: p.charId, help: p.help | 0 })) });
+  broadcast({ t: 'lobby', roll: NET.lobby.map(p => ({ id: p.id, handle: p.handle, charId: p.charId, help: p.help | 0, ups: p.ups || [] })) });
 }
 
 $('#makeBtn').addEventListener('click', makeRoom);
 $('#joinBtn').addEventListener('click', joinRoom);
 $('#joinCode').addEventListener('keydown', e => { if (e.key === 'Enter') joinRoom(); });
+$('#cpuBtn').addEventListener('click', () => {
+  const panel = $('#cpuPanel');
+  const open = panel.style.display !== 'none';
+  panel.style.display = open ? 'none' : '';
+  if (!open) buildCpuChips();
+});
+$('#cpuCancel').addEventListener('click', () => { $('#cpuPanel').style.display = 'none'; });
+$('#cpuStart').addEventListener('click', () => { $('#cpuPanel').style.display = 'none'; startCpuMatch(); });
 $('#soloBtn').addEventListener('click', () => {
   NET.role = 'solo'; NET.meId = 'me';
   beginMatch({
-    players: [{ id: 'me', handle: me.handle, charId: me.charId }],
+    players: [{ id: 'me', handle: me.handle, charId: me.charId, help: me.help | 0, ups: me.upgrades }],
     server: 0, solo: true
   });
 });
@@ -1475,7 +1635,7 @@ $('#lobbyStart').addEventListener('click', () => {
   const order = NET.lobby.slice();
   for (let i = order.length - 1; i > 0; i--){ const j = randi(0, i); const t = order[i]; order[i] = order[j]; order[j] = t; }
   const setup = {
-    players: order.map(p => ({ id: p.id, handle: p.handle, charId: p.charId, help: p.help | 0 })),
+    players: order.map(p => ({ id: p.id, handle: p.handle, charId: p.charId, help: p.help | 0, ups: p.ups || [] })),
     server: randi(0, order.length - 1),
     solo: false
   };
@@ -1526,7 +1686,11 @@ let lastT = 0;
 function makePlayer(info, slot, total){
   const ch = charById(info.charId);
   const help = clamp(info.help | 0, 0, HELP_LEVELS.length - 1);
-  const ease = (ch.ease || 1) * helpF(help);
+  const ups = Array.isArray(info.ups) ? info.ups : [];
+  const kit = id => ups.indexOf(id) >= 0;
+  let ease = (ch.ease || 1) * helpF(help);
+  if (info.cpu) ease = info.ease || 1;
+  else if (kit('grip')) ease *= 1.12;
   const homeX = total <= 1
     ? COURT_W / 2
     : 2.4 + slot * (COURT_W - 4.8) / (total - 1);
@@ -1546,7 +1710,12 @@ function makePlayer(info, slot, total){
        straight the return comes off. */
     ease: ease,
     reach: HIT_REACH,
-    spd: PLAYER_SPD,
+    spd: PLAYER_SPD * (kit('feet') ? 1.10 : 1),
+    dig: kit('hands') ? 0.6 : 0,
+    wind: kit('wind'), windUsed: false,
+    cpu: !!info.cpu,
+    skill: info.skill || 0.6,
+    react: 0, plan: null, planT: 0, freeze: false, serveT: null,
     letters: 0, out: false, gone: false, place: 0,
     phase: 0, run: 0, swing: 0, swingT: 0,
     hits: 0, clean: 0
@@ -1561,6 +1730,7 @@ function beginMatch(setup){
   M = {
     players: players,
     solo: !!setup.solo,
+    practice: !!setup.practice,
     ball: { x: COURT_W / 2, y: 8, z: 1.2, vx: 0, vy: 0, vz: 0, spin: 0 },
     trail: [],
     puffs: [],
@@ -1694,9 +1864,34 @@ $$('#emoteRow button').forEach((b, i) => {
    10. Input
    ============================================================ */
 const keys = Object.create(null);
-let hitPressed = false;
+let hitReq = null;                 // { hard, mod } once a swing is asked for
+let pressAt = 0, pressSpent = true, touchHold = false;
+const JAB_MS = 235;
 const isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
 if (isTouch) document.body.classList.add('touch');
+
+/* What the feet are doing at the moment of contact changes the shot. */
+function shotMod(){
+  const up = !!(keys.ArrowUp    || keys.w || keys.W);
+  const dn = !!(keys.ArrowDown  || keys.s || keys.S);
+  const lf = !!(keys.ArrowLeft  || keys.a || keys.A);
+  const rt = !!(keys.ArrowRight || keys.d || keys.D);
+  if (up && dn) return 'dig';
+  if (up && rt) return 'low';
+  if (up && lf) return 'side';
+  if (stickVec.y < -0.4){
+    if (stickVec.x >  0.35) return 'low';
+    if (stickVec.x < -0.35) return 'side';
+    return 'dig';
+  }
+  return null;
+}
+function askSwing(hard){
+  if (pressSpent) return;
+  pressSpent = true;
+  hitReq = { hard: hard, mod: shotMod() };
+}
+function beginPress(){ pressAt = performance.now(); pressSpent = false; }
 
 window.addEventListener('keydown', e => {
   if (!$('#screenGame').classList.contains('active')) return;
@@ -1704,7 +1899,7 @@ window.addEventListener('keydown', e => {
   if (k === 'ArrowLeft' || k === 'ArrowRight' || k === 'ArrowUp' || k === 'ArrowDown' || k === ' ' || k === 'Spacebar'){
     e.preventDefault();
   }
-  if ((k === ' ' || k === 'Spacebar') && !keys[' ']) hitPressed = true;
+  if ((k === ' ' || k === 'Spacebar') && !keys[' ']) beginPress();
   if (k >= '1' && k <= '4' && !keys[k]) sendEmote(+k - 1);
   keys[k === 'Spacebar' ? ' ' : k] = true;
   if (k === 'Escape') togglePause();
@@ -1712,9 +1907,13 @@ window.addEventListener('keydown', e => {
 });
 window.addEventListener('keyup', e => {
   const k = e.key === 'Spacebar' ? ' ' : e.key;
+  if (k === ' ' && !pressSpent) askSwing(true);      // let go quickly
   keys[k] = false;
 });
-window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
+window.addEventListener('blur', () => {
+  for (const k in keys) keys[k] = false;
+  pressSpent = true; touchHold = false;
+});
 
 /* touch stick */
 let stickVec = { x: 0, y: 0 };
@@ -1754,9 +1953,13 @@ let stickVec = { x: 0, y: 0 };
   window.addEventListener('mouseup', () => { if (id === 'mouse') end(); });
 
   const hb = $('#hitBtn');
-  const tap = e => { hitPressed = true; e.preventDefault(); };
-  hb.addEventListener('touchstart', tap, { passive: false });
-  hb.addEventListener('mousedown', tap);
+  const down = e => { beginPress(); touchHold = true; e.preventDefault(); };
+  const up   = () => { if (!pressSpent) askSwing(true); touchHold = false; };
+  hb.addEventListener('touchstart', down, { passive: false });
+  hb.addEventListener('touchend', up);
+  hb.addEventListener('touchcancel', up);
+  hb.addEventListener('mousedown', down);
+  window.addEventListener('mouseup', () => { if (touchHold) up(); });
 })();
 
 $('#pauseBtn').addEventListener('click', togglePause);
@@ -1787,9 +1990,9 @@ const HIT_REACH = 2.5;
    steadier player buys. Keeping it separate from `spread` matters: tightening
    the spread alone just feeds the next player a ball landing on their toes,
    which helps *them*. */
-function ballAim(target, power, spread, wallHeight, keepIn){
+function ballAim(target, power, spread, wallHeight, keepIn, sideBias){
   const b = M.ball;
-  let lx = target.cx + rand(-spread, spread);
+  let lx = target.cx + (sideBias || 0) + rand(-spread, spread);
   let ly = clamp(target.cy + rand(-spread, spread) * 0.6, 2.5, COURT_D + 1.5);
   if (keepIn > 0){
     lx = lerp(lx, clamp(lx, 0.8, COURT_W - 0.8), keepIn);
@@ -1806,7 +2009,8 @@ function ballAim(target, power, spread, wallHeight, keepIn){
   b.spin = rand(-1, 1);
 }
 
-function doHit(i, quality){
+function doHit(i, quality, opts){
+  opts = opts || {};
   const p = M.players[i];
   const b = M.ball;
   const nextI = M.solo ? i : nextAliveFrom(i);
@@ -1818,9 +2022,26 @@ function doHit(i, quality){
      the shot harder to read, and deliberately not harder-hit either, since
      more power just sails it past the back line. */
   const ease = p.ease || 1;
-  const spread = (1.0 + (1 - q) * 2.2) * (1 + Math.max(0, 1 - ease) * 1.5);
+  let spread = (1.0 + (1 - q) * 2.2) * (1 + Math.max(0, 1 - ease) * 1.5);
   const keepIn = clamp((ease - 1) / 0.75, 0, 1);
-  ballAim(target, 15 + q * 4.5, spread, rand(2.1, 4.3), keepIn);
+  let power = 15 + q * 4.5;
+  let wallH = rand(2.1, 4.3);
+  let sideBias = 0;
+
+  if (opts.mod === 'low'){
+    wallH = rand(LOW_LINE + 0.25, LOW_LINE + 0.85);
+    power *= 1.10;
+    spread *= 1.15;
+  } else if (opts.mod === 'side'){
+    sideBias = (target.cx < COURT_W / 2 ? 1 : -1) * rand(3.6, 5.4);
+    spread *= 0.85;
+  } else if (opts.mod === 'dig'){
+    wallH = rand(3.4, 5.2);
+    power *= 0.94;
+  }
+  power *= opts.hard ? 1.16 : 0.88;
+
+  ballAim(target, power, spread, wallH, keepIn, sideBias);
   b.z = Math.max(b.z, 0.45);
 
   M.lastHitter = i;
@@ -1843,31 +2064,40 @@ function doHit(i, quality){
 
 /* Can this player reach the ball right now? Returns the swing quality,
    or -1 if they have swung at thin air. */
-function swingQuality(p){
+function swingQuality(p, mod){
   const b = M.ball;
   const d = Math.hypot(b.x - p.cx, b.y - p.cy);
-  const reach = (p.reach || HIT_REACH) + (b.z < 2.6 ? 0.35 : 0);
+  const scoop = mod === 'dig';
+  const grounded = b.z < 1.15;
+  let reach = (p.reach || HIT_REACH) + (b.z < 2.6 ? 0.35 : 0);
+  if (scoop) reach += 0.75 + (p.dig || 0);
   if (d > reach || b.z > 3.7 || b.z < -0.1) return -1;
   /* Timing is judged on the same yardstick for everyone — a longer arm is a
      safety net, not a licence to flail from distance. What help actually buys
      is a steadier return, and that is applied in doHit. */
-  return clamp(1 - d / HIT_REACH, 0, 1) * clamp(1 - Math.abs(b.z - 1.5) / 2.6, 0.25, 1);
+  let near = clamp(1 - d / HIT_REACH, 0, 1);
+  let height = clamp(1 - Math.abs(b.z - 1.5) / 2.6, 0.25, 1);
+  if (scoop){
+    if (grounded){ height = 1; near = Math.max(near, 0.35 + (p.dig || 0) * 0.3); }
+    else height *= 0.7;                      // wrong tool for a ball up here
+  }
+  return clamp(near * height, 0, 1);
 }
 
 /* Somebody asked to swing. Only the host decides whether it connected. */
-function tryHit(i){
+function tryHit(i, opts){
   const p = M.players[i];
   if (!p || p.out || M.state !== 'rally' || M.turn !== i){
     if (p){ p.swing = 1; p.swingT = 0.3; }
     return;
   }
-  const q = swingQuality(p);
+  const q = swingQuality(p, opts && opts.mod);
   if (q < 0){
     p.swing = 1; p.swingT = 0.3;
     if (p.isYou) bigMsg('SWING AND A MISS', '', 550);
     return;
   }
-  doHit(i, q);
+  doHit(i, q, opts);
 }
 
 /* Where will the ball next be reachable? Drives the landing ring. */
@@ -1909,6 +2139,11 @@ function onEvent(d){
     const p = M && M.players[d.i];
     if (p && p.isYou) bigMsg('CLEAN HIT!', '', 800);
     else if (p) chatterLine('<b>@' + p.handle + '</b> — clean hit.', false);
+  } else if (d.kind === 'wind'){
+    const p = M && M.players[d.i];
+    if (!p) return;
+    bigMsg('SECOND WIND', '@' + p.handle + ' keeps a clean sheet', 1600);
+    chatterLine('<b>@' + p.handle + '</b> rubs that letter straight out.', p.isYou);
   } else if (d.kind === 'let'){
     const p = M && M.players[d.i];
     if (!p) return;
@@ -1956,6 +2191,17 @@ function faultOn(i, reason){
     M.server = i;
     M.turn = i;
     fire({ t: 'ev', kind: 'let', i: i });
+    return;
+  }
+
+  if (p.wind && !p.windUsed){
+    p.windUsed = true;
+    M.state = 'point';
+    M.timer = 1.8;
+    M.landing = null;
+    M.server = p.out ? nextAliveFrom(i) : i;
+    M.turn = M.server;
+    fire({ t: 'ev', kind: 'wind', i: i });
     return;
   }
 
@@ -2023,8 +2269,11 @@ function update(dt){
   else if (M.state === 'rally' || M.state === 'point' || M.state === 'over') stepBall(dt, true);
   if (!M) return;          // the game just finished and cleared itself away
 
+  /* a held press turns into the gentler shot once it passes the jab window */
+  if (!pressSpent && (keys[' '] || touchHold) && performance.now() - pressAt > JAB_MS) askSwing(false);
+
   M.players.forEach((p, i) => updatePlayer(p, i, dt));
-  hitPressed = false;
+  hitReq = null;
 
   /* puffs, marks and the trail */
   for (let i = M.puffs.length - 1; i >= 0; i--){
@@ -2092,7 +2341,8 @@ function authState(dt){
       b.x = s.cx; b.y = Math.max(3, s.cy - 0.7); b.z = 1.4;
       b.vx = b.vy = b.vz = 0;
       M.state = 'serve';
-      M.serveHold = s.isYou ? 4.0 : 5.0;
+      M.serveHold = s.isYou ? 4.0 : (s.cpu ? 6.0 : 5.0);
+      M.players.forEach(x => { x.serveT = null; x.freeze = false; x.plan = null; });
       M.turn = M.server;
       M.rally = 0;
       M.bounces = 0; M.wallHit = false; M.landing = null;
@@ -2119,13 +2369,13 @@ function authState(dt){
   }
 }
 
-function doServe(){ if (M.state === 'serve') doHit(M.server, 0.8); }
+function doServe(opts){ if (M.state === 'serve') doHit(M.server, 0.8, opts); }
 
 /* Someone pressed the swing key. Only ever called on the host or on your own. */
-function requestSwing(i){
+function requestSwing(i, opts){
   if (!M) return;
-  if (M.state === 'serve' && M.server === i){ doServe(); return; }
-  if (M.state === 'rally'){ tryHit(i); return; }
+  if (M.state === 'serve' && M.server === i){ doServe(opts); return; }
+  if (M.state === 'rally'){ tryHit(i, opts); return; }
   const p = M.players[i];
   if (p){ p.swing = 1; p.swingT = 0.3; }
 }
@@ -2159,6 +2409,7 @@ function stepBall(dt, dead){
       M.bounces = 0;
       M.rally++;
       M.bestRally = Math.max(M.bestRally, M.rally);
+      armTarget();
     }
   }
 
@@ -2213,14 +2464,65 @@ function localMove(p, dt){
   mx += stickVec.x; my += stickVec.y;
   const m = Math.hypot(mx, my);
   if (m > 1){ mx /= m; my /= m; }
-  const spd = p.spd || PLAYER_SPD;
+  /* While a shot is being held you plant your feet, otherwise holding a
+     direction to shape the swing would walk you off the ball. */
+  const planted = (!pressSpent && (keys[' '] || touchHold)) ? 0.25 : 1;
+  const spd = (p.spd || PLAYER_SPD) * planted;
   p.cx += mx * spd * dt;
   p.cy += my * spd * dt;
-  p.run = clamp(Math.hypot(mx, my), 0, 1);
+  p.run = clamp(Math.hypot(mx, my) * planted, 0, 1);
   if (Math.abs(mx) > 0.1) p.face = mx > 0 ? 1 : -1;
   p.phase += dt * (5 + p.run * 9);
   p.cx = clamp(p.cx, -0.4, COURT_W + 0.4);
   p.cy = clamp(p.cy, 2.6, COURT_D - 1.4);
+}
+
+/* Practice opponents. They only ever exist in practice — never in a game
+   with other people, and never in your friends list. */
+function cpuThink(p, i, dt){
+  if (p.out || p.gone){ driftTo(p, sideSpot(p), dt, 0.5); return; }
+  const b = M.ball;
+  const mine = M.turn === i;
+
+  if (mine && M.state === 'serve'){
+    driftTo(p, { x: p.homeX, y: 8.2 }, dt, 0.7);
+    if (p.serveT === null) p.serveT = rand(0.6, 1.5);
+    p.serveT -= dt;
+    if (p.serveT <= 0){ p.serveT = null; requestSwing(i, cpuShot(p)); }
+    return;
+  }
+  if (mine && M.state === 'rally' && M.wallHit){
+    p.planT -= dt;
+    if (p.planT <= 0){ p.planT = 0.11; p.plan = predictLanding(); }
+    const spot = p.plan || { x: b.x, y: clamp(b.y + 2.4, 3, COURT_D - 2) };
+    driftTo(p, spot, dt, 0.55 + p.skill * 0.45);
+    if (p.react > 0){ p.react -= dt; return; }
+    if (p.freeze) return;
+    const bd = Math.hypot(b.x - p.cx, b.y - p.cy);
+    const low = b.z < 1.15;
+    if (bd < (p.reach || HIT_REACH) * (0.72 + p.skill * 0.32) && b.z < 2.9 && b.z > 0.2 && b.vz < 3.2){
+      requestSwing(i, cpuShot(p, low));
+    }
+    return;
+  }
+  driftTo(p, { x: p.homeX, y: p.homeY }, dt, 0.45);
+}
+/* A better opponent mixes its shots up and knows when to scoop. */
+function cpuShot(p, mustScoop){
+  if (mustScoop && Math.random() < 0.35 + p.skill * 0.5) return { mod: 'dig', hard: false };
+  const r = Math.random();
+  if (r < p.skill * 0.22) return { mod: 'low',  hard: true };
+  if (r < p.skill * 0.40) return { mod: 'side', hard: Math.random() < 0.5 };
+  return { mod: null, hard: Math.random() < 0.45 + p.skill * 0.2 };
+}
+/* Whoever the ball is heading to next gets their wits about them. */
+function armTarget(){
+  const t = M.players[M.turn];
+  if (!t || !t.cpu) return;
+  t.react = (1 - t.skill) * 0.40 + rand(0, 0.12);
+  t.plan = null;
+  const tire = Math.min(0.14, M.rally * 0.013);
+  t.freeze = Math.random() < (0.06 + (1 - t.skill) * 0.28 + tire);
 }
 
 function updatePlayer(p, i, dt){
@@ -2236,9 +2538,15 @@ function updatePlayer(p, i, dt){
   if (p.isYou){
     if (p.out){ driftTo(p, sideSpot(p), dt, 0.5); return; }
     localMove(p, dt);
-    if (hitPressed){
-      if (AUTH()) requestSwing(i);
-      else { NET.hitSeq++; p.swing = 1; p.swingT = 0.3; sendInput(); }
+    if (hitReq){
+      if (AUTH()) requestSwing(i, hitReq);
+      else {
+        NET.hitSeq++;
+        NET.hitMod = hitReq.mod;
+        NET.hitHard = hitReq.hard;
+        p.swing = 1; p.swingT = 0.3;
+        sendInput();
+      }
     }
     return;
   }
@@ -2250,6 +2558,8 @@ function updatePlayer(p, i, dt){
     return;
   }
 
+  if (p.cpu){ cpuThink(p, i, dt); return; }
+
   /* host, drawing somebody else's kid from what they sent */
   if (p.out || p.gone){ driftTo(p, sideSpot(p), dt, 0.5); return; }
   const inp = NET.inputs[p.id];
@@ -2259,7 +2569,7 @@ function updatePlayer(p, i, dt){
   p.phase = inp.ph; p.run = inp.run; p.face = inp.f;
   if (inp.hs !== NET.lastSeq[p.id]){
     NET.lastSeq[p.id] = inp.hs;
-    requestSwing(i);
+    requestSwing(i, { mod: inp.hm || null, hard: !!inp.hh });
   }
 }
 
@@ -2300,7 +2610,8 @@ function sendInput(){
   const p = M.players.find(x => x.isYou);
   if (!p) return;
   send(NET.conn, { t: 'in', cx: r2(p.cx), cy: r2(p.cy), ph: r2(p.phase),
-                   run: r2(p.run), f: p.face, hs: NET.hitSeq });
+                   run: r2(p.run), f: p.face, hs: NET.hitSeq,
+                   hm: NET.hitMod || null, hh: NET.hitHard ? 1 : 0 });
 }
 /* ============================================================
    14. Drawing the world
@@ -2726,10 +3037,11 @@ function finishMatch(){
   M.players.forEach(p => { if (!rank.includes(p)) rank.push(p); });
   const result = {
     solo: M.solo,
+    practice: M.practice,
     bestRally: M.bestRally,
     rows: rank.map((p, i) => ({
       id: p.id, handle: p.handle, charId: p.ch.id, place: i + 1,
-      hits: p.hits, clean: p.clean, letters: p.letters, gone: !!p.gone
+      hits: p.hits, clean: p.clean, letters: p.letters, gone: !!p.gone, cpu: !!p.cpu
     }))
   };
   if (NET.role === 'host'){ NET.started = false; broadcast({ t: 'over', result: result }); }
@@ -2751,20 +3063,24 @@ function showResults(result){
   const coins = result.solo
     ? 8 + result.bestRally * 3
     : placeCoins[clamp(mine.place - 1, 0, 3)] + Math.round(result.bestRally * 1.5);
-  const xp = result.solo
+  const xpRaw = result.solo
     ? 6 + result.bestRally * 2
     : placeXp[clamp(mine.place - 1, 0, 3)] + mine.clean * 3;
 
+  const coinsEarned = Math.round(coins * (owns('pocket') ? 1.25 : 1));
+  const xpEarned    = Math.round(xpRaw * (owns('learner') ? 1.25 : 1));
+
   me.games++;
-  me.coins += coins;
-  me.xp += xp;
+  me.coins += coinsEarned;
+  me.xp += xpEarned;
+  me.xpTotal += xpEarned;
   if (won) me.wins++;
   me.bestRally = Math.max(me.bestRally, result.bestRally);
 
-  /* Everyone here was a real person — file them under friends. */
+  /* Only real people go in the friends list. Practice opponents never do. */
   if (!result.solo){
     rows.forEach(r => {
-      if (r.handle === me.handle) return;
+      if (r.cpu || r.handle === me.handle) return;
       rememberPlayer(r.handle, r.charId, won, r.place === 1);
     });
   }
@@ -2811,13 +3127,13 @@ function showResults(result){
   });
 
   $('#rewardGrid').innerHTML =
-    stat('+' + coins, 'coins') + stat('+' + xp, 'xp') +
+    stat('+' + coinsEarned, 'coins') + stat('+' + xpEarned, 'xp') +
     stat(result.bestRally, 'best rally') + stat(mine.clean, 'clean hits');
 
   const np = $('#newFriendPanel');
   const nl = $('#newFriendList');
   nl.innerHTML = '';
-  const fresh = result.solo ? [] : rows.filter(r => r.handle !== me.handle);
+  const fresh = result.solo ? [] : rows.filter(r => !r.cpu && r.handle !== me.handle);
   np.style.display = fresh.length ? '' : 'none';
   if (fresh.length){
     $('#newFriendNote').textContent = fresh.length === 1
@@ -2842,7 +3158,8 @@ function showResults(result){
 
   /* what "play again" means depends on how you got here */
   const again = $('#againBtn');
-  if (result.solo) again.textContent = 'Practice again';
+  lastWasPractice = !!result.practice;
+  if (result.solo || result.practice) again.textContent = 'Play again';
   else if (NET.role === 'host') again.textContent = 'Back to the lobby';
   else again.textContent = 'Wait for the next game';
 
@@ -2850,9 +3167,13 @@ function showResults(result){
   showScreen('screenResult');
 }
 
+let lastWasPractice = false;
+
 $('#againBtn').addEventListener('click', () => {
   if (NET.role === 'solo'){
-    beginMatch({ players: [{ id: 'me', handle: me.handle, charId: me.charId }], server: 0, solo: true });
+    if (lastWasPractice) startCpuMatch();
+    else beginMatch({ players: [{ id: 'me', handle: me.handle, charId: me.charId,
+                                  help: me.help | 0, ups: me.upgrades }], server: 0, solo: true });
   } else if (NET.role === 'host' || NET.role === 'guest'){
     openLobby();
     if (NET.role === 'host') pushLobby();
