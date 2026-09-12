@@ -131,7 +131,7 @@
     position:absolute; left:50%; bottom:78px; transform:translate(-50%,14px);
     background:var(--ink); color:var(--frame); padding:11px 17px; border-radius:14px;
     font-size:.86rem; font-weight:700; max-width:84%; text-align:center;
-    opacity:0; pointer-events:none; transition:opacity .2s, transform .2s; z-index:40;
+    opacity:0; pointer-events:none; transition:opacity .2s, transform .2s; z-index:60;
     box-shadow:0 10px 26px rgba(0,0,0,.3);
   }
   #toast.show{ opacity:1; transform:translate(-50%,0); }
@@ -467,8 +467,9 @@ const fontById = id => FONTS.find(f => f.id === id) || FONTS[0];
 const EXTRAS = [
   { id:'extra-pictures', name:'Picture Questions', price:150, icon:'🖼️',
     desc:'A new kind of question: "Pick your favourite picture." Comes with the Shapes picture pack.' },
-  { id:'extra-results6', name:'Six Results',       price:130, icon:'🎯',
-    desc:'Room for up to 6 results in a quiz instead of 4.' },
+  /* id kept from the old "Six Results" so anybody who already bought it keeps it */
+  { id:'extra-results6', name:'Loads of Results',   price:130, icon:'🎯',
+    desc:'Room for up to 15 results in a quiz instead of 4. Enough for a house, a year group or all the planets.' },
   { id:'extra-long',     name:'Long Quizzes',      price:120, icon:'📏',
     desc:'Write up to 14 questions instead of 8. Good for really detailed quizzes.' },
   { id:'extra-shuffle',  name:'Shuffle Mode',      price:100, icon:'🔀',
@@ -877,7 +878,7 @@ function newQuiz(){
     made: Date.now()
   };
 }
-function maxResults(){ return owns('extra-results6') ? 6 : 4; }
+function maxResults(){ return owns('extra-results6') ? 15 : 4; }
 function maxQuestions(){ return owns('extra-long') ? 14 : 8; }
 const D = () => S.draft;                       // the quiz being built
 function touch(){ save(); }
@@ -1022,7 +1023,7 @@ function stepResults(){
     h += '<button class="btn wide ghost" data-act="addResult">＋ Add a result</button>';
   } else {
     h += '<div class="hint center">' + max + ' results is the most you can have.' +
-         (max === 4 ? ' <b>Six Results</b> in the shop raises it to six.' : '') + '</div>';
+         (max === 4 ? ' <b>Loads of Results</b> in the shop raises it to 15.' : '') + '</div>';
   }
   h += stepNav(true, true, 'Next: the questions →');
   return h;
@@ -1661,7 +1662,9 @@ function shopQuizzes(){
     h += '<div class="card flat">' +
          '<div class="row"><div style="font-size:30px">' + q.cover + '</div>' +
          '<div class="grow"><h3>' + esc(q.title) + '</h3>' +
-         '<p>by ' + esc(q.author) + (q.mine ? ' (you)' : (q.demo ? ' · free example' : '')) + ' · ' + quizStats(q) + '</p>' +
+         '<p>by ' + esc(q.author) +
+           (q.mine ? ' (you)' : (q.demo ? (q.price ? ' · one of ours' : ' · free example') : '')) +
+           ' · ' + quizStats(q) + '</p>' +
          (q.tagline ? '<p style="margin-top:3px">' + esc(q.tagline) + '</p>' : '') + '</div></div>' +
          '<div class="row" style="margin-top:10px">' +
          (got
@@ -1680,7 +1683,7 @@ ACT.buyQuiz = (el, a) => {
   const price = q.price || SHELF_PRICE;
   if (S.xp < price){ toast('You need ' + (price - S.xp) + ' more XP to unlock that one.'); return; }
   if (!spendXP(price)) return;
-  S.bought.push(a); save(); render();
+  S.bought.push(a); save(); closeModal(); render();
   toast('Unlocked ' + esc(q.title));
 };
 
@@ -1689,9 +1692,25 @@ ACT.lookInside = (el, a, b) => {
   const q = (b === 'shelf' ? S.shelf : S.quizzes).find(x => x.id === a);
   if (!q) return;
   const v = countVotes(q);
+  const locked = b === 'shelf' && !q.mine && (q.price || 0) > 0 && S.bought.indexOf(q.id) < 0;
   let h = '<h3>' + q.cover + ' ' + esc(q.title) + '</h3>' +
-          '<p>' + esc(q.tagline || '') + '</p><div style="height:12px"></div>' +
-          '<label class="fl">The results</label>';
+          '<p>' + esc(q.tagline || '') + '</p><div style="height:12px"></div>';
+
+  // Locked quizzes get a peek at the results only — the wiring is the thing you unlock.
+  if (locked){
+    h += '<label class="fl">' + plural(q.results.length,'result') + ' you could get</label>' +
+         q.results.map(r => '<div class="item"><div class="row"><div style="font-size:22px">' + r.emoji + '</div>' +
+            '<div class="grow"><div class="tt">' + esc(r.name) + '</div></div></div></div>').join('') +
+         '<div class="hint">' + plural(q.questions.length,'question') + ' by ' + esc(q.author) +
+            '. Unlock it to play it and to look at how it is wired together.</div>' +
+         '<div style="height:12px"></div>' +
+         '<button class="btn wide" data-act="buyQuiz" data-a="' + q.id + '">Unlock · ' + q.price + ' XP</button>' +
+         '<div style="height:8px"></div><button class="btn wide grey" data-act="closeModal">Close</button>';
+    modal(h);
+    return;
+  }
+
+  h += '<label class="fl">The results</label>';
   q.results.forEach(r => {
     h += '<div class="item"><div class="row"><div style="font-size:22px">' + r.emoji + '</div>' +
          '<div class="grow"><div class="tt">' + esc(r.name) + '</div>' +
@@ -1932,9 +1951,10 @@ ACT.replay = () => {
 };
 ACT.shareFromPlay = (el, a) => { ACT.quitPlay(); go('mine'); setTimeout(() => ACT.shareQuiz(null, a), 60); };
 
-/* ---------- 14. Two finished examples, so the shelf is never empty ---------- */
+/* ---------- 14. Five finished quizzes from us, so the shelf is never empty ----------
+   Checked by id rather than by one big flag, so quizzes added to this file later
+   turn up in a shop that was already seeded on an earlier visit.               */
 function seedShelf(){
-  if (S.seeded) return;
   S.seeded = true;
 
   const pizza = {
@@ -1966,7 +1986,7 @@ function seedShelf(){
       { id:'pq4', kind:'text', text:'Choose a drink.', opts:[
         { t:'Something fizzy and bright red', to:'p1' },
         { t:'Whatever I have not tried yet', to:'p2' },
-        { t:'Hot chocolate, obviously', to:'p3' },
+        { t:'Hot chocolate, always', to:'p3' },
         { t:'Water. It is fine.', to:'p4' } ] },
       { id:'pq5', kind:'text', text:'How do you answer a message?', opts:[
         { t:'Instantly, with six messages', to:'p1' },
@@ -2020,9 +2040,148 @@ function seedShelf(){
     ]
   };
 
-  S.shelf.push(Object.assign(pizza,   { mine:false, price:0, demo:true }));
-  S.shelf.push(Object.assign(weather, { mine:false, price:0, demo:true }));
-  save();
+  const playground = {
+    id:'demo-playground', cover:'🏃', title:'Which Playground Legend Are You?',
+    tagline:'5 questions, 5 results, no wrong answers.', theme:'theme-lemon', font:'font-rounded',
+    shuffle:false, author:'Quiz Kit', made:Date.now(),
+    results:[
+      { id:'g1', name:'The Referee', emoji:'⚖️', blurb:'You are the one who decides whether it was in or out, and everybody accepts it. Fair, quick to spot trouble, and nobody’s game really works without you.' },
+      { id:'g2', name:'The Storyteller', emoji:'📖', blurb:'Break time is your stage. Half the games on the playground started as something you made up out loud, and people follow you straight into them.' },
+      { id:'g3', name:'The Daredevil', emoji:'🤸', blurb:'You try it first and work out how it went afterwards. The bravest one out there, with the grazed knees to prove it.' },
+      { id:'g4', name:'The Organiser', emoji:'📋', blurb:'Teams, rules, whose turn it is — you sort all of it in thirty seconds flat. Without you everybody would still be arguing when the bell goes.' },
+      { id:'g5', name:'The Wanderer', emoji:'🌿', blurb:'You do your own thing round the edges of the playground, finding beetles and excellent sticks, and you are perfectly happy about it.' }
+    ],
+    questions:[
+      { id:'gq1', kind:'text', text:'The bell goes for break. What is the first thing you do?', opts:[
+        { t:'Check who is arguing already', to:'g1' },
+        { t:'Start telling everyone about the thing', to:'g2' },
+        { t:'Run straight at the climbing frame', to:'g3' },
+        { t:'Pick teams before anybody else can', to:'g4' },
+        { t:'Head for the quiet end', to:'g5' } ] },
+      { id:'gq2', kind:'text', text:'Somebody says the goal did not count.', opts:[
+        { t:'I decide, and that is that', to:'g1' },
+        { t:'I retell the whole goal, slowly', to:'g2' },
+        { t:'I say replay it and go harder', to:'g3' },
+        { t:'I write the score down properly', to:'g4' },
+        { t:'I wander off while they argue', to:'g5' } ] },
+      { id:'gq3', kind:'text', text:'Pick something to bring to school.', opts:[
+        { t:'A whistle', to:'g1' },
+        { t:'A notebook full of stories', to:'g2' },
+        { t:'A skipping rope, for tricks', to:'g3' },
+        { t:'A rota, laminated', to:'g4' },
+        { t:'An interesting rock', to:'g5' } ] },
+      { id:'gq4', kind:'text', text:'A new kid is standing on their own.', opts:[
+        { t:'I make sure nobody gives them trouble', to:'g1' },
+        { t:'I tell them everything about everyone', to:'g2' },
+        { t:'I drag them into the game', to:'g3' },
+        { t:'I put them on a team straight away', to:'g4' },
+        { t:'I show them the good hiding place', to:'g5' } ] },
+      { id:'gq5', kind:'text', text:'It is raining, so break is inside.', opts:[
+        { t:'I sort out whose turn it is on the beanbag', to:'g1' },
+        { t:'I start a story that lasts all week', to:'g2' },
+        { t:'I invent an indoor sport nobody survives', to:'g3' },
+        { t:'I set up a proper tournament', to:'g4' },
+        { t:'I read by the window', to:'g5' } ] }
+    ]
+  };
+
+  const gamer = {
+    id:'demo-gamer', cover:'🎮', title:'What Kind of Gamer Are You?',
+    tagline:'6 questions. Be honest.', theme:'theme-night', font:'font-rounded',
+    shuffle:false, author:'Quiz Kit', made:Date.now(),
+    results:[
+      { id:'m1', name:'The Completionist', emoji:'🏆', blurb:'You do not leave until every chest is open and every side quest is ticked off. Patient, thorough, and quietly unbeatable.' },
+      { id:'m2', name:'The Speedrunner', emoji:'⏱️', blurb:'Straight line, no detours, faster than last time. You know every shortcut and you are already halfway through the level.' },
+      { id:'m3', name:'The Builder', emoji:'🧱', blurb:'You barely play the game the way it was written. You are too busy making something enormous out of it that nobody expected.' },
+      { id:'m4', name:'The Squad Captain', emoji:'🎧', blurb:'The game is mostly an excuse to be with your people. You keep the whole group laughing and somehow also keep them alive.' }
+    ],
+    questions:[
+      { id:'mq1', kind:'text', text:'New game, first hour. What happens?', opts:[
+        { t:'I read every sign and open every drawer', to:'m1' },
+        { t:'I skip the cutscene and run', to:'m2' },
+        { t:'I look for what I can make', to:'m3' },
+        { t:'I wait for everyone else to get on', to:'m4' } ] },
+      { id:'mq2', kind:'text', text:'You die on a hard bit.', opts:[
+        { t:'I try again until it is perfect', to:'m1' },
+        { t:'I try again, but quicker', to:'m2' },
+        { t:'I build a way round it', to:'m3' },
+        { t:'I ask the group for a plan', to:'m4' } ] },
+      { id:'mq3', kind:'text', text:'Pick a menu screen.', opts:[
+        { t:'Completion: 100%', to:'m1' },
+        { t:'Personal best times', to:'m2' },
+        { t:'Inventory and blueprints', to:'m3' },
+        { t:'Friends list', to:'m4' } ] },
+      { id:'mq4', kind:'text', text:'There is a shortcut you are not supposed to take.', opts:[
+        { t:'I take the long way round', to:'m1' },
+        { t:'I have already taken it twice', to:'m2' },
+        { t:'I take it apart to see how it works', to:'m3' },
+        { t:'I tell everybody about it', to:'m4' } ] },
+      { id:'mq5', kind:'text', text:'A rainy Sunday with nothing on.', opts:[
+        { t:'One long session, everything finished', to:'m1' },
+        { t:'The same level, forty times', to:'m2' },
+        { t:'A whole new world from scratch', to:'m3' },
+        { t:'Whatever the group is playing', to:'m4' } ] },
+      { id:'mq6', kind:'text', text:'How does a game end for you?', opts:[
+        { t:'When there is nothing left to find', to:'m1' },
+        { t:'When the timer says so', to:'m2' },
+        { t:'It does not. I am still building.', to:'m3' },
+        { t:'When everybody logs off', to:'m4' } ] }
+    ]
+  };
+
+  const morning = {
+    id:'demo-morning', cover:'🦊', title:'Which Animal Are You On A School Morning?',
+    tagline:'5 questions. The first one is pictures.', theme:'theme-forest', font:'font-rounded',
+    shuffle:false, author:'Quiz Kit', made:Date.now(),
+    results:[
+      { id:'a1', name:'Cat', emoji:'🐱', blurb:'Awake, but not talking to anybody yet. Give you ten quiet minutes and a bit of breakfast and you are perfectly fine.' },
+      { id:'a2', name:'Dog', emoji:'🐶', blurb:'Up, loud and ready before the alarm even goes. You are already telling somebody about the dream you had.' },
+      { id:'a3', name:'Owl', emoji:'🦉', blurb:'Not a morning creature at all. Your brain switches on somewhere around lunchtime, and then it is brilliant all evening.' },
+      { id:'a4', name:'Bunny', emoji:'🐰', blurb:'Nervous energy from the second your feet hit the floor. Bag packed twice, shoes on, standing by the door.' }
+    ],
+    questions:[
+      { id:'aq1', kind:'pic', text:'Pick your favourite picture.', pack:'pack-animals', opts:[
+        { t:'Cat', pic:'cat', to:'a1' },
+        { t:'Dog', pic:'dog', to:'a2' },
+        { t:'Owl', pic:'owl', to:'a3' },
+        { t:'Bunny', pic:'bunny', to:'a4' } ] },
+      { id:'aq2', kind:'text', text:'The alarm goes off.', opts:[
+        { t:'Snooze. Once. On purpose.', to:'a1' },
+        { t:'Out of bed before it finishes', to:'a2' },
+        { t:'I do not hear it at all', to:'a3' },
+        { t:'I was already awake', to:'a4' } ] },
+      { id:'aq3', kind:'text', text:'Breakfast?', opts:[
+        { t:'Something small, in peace', to:'a1' },
+        { t:'Everything, talking the whole time', to:'a2' },
+        { t:'Toast in my hand at the door', to:'a3' },
+        { t:'Made it last night', to:'a4' } ] },
+      { id:'aq4', kind:'text', text:'Getting out of the door.', opts:[
+        { t:'I leave exactly on time', to:'a1' },
+        { t:'I am halfway down the road already', to:'a2' },
+        { t:'I am still looking for one shoe', to:'a3' },
+        { t:'I have been ready for twenty minutes', to:'a4' } ] },
+      { id:'aq5', kind:'text', text:'First lesson of the day.', opts:[
+        { t:'Fine, as long as nobody asks me anything', to:'a1' },
+        { t:'I have three answers ready', to:'a2' },
+        { t:'Asleep with my eyes open', to:'a3' },
+        { t:'Pens lined up, page ruled', to:'a4' } ] }
+    ]
+  };
+
+  const demos = [
+    { q:pizza,      price:0  },
+    { q:weather,    price:0  },
+    { q:playground, price:25 },
+    { q:gamer,      price:30 },
+    { q:morning,    price:35 }
+  ];
+  let added = false;
+  demos.forEach(d => {
+    if (S.shelf.some(x => x.id === d.q.id)) return;
+    S.shelf.push(Object.assign(d.q, { mine:false, price:d.price, demo:true }));
+    added = true;
+  });
+  if (added) save();
 }
 
 /* ---------- 15. Name + boot ---------- */
