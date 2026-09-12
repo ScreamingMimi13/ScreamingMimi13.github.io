@@ -1744,6 +1744,7 @@ function beginMatch(setup){
     trail: [],
     puffs: [],
     marks: [],
+    sparks: [],
     state: 'countdown',
     timer: 1.6,
     turn: clamp(setup.server | 0, 0, n - 1),
@@ -2038,9 +2039,8 @@ function doHit(i, quality, opts){
   let sideBias = 0;
 
   if (opts.mod === 'low'){
-    wallH = rand(LOW_LINE + 0.25, LOW_LINE + 0.85);
+    wallH = rand(LOW_LINE + 0.15, LOW_LINE + 0.55);
     power *= 1.10;
-    spread *= 1.15;
   } else if (opts.mod === 'side'){
     sideBias = (target.cx < COURT_W / 2 ? 1 : -1) * rand(3.6, 5.4);
     spread *= 0.85;
@@ -2051,6 +2051,12 @@ function doHit(i, quality, opts){
   power *= opts.hard ? 1.16 : 0.88;
 
   ballAim(target, power, spread, wallH, keepIn, sideBias);
+
+  /* Mark the ball so you can SEE which shot came off the racket. No words and
+     no names — just the colour it burns, and a flash where you struck it. */
+  b.shot = opts.mod || (opts.hard ? 'hard' : 'soft');
+  M.trail.length = 0;
+  flash(b.x, b.y, b.z, shotHue(b.shot), opts.mod ? 1 : 0.6);
   b.z = Math.max(b.z, 0.45);
 
   M.lastHitter = i;
@@ -2131,6 +2137,30 @@ function predictLanding(){
 
 function puff(x, y, sz){
   M.puffs.push({ x: x, y: y, z: 0.15, r: sz, life: 0.5, max: 0.5 });
+}
+
+/* One colour per kind of strike. Nothing is spelled out — you just learn
+   that a red one skims and a blue one goes wide. */
+const SHOT_HUES = {
+  low:  '#ff4d2e',
+  side: '#3fb0ff',
+  dig:  '#5fe08a',
+  hard: '#ffd247',
+  soft: '#c9b6ff'
+};
+const shotHue = s => SHOT_HUES[s] || '#f27d3a';
+
+function flash(x, y, z, colour, strength){
+  const n = Math.round(6 + strength * 8);
+  for (let i = 0; i < n; i++){
+    const a = (i / n) * Math.PI * 2;
+    M.sparks.push({
+      x: x, y: y, z: z,
+      vx: Math.cos(a) * rand(1.5, 4.5) * strength,
+      vz: Math.sin(a) * rand(1.5, 4.5) * strength,
+      col: colour, life: 0.34, max: 0.34
+    });
+  }
 }
 /* A scuff left on the blacktop where the ball came down. */
 function bounceMark(x, y, hard){
@@ -2293,6 +2323,14 @@ function update(dt){
   for (let i = M.marks.length - 1; i >= 0; i--){
     M.marks[i].life -= dt;
     if (M.marks[i].life <= 0) M.marks.splice(i, 1);
+  }
+  for (let i = M.sparks.length - 1; i >= 0; i--){
+    const s = M.sparks[i];
+    s.life -= dt;
+    s.x += s.vx * dt;
+    s.z += s.vz * dt;
+    s.vz -= 6 * dt;
+    if (s.life <= 0) M.sparks.splice(i, 1);
   }
   if (M.state === 'rally'){
     M.trail.push({ x: M.ball.x, y: M.ball.y, z: M.ball.z, life: 0.28 });
@@ -2615,6 +2653,7 @@ function snapshot(){
     s: M.state, tn: M.turn, sv: M.server, r: M.rally, tm: r2(M.timer),
     wh: M.wallHit ? 1 : 0, bo: M.bounces,
     b: [r2(b.x), r2(b.y), r2(b.z), r2(b.vx), r2(b.vy), r2(b.vz), r2(b.spin)],
+    sh: b.shot || '',
     p: M.players.map(p => [r2(p.cx), r2(p.cy), r2(p.phase % (Math.PI * 2)), r2(p.run), r2(p.swing),
                            p.letters, p.out ? 1 : 0, p.face])
   };
@@ -2627,6 +2666,11 @@ function applySnap(d){
   const b = M.ball;
   b.x = d.b[0]; b.y = d.b[1]; b.z = d.b[2];
   b.vx = d.b[3]; b.vy = d.b[4]; b.vz = d.b[5]; b.spin = d.b[6];
+  if (d.sh !== undefined && d.sh !== b.shot){
+    b.shot = d.sh;
+    M.trail.length = 0;
+    if (d.sh) flash(b.x, b.y, b.z, shotHue(d.sh), d.sh === 'hard' || d.sh === 'soft' ? 0.6 : 1);
+  }
   d.p.forEach((a, i) => {
     const p = M.players[i];
     if (!p) return;
@@ -2910,14 +2954,30 @@ function drawBall(g){
     }
   }
 
-  /* trail */
+  /* trail, burning in the colour of whatever shot put it here */
+  const hue = shotHue(b.shot);
+  const special = b.shot === 'low' || b.shot === 'side' || b.shot === 'dig';
   M.trail.forEach((t, i) => {
     const q = proj(t.x, t.y, t.z);
-    g.fillStyle = 'rgba(255,140,60,' + (0.05 + 0.12 * (i / M.trail.length)) + ')';
+    const k = i / M.trail.length;
+    g.globalAlpha = (special ? 0.18 : 0.07) + (special ? 0.52 : 0.26) * k;
+    g.fillStyle = hue;
     g.beginPath();
-    g.arc(q.x, q.y, BALL_R * q.s * 0.8, 0, Math.PI * 2);
+    g.arc(q.x, q.y, BALL_R * q.s * ((special ? 0.7 : 0.55) + 0.45 * k), 0, Math.PI * 2);
     g.fill();
   });
+  g.globalAlpha = 1;
+
+  /* the flash where it was struck */
+  M.sparks.forEach(s => {
+    const q = proj(s.x, s.y, Math.max(0, s.z));
+    g.globalAlpha = clamp(s.life / s.max, 0, 1);
+    g.fillStyle = s.col;
+    g.beginPath();
+    g.arc(q.x, q.y, Math.max(1.5, 0.11 * q.s), 0, Math.PI * 2);
+    g.fill();
+  });
+  g.globalAlpha = 1;
 
   const q = proj(b.x, b.y, b.z);
   const r = BALL_R * q.s;
