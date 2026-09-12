@@ -345,6 +345,11 @@
 
     <div class="view active" id="viewPlay">
       <div class="panel">
+        <h2>How much help do you want?</h2>
+        <div class="hint">More help keeps your returns inside the lines and waves off some of your own mistakes. It is set per device, and it shows next to your name in the lobby.</div>
+        <div class="row" id="helpRowPlay" style="margin-top:12px"></div>
+      </div>
+      <div class="panel">
         <h2>Play with your friends</h2>
         <div class="hint">
           Real kids, on real devices &mdash; nobody here is made up. One of you makes a game and
@@ -955,7 +960,7 @@ const me = {
   games: 0,
   bestRally: 0,
   aces: 0,
-  help: 0,
+  help: 2,           // start generous; it is right there on the Play tab to turn down
   xpTotal: 0,        // lifetime, so spending XP never costs you a level
   upgrades: []
 };
@@ -986,7 +991,9 @@ function loadFriends(){
       me.coins = d.me.coins | 0; me.xp = d.me.xp | 0;
       me.wins = d.me.wins | 0; me.games = d.me.games | 0;
       me.bestRally = d.me.bestRally | 0; me.aces = d.me.aces | 0;
-      me.help = clamp(d.me.help | 0, 0, HELP_LEVELS.length - 1);
+      /* A profile saved before the help setting existed has no value for it.
+         Those get the generous default rather than silently getting none. */
+      if (typeof d.me.help === 'number') me.help = clamp(d.me.help, 0, HELP_LEVELS.length - 1);
       me.xpTotal = Math.max(d.me.xpTotal | 0, me.xp);
       if (Array.isArray(d.me.upgrades)) me.upgrades = d.me.upgrades.filter(upgradeById);
     }
@@ -1332,23 +1339,25 @@ function syncCharNames(){
   $$('.nameReset').forEach(b => { b.hidden = !anyRenamed(); });
 }
 function buildHelpRow(){
-  const host = $('#helpRow');
-  if (!host) return;
-  host.innerHTML = '';
-  HELP_LEVELS.forEach((lv, i) => {
-    const b = document.createElement('button');
-    b.className = 'mini' + (i === me.help ? ' on' : '');
-    b.textContent = lv.label;
-    b.addEventListener('click', () => {
-      me.help = i;
-      saveFriends();
-      buildHelpRow();
-      if (NET.role === 'host'){
-        const mine = NET.lobby.find(p => p.id === 'host');
-        if (mine){ mine.help = i; pushLobby(); }
-      }
+  ['#helpRowPlay', '#helpRow'].forEach(sel => {
+    const host = $(sel);
+    if (!host) return;
+    host.innerHTML = '';
+    HELP_LEVELS.forEach((lv, i) => {
+      const b = document.createElement('button');
+      b.className = 'mini' + (i === me.help ? ' on' : '');
+      b.textContent = lv.label;
+      b.addEventListener('click', () => {
+        me.help = i;
+        saveFriends();
+        buildHelpRow();
+        if (NET.role === 'host'){
+          const mine = NET.lobby.find(p => p.id === 'host');
+          if (mine){ mine.help = i; pushLobby(); }
+        }
+      });
+      host.appendChild(b);
     });
-    host.appendChild(b);
   });
 }
 
@@ -2409,6 +2418,7 @@ function stepBall(dt, dead){
       M.bounces = 0;
       M.rally++;
       M.bestRally = Math.max(M.bestRally, M.rally);
+      claimBall();
       armTarget();
     }
   }
@@ -2515,6 +2525,29 @@ function cpuShot(p, mustScoop){
   if (r < p.skill * 0.40) return { mod: 'side', hard: Math.random() < 0.5 };
   return { mod: null, hard: Math.random() < 0.45 + p.skill * 0.2 };
 }
+/* Whoever is best placed plays it.
+   The ball used to be handed out on a fixed rota, decided the instant it was
+   struck — so you could be given a ball that came down the other side of the
+   court, next to somebody else's feet, and take the letter for not reaching
+   it. Now the rota only decides who it is aimed at; who actually has to play
+   it is settled when it comes off the wall, by who is closest to where it is
+   going to land. You can never be handed your own return. */
+function claimBall(){
+  if (!M || M.solo) return;
+  const spot = predictLanding();
+  if (!spot) return;
+  let best = -1, bestD = Infinity;
+  M.players.forEach((p, i) => {
+    if (p.out || p.gone || i === M.lastHitter) return;
+    const d = Math.hypot(p.cx - spot.x, p.cy - spot.y);
+    if (d < bestD){ bestD = d; best = i; }
+  });
+  if (best >= 0 && best !== M.turn){
+    M.turn = best;
+    updateScoreStrip();
+  }
+}
+
 /* Whoever the ball is heading to next gets their wits about them. */
 function armTarget(){
   const t = M.players[M.turn];
