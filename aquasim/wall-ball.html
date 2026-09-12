@@ -2259,7 +2259,10 @@ function faultOn(i, reason){
      replayed. Only ever their own — putting it out, under the line, over the
      top, or never reaching the wall. Letting somebody off for failing to
      return would take the point away from whoever earned it. */
-  const ownError = reason === 'out' || reason === 'low' || reason === 'over' || reason === 'short';
+  /* only a letter for your OWN shot can be let off — not one for failing to
+     get to a ball somebody else struck */
+  const ownError = i === M.lastHitter &&
+    (reason === 'out' || reason === 'low' || reason === 'over' || reason === 'short');
   const mercy = clamp(((p.ease || 1) - 1) * 1.3, 0, 0.75);
   if (ownError && mercy > 0 && Math.random() < mercy){
     M.state = 'point';
@@ -2361,6 +2364,16 @@ function update(dt){
 
   M.players.forEach((p, i) => updatePlayer(p, i, dt));
   hitReq = null;
+
+  /* keep track of which way everybody is moving, so a letter can go to
+     whoever was running at the ball when it died */
+  M.players.forEach(p => {
+    if (p.pcx === undefined){ p.pcx = p.cx; p.pcy = p.cy; p.mvx = 0; p.mvy = 0; }
+    const k = Math.min(1, dt * 8);
+    p.mvx = lerp(p.mvx, (p.cx - p.pcx) / Math.max(dt, 1e-3), k);
+    p.mvy = lerp(p.mvy, (p.cy - p.pcy) / Math.max(dt, 1e-3), k);
+    p.pcx = p.cx; p.pcy = p.cy;
+  });
 
   /* puffs, marks and the trail */
   for (let i = M.puffs.length - 1; i >= 0; i--){
@@ -2521,17 +2534,18 @@ function stepBall(dt, dead){
     if (!dead){
       M.bounces++;
       if (!M.wallHit && M.bounces >= 2){ faultOn(M.lastHitter, 'short'); return; }
-      if (M.wallHit && M.bounces >= 2){ faultOn(M.turn, 'twice'); return; }
+      if (M.wallHit && M.bounces >= 2){ faultOn(whoLetItGo(), 'twice'); return; }
     }
   }
   /* rolled to a stop */
   if (!dead && b.z < BALL_R + 0.05 && Math.hypot(b.vx, b.vy) < 1.4 && Math.abs(b.vz) < 1.4){
-    faultOn(M.wallHit ? M.turn : M.lastHitter, M.wallHit ? 'twice' : 'short');
+    faultOn(M.wallHit ? whoLetItGo() : M.lastHitter, M.wallHit ? 'twice' : 'short');
     return;
   }
-  /* out of the playground */
+  /* out of the playground — once it has come off the wall, whoever let it go
+     takes it; before that, it was the hitter who sprayed it */
   if (!dead && (b.x < -3.4 || b.x > COURT_W + 3.4 || b.y > COURT_D + 2.5)){
-    faultOn(M.lastHitter, 'out');
+    faultOn(M.wallHit ? whoLetItGo() : M.lastHitter, 'out');
   }
 }
 function puffWall(x, z){
@@ -2618,6 +2632,26 @@ function cpuShot(p, mustScoop){
    it. Now the rota only decides who it is aimed at; who actually has to play
    it is settled when it comes off the wall, by who is closest to where it is
    going to land. You can never be handed your own return. */
+/* The ball has died on the court side of the wall. Who let it go?
+   Whoever is nearest to it right now — and anyone running at it counts as
+   quite a bit nearer, because they were the one going for it. The player who
+   hit it is never picked: you can't be expected to return your own shot. */
+function whoLetItGo(){
+  const b = M.ball;
+  let best = -1, bestScore = Infinity;
+  M.players.forEach((p, i) => {
+    if (p.out || p.gone) return;
+    if (!M.solo && i === M.lastHitter) return;
+    const dx = b.x - p.cx, dy = b.y - p.cy;
+    const d = Math.hypot(dx, dy);
+    const sp = Math.hypot(p.mvx || 0, p.mvy || 0);
+    const toward = (sp > 1.5 && d > 0.01) ? ((p.mvx * dx + p.mvy * dy) / (sp * d)) : 0;
+    const score = d * (toward > 0.7 ? 0.6 : 1);
+    if (score < bestScore){ bestScore = score; best = i; }
+  });
+  return best >= 0 ? best : M.turn;
+}
+
 function claimBall(){
   if (!M || M.solo) return;
   const spot = predictLanding();
