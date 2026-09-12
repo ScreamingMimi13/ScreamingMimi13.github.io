@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Job Hub — Walk, Work, Earn</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { width: 100%; height: 100%; }
+    body {
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background: #222;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    header {
+      background: rgba(0,0,0,0.7);
+      padding: 10px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      z-index: 50;
+    }
+    header h1 { font-size: 1.2rem; }
+    .stats {
+      display: flex;
+      gap: 12px;
+      font-size: 0.9rem;
+      font-weight: bold;
+    }
+    .stat { background: rgba(255,255,255,0.1); padding: 5px 10px; border-radius: 4px; }
+
+    #game-container {
+      flex: 1;
+      position: relative;
+      background: #1a1a1a;
+      overflow: hidden;
+    }
+
+    canvas#world {
+      display: block;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(180deg, #87ceeb 0%, #e0f6ff 100%);
+    }
+
+    .ui-overlay {
+      position: absolute;
+      bottom: 16px;
+      left: 16px;
+      right: 16px;
+      z-index: 40;
+    }
+
+    .dialog-box {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(255,255,255,0.95);
+      color: #222;
+      padding: 20px;
+      border-radius: 8px;
+      max-width: 400px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+      z-index: 100;
+      display: none;
+      text-align: center;
+    }
+    .dialog-box.show { display: block; }
+    .dialog-box h3 { margin-bottom: 8px; font-size: 1.1rem; }
+    .dialog-box p { margin-bottom: 12px; font-size: 0.9rem; line-height: 1.4; }
+    .dialog-box .job-offer {
+      background: #f0f0f0;
+      padding: 12px;
+      border-radius: 6px;
+      margin: 12px 0;
+      font-size: 0.85rem;
+    }
+    .dialog-box .job-offer b { color: #2ecc71; display: block; font-size: 1.1rem; }
+    .dialog-box button {
+      background: #3498db;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+      margin-top: 8px;
+      font-size: 0.9rem;
+    }
+    .dialog-box button:hover { background: #2980b9; }
+    .dialog-box button.reject {
+      background: #95a5a6;
+      margin-left: 8px;
+    }
+    .dialog-box button.reject:hover { background: #7f8c8d; }
+
+    .avatar-creator {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+    }
+    .avatar-creator.hidden { display: none; }
+    .creator-panel {
+      background: #2a2a2a;
+      padding: 30px;
+      border-radius: 12px;
+      max-width: 500px;
+      color: #fff;
+    }
+    .creator-panel h2 { margin-bottom: 20px; font-size: 1.4rem; }
+    .creator-section {
+      margin-bottom: 20px;
+    }
+    .creator-section label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: bold;
+      font-size: 0.9rem;
+    }
+    .color-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+    .color-btn {
+      width: 50px;
+      height: 50px;
+      border: 3px solid transparent;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .color-btn:hover { transform: scale(1.1); }
+    .color-btn.selected { border-color: #fff; box-shadow: 0 0 10px rgba(255,255,255,0.5); }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 10px;
+      border: 2px solid #444;
+      border-radius: 4px;
+      background: #1a1a1a;
+      color: #fff;
+      font-family: inherit;
+      font-size: 0.95rem;
+    }
+    input[type="text"]:focus {
+      outline: none;
+      border-color: #3498db;
+    }
+
+    .avatar-preview-box {
+      background: #1a1a1a;
+      padding: 20px;
+      border-radius: 8px;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    #avatar-preview-canvas {
+      max-width: 100%;
+      height: auto;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+    }
+
+    .btn-start {
+      width: 100%;
+      padding: 12px;
+      background: #2ecc71;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-weight: bold;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-start:hover { background: #27ae60; }
+
+    .keys-hint {
+      position: absolute;
+      bottom: 12px;
+      right: 12px;
+      font-size: 0.75rem;
+      color: rgba(255,255,255,0.5);
+      text-align: right;
+    }
+
+    @media (max-width: 768px) {
+      header {
+        font-size: 0.85rem;
+      }
+      .stats { gap: 8px; }
+      .stat { padding: 4px 8px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>💼 Job Hub</h1>
+    <div class="stats">
+      <div class="stat">💰 $<span id="money">0</span></div>
+      <div class="stat">⏰ <span id="jobs-done">0</span> jobs</div>
+    </div>
+  </header>
+
+  <div id="game-container">
+    <canvas id="world"></canvas>
+    <div class="keys-hint">WASD or Arrows to move<br>Click job offers to accept</div>
+  </div>
+
+  <div id="avatar-creator" class="avatar-creator">
+    <div class="creator-panel">
+      <h2>Create Your Avatar</h2>
+
+      <div class="avatar-preview-box">
+        <canvas id="avatar-preview-canvas" width="120" height="140"></canvas>
+      </div>
+
+      <div class="creator-section">
+        <label>Name</label>
+        <input type="text" id="player-name" placeholder="Your name..." maxlength="16">
+      </div>
+
+      <div class="creator-section">
+        <label>Skin Tone</label>
+        <div class="color-grid" id="skin-colors"></div>
+      </div>
+
+      <div class="creator-section">
+        <label>Hair</label>
+        <div class="color-grid" id="hair-colors"></div>
+      </div>
+
+      <div class="creator-section">
+        <label>Shirt</label>
+        <div class="color-grid" id="shirt-colors"></div>
+      </div>
+
+      <button class="btn-start" id="start-btn">Start Working!</button>
+    </div>
+  </div>
+
+  <div id="dialog-box" class="dialog-box">
+    <h3 id="npc-name"></h3>
+    <p id="job-desc"></p>
+    <div class="job-offer">
+      Pay: <b id="job-pay">$0</b>
+    </div>
+    <button id="accept-btn">Accept Job</button>
+    <button class="reject" id="reject-btn">Decline</button>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('world');
+    const ctx = canvas.getContext('2d');
+    let gameRunning = false;
+
+    const GAME = {
+      width: 800,
+      height: 600,
+      player: {
+        x: 400,
+        y: 300,
+        vx: 0,
+        vy: 0,
+        speed: 2.5,
+        name: 'Player',
+        skinTone: '#d4a574',
+        hairColor: '#3d2817',
+        shirtColor: '#e74c3c'
+      },
+      money: 0,
+      jobsDone: 0,
+      npcs: [],
+      keys: {},
+      currentDialog: null,
+      currentNPC: null
+    };
+
+    const JOBS = [
+      { id: 1, name: 'Alex', job: 'Deliver packages', pay: 25, color: '#3498db' },
+      { id: 2, name: 'Jordan', job: 'Walk dogs', pay: 30, color: '#e74c3c' },
+      { id: 3, name: 'Casey', job: 'Clean yard', pay: 35, color: '#2ecc71' },
+      { id: 4, name: 'Morgan', job: 'Babysit kids', pay: 40, color: '#f39c12' },
+      { id: 5, name: 'Riley', job: 'Tutor student', pay: 45, color: '#9b59b6' },
+      { id: 6, name: 'Taylor', job: 'Pet sitting', pay: 28, color: '#1abc9c' },
+    ];
+
+    function resizeCanvas() {
+      canvas.width = Math.min(window.innerWidth, 1200);
+      canvas.height = Math.min(window.innerHeight - 50, 800);
+    }
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
+    function drawCharacter(x, y, skinTone, hairColor, shirtColor, isPlayer = false) {
+      ctx.save();
+
+      // Head
+      ctx.fillStyle = skinTone;
+      ctx.beginPath();
+      ctx.arc(x, y - 12, 8, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Hair
+      ctx.fillStyle = hairColor;
+      ctx.beginPath();
+      ctx.arc(x, y - 15, 8, 0, Math.PI * 1.5);
+      ctx.fill();
+
+      // Body
+      ctx.fillStyle = shirtColor;
+      ctx.fillRect(x - 6, y, 12, 14);
+
+      // Arms
+      ctx.fillStyle = skinTone;
+      ctx.fillRect(x - 7, y + 1, 3, 8);
+      ctx.fillRect(x + 4, y + 1, 3, 8);
+
+      // Legs
+      ctx.fillStyle = '#333';
+      ctx.fillRect(x - 3, y + 15, 2, 6);
+      ctx.fillRect(x + 1, y + 15, 2, 6);
+
+      if (isPlayer) {
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(x, y - 12, 9, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      ctx.restore();
+    }
+
+    function drawPreviewAvatar() {
+      const preview = document.getElementById('avatar-preview-canvas');
+      const pctx = preview.getContext('2d');
+      pctx.fillStyle = '#f0f0f0';
+      pctx.fillRect(0, 0, preview.width, preview.height);
+      drawCharacter(60, 70, GAME.player.skinTone, GAME.player.hairColor, GAME.player.shirtColor, false);
+    }
+
+    function initColorSelectors() {
+      const skins = ['#d4a574', '#c9a961', '#e8b8a0', '#7d6b47'];
+      const hairs = ['#3d2817', '#5a4a3a', '#8b6f47', '#c0c0c0'];
+      const shirts = ['#e74c3c', '#3498db', '#2ecc71', '#f39c12', '#9b59b6', '#34495e'];
+
+      [
+        { id: 'skin-colors', colors: skins, key: 'skinTone' },
+        { id: 'hair-colors', colors: hairs, key: 'hairColor' },
+        { id: 'shirt-colors', colors: shirts, key: 'shirtColor' }
+      ].forEach(({ id, colors, key }) => {
+        const grid = document.getElementById(id);
+        colors.forEach(color => {
+          const btn = document.createElement('button');
+          btn.className = 'color-btn';
+          if (GAME.player[key] === color) btn.classList.add('selected');
+          btn.style.background = color;
+          btn.onclick = () => {
+            grid.querySelectorAll('.color-btn').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+            GAME.player[key] = color;
+            drawPreviewAvatar();
+          };
+          grid.appendChild(btn);
+        });
+      });
+
+      drawPreviewAvatar();
+    }
+
+    function spawnNPCs() {
+      GAME.npcs = [];
+      JOBS.forEach((job, i) => {
+        let x, y;
+        do {
+          x = Math.random() * (GAME.width - 60) + 30;
+          y = Math.random() * (GAME.height - 60) + 30;
+        } while (Math.hypot(x - GAME.player.x, y - GAME.player.y) < 100);
+
+        GAME.npcs.push({
+          id: job.id,
+          x: x,
+          y: y,
+          vx: (Math.random() - 0.5) * 0.8,
+          vy: (Math.random() - 0.5) * 0.8,
+          name: job.name,
+          jobDesc: job.job,
+          pay: job.pay,
+          color: job.color,
+          approachDistance: 80,
+          approaching: false,
+          approachX: x,
+          approachY: y
+        });
+      });
+    }
+
+    function updateNPCs() {
+      GAME.npcs.forEach(npc => {
+        const dx = GAME.player.x - npc.x;
+        const dy = GAME.player.y - npc.y;
+        const dist = Math.hypot(dx, dy);
+
+        if (dist < npc.approachDistance && !npc.approaching) {
+          npc.approaching = true;
+          npc.approachX = GAME.player.x;
+          npc.approachY = GAME.player.y;
+        }
+
+        if (npc.approaching) {
+          const adx = npc.approachX - npc.x;
+          const ady = npc.approachY - npc.y;
+          const adist = Math.hypot(adx, ady);
+
+          if (adist > 2) {
+            npc.vx = (adx / adist) * 1.5;
+            npc.vy = (ady / adist) * 1.5;
+          } else {
+            npc.vx = 0;
+            npc.vy = 0;
+            if (!GAME.currentDialog) {
+              showDialog(npc);
+            }
+          }
+        }
+
+        npc.x += npc.vx;
+        npc.y += npc.vy;
+
+        if (npc.x < 15) npc.x = 15;
+        if (npc.x > GAME.width - 15) npc.x = GAME.width - 15;
+        if (npc.y < 15) npc.y = 15;
+        if (npc.y > GAME.height - 15) npc.y = GAME.height - 15;
+      });
+    }
+
+    function showDialog(npc) {
+      GAME.currentDialog = npc;
+      GAME.currentNPC = npc;
+      document.getElementById('npc-name').textContent = npc.name + ' says:';
+      document.getElementById('job-desc').textContent = npc.jobDesc;
+      document.getElementById('job-pay').textContent = '$' + npc.pay;
+      document.getElementById('dialog-box').classList.add('show');
+    }
+
+    function closeDialog() {
+      document.getElementById('dialog-box').classList.remove('show');
+      if (GAME.currentNPC) {
+        GAME.currentNPC.approaching = false;
+      }
+      GAME.currentDialog = null;
+      GAME.currentNPC = null;
+    }
+
+    function acceptJob(npc) {
+      GAME.money += npc.pay;
+      GAME.jobsDone += 1;
+      document.getElementById('money').textContent = GAME.money;
+      document.getElementById('jobs-done').textContent = GAME.jobsDone;
+
+      npc.approaching = false;
+      npc.x = Math.random() * (GAME.width - 60) + 30;
+      npc.y = Math.random() * (GAME.height - 60) + 30;
+
+      closeDialog();
+    }
+
+    function handleInput() {
+      GAME.player.vx = 0;
+      GAME.player.vy = 0;
+
+      if (GAME.keys['w'] || GAME.keys['ArrowUp']) GAME.player.vy = -GAME.player.speed;
+      if (GAME.keys['s'] || GAME.keys['ArrowDown']) GAME.player.vy = GAME.player.speed;
+      if (GAME.keys['a'] || GAME.keys['ArrowLeft']) GAME.player.vx = -GAME.player.speed;
+      if (GAME.keys['d'] || GAME.keys['ArrowRight']) GAME.player.vx = GAME.player.speed;
+
+      GAME.player.x += GAME.player.vx;
+      GAME.player.y += GAME.player.vy;
+
+      if (GAME.player.x < 15) GAME.player.x = 15;
+      if (GAME.player.x > GAME.width - 15) GAME.player.x = GAME.width - 15;
+      if (GAME.player.y < 15) GAME.player.y = 15;
+      if (GAME.player.y > GAME.height - 15) GAME.player.y = GAME.height - 15;
+    }
+
+    function draw() {
+      ctx.fillStyle = 'linear-gradient(180deg, #87ceeb 0%, #e0f6ff 100%)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.fillStyle = '#ddd';
+      ctx.fillRect(0, canvas.height - 40, canvas.width, 40);
+
+      GAME.npcs.forEach(npc => {
+        drawCharacter(npc.x, npc.y, '#e8b8a0', '#5a4a3a', npc.color, false);
+        ctx.fillStyle = '#222';
+        ctx.font = '10px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(npc.name, npc.x, npc.y + 25);
+      });
+
+      drawCharacter(GAME.player.x, GAME.player.y, GAME.player.skinTone, GAME.player.hairColor, GAME.player.shirtColor, true);
+      ctx.fillStyle = '#222';
+      ctx.font = 'bold 11px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(GAME.player.name, GAME.player.x, GAME.player.y + 28);
+    }
+
+    function gameLoop() {
+      if (!gameRunning) return;
+
+      handleInput();
+      updateNPCs();
+      draw();
+
+      requestAnimationFrame(gameLoop);
+    }
+
+    document.addEventListener('keydown', (e) => {
+      GAME.keys[e.key.toLowerCase()] = true;
+      if (e.key === 'Escape') closeDialog();
+    });
+    document.addEventListener('keyup', (e) => {
+      GAME.keys[e.key.toLowerCase()] = false;
+    });
+
+    document.getElementById('start-btn').onclick = () => {
+      const name = document.getElementById('player-name').value.trim();
+      if (!name) return;
+      GAME.player.name = name;
+      document.getElementById('avatar-creator').classList.add('hidden');
+      gameRunning = true;
+      spawnNPCs();
+      gameLoop();
+    };
+
+    document.getElementById('accept-btn').onclick = () => {
+      if (GAME.currentNPC) acceptJob(GAME.currentNPC);
+    };
+
+    document.getElementById('reject-btn').onclick = closeDialog;
+
+    window.addEventListener('load', () => {
+      initColorSelectors();
+    });
+  </script>
+</body>
+</html>
