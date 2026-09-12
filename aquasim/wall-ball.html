@@ -1903,6 +1903,33 @@ function askSwing(hard){
 }
 function beginPress(){ pressAt = performance.now(); pressSpent = false; }
 
+/* Combos fire without space. Only the keyboard arms one this way — on a phone
+   the stick is how you move, so pushing it would set shots off constantly. */
+let armedMod = null, armedUntil = 0;
+const ARM_MS = 650;
+function chordMod(){
+  const up = !!(keys.ArrowUp    || keys.w || keys.W);
+  const dn = !!(keys.ArrowDown  || keys.s || keys.S);
+  const lf = !!(keys.ArrowLeft  || keys.a || keys.A);
+  const rt = !!(keys.ArrowRight || keys.d || keys.D);
+  if (up && dn) return 'dig';
+  if (up && rt) return 'low';
+  if (up && lf) return 'side';
+  return null;
+}
+/* Would a swing with this shot connect right now? Used so an armed combo waits
+   for the ball instead of whiffing the moment you press it. */
+function canPlayNow(mod){
+  if (!M) return false;
+  const i = M.players.findIndex(p => p.isYou);
+  if (i < 0) return false;
+  const p = M.players[i];
+  if (p.out) return false;
+  if (M.state === 'serve') return M.server === i;
+  if (M.state === 'rally') return M.turn === i && M.wallHit && swingQuality(p, mod) >= 0;
+  return false;
+}
+
 window.addEventListener('keydown', e => {
   if (!$('#screenGame').classList.contains('active')) return;
   const k = e.key;
@@ -1911,13 +1938,24 @@ window.addEventListener('keydown', e => {
   }
   if ((k === ' ' || k === 'Spacebar') && !keys[' ']) beginPress();
   if (k >= '1' && k <= '4' && !keys[k]) sendEmote(+k - 1);
+  const fresh = !keys[k === 'Spacebar' ? ' ' : k];
   keys[k === 'Spacebar' ? ' ' : k] = true;
+  /* Completing a combo is enough on its own — no space needed. The swing is
+     held ready for a moment, so you can press it a touch early and it goes
+     off as soon as the ball is yours and in reach. */
+  if (fresh && (k === 'ArrowUp' || k === 'ArrowDown' || k === 'ArrowLeft' || k === 'ArrowRight')){
+    const mod = chordMod();
+    if (mod){ armedMod = mod; armedUntil = performance.now() + ARM_MS; }
+  }
   if (k === 'Escape') togglePause();
   if (k === 'p' || k === 'P') togglePause();
 });
 window.addEventListener('keyup', e => {
   const k = e.key === 'Spacebar' ? ' ' : e.key;
-  if (k === ' ' && !pressSpent) askSwing(true);      // let go quickly
+  /* Judge jab or hold by how long the key was actually down, not by whether a
+     frame happened to land mid-press — on a slow or busy device a long hold
+     could otherwise slip through and come out as a jab. */
+  if (k === ' ' && !pressSpent) askSwing(performance.now() - pressAt <= JAB_MS);
   keys[k] = false;
 });
 window.addEventListener('blur', () => {
@@ -2310,6 +2348,16 @@ function update(dt){
 
   /* a held press turns into the gentler shot once it passes the jab window */
   if (!pressSpent && (keys[' '] || touchHold) && performance.now() - pressAt > JAB_MS) askSwing(false);
+
+  /* an armed combo goes off by itself once the ball is yours and in reach */
+  if (armedMod && !hitReq){
+    if (performance.now() > armedUntil) armedMod = null;
+    else if (canPlayNow(armedMod)){
+      hitReq = { hard: true, mod: armedMod };
+      armedMod = null;
+      pressSpent = true;             // don't let a space press fire a second swing
+    }
+  }
 
   M.players.forEach((p, i) => updatePlayer(p, i, dt));
   hitReq = null;
