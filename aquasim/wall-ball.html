@@ -539,13 +539,13 @@ function shade(hex, amt){
 }
 
 /* ============================================================
-   2. The eight kids
+   2. The ten kids
    ============================================================ */
 const CHARACTERS = [
-  { id:'nora',  name:'Nora',  skin:'#e8b98d', hair:'#5a3a24', hairStyle:'bob',
+  { id:'emma',  name:'Emma',  skin:'#e8b98d', hair:'#5a3a24', hairStyle:'bob',
     top:'#d8228c', topStyle:'tee',  bottom:'#1d1c22', bottomStyle:'bell',
     desc:'Brown bob, magenta tee, black bell-bottoms' },
-  { id:'piper', name:'Piper', skin:'#f3d0aa', hair:'#ecd07a', hairStyle:'bob',
+  { id:'alex',  name:'Alex',  skin:'#f3d0aa', hair:'#ecd07a', hairStyle:'bob',
     top:'#ff90c2', topStyle:'tee',  bottom:'#8ecdf0', bottomStyle:'shorts',
     desc:'Blond bob, pink tee, light blue shorts' },
   { id:'sadie', name:'Sadie', skin:'#f0c9a0', hair:'#f0d98a', hairStyle:'long',
@@ -560,7 +560,7 @@ const CHARACTERS = [
   { id:'dash',  name:'Dash',  skin:'#e9c19b', hair:'#141318', hairStyle:'short',
     top:'#1f3a72', topStyle:'tee',  bottom:'#1d1c22', bottomStyle:'shorts',
     desc:'Short black hair, navy tee, black shorts' },
-  { id:'finn',  name:'Finn',  skin:'#efc9a2', hair:'#ddc06a', hairStyle:'mop',
+  { id:'leo',   name:'Leo',   skin:'#efc9a2', hair:'#ddc06a', hairStyle:'mop',
     top:'#26252c', topStyle:'tee',  bottom:'#1d1c22', bottomStyle:'pants',
     desc:'Blond hair, black tee, black pants' },
   { id:'gus',   name:'Gus',   skin:'#f0c9a0', hair:'#7a5230', hairStyle:'short',
@@ -568,7 +568,10 @@ const CHARACTERS = [
     desc:'Glasses, green tee, black shorts' },
   { id:'milo',  name:'Milo',  skin:'#f3d0aa', hair:'#1b1920', hairStyle:'mop',
     top:'#cf3030', topStyle:'tee',  bottom:'#1d1c22', bottomStyle:'shorts',
-    desc:'Black hair, red tee, black shorts' }
+    desc:'Black hair, red tee, black shorts' },
+  { id:'maya',  name:'Maya',  skin:'#e8c8a0', hair:'#4a3220', hairStyle:'curly',
+    top:'#1d1c22', topStyle:'tee',  bottom:'#1d1c22', bottomStyle:'shorts',
+    desc:'Curly brown hair, black tee, black shorts' }
 ];
 const charById = id => CHARACTERS.find(c => c.id === id) || CHARACTERS[0];
 
@@ -852,17 +855,17 @@ function drawKid(ctx, ch, x, groundY, h, opt){
     ctx.beginPath();
     ctx.arc(0, hy - hr * 0.34, hr * 0.9, 0, Math.PI * 2);
     ctx.fill();
-    for (let i = 0; i < 9; i++){
-      const a = Math.PI * 1.02 + (i / 8) * Math.PI * 0.96;
-      ctx.beginPath();
-      ctx.arc(Math.cos(a) * hr * 1.02, hy - hr * 0.2 + Math.sin(a) * hr * 0.96, 5.1, 0, Math.PI * 2);
-      ctx.fill();
-    }
-    ctx.fillStyle = shade(hair, 34);
     for (let i = 0; i < 5; i++){
       const a = Math.PI * 1.14 + (i / 4) * Math.PI * 0.72;
       ctx.beginPath();
-      ctx.arc(Math.cos(a) * hr * 0.98 - 1.2, hy - hr * 0.24 + Math.sin(a) * hr * 0.92 - 1.2, 2.1, 0, Math.PI * 2);
+      ctx.arc(Math.cos(a) * hr * 0.86, hy - hr * 0.22 + Math.sin(a) * hr * 0.84, 3.8, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.fillStyle = shade(hair, 34);
+    for (let i = 0; i < 3; i++){
+      const a = Math.PI * 1.25 + (i / 2) * Math.PI * 0.5;
+      ctx.beginPath();
+      ctx.arc(Math.cos(a) * hr * 0.78 - 0.8, hy - hr * 0.28 + Math.sin(a) * hr * 0.76 - 0.8, 1.5, 0, Math.PI * 2);
       ctx.fill();
     }
     ctx.fillStyle = hair;
