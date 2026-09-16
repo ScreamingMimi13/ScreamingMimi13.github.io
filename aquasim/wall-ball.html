@@ -389,7 +389,7 @@
           <b>&#8592; &#8594; &#8593; &#8595;</b> move around the blacktop &mdash; up and down walks you toward or away from the wall.<br>
           <b>SPACE</b> swings at the ball. On a phone, use the stick and the big <b>HIT</b> button.<br>
           <b>1 2 3 4</b> shout something to the others.<br>
-          The ball must hit the wall above the line. You get one ground bounce to return it &mdash; two and it's your letter. Spell <b>W-A-L-L</b> and you're out.<br>
+          The ball must hit the wall. Miss it or hit it out of bounds and you're out. One ground bounce to return it after it comes off the wall.<br>
           <i>Some kids swear there are other ways to hit it. None of them will say how.</i>
         </div>
       </div>
@@ -580,8 +580,8 @@ const CHAR_EASE = {
   '4': 0.85,   // Rex (boy)
   '5': 0.85,   // Dash (boy)
   '6': 0.85,   // Leo (boy)
-  '7': 1.00,   // Gus (neutral)
-  '8': 1.00,   // Milo (neutral)
+  '7': 0.85,   // Gus (boy)
+  '8': 0.85,   // Milo (boy)
   '9': 1.02    // Maya (girl)
 };
 CHARACTERS.forEach(c => { c.ease = CHAR_EASE[c.id] || 1; });
@@ -1830,11 +1830,6 @@ function updateScoreStrip(){
     if (!p) return;
     card.classList.toggle('turn', !p.out && M.players.indexOf(p) === M.turn && M.state !== 'over');
     card.classList.toggle('out', p.out || p.gone);
-    let s = '';
-    for (let k = 0; k < 4; k++){
-      s += k < p.letters ? LETTERS[k] : '<i>' + LETTERS[k] + '</i>';
-    }
-    $('.sletters', card).innerHTML = s;
   });
 }
 
@@ -2257,14 +2252,29 @@ function faultOn(i, reason){
   const p = M.players[i];
   if (!p) return;
 
+  /* Out of bounds eliminates immediately */
+  if (reason === 'out'){
+    p.out = true;
+    M.ranking.unshift(p);
+    M.state = 'point';
+    M.timer = 2.0;
+    M.landing = null;
+    fire({ t: 'ev', kind: 'fault', i: i, reason: reason, out: true });
+    updateScoreStrip();
+    if (checkOver(i)) return;
+    M.server = nextAliveFrom(i);
+    M.turn = M.server;
+    return;
+  }
+
   /* A steadier player gets some of their own mistakes waved off and the point
-     replayed. Only ever their own — putting it out, under the line, over the
-     top, or never reaching the wall. Letting somebody off for failing to
-     return would take the point away from whoever earned it. */
+     replayed. Only ever their own — putting it over the top or never reaching
+     the wall. Letting somebody off for failing to return would take the point
+     away from whoever earned it. */
   /* only a letter for your OWN shot can be let off — not one for failing to
      get to a ball somebody else struck */
   const ownError = i === M.lastHitter &&
-    (reason === 'out' || reason === 'low' || reason === 'over' || reason === 'short');
+    (reason === 'over' || reason === 'short');
   const mercy = clamp(((p.ease || 1) - 1) * 1.3, 0, 0.75);
   if (ownError && mercy > 0 && Math.random() < mercy){
     M.state = 'point';
@@ -2502,12 +2512,6 @@ function stepBall(dt, dead){
   /* the wall */
   if (b.y < BALL_R && b.vy < 0){
     if (!dead && b.z > WALL_H){ faultOn(M.lastHitter, 'over'); return; }
-    if (!dead && b.z < LOW_LINE){
-      b.y = BALL_R; b.vy = -b.vy * 0.55;
-      b.squash = 1; b.squashAxis = 'y';
-      faultOn(M.lastHitter, 'low');
-      return;
-    }
     b.y = BALL_R;
     b.vy = -b.vy * 0.92;
     b.vx *= 0.97;
@@ -3145,13 +3149,6 @@ function drawPlayer(g, p, i){
   g.textBaseline = 'alphabetic';
   g.fillText(label, q.x, tagY);
 
-  /* letters over the head */
-  if (p.letters > 0){
-    g.font = 'bold ' + Math.max(9, Math.round(q.s * 0.26)) + 'px system-ui, sans-serif';
-    g.fillStyle = '#ffd9d0';
-    g.fillText(LETTERS.slice(0, p.letters).join(''), q.x, tagY - 15);
-  }
-
   /* the "your turn" arrow */
   if (isTurn){
     const bob = Math.sin(performance.now() / 180) * 4;
@@ -3294,10 +3291,8 @@ function showResults(result){
     info.innerHTML = '<div class="phandle">' +
       (!isMe && friendOf(r.handle) ? '<span class="star">★</span> ' : '') +
       '@' + r.handle + (isMe ? ' (you)' : '') + '</div>' +
-      '<div class="pmeta">' + r.hits + ' returns · ' + r.clean + ' clean · ' +
-      (r.gone ? 'left early'
-              : r.letters >= 4 ? 'spelled WALL'
-              : 'survived with ' + (r.letters ? LETTERS.slice(0, r.letters).join('') : 'no letters')) +
+      '<div class="pmeta">' + r.hits + ' returns · ' + r.clean + ' clean' +
+      (r.gone ? ' · left early' : '') +
       '</div>';
     row.appendChild(info);
     pod.appendChild(row);
