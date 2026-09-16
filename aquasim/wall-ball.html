@@ -582,7 +582,7 @@ const CHAR_EASE = {
   '6': 0.85,   // Leo (boy)
   '7': 0.85,   // Gus (boy)
   '8': 0.85,   // Milo (boy)
-  '9': 1.02    // Maya (girl)
+  '9': 0.85    // Maya (boy)
 };
 CHARACTERS.forEach(c => { c.ease = CHAR_EASE[c.id] || 1; });
 
@@ -847,19 +847,19 @@ function drawKid(ctx, ch, x, groundY, h, opt){
     ctx.fill();
   } else if (S === 'curly'){
     ctx.beginPath();
-    ctx.arc(0, hy - hr * 0.34, hr * 0.9, 0, Math.PI * 2);
+    ctx.arc(0, hy - hr * 0.5, hr * 0.9, 0, Math.PI * 2);
     ctx.fill();
     for (let i = 0; i < 5; i++){
       const a = Math.PI * 1.14 + (i / 4) * Math.PI * 0.72;
       ctx.beginPath();
-      ctx.arc(Math.cos(a) * hr * 0.86, hy - hr * 0.22 + Math.sin(a) * hr * 0.84, 3.8, 0, Math.PI * 2);
+      ctx.arc(Math.cos(a) * hr * 0.86, hy - hr * 0.42 + Math.sin(a) * hr * 0.84, 3.8, 0, Math.PI * 2);
       ctx.fill();
     }
     ctx.fillStyle = shade(hair, 34);
     for (let i = 0; i < 3; i++){
       const a = Math.PI * 1.25 + (i / 2) * Math.PI * 0.5;
       ctx.beginPath();
-      ctx.arc(Math.cos(a) * hr * 0.78 - 0.8, hy - hr * 0.28 + Math.sin(a) * hr * 0.76 - 0.8, 1.5, 0, Math.PI * 2);
+      ctx.arc(Math.cos(a) * hr * 0.78 - 0.8, hy - hr * 0.48 + Math.sin(a) * hr * 0.76 - 0.8, 1.5, 0, Math.PI * 2);
       ctx.fill();
     }
     ctx.fillStyle = hair;
